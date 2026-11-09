@@ -1,0 +1,10 @@
+# Erfundene oder öffentlich bekannte Beispielwerte, die die Datenschutz-Prüfung
+# passieren dürfen (tools/privacy_guard.py). Ein Wert pro Zeile; Leerzeichen
+# und Groß-/Kleinschreibung zählen nicht. Nur Beispielwerte, nie echte Daten.
+
+# Gängige Beispiel-IBANs aus Dokumentationen
+DE89 3704 0044 0532 0130 00
+DE02 1203 0000 0000 2020 51
+
+# Beispiel-Steuer-ID aus Dokumentationen
+86095742719

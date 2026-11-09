@@ -1,0 +1,4 @@
+#!/bin/sh
+# Datenschutz-Prüfung der Commit-Nachricht (siehe tools/privacy_guard.py)
+exec uv run --quiet --project "$(git rev-parse --show-toplevel)" \
+  python "$(git rev-parse --show-toplevel)/tools/privacy_guard.py" file "$1"
