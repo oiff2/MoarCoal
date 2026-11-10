@@ -74,7 +74,7 @@ Der zu einem Anlass (z. B. Abgabe einer Steuererklärung) eingefrorene Stand von
 _Avoid_: Sperre, Abgabestand, Festschreibung, Version
 
 **Aussteller**:
-Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Informationen je Aussteller, auf den Dokumente und Verträge verweisen.
+Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Informationen je Aussteller, auf den Dokumente und Verträge verweisen. Ein Aussteller ist eine Firma oder Behörde, außer er ist als **Privatperson** gekennzeichnet (z. B. privater Vermieter); nur dann sind Name und Anschrift sensibel.
 _Avoid_: Absender, Firma, Gegenpartei
 
 **Notiz**:
@@ -120,3 +120,11 @@ _Avoid_: Quittung, Nachweis
 **Vertrag**:
 Eine laufende Vereinbarung eines Nutzers mit einem Aussteller als Vertragspartner (z. B. Versicherung, Darlehen, Mietvertrag, Strom) mit Vertragsnummer und Laufzeit, der Dokumente zugeordnet werden; was der Vertrag fachlich bedeutet, weiß das Modul.
 _Avoid_: Police, Konto, Abo; für die Vereinbarung zwischen Schnittstellen heißt es Contract
+
+**sensibel**:
+Eigenschaft eines Felds (nicht eines einzelnen Werts): sein Inhalt sind echte persönliche Daten (z. B. Name, Anschrift, Vertragsnummer) und darf nicht in git, auf GitHub oder ins Protokoll gelangen; an Claude darf er auf Anforderung des Nutzers gehen.
+_Avoid_: geheim, vertraulich, privat
+
+**Sperrliste**:
+Die Werte, die die Datenschutz-Prüfung vor git und GitHub abfängt: von Hand gepflegt oder aus den sensiblen Feldern der gespeicherten Daten abgeleitet.
+_Avoid_: Denylist, Blacklist, Filterliste
