@@ -16,6 +16,10 @@ _Avoid_: Plugin, Tool, Feature
 Was ein Modul beim Start der App über sich bekannt gibt: seine Schlüssel im Wertekatalog, seine Datenstrukturen, seine Auslese-Vorlagen und seine Seiten in der Oberfläche (Code: `ModuleRegistration`).
 _Avoid_: Registry, Manifest, Plugin-Deklaration; „Anmeldung“ allein (klingt nach Login eines Nutzers)
 
+**abschalten**:
+Ein Nutzer erklärt für sich, dass ihn das Thema eines Moduls nicht betrifft: Das Modul verschwindet aus seiner Navigation, erzeugt keine Befunde, zählt keine Bezugsobjekte auf, und seine Ausgewiesenen Werte entfallen; die Daten bleiben erhalten, Wiedereinschalten stellt alles wieder her.
+_Avoid_: deaktivieren, ausblenden (gilt für Befunde und den Eingang)
+
 **Befund** _(geprägt)_:
 Ein Punkt, der die Aufmerksamkeit eines Nutzers verdient (z. B. ausstehender Beleg, Abweichung zum Schnappschuss, auslaufender Vertrag), mit Schweregrad (Hinweis, Warnung, Fehler) und Verweis auf den betroffenen Eintrag in MoarCoal (z. B. Beleg, Einzelposten, Vertrag, Bezugsobjekt).
 Befunde werden auf Anfrage aus dem aktuellen Stand berechnet und verschwinden, sobald ihre Ursache behoben ist; ein Nutzer kann einen Befund mit Notiz ausblenden, bis sich der zugrunde liegende Stand ändert.
@@ -30,8 +34,12 @@ Eine Person mit eigenen Daten, Belegen und Steuererklärungen; mehrere Nutzer si
 _Avoid_: Account, Profil, Steuerpflichtiger
 
 **Ausgewiesener Wert** _(geprägt)_:
-Das Ergebnis einer Berechnung über Einzelposten, das ein Modul über die Datenebene für andere Module ausweist (Code: `ExposedValue`); er kann selbst in weitere Berechnungen eingehen. Wie gerechnet wird, legt das Modul fest und hält es im Rechenweg fest. Fehlt eine Eingabe, regelt entweder die Rechnung des Moduls ausdrücklich, wie damit umzugehen ist, oder der Wert ist **noch nicht berechenbar**, ebenso jeder Wert, der auf ihm aufbaut; nie eine stille Null.
+Das Ergebnis einer Berechnung über Einzelposten, das ein Modul über die Datenebene für andere Module ausweist (Code: `ExposedValue`); er kann selbst in weitere Berechnungen eingehen. Wie gerechnet wird, legt das Modul fest und hält es im Rechenweg fest. Fehlt eine Eingabe, regelt entweder die Rechnung des Moduls ausdrücklich, wie damit umzugehen ist, oder der Wert ist **noch nicht berechenbar**, ebenso jeder Wert, der auf ihm aufbaut; nie eine stille Null. Trifft ein Wert fachlich nicht zu, etwa weil sein Modul abgeschaltet ist, **entfällt** er.
 _Avoid_: Veröffentlichter Wert, Export, Schnittstelle, Wert (allein), Kennzahl (in ELSTER die Feldnummer), Kennwert
+
+**entfällt**:
+Ergebnis eines Ausgewiesenen Werts, der fachlich nicht zutrifft, mit Grund im Rechenweg (z. B. „Modul Dienstreisen abgeschaltet“); weder Betrag noch noch nicht berechenbar, ohne Befund (Code: `NotApplicable`). Die Datenebene liefert es für die Werte abgeschalteter Module; eine Modul-Rechnung darf es nur als ausdrückliche Entscheidung liefern. Geht ein entfallender Wert in eine andere Rechnung ein, fehlt dort sein Einzelposten, und der Rechenweg nennt den Grund.
+_Avoid_: leer, n/a, null, nicht vorhanden
 
 **Einzelposten** _(geprägt)_:
 Eine Eingabe in die Berechnung eines Ausgewiesenen Werts, mit eigener Einheit, Fundstelle und Belegstand; die Quelle ergibt sich aus der Fundstelle.
