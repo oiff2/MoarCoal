@@ -54,7 +54,7 @@ Ob ein Einzelposten durch einen Beleg gedeckt ist: belegt (Beleg liegt vor), aus
 _Avoid_: Gewissheit, Status, geschätzt, erwartet, geplant, vorläufig
 
 **Bezugsobjekt** _(geprägt)_:
-Das Ding, auf das sich ein Ausgewiesener Wert bezieht (z. B. eine Immobilie), mit stabiler Kennung und Anzeigenamen.
+Der Eintrag, auf den sich ein Ausgewiesener Wert bezieht (z. B. eine Immobilie); er gehört dem Modul, das ihn führt, und andere Module kennen von ihm nur Adresse, Anzeigenamen und seine Ausgewiesenen Werte.
 _Avoid_: Entität; „Objekt“ nur im Immobilienmodul für die Immobilie selbst
 
 **Zeitraum**:
@@ -81,8 +81,20 @@ _Avoid_: Sperre, Abgabestand, Festschreibung, Version
 Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Informationen je Aussteller, auf den Dokumente und Verträge verweisen. Ein Aussteller ist eine Firma oder Behörde, außer er ist als **Privatperson** gekennzeichnet (z. B. privater Vermieter); nur dann sind Name und Anschrift sensibel.
 _Avoid_: Absender, Firma, Gegenpartei
 
+**Eintrag**:
+Etwas Gespeichertes in MoarCoal mit eigener Adresse, z. B. Dokument, Aussteller, Vertrag, Immobilie, Darlehen, Dienstreise; Ausgewiesene Werte und ihre Einzelposten sind berechnet und keine Einträge.
+_Avoid_: Datensatz, Objekt, Entität, Record
+
+**Adresse**:
+Wie ein Eintrag überall in MoarCoal genannt wird (in Notizen, Befunden, Fundstellen, Zuordnungen und Links): seine Art, fachlich benannt und über alle Module eindeutig (z. B. Immobilie, Darlehen), plus eine Kennung, die beim Anlegen zufällig vergeben wird und sich nie ändert (Code: `EntryAddress`).
+_Avoid_: Referenz, Link, Pfad; für die Postanschrift heißt es Anschrift
+
+**zuordnen**:
+Ein Dokument einem anderen Eintrag zuweisen, den es betrifft (z. B. einem Vertrag oder einer Immobilie); die Zuordnung steht am Dokument, egal welchem Modul der andere Eintrag gehört.
+_Avoid_: verknüpfen, verlinken, taggen
+
 **Notiz**:
-Ein freier Text eines Nutzers mit Datum, der an einen beliebigen Eintrag in MoarCoal gehängt werden kann (z. B. Beleg, Einzelposten, Bezugsobjekt), etwa um eine Abweichung zu erklären.
+Ein freier Text eines Nutzers mit Datum, der an einen beliebigen Eintrag in MoarCoal gehängt werden kann (z. B. Beleg, Vertrag, Bezugsobjekt), etwa um eine Abweichung zu erklären; nicht an Berechnetes, denn Einzelposten und Ausgewiesene Werte entstehen bei jeder Anfrage neu.
 _Avoid_: Kommentar, Anmerkung, Memo
 
 **Dokument**:
@@ -122,7 +134,7 @@ Ein Dokument, das einen Betrag nachweist und als Fundstelle für Einzelposten di
 _Avoid_: Quittung, Nachweis
 
 **Vertrag**:
-Eine laufende Vereinbarung eines Nutzers mit einem Aussteller als Vertragspartner (z. B. Versicherung, Darlehen, Mietvertrag, Strom) mit Vertragsnummer und Laufzeit, der Dokumente zugeordnet werden; was der Vertrag fachlich bedeutet, weiß das Modul.
+Eine laufende Vereinbarung eines Nutzers mit einem Aussteller als Vertragspartner (z. B. Versicherung, Darlehen, Mietvertrag, Strom) mit Vertragsnummer und Laufzeit, dem Dokumente zugeordnet werden; was der Vertrag fachlich bedeutet, weiß das Modul.
 _Avoid_: Police, Konto, Abo; für die Vereinbarung zwischen Schnittstellen heißt es Contract
 
 **sensibel**:
