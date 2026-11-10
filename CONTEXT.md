@@ -13,7 +13,7 @@ Ein Themenblock (z. B. Steuerjahr, Immobilie), der auf der Datenebene aufbaut un
 _Avoid_: Plugin, Tool, Feature
 
 **Modulanmeldung** _(geprägt)_:
-Was ein Modul beim Start der App über sich bekannt gibt: seine Schlüssel im Wertekatalog, seine Datenstrukturen, seine Auslese-Vorlagen und seine Seiten in der Oberfläche (Code: `ModuleRegistration`).
+Was ein Modul beim Start der App über sich bekannt gibt: seine Schlüssel im Wertekatalog samt Rechnung und Aufzählung der Bezugsobjekte, seine Arten von Einträgen, seine Dokumentarten und Auslese-Vorlagen, seine Befundarten und seine Seiten in der Oberfläche (Code: `ModuleRegistration`).
 _Avoid_: Registry, Manifest, Plugin-Deklaration; „Anmeldung“ allein (klingt nach Login eines Nutzers)
 
 **abschalten**:
@@ -34,7 +34,7 @@ Eine Person mit eigenen Daten, Belegen und Steuererklärungen; mehrere Nutzer si
 _Avoid_: Account, Profil, Steuerpflichtiger
 
 **Ausgewiesener Wert** _(geprägt)_:
-Das Ergebnis einer Berechnung über Einzelposten, das ein Modul über die Datenebene für andere Module ausweist (Code: `ExposedValue`); er kann selbst in weitere Berechnungen eingehen. Wie gerechnet wird, legt das Modul fest und hält es im Rechenweg fest. Fehlt eine Eingabe, regelt entweder die Rechnung des Moduls ausdrücklich, wie damit umzugehen ist, oder der Wert ist **noch nicht berechenbar**, ebenso jeder Wert, der auf ihm aufbaut; nie eine stille Null. Trifft ein Wert fachlich nicht zu, etwa weil sein Modul abgeschaltet ist, **entfällt** er.
+Das Ergebnis einer Berechnung über Einzelposten, das ein Modul über die Datenebene für andere Module ausweist (Code: `ExposedValue`); er kann selbst in weitere Berechnungen eingehen. Wie gerechnet wird, legt das Modul fest und hält es im Rechenweg fest. Fehlt eine Eingabe, regelt entweder die Rechnung des Moduls ausdrücklich, wie damit umzugehen ist, oder der Wert ist **noch nicht berechenbar** (Code: `NotYetComputable`), ebenso jeder Wert, der auf ihm aufbaut; nie eine stille Null. Trifft ein Wert fachlich nicht zu, etwa weil sein Modul abgeschaltet ist, **entfällt** er.
 _Avoid_: Veröffentlichter Wert, Export, Schnittstelle, Wert (allein), Kennzahl (in ELSTER die Feldnummer), Kennwert
 
 **entfällt**:
@@ -42,35 +42,35 @@ Ergebnis eines Ausgewiesenen Werts, der fachlich nicht zutrifft, mit Grund im Re
 _Avoid_: leer, n/a, null, nicht vorhanden
 
 **Einzelposten** _(geprägt)_:
-Eine Eingabe in die Berechnung eines Ausgewiesenen Werts, mit eigener Einheit, Fundstelle und Belegstand; die Quelle ergibt sich aus der Fundstelle.
+Eine Eingabe in die Berechnung eines Ausgewiesenen Werts, mit eigener Einheit, Fundstelle und Belegstand; die Quelle ergibt sich aus der Fundstelle (Code: `LineItem`).
 _Avoid_: Position, Zeile, Buchung
 
 **Rechenweg**:
-Die festgehaltene Folge der Schritte, mit der ein Modul einen Ausgewiesenen Wert berechnet hat: Eingänge, Zwischenergebnisse und Entscheidungen; für alle Module gleich dargestellt und im Schnappschuss mit eingefroren.
+Die festgehaltene Folge der Schritte, mit der ein Modul einen Ausgewiesenen Wert berechnet hat: Eingänge, Zwischenergebnisse und Entscheidungen; für alle Module gleich dargestellt und im Schnappschuss mit eingefroren (Code: `Workings`).
 _Avoid_: Formel, Herleitung, Trace
 
 **Fundstelle** _(geprägt)_:
-Worauf sich ein Einzelposten stützt: eine Stelle in einem Beleg (Seite/Zeile), ein eDaten-Satz aus Mein ELSTER, ein Erwarteter Beleg, eine Nutzereingabe (ein Eintrag des Moduls, genannt über seine Adresse) oder ein anderer Ausgewiesener Wert (dann erbt der Einzelposten dessen Betrag und schwächsten Belegstand). Aus der Art der Fundstelle ergibt sich der Belegstand.
+Worauf sich ein Einzelposten stützt: eine Stelle in einem Beleg (Seite/Zeile), ein eDaten-Satz aus Mein ELSTER, ein Erwarteter Beleg, eine Nutzereingabe (ein Eintrag des Moduls, genannt über seine Adresse) oder ein anderer Ausgewiesener Wert (dann erbt der Einzelposten dessen Betrag und schwächsten Belegstand und hat keine eigene Quelle). Aus der Art der Fundstelle ergibt sich der Belegstand. Eine Stelle in einem Dokument nennt auch die Quelle, denn dasselbe Dokument kann ausgelesen oder eingelesen sein (Code: `Locator`).
 _Avoid_: Referenz, Quelle (die Fundstelle ist die genaue Stelle, die Quelle der Kanal)
 
 **Quelle**:
-Der Kanal, über den Daten von außen in MoarCoal gelangen: eDaten-Abruf aus Mein ELSTER, Dokumentauslesung (von Claude ausgelesen und bestätigt, z. B. Bank-PDF, Bescheid), Übertragungsprotokoll oder Nutzereingabe; alles, was von außen kommt, hat genau eine Quelle.
+Der Kanal, über den Daten von außen in MoarCoal gelangen: eDaten-Abruf aus Mein ELSTER, Dokumentauslesung (von Claude ausgelesen und bestätigt, z. B. Bank-PDF, Bescheid), Einlesung (exakt, ohne Claude, z. B. Übertragungsprotokoll) oder Nutzereingabe; alles, was von außen kommt, hat genau eine Quelle.
 _Avoid_: Herkunft, Import, Datenquelle
 
 **Belegstand** _(geprägt)_:
-Ob ein Einzelposten durch einen Beleg gedeckt ist; er ergibt sich aus der Art der Fundstelle: belegt (Fundstelle ist ein Beleg oder ein eDaten-Satz), ausstehend (Fundstelle ist ein Erwarteter Beleg, der Betrag gilt, bis der Beleg da ist) oder angenommen (Fundstelle ist eine Nutzereingabe, kein Beleg zu erwarten). Stützt sich ein Einzelposten auf einen anderen Ausgewiesenen Wert, erbt er dessen schwächsten Belegstand.
+Ob ein Einzelposten durch einen Beleg gedeckt ist; er ergibt sich aus der Art der Fundstelle: belegt (Fundstelle ist ein Beleg oder ein eDaten-Satz), ausstehend (Fundstelle ist ein Erwarteter Beleg, der Betrag gilt, bis der Beleg da ist) oder angenommen (Fundstelle ist eine Nutzereingabe, kein Beleg zu erwarten). Stützt sich ein Einzelposten auf einen anderen Ausgewiesenen Wert, erbt er dessen schwächsten Belegstand. Vom schwächsten zum stärksten: ausstehend, angenommen, belegt. Der Belegstand eines Ausgewiesenen Werts ist der schwächste seiner Einzelposten; ohne Einzelposten (z. B. ausdrücklich 0) ist er belegt (Code: `Backing`).
 _Avoid_: Gewissheit, Status, geschätzt, erwartet, geplant, vorläufig
 
 **Bezugsobjekt** _(geprägt)_:
-Der Eintrag, auf den sich ein Ausgewiesener Wert bezieht (z. B. eine Immobilie); er gehört dem Modul, das ihn führt, und andere Module kennen von ihm nur Adresse, Anzeigenamen und seine Ausgewiesenen Werte.
+Der Eintrag, auf den sich ein Ausgewiesener Wert bezieht (z. B. eine Immobilie); er gehört dem Modul, das ihn führt, und andere Module kennen von ihm nur Adresse, Anzeigenamen und seine Ausgewiesenen Werte. Welche Bezugsobjekte es zu einem Schlüssel und Zeitbezug gibt, zählt das Modul auf, dem der Schlüssel gehört (Code: `Subject`).
 _Avoid_: Entität; „Objekt“ nur im Immobilienmodul für die Immobilie selbst
 
 **Zeitraum**:
-Ein Intervall von Tagen, für das ein Zeitraumwert gilt, meist ein Kalenderjahr.
+Ein Intervall von Tagen, für das ein Zeitraumwert gilt, meist ein Kalenderjahr (Code: `Period`).
 _Avoid_: Periode, Veranlagungszeitraum (steuerrechtlich enger)
 
 **Stichtagswert** _(geprägt)_:
-Ein Ausgewiesener Wert, der für einen Tag gilt (z. B. Restschuld am 31.12.); Stichtagswerte werden nicht über Zeiträume summiert (ihre Einzelposten schon).
+Ein Ausgewiesener Wert, der für einen Tag, den Stichtag, gilt (z. B. Restschuld am 31.12.; Code für den Stichtag: `KeyDate`); Stichtagswerte werden nicht über Zeiträume summiert (ihre Einzelposten schon).
 _Avoid_: Bestand, Saldo
 
 **Zeitraumwert** _(geprägt)_:
@@ -82,7 +82,7 @@ Die Liste aller Schlüssel (stabile fachliche Kennungen) Ausgewiesener Werte, di
 _Avoid_: Registry, Verzeichnis, Katalog (allein)
 
 **Schnappschuss**:
-Der zu einem Anlass (z. B. Abgabe einer Steuererklärung) eingefrorene Stand von Ausgewiesenen Werten samt Einzelposten; unveränderlich, hängt nicht vom Ablageort ab, denn die Dokumente, auf die er verweist, werden beim Einfrieren ins Datenverzeichnis kopiert; spätere Abweichungen vom aktuellen Stand werden sichtbar statt verhindert (Code: `Snapshot`; der Vorgang heißt einfrieren).
+Der zu einem Anlass (z. B. Abgabe einer Steuererklärung) eingefrorene Stand von Ausgewiesenen Werten samt Einzelposten, auch solchen, die noch nicht berechenbar waren oder entfallen (mit Grund); unveränderlich, hängt nicht vom Ablageort ab, denn die Dokumente, auf die er verweist, werden beim Einfrieren ins Datenverzeichnis kopiert; spätere Abweichungen vom aktuellen Stand werden sichtbar statt verhindert (Code: `Snapshot`; der Vorgang heißt einfrieren).
 _Avoid_: Sperre, Abgabestand, Festschreibung, Version
 
 **Aussteller**:
@@ -125,8 +125,12 @@ _Avoid_: Inbox, Import, Vorschlag
 Eine Datei aus dem Eingang zum Dokument machen; danach wird sie je nach Art eingelesen oder ausgelesen. Gegenstück: **ausblenden** (die Datei erscheint nicht mehr im Eingang).
 _Avoid_: importieren, einlesen (für diesen Schritt)
 
+**einlesen**:
+Felder eines Dokuments mit festem Aufbau exakt und ohne Claude übernehmen (z. B. Übertragungsprotokoll, eDaten); das Ergebnis gilt ohne Bestätigung, wird nie von Hand korrigiert und beim Start neu eingelesen, wenn sich das Einlesen geändert hat.
+_Avoid_: importieren, parsen
+
 **auslesen**:
-Claude liest Felder aus einem Dokument und legt sie als Vorschlag ab; im Unterschied zu einlesen (exakt, ohne Claude, z. B. Übertragungsprotokoll).
+Claude liest Felder aus einem Dokument und legt sie als Vorschlag ab; im Unterschied zu einlesen.
 _Avoid_: importieren, extrahieren, parsen
 
 **Vorschlag**:
