@@ -30,12 +30,16 @@ Eine Person mit eigenen Daten, Belegen und Steuererklärungen; mehrere Nutzer si
 _Avoid_: Account, Profil, Steuerpflichtiger
 
 **Ausgewiesener Wert** _(geprägt)_:
-Ein aus Einzelposten berechneter Wert, den ein Modul über die Datenebene für andere Module ausweist (Code: `ExposedValue`). Fehlt ein Wert, auf den sich einer seiner Einzelposten stützt, ist er **unvollständig**: Er zeigt die Summe der übrigen Posten, nie eine stille Null.
+Das Ergebnis einer Berechnung über Einzelposten, das ein Modul über die Datenebene für andere Module ausweist (Code: `ExposedValue`); er kann selbst in weitere Berechnungen eingehen. Wie gerechnet wird, legt das Modul fest und hält es im Rechenweg fest. Fehlt eine Eingabe, regelt entweder die Rechnung des Moduls ausdrücklich, wie damit umzugehen ist, oder der Wert ist **noch nicht berechenbar**, ebenso jeder Wert, der auf ihm aufbaut; nie eine stille Null.
 _Avoid_: Veröffentlichter Wert, Export, Schnittstelle, Wert (allein), Kennzahl (in ELSTER die Feldnummer), Kennwert
 
 **Einzelposten** _(geprägt)_:
-Ein Teil eines Ausgewiesenen Werts (in dessen Einheit) mit Fundstelle, Belegstand und ggf. Rechenweg; die Quelle ergibt sich aus der Fundstelle; die Einzelposten ergeben zusammen den Wert.
+Eine Eingabe in die Berechnung eines Ausgewiesenen Werts, mit eigener Einheit, Fundstelle und Belegstand; die Quelle ergibt sich aus der Fundstelle.
 _Avoid_: Position, Zeile, Buchung
+
+**Rechenweg**:
+Die festgehaltene Folge der Schritte, mit der ein Modul einen Ausgewiesenen Wert berechnet hat: Eingänge, Zwischenergebnisse und Entscheidungen; für alle Module gleich dargestellt und im Schnappschuss mit eingefroren.
+_Avoid_: Formel, Herleitung, Trace
 
 **Fundstelle** _(geprägt)_:
 Worauf sich ein Einzelposten stützt: eine Stelle in einem Beleg (Seite/Zeile), ein eDaten-Satz aus Mein ELSTER, eine Nutzereingabe mit Datum oder ein anderer Ausgewiesener Wert (dann erbt der Einzelposten dessen Betrag und schwächsten Belegstand).
