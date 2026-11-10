@@ -53,7 +53,7 @@ def anlage_v_rows(values: Values, user: UserId, year: int) -> list[tuple[str, st
         name = subject.display_name if subject else "–"
         match out:
             case ExposedValue():
-                rows.append((name, "Schuldzinsen (Zeile fiktiv)", f"{out.amount}  [{out.backing if out.backing is not None else '–'}]"))
+                rows.append((name, "Schuldzinsen (Zeile fiktiv)", f"{out.amount}  [{out.backing}]"))
             case NotYetComputable():
                 rows.append((name, "Schuldzinsen (Zeile fiktiv)", f"noch nicht berechenbar: {out.reason}"))
     return rows

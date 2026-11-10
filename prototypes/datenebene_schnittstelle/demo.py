@@ -47,7 +47,7 @@ def show(out: Outcome, indent: int = 0) -> None:
     match out:
         case ExposedValue():
             subj = f" / {out.subject.display_name}" if out.subject else ""
-            print(f"{p}■ {out.key}{subj} {out.time}: {out.amount}  [Belegstand: {out.backing if out.backing is not None else '–'}]")
+            print(f"{p}■ {out.key}{subj} {out.time}: {out.amount}  [Belegstand: {out.backing}]")
             for s in out.workings:
                 print(f"{p}    {s.kind:<17} {s.text}{': ' + str(s.amount) if s.amount is not None else ''}")
             for li in out.items:
@@ -195,13 +195,13 @@ def main() -> None:
     header("7. Einfrieren")
     v = Values(catalog, store)
     snap = freeze(v, [ValueRequest(st.RENTAL_INTEREST_TOTAL, ANNA, Y2025)], "Abgabe ESt 2025", "doc-protokoll-2025")
-    if isinstance(snap, list):
-        print("  nicht eingefroren:", [n.reason for n in snap])
-    else:
-        print(f"  Schnappschuss „{snap.occasion}“: {len(snap.values)} Wert(e), zu kopierende Dokumente: {snap.copied_documents}")
-    snap = freeze(Values(catalog, store), [ValueRequest(st.RENTAL_INTEREST_TOTAL, ANNA, Period.year(2024))], "Abgabe ESt 2024", None)
-    print("  2024:", "nicht eingefroren – " + snap[0].reason if isinstance(snap, list) else snap)
-
+    print(f"  Schnappschuss „{snap.occasion}“: {len(snap.values)} Wert(e), zu kopierende Dokumente: {snap.copied_documents}")
+    v = Values(catalog, store)
+    snap = freeze(v, [ValueRequest(st.RENTAL_INTEREST_TOTAL, ANNA, Period.year(2024))], "Abgabe ESt 2024", "doc-protokoll-2024")
+    print(f"  Schnappschuss „{snap.occasion}“ trotz Lücke eingefroren:")
+    for o in snap.values:
+        show(o, 4)
+    findings(v)
 
 if __name__ == "__main__":
     main()

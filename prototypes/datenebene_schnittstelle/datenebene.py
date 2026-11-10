@@ -115,7 +115,7 @@ class Subject:
 class Backing(IntEnum):
     """Belegstand. Ordnung = Stärke; min() ergibt den schwächsten.
 
-    LÜCKE: Die Reihenfolge ausstehend < angenommen ist hier gesetzt, nicht entschieden.
+    Entschieden (#19): ausstehend < angenommen < belegt.
     """
 
     PENDING = 0  # ausstehend
@@ -144,8 +144,8 @@ class Source(Enum):
 class DocumentLocator:
     """Stelle in einem Beleg.
 
-    LÜCKE: Ob ein Dokument ausgelesen (Claude) oder eingelesen (exakt) wurde,
-    steht nicht im Dokument allein; die Fundstelle muss die Quelle mitführen.
+    Entschieden (#19): Die Fundstelle führt die Quelle mit, denn dasselbe
+    Dokument kann ausgelesen (Claude) oder eingelesen (exakt) sein.
     """
 
     document_id: str
@@ -182,8 +182,8 @@ class UserInputLocator:
 class ValueLocator:
     """Fundstelle = anderer Ausgewiesener Wert (Kette).
 
-    LÜCKE: Ein Verweis-Posten hat keine eigene Quelle („Quelle ergibt sich aus
-    der Fundstelle“ passt hier nicht). Hier: None.
+    Entschieden (#19): Ein Verweis-Posten hat keine eigene Quelle (None);
+    die Oberfläche zeigt stattdessen den fremden Wert zum Aufklappen.
     """
 
     request: ValueRequest
@@ -250,9 +250,9 @@ class ExposedValue:
     workings: tuple[Step, ...]
 
     @property
-    def backing(self) -> Backing | None:
-        """Schwächster Belegstand. LÜCKE: Wert ohne Einzelposten (ausdrücklich 0) hat keinen."""
-        return min((i.backing for i in self.items), default=None)
+    def backing(self) -> Backing:
+        """Schwächster Belegstand; ohne Einzelposten belegt (entschieden in #19)."""
+        return min((i.backing for i in self.items), default=Backing.BACKED)
 
 
 @dataclass(frozen=True)
@@ -427,7 +427,7 @@ class Calculation[D]:
             label or f"{key}{' / ' + out.subject.display_name if out.subject else ''}",
             out.amount,
             ValueLocator(req),
-            out.backing if out.backing is not None else Backing.BACKED,  # LÜCKE, s. ExposedValue.backing
+            out.backing,
             via=out,
         )
         self.items.append(li)
@@ -579,22 +579,25 @@ class Snapshot:
     occasion: str
     frozen_on: date
     trigger_document_id: str | None
-    values: tuple[ExposedValue, ...]  # ganze Kette steckt in LineItem.via
+    values: tuple[Outcome, ...]  # ganze Kette steckt in LineItem.via; auch noch nicht berechenbare
     copied_documents: tuple[str, ...] = field(default=())
 
 
-def freeze(values: Values, requests: Sequence[ValueRequest], occasion: str, trigger_document_id: str | None) -> Snapshot | list[NotYetComputable]:
-    """Einfrieren: alle Werte müssen berechenbar sein, sonst kein Schnappschuss.
+def freeze(values: Values, requests: Sequence[ValueRequest], occasion: str, trigger_document_id: str | None) -> Snapshot:
+    """Einfrieren hält fest, was abgegeben wurde; es verhindert nichts.
 
-    LÜCKE: Darf man einfrieren, wenn ein Wert noch nicht berechenbar ist? Hier: nein.
+    Entschieden (#19): Noch nicht berechenbare Werte werden mit Grund mit
+    eingefroren, dazu ein Befund (Fehler).
     """
     outs = [values.get_one(r) for r in requests]
-    missing = [o for o in outs if isinstance(o, NotYetComputable)]
-    if missing:
-        return missing
+    for o in outs:
+        if isinstance(o, NotYetComputable):
+            values.findings.append(
+                Finding("Fehler", "eingefroren, aber noch nicht berechenbar", f"{o.request.key}: {o.reason}", o.request.key)
+            )
     evs = [o for o in outs if isinstance(o, ExposedValue)]
     docs = sorted(
         {li.locator.document_id for v in evs for li in walk_items(v) if isinstance(li.locator, DocumentLocator)}
         | ({trigger_document_id} if trigger_document_id else set())
     )
-    return Snapshot(requests[0].user, occasion, date.today(), trigger_document_id, tuple(evs), tuple(docs))
+    return Snapshot(requests[0].user, occasion, date.today(), trigger_document_id, tuple(outs), tuple(docs))
