@@ -100,13 +100,19 @@ Die Skizze auf Branch [`prototype/datenebene-schnittstelle`](https://github.com/
 
 ```python
 @dataclass(frozen=True)
-class ValueDefinition[D]:
+class ValueDefinition:
     entry: CatalogEntry                     # Schlüssel, Bedeutung, Einheit, Zeitbezugsart, Bezugsobjekt ja/nein
-    compute: Callable[[Calculation[D]], Amount]
-    subjects: Callable[[D, TimeRef], list[Subject]] | None   # nur bei Werten mit Bezugsobjekt
+    compute: Callable[[Calculation], Amount]
+    subjects: Callable[[ModuleState, TimeRef], list[Subject]] | None   # nur bei Werten mit Bezugsobjekt
 
-class Calculation[D]:                       # eine je Rechnung, ohne Speicherzugang
-    data: D                                 # eigene Moduldaten, nur lesen
+class ModuleState:                          # Stand, eingegrenzt auf ein Modul und einen Nutzer, nur lesen
+    def all[E](self, kind: type[E]) -> list[E]: ...           # nur eigene Arten
+    def get(self, address: EntryAddress) -> Entry | None: ... # fremde Art → Programmfehler
+    def documents(self, address: EntryAddress) -> list[Document]: ...   # mit Zuordnung auf den Eintrag
+    # ebenso Notizen, Erwartete Belege, Verträge des Nutzers, Aussteller (gemeinsam)
+
+class Calculation:                          # eine je Rechnung, ohne Speicherzugang
+    own: ModuleState
     subject: Subject | None
     time: TimeRef                           # Period | KeyDate
     def item(self, label: str, amount: Amount, locator: Locator) -> LineItem: ...   # Belegstand aus locator
@@ -123,11 +129,25 @@ class Values:                               # eine je HTTP-Anfrage, auf dem fest
     def all(self, key, user, time) -> list[...]: ...   # ein Ergebnis je aufgezähltem Bezugsobjekt
 ```
 
-- Die Datenebene ruft `compute` mit den geladenen Moduldaten auf; das Modul rechnet ohne Speicherzugang.
+- Die Datenebene ruft `compute` mit dem eingegrenzten Stand des Moduls auf; das Modul rechnet ohne Speicherzugang. Ein Modul baut kein eigenes Datenobjekt; Sortieren nach Jahr oder Bezugsobjekt macht der Fachkern je Anfrage. Dieselbe `ModuleState` bekommen Befundquelle und Seiten des Moduls. Von fremden Einträgen sieht ein Modul nur Anzeigenamen und Link (über die Adresse) und ihre Ausgewiesenen Werte ([Interface der Datenebene](https://github.com/oiff2/MoarCoal/issues/26)).
 - `Values` hält einen Zwischenspeicher je Anfrage, erkennt Zyklen über den Stapel laufender Anfragen und prüft Einheit, Zeitbezugsart, Bezugsobjekt nötig/nicht und doppelte Fundstellen. Was dabei auffällt, wird Befund.
 - Bezugsobjekte zählt das Modul auf, dem der Schlüssel gehört, abhängig vom Zeitbezug. Filter wie „vermietet“ sind ein eigener fertiger Wert mit passender Aufzählung, nie ein Filter im Verbraucher.
 - Bei abgeschaltetem Modul fragt die Datenebene das Modul gar nicht: Aufzählung leer, Werte ohne Bezugsobjekt „entfällt“.
-- Abweichung von der Skizze: `item` nimmt keinen Belegstand mehr entgegen ([Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21)); Schreiben läuft über Vorgänge statt `Store.write` je Modul ([ADR 0006](adr/0006-schreibweg-vorgang-mit-journal.md)).
+- Abweichung von der Skizze: `item` nimmt keinen Belegstand mehr entgegen ([Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21)); statt `Store.read`/`Store.write` je Modul mit Datenobjekt `D` gibt es den eingegrenzten Stand zum Lesen und Vorgänge aus Änderungen an Einträgen zum Schreiben ([ADR 0006](adr/0006-schreibweg-vorgang-mit-journal.md), [Interface der Datenebene](https://github.com/oiff2/MoarCoal/issues/26)).
+
+**Modul-Tests** laufen über dieselbe Implementierung von `Values` wie der Betrieb, nie über ein nachgebautes `Calculation`:
+
+```python
+values = evaluate(
+    modules=[property_module],
+    entries=[Loan(...), Property(...)],                      # daraus wird ein Stand, ohne Dateien
+    foreign={("bank.interest", subject, Period.year(2025)): fixed(Money.eur("100,00"), backing=Backing.PENDING)},
+)
+values.get("property.loan_interest", user, Period.year(2025), subject)
+```
+
+- `foreign` ersetzt fremde Module durch fest vorgegebene Ergebnisse (Betrag, noch nicht berechenbar, entfällt). Ein Schlüssel, der weder angemeldet noch vorgegeben ist, ist ein Programmfehler wie im Betrieb.
+- Mehrere echte Module zusammen: alle in `modules`, `foreign` leer. Befundquellen gehen den gleichen Weg (`findings(...)`).
 
 ### 3.5 Befunde
 
@@ -191,7 +211,7 @@ Quellen: [Wie ein Modul sich einhängt](https://github.com/oiff2/MoarCoal/issues
 | Inhalt | Wozu |
 |---|---|
 | Modulschlüssel, Bereichsname, Navigationseintrag, Seiten (Router) | Oberfläche zeichnet nur Angemeldetes; Reihenfolge der Bereiche in einer Liste in der App |
-| Datenmodelle (Pydantic) mit Schemaversion und Migrationen | Laden, Prüfen, Migrieren durch die Datenebene |
+| Datenmodelle (Pydantic) mit Schemaversion und Migrationen; je Art eine reine Funktion Eintrag → relativer Pfad der Datei | Laden, Prüfen, Migrieren und Ablegen durch die Datenebene |
 | Arten von Einträgen mit `display_name`/`url` | Adressen auflösen |
 | Je Schlüssel eine `ValueDefinition` | Wertekatalog und Rechnen |
 | Dokumentarten (mit/ohne Bezugszeitraum), Auslese-Vorlagen mit Fassung, Einlese-Regeln | Aufnehmen, auslesen, einlesen |
@@ -200,7 +220,8 @@ Quellen: [Wie ein Modul sich einhängt](https://github.com/oiff2/MoarCoal/issues
 
 Weitere Regeln:
 
-- Je Modul drei Schichten: **Daten** (Modelle, von der Datenebene geladen), **Fachkern** (reine Funktionen, einzeln testbar), **Anbindung** (übersetzt in Einzelposten und Rechenweg).
+- Je Modul drei Schichten: **Daten** (Modelle, von der Datenebene geladen), **Fachkern** (reine Funktionen, einzeln testbar), **Anbindung** (übersetzt in Einzelposten und Rechenweg; ruft in Seiten `apply` auf).
+- Auch Schreiblogik ist rein: Eine Funktion des Moduls bekommt den eingegrenzten Stand und liefert eine Liste von Änderungen (z. B. Vorschlag bestätigen); nur die Anbindung übergibt sie an `apply` (siehe [5.2](#52-lesen-und-schreiben)).
 - Module speichern nur Fachdaten. Einzelposten entstehen immer erst beim Rechnen; was von Hand eingegeben werden kann, ist eine eigene Art des Moduls mit dem eingebetteten Baustein Nutzereingabe.
 - Fremde Werte zeigt ein Modul nur über den gemeinsamen Anzeigebaustein (Betrag, aufklappbare Einzelposten und Rechenweg, Link zum Ursprungsmodul), nie mit Seitenteilen anderer Module.
 - Übergreifende Dashboards sind vorläufig eigene Verbraucher-Module.
@@ -216,7 +237,7 @@ Quellen: [Speicher](https://github.com/oiff2/MoarCoal/issues/3), [Dateistruktur]
 ```
 ~/MoarCoal/                         lokal in WSL, kein Sync-Ordner
 ├── nutzer/<id>/
-│   ├── <modul>/…                   Gliederung nach Jahr/Bezugsobjekt legt das Modul fest
+│   ├── <modul>/…                   Gliederung nach Jahr/Bezugsobjekt legt das Modul je Art fest (Eintrag → Pfad)
 │   ├── <baustein>/…                Bausteine der Datenebene je Nutzer (Dokumente, Verträge, …)
 │   └── dokumente/<sha256-prefix>/  übernommene Dateien: Uploads und Kopien beim Einfrieren
 ├── gemeinsam/
@@ -238,6 +259,25 @@ Quellen: [Speicher](https://github.com/oiff2/MoarCoal/issues/3), [Dateistruktur]
 - Ein Server-Prozess. Beim Start lädt die Datenebene alles als unveränderlichen Stand und merkt sich je Datei die Prüfsumme. Jede Anfrage hält ihren Stand fest und liest ohne Sperre.
 - Geschrieben wird nur in einem **Vorgang** hinter einer einzigen Schreibsperre: prüfen (Pydantic) → Prüfsummen vergleichen (Datei: Handänderung abweisen; Eintrag: veralteten Tab mit „inzwischen geändert“ abweisen) → `.backup/` → temporäre Dateien mit `fsync` → Journal → umbenennen → Journal löschen → Stand tauschen. Danach ggf. abgeleitete Sperrliste neu schreiben.
 - Schreib-Endpunkte sind normale `def` im Threadpool. GET schreibt nie.
+
+Interface ([Interface der Datenebene](https://github.com/oiff2/MoarCoal/issues/26)):
+
+```python
+store = open_store(root, sites)             # Datenverzeichnis und Ablageorte werden übergeben
+state = store.state()                       # Stand, unveränderlich; einmal je Anfrage festhalten
+result = store.apply([                      # ein Vorgang
+    Put(entry, expected=checksum),          # anlegen (expected=None) oder ersetzen
+    Delete(address, expected=checksum),
+    Merge(source, into),
+])                                          # -> Applied(changes) | Rejected(reasons je Adresse)
+```
+
+- Einheit des Schreibens ist der **Eintrag**, nicht die Datei und nicht das ganze Modul. In welche Datei ein Eintrag gehört, sagt die Funktion Eintrag → Pfad aus der Modulanmeldung; Module fassen Dateien nie an.
+- Änderungen sind einfache Werte. Kennungen neuer Einträge entstehen beim Bauen der Änderung, nicht in `apply`, damit Verweise in derselben Liste stehen können.
+- **Folgen rechnet `apply` aus**: Löschen nimmt Notizen und Ausblendungen am Eintrag mit und entfernt Zuordnungen auf ihn; Zusammenführen legt den Alias an und hängt Verweise in Bausteinen der Datenebene um; ein neuer Schnappschuss kopiert die Dokumente seiner Kette; ein Upload übernimmt die Datei. `Applied` nennt alle ausgeführten Änderungen samt Folgen, fürs Protokoll. Eine Vorschau der Folgen gibt es vorerst nicht; die Funktion, die sie ausrechnet, ist rein und kann später ausgewiesen werden.
+- Abweisungen (Prüfung, Handänderung an der Datei, veralteter Tab) kommen als `Rejected` zurück, nicht als Ausnahme.
+- Ein Vorgang ist nicht an einen Nutzer gebunden; jeder Eintrag trägt seinen Eigentümer, Gemeinsames (Aussteller, Ausblendungen im Eingang) geht denselben Weg.
+- Keine Seam zum Dateisystem: Tests nutzen echte Wegwerfverzeichnisse. Wiederherstellung über das Journal wird geprüft, indem der Test den Zustand nach einem Absturz (temporäre Dateien mit oder ohne Journal) anlegt und startet; ein einzelner Test lässt intern `os.replace` scheitern.
 
 ### 5.3 Start-Reihenfolge
 
@@ -306,6 +346,7 @@ Frühere Entscheidungen, die von späteren ersetzt sind (hier gilt die spätere)
 | Abgeschaltet: „keine Einzelposten, kein Fehler“ ([Einhängen](https://github.com/oiff2/MoarCoal/issues/6)) | Aufzählung leer, sonst „entfällt“ ([Abgeschaltetes Modul](https://github.com/oiff2/MoarCoal/issues/24)) |
 | Fehlender fremder Wert → „unvollständig“, Summe der übrigen; Zyklus → „nicht vorhanden“ ([Ketten](https://github.com/oiff2/MoarCoal/issues/12)); „unvollständig“ einfrieren ([Dokumente nach Abgabe](https://github.com/oiff2/MoarCoal/issues/13)) | noch nicht berechenbar, mit Grund eingefroren ([Zeitreihen](https://github.com/oiff2/MoarCoal/issues/16), [Python-Schnittstelle](https://github.com/oiff2/MoarCoal/issues/19)) |
 | Skizze: Modul übergibt Belegstand an `item` ([Python-Schnittstelle](https://github.com/oiff2/MoarCoal/issues/19)) | Belegstand aus der Art der Fundstelle ([Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21)) |
+| Skizze: `Store.read`/`Store.write` je Nutzer und Modul mit Datenobjekt `D` ([Python-Schnittstelle](https://github.com/oiff2/MoarCoal/issues/19)) | eingegrenzter Stand `ModuleState`, Vorgang aus Änderungen an Einträgen ([Interface der Datenebene](https://github.com/oiff2/MoarCoal/issues/26)) |
 
 Echte Widersprüche, hier entschieden:
 
@@ -323,6 +364,7 @@ Bewusst nicht entschieden; das Gerüst legt es beim Bauen fest, ohne dass sich a
 - Wie der Server erkennt, dass keine Seite mehr offen ist.
 - Form des Fingerabdrucks eines Befunds und der Prüfsumme eines Eintrags im Formular.
 - Darstellung des Rechenwegs und des Anzeigebausteins im Einzelnen.
+- Wie eine Änderung Gespeichertes ohne eigene Adresse nennt (Ausblendung, Vorschlag, Ausnahme eines Erwarteten Belegs): über den Eintrag, an dem es hängt, oder über einen eigenen natürlichen Schlüssel.
 
 ## 12. Außerhalb
 

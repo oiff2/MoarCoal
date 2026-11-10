@@ -102,7 +102,7 @@ Die Liste aller Schlüssel, die Module anmelden, mit Bedeutung, Einheit und Zeit
 _Avoid_: Registry, Verzeichnis, Katalog (allein)
 
 **Schnappschuss**:
-Der zu einem Anlass (z. B. Abgabe einer Steuererklärung) eingefrorene Stand von Ausgewiesenen Werten samt Einzelposten, auch solchen, die noch nicht berechenbar waren oder entfallen (mit Grund); unveränderlich, hängt nicht vom Ablageort ab, denn die Dokumente, auf die er verweist, werden beim Einfrieren ins Datenverzeichnis kopiert; spätere Abweichungen vom aktuellen Stand werden sichtbar statt verhindert (Code: `Snapshot`; der Vorgang heißt einfrieren).
+Die zu einem Anlass (z. B. Abgabe einer Steuererklärung) eingefrorenen Ausgewiesenen Werte samt Einzelposten, auch solche, die noch nicht berechenbar waren oder entfallen (mit Grund). Ein Schnappschuss ist unveränderlich und hängt nicht vom Ablageort ab, denn die Dokumente, auf die er verweist, werden beim Einfrieren ins Datenverzeichnis kopiert; spätere Abweichungen von den aktuellen Werten werden sichtbar statt verhindert (Code: `Snapshot`; das Anlegen heißt einfrieren).
 _Avoid_: Sperre, Abgabestand, Festschreibung, Version
 
 **Aussteller**:
@@ -130,8 +130,16 @@ Ein freier Text eines Nutzers mit Datum, der an einen beliebigen Eintrag in Moar
 _Avoid_: Kommentar, Anmerkung, Memo
 
 **Vorgang**:
-Eine Schreibänderung über die Datenebene, die beliebig viele Einträge in mehreren Dateien ganz oder gar nicht ändert; der einzige Weg, auf dem Module und Datenebene schreiben.
+Eine Schreibänderung über die Datenebene, die beliebig viele Einträge in mehreren Dateien ganz oder gar nicht ändert; der einzige Weg, auf dem Module und Datenebene schreiben. Er besteht aus **Änderungen**; ihre Folgen (z. B. beim Löschen) rechnet die Datenebene selbst aus. Kein eigener Typ im Code, sondern ein Aufruf von `apply`.
 _Avoid_: Transaktion, Commit
+
+**Änderung**:
+Ein Teil eines Vorgangs: einen Eintrag anlegen oder ersetzen, löschen oder zwei Einträge zusammenführen; trägt die Prüfsumme des Eintrags, die der Aufrufer kannte (Code: `Change`).
+_Avoid_: Patch, Mutation, Diff
+
+**Stand**:
+Alle geladenen Einträge im Arbeitsspeicher, unveränderlich; jede Anfrage hält zu Beginn den aktuellen Stand fest und liest nur aus ihm, ein Vorgang ersetzt ihn als Ganzes. Ein Modul sieht ihn nur eingegrenzt auf sich und einen Nutzer (Code: `State`, eingegrenzt `ModuleState`).
+_Avoid_: Cache, Snapshot (das ist der Schnappschuss), Kontext
 
 **Dokument**:
 Eine aufgenommene Datei, auf die MoarCoal an einem Ablageort verweist oder die es ins Datenverzeichnis übernommen hat (z. B. Rechnung, Kontoauszug, Bescheid, Mietvertrag), mit Aussteller, Datum und höchstens einer Dokumentart; vor dem Aufnehmen heißt sie Datei.
