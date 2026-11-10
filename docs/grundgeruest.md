@@ -37,7 +37,7 @@ Rangfolge bei Widerspruch: ADR vor diesem Dokument vor Ticket; ein späteres Tic
 
 ### 3.1 Einträge und Adressen
 
-Alles Gespeicherte ist ein **Eintrag** mit **Adresse** `<Art>:<Kennung>`, z. B. `Property:7KQ2M9XA4T` ([ADR 0005](adr/0005-adressen-zufaellige-kennung.md), [Kennungen und Verweise](https://github.com/oiff2/MoarCoal/issues/20)).
+Gespeichertes mit eigener Adresse ist ein **Eintrag**; seine **Adresse** lautet `<Art>:<Kennung>`, z. B. `Property:7KQ2M9XA4T` ([ADR 0005](adr/0005-adressen-zufaellige-kennung.md), [Kennungen und Verweise](https://github.com/oiff2/MoarCoal/issues/20)).
 
 - Kennung: zufällig beim Anlegen (z. B. 10 Zeichen Base32), global eindeutig, ändert sich nie.
 - Art: Klassenname, über alle Module eindeutig (Testkern prüft). Wem eine Art gehört, steht in der Modulanmeldung.
@@ -50,13 +50,13 @@ Alles Gespeicherte ist ein **Eintrag** mit **Adresse** `<Art>:<Kennung>`, z. B. 
 
 | Baustein | Gehört | Kern | Ticket |
 |---|---|---|---|
-| Dokument | Nutzer | Quelle, Aussteller, Datum, höchstens eine Dokumentart, ggf. Bezugszeitraum, Zuordnungen (Liste von Adressen), Datei am Ablageort (Ablageort + relativer Pfad + SHA-256) oder übernommen | [Bausteine](https://github.com/oiff2/MoarCoal/issues/4), [Dateistruktur](https://github.com/oiff2/MoarCoal/issues/10), [Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21) |
+| Dokument | Nutzer | Aussteller, Datum, höchstens eine Dokumentart, ggf. Bezugszeitraum, Zuordnungen (Liste von Adressen), Datei am Ablageort (Ablageort + relativer Pfad + SHA-256) oder übernommen | [Bausteine](https://github.com/oiff2/MoarCoal/issues/4), [Dateistruktur](https://github.com/oiff2/MoarCoal/issues/10), [Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21) |
 | Dokumentart | Code | angemeldet von Modulen, einige allgemeine von der Datenebene; legt fest, ob es einen Bezugszeitraum gibt | [Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21) |
-| Aussteller | gemeinsam | Anzeigename, weitere Namen, Art, Anschrift, Kennungen, Merkmal Privatperson; Zusammenführen mit Alias | [Bausteine](https://github.com/oiff2/MoarCoal/issues/4), [Sensible Werte](https://github.com/oiff2/MoarCoal/issues/14) |
+| Aussteller | gemeinsam | Anzeigename, weitere Namen, Art, Anschrift, Nummern (z. B. Steuernummer), Merkmal Privatperson; Zusammenführen mit Alias | [Bausteine](https://github.com/oiff2/MoarCoal/issues/4), [Sensible Werte](https://github.com/oiff2/MoarCoal/issues/14) |
 | Vertrag | Nutzer | Aussteller, Vertragsnummer, Art, Laufzeit, Anzeigename; Bedeutung weiß das Modul | [Bausteine](https://github.com/oiff2/MoarCoal/issues/4) |
-| Notiz | Nutzer | Text + Datum an einem Eintrag, nie an Berechnetem | [Kennungen](https://github.com/oiff2/MoarCoal/issues/20) |
-| Erwarteter Beleg | Nutzer | Aussteller, Dokumentart, Zuordnung, Rhythmus mit Beginn/Ende, Bezugsweg, Bezugshinweis (sensibel), Ausnahmen je Zeitraum mit Notiz | [Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21) |
-| Vorschlag | Nutzer | am Dokument: Felder mit Wert und Fundstelle, Rohantwort, Vorlagenfassung, Bestätigungen und Korrekturen je Feld | [Claude als Baustein](https://github.com/oiff2/MoarCoal/issues/7), [Neu auslesen](https://github.com/oiff2/MoarCoal/issues/17) |
+| Notiz | Nutzer | Text + Datum an einem Eintrag, einer Ausblendung oder einer Ausnahme, nie an Berechnetem | [Kennungen](https://github.com/oiff2/MoarCoal/issues/20) |
+| Erwarteter Beleg | Nutzer | Aussteller, Dokumentart, Zuordnung, Rhythmus mit Beginn/Ende, Beschaffungsweg, Beschaffungshinweis (sensibel), Ausnahmen je Zeitraum mit Notiz | [Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21) |
+| Vorschlag | Nutzer | am Dokument: Felder mit Inhalt und Stelle im Dokument, Rohantwort, Fassung der Auslese-Vorlage, Bestätigungen und Korrekturen je Feld | [Claude als Baustein](https://github.com/oiff2/MoarCoal/issues/7), [Neu auslesen](https://github.com/oiff2/MoarCoal/issues/17) |
 | Schnappschuss | Nutzer | Anlass, Datum, auslösendes Modul und Dokument, eingefrorene Werte | [Schnappschuss](https://github.com/oiff2/MoarCoal/issues/5), [ADR 0001](adr/0001-schnappschuss-statt-sperre.md) |
 | Ausblendung | Nutzer | Befundart + Ziel-Adresse + Fingerabdruck + Pflicht-Notiz | [Befunde](https://github.com/oiff2/MoarCoal/issues/11) |
 | Baustein „Nutzereingabe“ | eingebettet | Betrag, Datum, Beschreibung; jedes Modul bettet ihn in eigene Arten ein | [Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21) |
@@ -76,7 +76,7 @@ Quellen: [Contract](https://github.com/oiff2/MoarCoal/issues/2), [Zeitreihen und
 - **Identität**: Schlüssel (`ValueKey`, im Wertekatalog mit Bedeutung, Einheit, Zeitbezugsart, Bezugsobjekt ja/nein) + Nutzer + Bezugsobjekt (falls nötig) + Zeitraum oder Stichtag.
 - **Ergebnis** ist genau eines von: Betrag mit Einzelposten und Rechenweg; **noch nicht berechenbar** mit Grund (und Kette, wenn es an einem anderen Wert hängt); **entfällt** mit Grund.
 - Der Wert ist das Ergebnis einer beliebigen Rechnung des Moduls, nicht zwingend eine Summe. Es gibt keine Rechenarten oder Merkmale wie „summierbar“ auf der Datenebene; Verhältniswerte sind normale Werte.
-- **Einzelposten**: Eingang mit eigener Einheit und genau einer Fundstelle. Der Belegstand ergibt sich aus der Art der Fundstelle, das Modul setzt ihn nie selbst:
+- **Einzelposten**: Zahl mit eigener Einheit und genau einer Fundstelle; die Quelle steht an der Fundstelle, nicht am Dokument. Der Belegstand ergibt sich aus der Art der Fundstelle, das Modul setzt ihn nie selbst:
 
   | Fundstelle | Belegstand | Quelle |
   |---|---|---|
@@ -165,7 +165,7 @@ Befunde der Datenebene (Stand der Karte):
 Quellen: [Dateistruktur](https://github.com/oiff2/MoarCoal/issues/10), [Claude als Baustein](https://github.com/oiff2/MoarCoal/issues/7), [Neu auslesen](https://github.com/oiff2/MoarCoal/issues/17), [Abgleich](https://github.com/oiff2/MoarCoal/issues/18).
 
 1. **Eingang**: Dateien in Ablageorten, die weder aufgenommen noch ausgeblendet sind (erkannt über SHA-256). Nichts wird von selbst übernommen. Ausblenden gilt für alle Nutzer.
-2. **Aufnehmen** macht ein Dokument (Nutzer, Dokumentart, Zuordnungen). Danach je Dokumentart einlesen oder auslesen.
+2. **Aufnehmen** macht ein Dokument (Nutzer, Dokumentart, Zuordnungen). Danach je Dokumentart einlesen, auslesen oder beides.
 3. **Auslesen** (nur von Hand, je Dokument oder je Dokumentart): Claude füllt die Auslese-Vorlage (mit Fassungsnummer), das Ergebnis ist ein Vorschlag am Dokument. Der Nutzer bestätigt je Feld oder alle; erst dann übernimmt das Modul die Felder in seine Daten. Korrekturen behalten Fundstelle und Quelle.
 4. **Neu auslesen** legt einen neuen Vorschlag neben den alten. Gleicher Wert bleibt bestätigt, abweichender ergibt eine Warnung, nie wird überschrieben. Eine wiederholte Fehllesung eines korrigierten Felds bleibt ohne Befund.
 5. **Einlesen** ist exakt, gilt ohne Bestätigung und läuft beim Start neu, wenn sich das Einlesen geändert hat; ein geänderter Wert ersetzt den alten mit Hinweis-Befund. Wer einen eingelesenen Wert für falsch hält, legt eine Nutzereingabe mit Notiz an.
@@ -260,7 +260,7 @@ Quellen: [Technikentscheidung](https://github.com/oiff2/MoarCoal/issues/8), [ADR
 - Nur an `127.0.0.1`, fester konfigurierbarer Port (Vorschlag 8765); belegt → Abbruch. Jede Seite hat eine direkt öffenbare URL. Start per Windows-Verknüpfung mit Ladebalken; der Server beendet sich, wenn keine Seite mehr offen ist.
 - Kontext: Nutzer global; Jahr global, je Seite übersteuerbar.
 - Gestaltung: nur Desktop ab UWHD, kein Seiten-Scrollen (innen scrollende Bereiche erlaubt), wichtigste Infos immer sichtbar, Übersichtlichkeit hat Vorrang, der Platz wird genutzt. Hell und Dunkel über CSS-Variablen; ausgestaltet wird zuerst Dunkel. Tastatur wo sinnvoll.
-- Absicherung: Middleware prüft `Host`; ändernde Anfragen brauchen `Origin` gleich der eigenen Adresse oder `Sec-Fetch-Site: same-origin`; kein CORS, kein Token. Strikte CSP ohne Inline-Skript, `nosniff`, Autoescape überall.
+- Absicherung: Middleware prüft `Host`; ändernde Anfragen brauchen `Origin` gleich dem eigenen Origin (`http://127.0.0.1:<port>` bzw. `http://localhost:<port>`) oder `Sec-Fetch-Site: same-origin`; kein CORS, kein Token. Strikte CSP ohne Inline-Skript, `nosniff`, Autoescape überall.
 - Oberflächentexte stehen direkt in den Vorlagen, nur Deutsch.
 
 ## 7. Claude-Aufruf
