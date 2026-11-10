@@ -42,7 +42,7 @@ Die festgehaltene Folge der Schritte, mit der ein Modul einen Ausgewiesenen Wert
 _Avoid_: Formel, Herleitung, Trace
 
 **Fundstelle** _(geprägt)_:
-Worauf sich ein Einzelposten stützt: eine Stelle in einem Beleg (Seite/Zeile), ein eDaten-Satz aus Mein ELSTER, eine Nutzereingabe mit Datum oder ein anderer Ausgewiesener Wert (dann erbt der Einzelposten dessen Betrag und schwächsten Belegstand).
+Worauf sich ein Einzelposten stützt: eine Stelle in einem Beleg (Seite/Zeile), ein eDaten-Satz aus Mein ELSTER, ein Erwarteter Beleg, eine Nutzereingabe (ein Eintrag des Moduls, genannt über seine Adresse) oder ein anderer Ausgewiesener Wert (dann erbt der Einzelposten dessen Betrag und schwächsten Belegstand). Aus der Art der Fundstelle ergibt sich der Belegstand.
 _Avoid_: Referenz, Quelle (die Fundstelle ist die genaue Stelle, die Quelle der Kanal)
 
 **Quelle**:
@@ -50,7 +50,7 @@ Der Kanal, über den Daten von außen in MoarCoal gelangen: eDaten-Abruf aus Mei
 _Avoid_: Herkunft, Import, Datenquelle
 
 **Belegstand** _(geprägt)_:
-Ob ein Einzelposten durch einen Beleg gedeckt ist: belegt (Beleg liegt vor), ausstehend (Beleg wird noch kommen, Betrag gilt bis dahin) oder angenommen (kein Beleg zu erwarten, Betrag ist eigene Annahme oder Rechnung). Stützt sich ein Einzelposten auf einen anderen Ausgewiesenen Wert, erbt er dessen schwächsten Belegstand.
+Ob ein Einzelposten durch einen Beleg gedeckt ist; er ergibt sich aus der Art der Fundstelle: belegt (Fundstelle ist ein Beleg oder ein eDaten-Satz), ausstehend (Fundstelle ist ein Erwarteter Beleg, der Betrag gilt, bis der Beleg da ist) oder angenommen (Fundstelle ist eine Nutzereingabe, kein Beleg zu erwarten). Stützt sich ein Einzelposten auf einen anderen Ausgewiesenen Wert, erbt er dessen schwächsten Belegstand.
 _Avoid_: Gewissheit, Status, geschätzt, erwartet, geplant, vorläufig
 
 **Bezugsobjekt** _(geprägt)_:
@@ -132,6 +132,18 @@ _Avoid_: Prompt, Schema, Formular
 **Beleg**:
 Ein Dokument, das einen Betrag nachweist und als Fundstelle für Einzelposten dient; nicht jedes Dokument ist ein Beleg.
 _Avoid_: Quittung, Nachweis
+
+**Erwarteter Beleg**:
+Ein Beleg, der regelmäßig oder einmalig kommen soll, z. B. jährlich die Zinsbescheinigung zu einem Darlehen: Aussteller, Dokumentart, die Einträge, die er betrifft, Rhythmus mit Beginn und Ende sowie Bezugsweg und Bezugshinweis. Ein Eintrag mit eigener Adresse, der weiterläuft, bis er endet; für jeden Zeitraum ergibt sich daraus, was zu erwarten ist, ohne Übernahme ins nächste Jahr. Er ist **erfüllt**, sobald ein passendes Dokument da ist; fällt er für einen Zeitraum aus, trägt er dafür eine Ausnahme mit Notiz.
+_Avoid_: Checkliste, Erwartung (allein), offener Beleg, Platzhalter
+
+**Dokumentart**:
+Was für ein Dokument es ist (z. B. Zinsbescheinigung, Grundsteuerbescheid, Darlehensvertrag); Module melden ihre Dokumentarten an, die Datenebene einige allgemeine. Jedes Dokument hat höchstens eine. Die Dokumentart legt fest, ob ihre Dokumente einen **Bezugszeitraum** haben, den Zeitraum, für den das Dokument gilt (z. B. Zinsbescheinigung 2025, ausgestellt 2026); andere gelten ohne zeitliche Grenze (z. B. Darlehensvertrag).
+_Avoid_: Belegtyp, Dokumenttyp, Kategorie
+
+**Bezugsweg**:
+Wie ein Erwarteter Beleg zu beschaffen ist, aus einer festen Liste (Post, Online-Postfach des Ausstellers, E-Mail, eDaten aus Mein ELSTER, selbst erstellen); dazu der **Bezugshinweis** als freier, sensibler Text, nie mit Zugangsdaten.
+_Avoid_: Kanal, Quelle (die Quelle ist der Weg in MoarCoal, nicht zum Nutzer)
 
 **Vertrag**:
 Eine laufende Vereinbarung eines Nutzers mit einem Aussteller als Vertragspartner (z. B. Versicherung, Darlehen, Mietvertrag, Strom) mit Vertragsnummer und Laufzeit, dem Dokumente zugeordnet werden; was der Vertrag fachlich bedeutet, weiß das Modul.
