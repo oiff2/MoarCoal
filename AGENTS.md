@@ -6,6 +6,7 @@ Personal finance app (taxes/ELSTER, receipts, real estate). No code yet; current
 
 - `CONTEXT.md`: glossary. Use its terms in code and docs; add each new term there as soon as it's settled.
 - `docs/adr/`: architecture decisions. Read the ones that touch your area before you change anything.
+- `docs/grundgeruest.md`: architecture spec of the scaffold (Datenebene, Module, contract, storage), merged from the map. Start here before building.
 - [Wayfinder-Karte: Grundgerüst MoarCoal](https://github.com/oiff2/MoarCoal/issues/1): the current plan. Read it before any planning or design work; its sub-issues are the open design questions.
 - `erkenntnisse.md`: lessons from the predecessor project Kohlebau. Use it for orientation; it is not a spec.
 
