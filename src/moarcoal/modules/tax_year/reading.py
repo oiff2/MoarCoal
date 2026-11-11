@@ -19,13 +19,18 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 
 from moarcoal.documents import ReadInError
-from moarcoal.modules.tax_year.entries import TEXT_MAX, ProtocolLine, ProtocolReading
+from moarcoal.modules.tax_year.entries import (
+    ELSTER_ID_PATTERN,
+    TEXT_MAX,
+    ProtocolLine,
+    ProtocolReading,
+)
 from moarcoal.storage import Document, Entry
 
 READER_VERSION = 2
 MAX_LINES = 5000
 BELEGART = "E10"
-ELSTER_ID = re.compile(r"E\d{7}")
+ELSTER_ID = re.compile(ELSTER_ID_PATTERN)
 FORM_LINE = re.compile(r"\d{1,3}")
 HEADER_COMMENT = re.compile(r"^\s*(Belegart|Belegversion|Veranlagungsjahr):\s*(.*?)\s*$")
 INDEX_SUFFIX = re.compile(r"_usb([0-9][0-9_\-]*)$")
