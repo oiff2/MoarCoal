@@ -92,7 +92,7 @@ Gespeichertes mit eigener Adresse ist ein **Eintrag**; seine **Adresse** lautet 
 
 Grundtypen:
 
-- **Geldbetrag**: gespeichert in ganzen Cent, vorerst nur EUR. Zwischenschritte dürfen `Decimal` sein; gerundet wird im Modul und sichtbar im Rechenweg.
+- **Geldbetrag**: gespeichert in ganzen Cent, vorerst nur EUR. Zwischenschritte dürfen `Decimal` sein; gerundet wird im Modul, zu dem die Rundungsregel gehört, sichtbar im Rechenweg, und nur am Endergebnis, nie in Zwischenschritten (Werte, die in weitere Rechnungen eingehen, bleiben genau). Für die Felder einer Anlage rundet das Steuerjahr nach Einheit und Richtung des Felds ([#38](https://github.com/oiff2/MoarCoal/issues/38)).
 - **Einheit** je Schlüssel aus fester Liste: EUR, Tage, km, m², Prozent.
 - **Zeitbezug**: Zeitraum (`Period`, meist Kalenderjahr) oder Stichtag (`KeyDate`). Stichtagswerte werden nicht über Zeiträume summiert.
 

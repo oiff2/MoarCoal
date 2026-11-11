@@ -29,7 +29,7 @@ _Avoid_: Issue, Problem, Warnung oder Fehler (allein, das sind Schweregrade), qu
 Die Sorte eines Befunds, angemeldet von der Datenebene oder einem Modul mit Schlüssel (`<modul>.<name>`) und Titel; sie bestimmt Schweregrad und Text (Code: `FindingKind`).
 
 **Abgleich**:
-Der Vergleich eines Felds der Anlage mit dem, was das Übertragungsprotokoll an ELSTER übertragen zeigt: exakt, ohne Toleranz und ohne Runden; weicht der Inhalt vom Ausgewiesenen Wert ab, fehlt das Feld im Protokoll oder ist es mehrdeutig, entsteht ein Befund (Warnung), mit Link zur Stelle im Protokoll. Gilt das zuletzt aufgenommene Protokoll des Jahrs.
+Der Vergleich eines Felds der Anlage mit dem, was das Übertragungsprotokoll an ELSTER übertragen zeigt: exakt und ohne Toleranz gegen den Wert des Felds, so wie er einzutragen ist (also schon gerundet, wo das Feld es verlangt); weicht der Inhalt vom Ausgewiesenen Wert ab, fehlt das Feld im Protokoll oder ist es mehrdeutig, entsteht ein Befund (Warnung), mit Link zur Stelle im Protokoll. Gilt das zuletzt aufgenommene Protokoll des Jahrs.
 
 **Befundliste** _(geprägt)_:
 Die eine Stelle, an der alle nicht ausgeblendeten Befunde eines Nutzers zum gewählten Jahr über alle Module hinweg gesammelt werden; ausgeblendete Fehler zählt sie weiter mit.
@@ -96,7 +96,10 @@ Ein ausgefülltes Feld des Übertragungsprotokolls, roh wie gedruckt: E-Kennung,
 _Avoid_: Protokollzeile, Zeile
 
 **Feld**:
-Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im Vordruck und E-Kennung (solange unbekannt, leer); das Steuerjahr ordnet jedem Feld, das MoarCoal abdeckt, einen Ausgewiesenen Wert zu (Code: `FormField`). Im Durchstich nur drei Felder der Anlage N 2025.
+Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im Vordruck und E-Kennung (solange unbekannt, leer); das Steuerjahr ordnet jedem Feld, das MoarCoal abdeckt, einen Ausgewiesenen Wert zu (Code: `FormField`). Im Durchstich nur drei Felder der Anlage N 2025. Ein Euro-Feld nimmt entweder ganze Euro (gerundet nach seiner Richtung) oder Euro mit Cent (exakt, z. B. Steuerbeträge laut Bescheinigung); km werden auf volle Kilometer abgerundet.
+
+**Richtung**:
+Ob ein Euro-Feld als Einnahme oder als Ausgabe zählt; sie bestimmt, wie sein Wert auf ganze Euro gerundet wird: zugunsten des Steuerpflichtigen, Einnahmen ab, Ausgaben auf. Erstattungen, Zuschüsse und Arbeitgeberanteile, die einen Abzug mindern, zählen als Einnahme.
 
 **E-Kennung**:
 Die Kennung eines Felds in ELSTER (E und sieben Ziffern); der verlässliche Schlüssel einer Zeile, den man erst aus dem Übertragungsprotokoll erfährt.
