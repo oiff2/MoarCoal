@@ -5,7 +5,8 @@ from dataclasses import dataclass
 
 from fastapi import APIRouter
 
-from moarcoal.storage import Entry, EntryAddress, EntryKind, State, entry_checksum
+from moarcoal.documents import DocumentKind
+from moarcoal.storage import Document, Entry, EntryAddress, EntryKind, State, entry_checksum
 from moarcoal.values.catalog import ValueDefinition
 
 
@@ -25,6 +26,7 @@ class ModuleRegistration:
     kinds: tuple[EntryKind, ...]
     values: tuple[ValueDefinition, ...] = ()
     entry_url: Callable[[EntryAddress], str | None] = lambda address: None
+    document_kinds: tuple[DocumentKind, ...] = ()
 
 
 class ForeignKindError(LookupError):
@@ -58,6 +60,13 @@ class ModuleState:
         self._own(address.kind)
         entry = self._state.get(address)
         return entry if entry is not None and entry.owner == self._user else None
+
+    def documents(self, document_kind: str | None = None) -> list[Document]:
+        """Dokumente des Nutzers (Baustein der Datenebene), ggf. nur einer Dokumentart."""
+        found = [d for d in self._state.of_kind(Document) if d.owner == self._user]
+        if document_kind is not None:
+            found = [d for d in found if d.document_kind == document_kind]
+        return sorted(found, key=lambda d: str(d.address))
 
     def checksum(self, address: EntryAddress) -> str | None:
         entry = self.get(address)

@@ -19,6 +19,7 @@ from types import MappingProxyType
 
 from pydantic import ValidationError
 
+from moarcoal.storage.documents import DATA_LAYER_KINDS
 from moarcoal.storage.entries import (
     Entry,
     EntryAddress,
@@ -32,10 +33,17 @@ DATA_DIRS = ("nutzer", "gemeinsam")  # hier liegen Einträge; .backup, .cache un
 BACKUP_DIR = ".backup"
 BACKUP_KEEP = 20
 TEMP_SUFFIX = ".tmp"
+SITES_FILE = "gemeinsam/ablageorte.json"  # keine Einträge, sondern die benannten Ablageorte
+SITES_SCHEMA = "ablageorte/1"
+MAX_SITE_FILE_BYTES = 50_000_000
 
 
 class StoreError(Exception):
     """Das Datenverzeichnis lässt sich nicht laden; die Meldung nennt die Datei."""
+
+
+class SiteFileError(Exception):
+    """Eine Datei an einem Ablageort lässt sich nicht lesen; die Meldung ist für den Nutzer."""
 
 
 @dataclass(frozen=True)
@@ -130,6 +138,7 @@ def _safe_path(relative: str) -> bool:
         and pure.suffix == ".json"
         and bool(pure.parts)
         and pure.parts[0] in DATA_DIRS
+        and relative != SITES_FILE
     )
 
 
@@ -163,9 +172,29 @@ def _restore_file(target: Path, original: bytes | None) -> None:
         _write_file(target, original)
 
 
+def _load_sites(root: Path) -> dict[str, Path]:
+    """Ablageorte aus `gemeinsam/ablageorte.json`; fehlt die Datei, gibt es keine."""
+    raw = _read_if_exists(root / SITES_FILE)
+    if raw is None:
+        return {}
+    try:
+        body = json.loads(raw)
+        if body["schema"] != SITES_SCHEMA:
+            raise ValueError(body["schema"])
+        sites = {str(name): Path(str(folder)) for name, folder in body["sites"].items()}
+    except (ValueError, KeyError, TypeError, AttributeError) as error:
+        raise StoreError(f"{SITES_FILE}: keine gültige Liste der Ablageorte") from error
+    if any(not folder.is_absolute() for folder in sites.values()):
+        raise StoreError(f"{SITES_FILE}: Ablageorte brauchen absolute Pfade")
+    return sites
+
+
 class Store:
-    def __init__(self, root: Path, kinds: Sequence[EntryKind]) -> None:
+    def __init__(
+        self, root: Path, kinds: Sequence[EntryKind], sites: Mapping[str, Path] | None = None
+    ) -> None:
         self._root = root
+        self._sites = dict(_load_sites(root) if sites is None else sites)
         self._kinds = {kind.model.__name__: kind for kind in kinds}
         self._lock = threading.Lock()
         self._file_checksums: dict[str, str] = {}
@@ -178,6 +207,31 @@ class Store:
 
     def state(self) -> State:
         return self._state
+
+    def site_names(self) -> list[str]:
+        return sorted(self._sites)
+
+    def read_site_file(self, site: str, relative: str) -> bytes:
+        """Inhalt einer Datei an einem Ablageort; es wird nur gelesen, nie geschrieben."""
+        folder = self._sites.get(site)
+        if folder is None:
+            raise SiteFileError(f"Unbekannter Ablageort {site!r}.")
+        pure = PurePosixPath(relative)
+        if not relative or pure.is_absolute() or ".." in pure.parts:
+            raise SiteFileError("Der Pfad muss relativ zum Ablageort sein, ohne „..“.")
+        target = (folder / pure).resolve()
+        if not target.is_relative_to(folder.resolve()):
+            raise SiteFileError("Der Pfad führt aus dem Ablageort hinaus.")
+        try:
+            if target.stat().st_size > MAX_SITE_FILE_BYTES:
+                raise SiteFileError("Die Datei ist zu groß.")
+            return target.read_bytes()
+        except (FileNotFoundError, NotADirectoryError, IsADirectoryError) as error:
+            raise SiteFileError(
+                f"Am Ablageort {site!r} gibt es keine Datei {relative!r}."
+            ) from error
+        except OSError as error:
+            raise SiteFileError(f"Die Datei lässt sich nicht lesen ({error.strerror}).") from error
 
     def _path_of(self, entry: Entry) -> str:
         return self._kinds[type(entry).__name__].path(entry)
@@ -192,6 +246,8 @@ class Store:
         for top in DATA_DIRS:
             for file in sorted((self._root / top).rglob("*.json")):
                 relative = file.relative_to(self._root).as_posix()
+                if relative == SITES_FILE:
+                    continue
                 data = file.read_bytes()
                 for entry in self._parse(relative, data):
                     if entry.address in entries:
@@ -355,9 +411,16 @@ class Store:
             old.unlink()
 
 
-def open_store(root: Path, kinds: Sequence[EntryKind]) -> Store:
-    """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten."""
-    collisions = kind_collisions([kind.model for kind in kinds])
+def open_store(
+    root: Path, kinds: Sequence[EntryKind], sites: Mapping[str, Path] | None = None
+) -> Store:
+    """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
+
+    Die Arten der Datenebene (Dokument) kommen immer dazu. `sites` nennt die Ablageorte
+    (Name -> Ordner); ohne Angabe gilt `gemeinsam/ablageorte.json`.
+    """
+    all_kinds = (*DATA_LAYER_KINDS, *kinds)
+    collisions = kind_collisions([kind.model for kind in all_kinds])
     if collisions:
         raise StoreError(f"Arten nicht eindeutig: {', '.join(collisions)}")
-    return Store(root, kinds)
+    return Store(root, all_kinds, sites)

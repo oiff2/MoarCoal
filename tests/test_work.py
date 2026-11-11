@@ -49,7 +49,7 @@ def only_id(root: Path) -> str:
 
 
 def test_work_module_is_in_the_fixed_list() -> None:
-    assert [m.key for m in MODULES] == ["work"]
+    assert "work" in [m.key for m in MODULES]
     assert REGISTRATION.area_name == "Arbeit"
     assert {k.model for k in REGISTRATION.kinds} == {FirstWorkplace, WorkEquipment}
 

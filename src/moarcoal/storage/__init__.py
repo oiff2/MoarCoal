@@ -1,5 +1,6 @@
 """Datenebene: Einträge, Adressen, Stand und Schreibweg. Nur hier werden Dateien gelesen."""
 
+from moarcoal.storage.documents import Document
 from moarcoal.storage.entries import (
     Entry,
     EntryAddress,
@@ -16,6 +17,7 @@ from moarcoal.storage.store import (
     Delete,
     Put,
     Rejected,
+    SiteFileError,
     State,
     Store,
     StoreError,
@@ -27,11 +29,13 @@ __all__ = [
     "Applied",
     "Change",
     "Delete",
+    "Document",
     "Entry",
     "EntryAddress",
     "EntryKind",
     "Put",
     "Rejected",
+    "SiteFileError",
     "State",
     "Store",
     "StoreError",

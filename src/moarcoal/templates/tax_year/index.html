@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Steuerjahr – MoarCoal{% endblock %}
+{% block main %}
+<h1>Steuerjahr</h1>
+
+<h2>Übertragungsprotokolle</h2>
+{% if readings %}
+<table>
+  <tr><th>Jahr</th><th>Datei</th><th>Angaben</th><th></th></tr>
+  {% for reading, document in readings %}
+  <tr>
+    <td>{{ reading.year }}</td>
+    <td>{% if document %}{{ document.site }} / {{ document.path }}{% else %}Dokument fehlt{% endif %}</td>
+    <td>{{ reading.lines | length }}</td>
+    <td><a href="/steuerjahr/uebertragungsprotokolle/{{ reading.id }}">Ansehen</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Noch kein Übertragungsprotokoll aufgenommen.</p>
+{% endif %}
+
+<h3>Übertragungsprotokoll aufnehmen</h3>
+<p>Das HTML-Dokument liegt an einem Ablageort und wird dort nur gelesen.</p>
+{% if errors %}
+<ul class="fehler">
+  {% for message in errors %}<li>{{ message }}</li>{% endfor %}
+</ul>
+{% endif %}
+{% if sites %}
+<form method="post" action="/steuerjahr/uebertragungsprotokolle">
+  <label>Ablageort
+    <select name="site">
+      {% for site in sites %}<option value="{{ site }}"{% if values.get("site") == site %} selected{% endif %}>{{ site }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Datei im Ablageort <input name="path" value="{{ values.get('path', '') }}" size="50"></label>
+  <label>Steuerjahr <input name="year" value="{{ values.get('year', '') }}" size="6"></label>
+  <button type="submit">Aufnehmen</button>
+</form>
+{% else %}
+<p class="fehler">Es ist noch kein Ablageort eingerichtet (gemeinsam/ablageorte.json im Datenverzeichnis).</p>
+{% endif %}
+{% endblock %}

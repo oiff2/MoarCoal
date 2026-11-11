@@ -1,0 +1,318 @@
+"""Tests: Ablageorte, Dokument, Aufnehmen und Einlesen des Übertragungsprotokolls (nur tmp_path)."""
+
+import hashlib
+import json
+import shutil
+from pathlib import Path
+
+import httpx
+import pytest
+from fastapi.testclient import TestClient
+
+from moarcoal.app import create_app
+from moarcoal.documents import DocumentKind, IntakeRejected, ReadInError, TakenIn, take_in
+from moarcoal.modules.tax_year import (
+    REGISTRATION,
+    TRANSFER_PROTOCOL,
+    ProtocolReading,
+)
+from moarcoal.modules.tax_year.reading import READER_VERSION, parse_protocol, read_in_protocol
+from moarcoal.storage import (
+    Applied,
+    Document,
+    Put,
+    SiteFileError,
+    StoreError,
+    open_store,
+)
+
+FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
+PORT = 4711
+ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
+KINDS = {TRANSFER_PROTOCOL.key: TRANSFER_PROTOCOL}
+
+
+@pytest.fixture
+def site(tmp_path: Path) -> Path:
+    folder = tmp_path / "ablage"
+    (folder / "2025").mkdir(parents=True)
+    shutil.copy(FIXTURE, folder / "2025" / "protokoll.html")
+    return folder
+
+
+@pytest.fixture
+def root(tmp_path: Path) -> Path:
+    return tmp_path / "daten"
+
+
+def make_store(root: Path, site: Path):
+    return open_store(root, REGISTRATION.kinds, {"Belege": site})
+
+
+def make_client(root: Path, site: Path) -> httpx.Client:
+    root.mkdir(parents=True, exist_ok=True)
+    sites = root / "gemeinsam" / "ablageorte.json"
+    sites.parent.mkdir(parents=True, exist_ok=True)
+    sites.write_text(
+        json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
+    )
+    app = create_app(PORT, root, user="anna")
+    return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
+
+
+# --- Einlese-Regel ----------------------------------------------------------------------------
+
+
+def test_parse_protocol_reads_ekz_label_content_and_source_line() -> None:
+    lines = parse_protocol(FIXTURE.read_bytes())
+    assert [(line.ekz, line.label, line.content, line.source_line) for line in lines] == [
+        ("E0100001", "Arbeitstage", "220", 10),
+        ("E0100002", "Einfache Entfernung in km", "12", 11),
+        ("E0100003", "Arbeitsmittel in EUR", "49,90", 12),
+        ("E0100004", "Ort & Datum", "Musterstadt", 17),
+    ]
+
+
+def test_parse_protocol_ignores_rows_without_ekz_and_tolerates_broken_html() -> None:
+    html = b"<table><tr><td>x<td>E0100009<td>1<tr><td>E12<td>kurz</table><tr><td>E0100010"
+    assert [(line.ekz, line.content) for line in parse_protocol(html)] == [
+        ("E0100009", "1"),
+        ("E0100010", ""),
+    ]
+
+
+def test_read_in_requires_lines_and_period() -> None:
+    document = Document(
+        owner="anna",
+        site="Belege",
+        path="a.html",
+        sha256="0" * 64,
+        document_kind="transfer_protocol",
+    )
+    with pytest.raises(ReadInError, match="keine Zeile"):
+        read_in_protocol(document, b"<p>nichts</p>")
+    with pytest.raises(ReadInError, match="Bezugszeitraum"):
+        read_in_protocol(document, FIXTURE.read_bytes())
+
+
+# --- Ablageorte -------------------------------------------------------------------------------
+
+
+def test_read_site_file_reads_only_inside_the_site(root: Path, site: Path) -> None:
+    store = make_store(root, site)
+    assert store.read_site_file("Belege", "2025/protokoll.html") == FIXTURE.read_bytes()
+    for bad in ["../x", "/etc/passwd", "", "2025/../../x", "2025/fehlt.html", "2025"]:
+        with pytest.raises(SiteFileError):
+            store.read_site_file("Belege", bad)
+    with pytest.raises(SiteFileError, match="Unbekannter Ablageort"):
+        store.read_site_file("Anderswo", "2025/protokoll.html")
+
+
+def test_read_site_file_rejects_symlink_out_of_the_site(
+    root: Path, site: Path, tmp_path: Path
+) -> None:
+    outside = tmp_path / "geheim.txt"
+    outside.write_text("x", encoding="utf-8")
+    (site / "link.txt").symlink_to(outside)
+    with pytest.raises(SiteFileError, match="hinaus"):
+        make_store(root, site).read_site_file("Belege", "link.txt")
+
+
+def test_sites_come_from_the_shared_file_and_are_not_entries(root: Path, site: Path) -> None:
+    file = root / "gemeinsam" / "ablageorte.json"
+    file.parent.mkdir(parents=True)
+    file.write_text(
+        json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
+    )
+    store = open_store(root, REGISTRATION.kinds)
+    assert store.site_names() == ["Belege"]
+    assert store.state().entries == {}
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        '{"schema": "x/1", "sites": {}}',
+        "kaputt",
+        '{"schema": "ablageorte/1", "sites": {"a": "rel"}}',
+    ],
+)
+def test_invalid_sites_file_stops_the_start(root: Path, content: str) -> None:
+    file = root / "gemeinsam" / "ablageorte.json"
+    file.parent.mkdir(parents=True)
+    file.write_text(content, encoding="utf-8")
+    with pytest.raises(StoreError, match="ablageorte.json"):
+        open_store(root, REGISTRATION.kinds)
+
+
+# --- Dokument und Aufnehmen -------------------------------------------------------------------
+
+
+def test_document_period_must_be_complete() -> None:
+    import datetime
+
+    with pytest.raises(ValueError, match="Beginn und Ende"):
+        Document(
+            owner="a", site="s", path="p", sha256="0" * 64, period_start=datetime.date(2025, 1, 1)
+        )
+
+
+def test_take_in_stores_document_with_hash_and_reading(root: Path, site: Path) -> None:
+    store = make_store(root, site)
+    result = take_in(
+        store, KINDS, "anna", "Belege", "2025/protokoll.html", "transfer_protocol", 2025
+    )
+    assert isinstance(result, TakenIn)
+    assert result.document.sha256 == hashlib.sha256(FIXTURE.read_bytes()).hexdigest()
+    reopened = make_store(root, site).state()
+    (document,) = reopened.of_kind(Document)
+    (reading,) = reopened.of_kind(ProtocolReading)
+    assert (document.site, document.path, document.document_kind) == (
+        "Belege",
+        "2025/protokoll.html",
+        "transfer_protocol",
+    )
+    assert (str(document.period_start), str(document.period_end)) == ("2025-01-01", "2025-12-31")
+    assert reading.document == document.address
+    assert reading.reader_version == READER_VERSION
+    assert [line.ekz for line in reading.lines][:2] == ["E0100001", "E0100002"]
+    assert (root / "nutzer" / "anna" / "dokumente.json").exists()
+    assert (root / "nutzer" / "anna" / "tax_year" / "2025.json").exists()
+
+
+def test_take_in_does_not_copy_or_change_the_file(root: Path, site: Path) -> None:
+    before = (site / "2025" / "protokoll.html").read_bytes()
+    take_in(
+        make_store(root, site),
+        KINDS,
+        "anna",
+        "Belege",
+        "2025/protokoll.html",
+        "transfer_protocol",
+        2025,
+    )
+    assert (site / "2025" / "protokoll.html").read_bytes() == before
+    assert not list(root.rglob("*.html"))
+
+
+def test_take_in_rejects_same_file_twice_but_not_for_other_user(root: Path, site: Path) -> None:
+    store = make_store(root, site)
+    args = ("Belege", "2025/protokoll.html", "transfer_protocol", 2025)
+    assert isinstance(take_in(store, KINDS, "anna", *args), TakenIn)
+    again = take_in(store, KINDS, "anna", *args)
+    assert isinstance(again, IntakeRejected)
+    assert "schon aufgenommen" in again.reasons[0]
+    assert isinstance(take_in(store, KINDS, "ben", *args), TakenIn)
+
+
+def test_take_in_rejects_without_writing(root: Path, site: Path) -> None:
+    (site / "leer.html").write_text("<p>kein Protokoll</p>", encoding="utf-8")
+    store = make_store(root, site)
+    for path, year in [("leer.html", 2025), ("fehlt.html", 2025), ("2025/protokoll.html", 1999)]:
+        result = take_in(store, KINDS, "anna", "Belege", path, "transfer_protocol", year)
+        assert isinstance(result, IntakeRejected)
+    assert store.state().entries == {}
+
+
+def test_take_in_is_one_vorgang(root: Path, site: Path) -> None:
+    def failing(document: Document, content: bytes) -> list[ProtocolReading]:
+        reading = read_in_protocol(document, content)[0]
+        assert isinstance(reading, ProtocolReading)
+        return [reading, reading]  # zweimal dieselbe Adresse: der Vorgang wird abgewiesen
+
+    kind = DocumentKind("transfer_protocol", "x", True, failing)
+    store = make_store(root, site)
+    result = take_in(
+        store, {kind.key: kind}, "anna", "Belege", "2025/protokoll.html", kind.key, 2025
+    )
+    assert isinstance(result, IntakeRejected)
+    assert store.state().entries == {}
+
+
+def test_documents_of_module_state_are_per_user(root: Path, site: Path) -> None:
+    from moarcoal.registration import ModuleState
+
+    store = make_store(root, site)
+    take_in(store, KINDS, "anna", "Belege", "2025/protokoll.html", "transfer_protocol", 2025)
+    assert len(ModuleState(store.state(), REGISTRATION, "anna").documents()) == 1
+    assert ModuleState(store.state(), REGISTRATION, "ben").documents() == []
+    assert ModuleState(store.state(), REGISTRATION, "anna").documents("andere") == []
+
+
+def test_document_put_by_hand_is_checked(root: Path, site: Path) -> None:
+    store = make_store(root, site)
+    bad = Document.model_construct(
+        id="ABCDEFGHIJ",
+        owner="anna",
+        site="s",
+        path="p",
+        sha256="zz",
+        document_kind=None,
+        period_start=None,
+        period_end=None,
+    )
+    assert not isinstance(store.apply([Put(bad)]), Applied)
+
+
+# --- Seiten -----------------------------------------------------------------------------------
+
+
+def test_pages_take_in_and_show_document_and_lines(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    page = client.get("/steuerjahr")
+    assert page.status_code == 200
+    assert "Noch kein Übertragungsprotokoll" in page.text
+    assert '<option value="Belege"' in page.text
+
+    response = client.post(
+        "/steuerjahr/uebertragungsprotokolle",
+        data={"site": "Belege", "path": "2025/protokoll.html", "year": "2025"},
+        headers=ORIGIN,
+    )
+    assert response.status_code == 303
+    detail = client.get(response.headers["location"]).text
+    assert "2025/protokoll.html" in detail
+    assert hashlib.sha256(FIXTURE.read_bytes()).hexdigest() in detail
+    assert "E0100003" in detail
+    assert "49,90" in detail
+    assert "Ort &amp; Datum" in detail
+    assert 'id="zeile-12"' in detail
+    overview = client.get("/steuerjahr").text
+    assert "Belege / 2025/protokoll.html" in overview
+    assert response.headers["location"] in overview
+
+
+def test_page_get_never_writes(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    before = sorted(p.relative_to(root) for p in root.rglob("*"))
+    client.get("/steuerjahr")
+    assert sorted(p.relative_to(root) for p in root.rglob("*")) == before
+
+
+def test_page_shows_errors_and_keeps_input(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    response = client.post(
+        "/steuerjahr/uebertragungsprotokolle",
+        data={"site": "Belege", "path": "../x", "year": "2025"},
+        headers=ORIGIN,
+    )
+    assert response.status_code == 422
+    assert "ohne" in response.text
+    assert 'value="../x"' in response.text
+    bad_year = client.post(
+        "/steuerjahr/uebertragungsprotokolle",
+        data={"site": "Belege", "path": "2025/protokoll.html", "year": "abc"},
+        headers=ORIGIN,
+    )
+    assert bad_year.status_code == 422
+
+
+def test_detail_of_unknown_or_invalid_reading_is_404(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    assert client.get("/steuerjahr/uebertragungsprotokolle/AAAAAAAAAA").status_code == 404
+    assert client.get("/steuerjahr/uebertragungsprotokolle/klein").status_code == 404
+
+
+def test_post_needs_origin(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    assert client.post("/steuerjahr/uebertragungsprotokolle", data={}).status_code == 403

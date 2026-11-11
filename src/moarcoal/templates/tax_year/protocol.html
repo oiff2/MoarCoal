@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Übertragungsprotokoll {{ reading.year }} – MoarCoal{% endblock %}
+{% block main %}
+<h1>Übertragungsprotokoll {{ reading.year }}</h1>
+<p><a href="/steuerjahr">Zurück zu Steuerjahr</a></p>
+{% if document %}
+<dl>
+  <dt>Ablageort</dt><dd>{{ document.site }}</dd>
+  <dt>Datei im Ablageort</dt><dd>{{ document.path }}</dd>
+  <dt>SHA-256</dt><dd><code>{{ document.sha256 }}</code></dd>
+  <dt>Bezugszeitraum</dt><dd>{{ document.period_start.strftime("%d.%m.%Y") }} bis {{ document.period_end.strftime("%d.%m.%Y") }}</dd>
+</dl>
+{% else %}
+<p class="fehler">Das Dokument zu diesem Übertragungsprotokoll fehlt.</p>
+{% endif %}
+<h2>Eingelesene Angaben ({{ reading.lines | length }})</h2>
+<table>
+  <tr><th>E-Kennung</th><th>Bezeichnung</th><th>Inhalt</th><th>Stelle in der Datei</th></tr>
+  {% for line in reading.lines %}
+  <tr id="zeile-{{ line.source_line }}">
+    <td>{{ line.ekz }}</td>
+    <td>{{ line.label }}</td>
+    <td>{{ line.content }}</td>
+    <td>{{ line.source_line }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

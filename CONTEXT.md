@@ -78,6 +78,17 @@ Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die 
 **Arbeitsmittel**:
 Werkzeug und Material, das ein Nutzer für die Arbeit selbst gekauft hat; erfasst wird je Anschaffung ein Betrag als Nutzereingabe mit dem Steuerjahr, für das er gilt (Code: `WorkEquipment`).
 
+**Steuerjahr**:
+Das Modul für die Steuererklärung eines Jahres; im Durchstich nimmt es das Übertragungsprotokoll auf und liest es ein. Modulschlüssel `tax_year`.
+
+**Übertragungsprotokoll**:
+Das HTML-Dokument, das Mein ELSTER nach der Übertragung einer Steuererklärung ausstellt: je Zeile E-Kennung und übertragener Inhalt. Dokumentart des Moduls Steuerjahr mit Bezugszeitraum; die eingelesenen Zeilen, je mit Fundstelle im Dokument (Zeile der Datei), stehen in einem eigenen Eintrag (Code: `ProtocolReading`).
+_Avoid_: Sendeprotokoll, Eingabeprotokoll
+
+**E-Kennung**:
+Die Kennung eines Felds in ELSTER (E und sieben Ziffern); der verlässliche Schlüssel einer Zeile, den man erst aus dem Übertragungsprotokoll erfährt.
+_Avoid_: Feldnummer
+
 **Belegstand** _(geprägt)_:
 Ob ein Einzelposten durch einen Beleg gedeckt ist; er ergibt sich aus der Art der Fundstelle: belegt (Fundstelle ist eine Stelle in einem Dokument oder ein eDaten-Satz), ausstehend (Fundstelle ist ein Erwarteter Beleg, der Betrag gilt, bis der Beleg da ist) oder angenommen (Fundstelle ist eine Nutzereingabe, kein Beleg zu erwarten). Stützt sich ein Einzelposten auf einen anderen Ausgewiesenen Wert, erbt er dessen schwächsten Belegstand. Vom schwächsten zum stärksten: ausstehend, angenommen, belegt. Der Belegstand eines Ausgewiesenen Werts ist der schwächste seiner Einzelposten; ohne Einzelposten (z. B. ausdrücklich 0) ist er belegt (Code: `Backing`).
 _Avoid_: Gewissheit, Status, geschätzt, geplant, vorläufig
@@ -151,7 +162,7 @@ Alle geladenen Einträge im Arbeitsspeicher, unveränderlich; jede Anfrage hält
 _Avoid_: Cache, Snapshot (das ist der Schnappschuss), Kontext
 
 **Dokument**:
-Eine aufgenommene Datei, auf die MoarCoal an einem Ablageort verweist oder die es ins Datenverzeichnis übernommen hat (z. B. Rechnung, Kontoauszug, Bescheid, Mietvertrag), mit Aussteller, Datum und höchstens einer Dokumentart; vor dem Aufnehmen heißt sie Datei.
+Eine aufgenommene Datei, auf die MoarCoal an einem Ablageort verweist oder die es ins Datenverzeichnis übernommen hat (z. B. Rechnung, Kontoauszug, Bescheid, Mietvertrag), mit Aussteller, Datum und höchstens einer Dokumentart; vor dem Aufnehmen heißt sie Datei (Code: `Document`).
 _Avoid_: Unterlage, Anhang
 
 **Datenverzeichnis**:
@@ -195,7 +206,7 @@ Ein Beleg, der regelmäßig oder einmalig kommen soll, z. B. jährlich die Zinsb
 _Avoid_: Checkliste, Erwartung (allein), offener Beleg, Platzhalter
 
 **Dokumentart**:
-Was für ein Dokument es ist (z. B. Zinsbescheinigung, Grundsteuerbescheid, Darlehensvertrag); Module melden ihre Dokumentarten an, die Datenebene einige allgemeine. Jedes Dokument hat höchstens eine. Die Dokumentart legt fest, ob ihre Dokumente einen **Bezugszeitraum** haben, den Zeitraum, für den das Dokument gilt (z. B. Zinsbescheinigung 2025, ausgestellt 2026); andere gelten ohne zeitliche Grenze (z. B. Darlehensvertrag).
+Was für ein Dokument es ist (z. B. Zinsbescheinigung, Grundsteuerbescheid, Darlehensvertrag); Module melden ihre Dokumentarten an, die Datenebene einige allgemeine. Jedes Dokument hat höchstens eine. Die Dokumentart legt fest, ob ihre Dokumente einen **Bezugszeitraum** haben, den Zeitraum, für den das Dokument gilt (z. B. Zinsbescheinigung 2025, ausgestellt 2026); andere gelten ohne zeitliche Grenze (z. B. Darlehensvertrag). Hat die Dokumentart eine Einlese-Regel, wird das Dokument beim Aufnehmen eingelesen (Code: `DocumentKind`).
 _Avoid_: Belegtyp, Dokumenttyp, Kategorie
 
 **Beschaffungsweg**:
