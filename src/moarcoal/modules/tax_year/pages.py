@@ -6,10 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.documents import DocumentKind, IntakeRejected, take_in
+from moarcoal.modules.tax_year.anlage_n import FORMS
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import Document, EntryAddress
-from moarcoal.web import form_fields, module_state, render, store_of, user_of
+from moarcoal.values.model import Period
+from moarcoal.web import form_fields, module_state, render, store_of, user_of, values_of
 
 MODULE_KEY = "tax_year"
 router = APIRouter(prefix="/steuerjahr")
@@ -87,3 +89,14 @@ def protocol_page(request: Request, reading_id: str) -> HTMLResponse:
         (d for d in state.documents() if d.address == reading.document), None
     )
     return render(request, "tax_year/protocol.html", reading=reading, document=document)
+
+
+@router.get("/anlage-n/{year}", response_class=HTMLResponse)
+def anlage_n(request: Request, year: int) -> HTMLResponse:
+    fields = FORMS.get(year)
+    if fields is None:
+        raise HTTPException(404)
+    values = values_of(request)
+    user = user_of(request)
+    rows = [(field, values.get(field.key, user, Period.year(year))) for field in fields]
+    return render(request, "tax_year/anlage_n.html", year=year, rows=rows, findings=values.findings)

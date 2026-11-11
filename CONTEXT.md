@@ -22,7 +22,7 @@ _Avoid_: deaktivieren, ausblenden (gilt für Befunde und den Eingang)
 
 **Befund** _(geprägt)_:
 Ein Punkt, der die Aufmerksamkeit eines Nutzers verdient (z. B. ausstehender Beleg, Abweichung zum Schnappschuss, auslaufender Vertrag), mit Schweregrad (Hinweis, Warnung, Fehler) und Verweis auf das Betroffene: einen Eintrag (z. B. Beleg, Vertrag, Bezugsobjekt), einen Ausgewiesenen Wert oder einen Einzelposten. Jeder Befund gehört zu einer **Befundart**, die die Datenebene oder ein Modul anmeldet.
-Befunde werden auf Anfrage aus dem aktuellen Stand berechnet und verschwinden, sobald ihre Ursache behoben ist; ein Nutzer kann einen Befund mit Notiz ausblenden, bis sich der zugrunde liegende Stand ändert.
+Befunde werden auf Anfrage aus dem aktuellen Stand berechnet und verschwinden, sobald ihre Ursache behoben ist; ein Nutzer kann einen Befund mit Notiz ausblenden, bis sich der zugrunde liegende Stand ändert (Code: `Finding`).
 _Avoid_: Issue, Problem, Warnung oder Fehler (allein, das sind Schweregrade), quittieren, erledigen
 
 **Befundliste** _(geprägt)_:
@@ -84,6 +84,9 @@ Das Modul für die Steuererklärung eines Jahres; im Durchstich nimmt es das Üb
 **Übertragungsprotokoll**:
 Das HTML-Dokument, das Mein ELSTER nach der Übertragung einer Steuererklärung ausstellt: je ausgefülltem Feld E-Kennung, Anlage, Nummer im Vordruck, Bezeichnung und übertragener Inhalt. Dokumentart des Moduls Steuerjahr mit Bezugszeitraum; die eingelesenen Felder, je mit Fundstelle im Dokument (dem vollen Feldnamen `data-name`), stehen in einem eigenen Eintrag (Code: `ProtocolReading`).
 _Avoid_: Sendeprotokoll, Eingabeprotokoll
+
+**Feld**:
+Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im Vordruck und E-Kennung (solange unbekannt, leer); das Steuerjahr ordnet jedem Feld, das MoarCoal abdeckt, einen Ausgewiesenen Wert zu (Code: `FormField`). Im Durchstich nur drei Felder der Anlage N 2025.
 
 **E-Kennung**:
 Die Kennung eines Felds in ELSTER (E und sieben Ziffern); der verlässliche Schlüssel einer Zeile, den man erst aus dem Übertragungsprotokoll erfährt.

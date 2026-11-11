@@ -19,6 +19,7 @@
         <td>
           {% set url = entry_url(item.locator.entry_address) if item.locator.entry_address else none %}
           {% if url %}<a href="{{ url }}">{{ item.locator.label }}</a>{% else %}{{ item.locator.label }}{% endif %}
+          {% if item.locator.used_value %}{{ value_view("Posten dieses Werts", item.locator.used_value) }}{% endif %}
         </td>
         <td>{{ item.backing.label }}</td>
       </tr>
@@ -39,6 +40,14 @@
   </details>
   {% elif result.outcome == "not_yet" %}
   <span class="titel">{{ title }}:</span> <strong class="fehler">noch nicht berechenbar</strong> ({{ result.reason }})
+  {% if result.chain %}
+  <details>
+    <summary>Kette</summary>
+    <ol class="kette">
+      {% for link in result.chain %}<li>{{ link.key }}</li>{% endfor %}
+    </ol>
+  </details>
+  {% endif %}
   {% else %}
   <span class="titel">{{ title }}:</span> <strong>entfällt</strong> ({{ result.reason }})
   {% endif %}

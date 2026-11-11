@@ -1,6 +1,7 @@
-"""Modul Steuerjahr: nimmt das Übertragungsprotokoll auf und liest es ein (Durchstich, #33)."""
+"""Modul Steuerjahr: Übertragungsprotokoll einlesen, Werte Feldern der Anlage N zuordnen."""
 
 from moarcoal.documents import DocumentKind
+from moarcoal.modules.tax_year.anlage_n import VALUES
 from moarcoal.modules.tax_year.entries import (
     KINDS,
     TRANSFER_PROTOCOL_KEY,
@@ -25,6 +26,7 @@ REGISTRATION = ModuleRegistration(
     nav_url="/steuerjahr",
     router=router,
     kinds=KINDS,
+    values=VALUES,
     document_kinds=(TRANSFER_PROTOCOL,),
 )
 

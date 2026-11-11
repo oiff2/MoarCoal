@@ -98,6 +98,11 @@ class Locator:
         return None
 
     @property
+    def used_value(self) -> "ExposedValue | None":
+        """Der andere Ausgewiesene Wert, auf den die Fundstelle zeigt, falls sie auf einen zeigt."""
+        return None
+
+    @property
     def backing(self) -> Backing:
         raise NotImplementedError
 
@@ -119,6 +124,28 @@ class UserInputLocator(Locator):
     @property
     def backing(self) -> Backing:
         return Backing.ASSUMED
+
+
+@dataclass(frozen=True)
+class ValueLocator(Locator):
+    """Anderer Ausgewiesener Wert: der Einzelposten erbt dessen Betrag und schwächsten Belegstand.
+
+    Die Posten des fremden Werts werden nicht kopiert; wer aufklappt, sieht sie über `value`.
+    """
+
+    value: "ExposedValue"
+
+    @property
+    def label(self) -> str:
+        return f"Wert {self.value.key}"
+
+    @property
+    def used_value(self) -> "ExposedValue | None":
+        return self.value
+
+    @property
+    def backing(self) -> Backing:
+        return self.value.backing
 
 
 @dataclass(frozen=True)
@@ -174,6 +201,16 @@ class Subject:
 
 
 @dataclass(frozen=True)
+class ValueRef:
+    """Nennt einen Ausgewiesenen Wert: Schlüssel, Nutzer, Zeitbezug, Bezugsobjekt."""
+
+    key: ValueKey
+    user: str
+    time: TimeRef
+    subject: Subject | None
+
+
+@dataclass(frozen=True)
 class ExposedValue:
     """Ein Ausgewiesener Wert mit Betrag, Einzelposten und Rechenweg."""
 
@@ -188,6 +225,10 @@ class ExposedValue:
     workings: Workings
 
     @property
+    def ref(self) -> ValueRef:
+        return ValueRef(self.key, self.user, self.time, self.subject)
+
+    @property
     def backing(self) -> Backing:
         """Schwächster Belegstand der Einzelposten; ohne Einzelposten belegt."""
         return min((item.backing for item in self.items), default=Backing.PROVEN)
@@ -195,7 +236,11 @@ class ExposedValue:
 
 @dataclass(frozen=True)
 class NotYetComputable:
-    """Dem Wert fehlt ein Einzelposten, dessen Fehlen die Rechnung nicht regelt."""
+    """Dem Wert fehlt ein Einzelposten, dessen Fehlen die Rechnung nicht regelt.
+
+    Hängt es an anderen Werten, nennt `chain` sie: zuerst den, den dieser Wert verwendet, zuletzt
+    den, an dem es liegt.
+    """
 
     outcome: ClassVar[str] = "not_yet"
 
@@ -204,6 +249,11 @@ class NotYetComputable:
     time: TimeRef
     subject: Subject | None
     reason: str
+    chain: tuple[ValueRef, ...] = ()
+
+    @property
+    def ref(self) -> ValueRef:
+        return ValueRef(self.key, self.user, self.time, self.subject)
 
 
 @dataclass(frozen=True)
@@ -217,6 +267,10 @@ class NotApplicable:
     time: TimeRef
     subject: Subject | None
     reason: str
+
+    @property
+    def ref(self) -> ValueRef:
+        return ValueRef(self.key, self.user, self.time, self.subject)
 
 
 type ValueResult = ExposedValue | NotYetComputable | NotApplicable
