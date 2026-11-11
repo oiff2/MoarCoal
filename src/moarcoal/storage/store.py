@@ -10,6 +10,7 @@ ein Absturz mitten im Umbenennen ist damit nicht abgedeckt.
 import hashlib
 import json
 import os
+import re
 import threading
 import time
 from collections.abc import Mapping, Sequence
@@ -172,6 +173,19 @@ def _restore_file(target: Path, original: bytes | None) -> None:
         _write_file(target, original)
 
 
+_WINDOWS_DRIVE = re.compile(r"([A-Za-z]):[\\/]?(.*)", re.DOTALL)
+
+
+def site_folder(text: str) -> Path:
+    """Ordner eines Ablageorts; Windows-Pfad `G:\\Steuer` wird zum WSL-Pfad `/mnt/g/Steuer`."""
+    match = _WINDOWS_DRIVE.fullmatch(text)
+    if match is None:
+        return Path(text)
+    drive, rest = match.groups()
+    parts = [part for part in re.split(r"[\\/]", rest) if part]
+    return Path("/mnt", drive.lower(), *parts)
+
+
 def _load_sites(root: Path) -> dict[str, Path]:
     """Ablageorte aus `common/sites.json`; fehlt die Datei, gibt es keine."""
     raw = _read_if_exists(root / SITES_FILE)
@@ -181,11 +195,16 @@ def _load_sites(root: Path) -> dict[str, Path]:
         body = json.loads(raw)
         if body["schema"] != SITES_SCHEMA:
             raise ValueError(body["schema"])
-        sites = {str(name): Path(str(folder)) for name, folder in body["sites"].items()}
+        texts = {str(name): str(folder) for name, folder in body["sites"].items()}
     except (ValueError, KeyError, TypeError, AttributeError) as error:
         raise StoreError(f"{SITES_FILE}: keine gültige Liste der Ablageorte") from error
-    if any(not folder.is_absolute() for folder in sites.values()):
-        raise StoreError(f"{SITES_FILE}: Ablageorte brauchen absolute Pfade")
+    sites = {name: site_folder(text) for name, text in texts.items()}
+    for name, folder in sites.items():
+        if not folder.is_absolute():
+            raise StoreError(
+                f"{SITES_FILE}: Ablageort {name}: „{texts[name]}“ ist kein absoluter Pfad; "
+                f"gemeint ist vielleicht „/{texts[name]}“ (WSL) oder ein Windows-Pfad wie „G:\\…“."
+            )
     return sites
 
 

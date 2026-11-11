@@ -26,6 +26,7 @@ from moarcoal.storage import (
     StoreError,
     open_store,
 )
+from moarcoal.storage.store import site_folder
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PORT = 4711
@@ -171,6 +172,30 @@ def test_sites_come_from_the_shared_file_and_are_not_entries(root: Path, site: P
     store = open_store(root, REGISTRATION.kinds)
     assert store.site_names() == ["Belege"]
     assert store.state().entries == {}
+
+
+@pytest.mark.parametrize(
+    ("text", "folder"),
+    [
+        (r"G:\Steuer\Belege", "/mnt/g/Steuer/Belege"),
+        ("c:/Users/beispiel/Belege", "/mnt/c/Users/beispiel/Belege"),
+        ("D:\\", "/mnt/d"),
+        ("/mnt/g/Steuer", "/mnt/g/Steuer"),
+    ],
+)
+def test_site_folder_accepts_windows_drive_paths(text: str, folder: str) -> None:
+    assert site_folder(text) == Path(folder)
+
+
+def test_relative_site_path_names_the_path_and_hints_at_the_slash(root: Path) -> None:
+    file = root / "common" / "sites.json"
+    file.parent.mkdir(parents=True)
+    file.write_text(
+        json.dumps({"schema": "ablageorte/1", "sites": {"Steuer": "mnt/g/Steuer"}}),
+        encoding="utf-8",
+    )
+    with pytest.raises(StoreError, match=r"Steuer: „mnt/g/Steuer“.*/mnt/g/Steuer"):
+        open_store(root, REGISTRATION.kinds)
 
 
 @pytest.mark.parametrize(
