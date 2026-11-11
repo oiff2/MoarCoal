@@ -410,12 +410,33 @@ def test_page_shows_values_with_expandable_chains(tmp_path: Path) -> None:
     assert page.status_code == 200
     html = page.text
     assert "E0203503" in html and "E0203504" in html
-    assert "180 Tage" in html and "12 km" in html and "50,00 €" in html
+    assert "180 Tage" in html and "12 km" in html and "50 €" in html and "50,00 €" not in html
     assert "noch unbekannt" in html  # E-Kennung der Arbeitsmittel
     assert html.count("<details>") >= 6  # je Feld aufklappbar, dazu der Posten des Arbeit-Werts
     assert "Wert work.workdays" in html
     assert "Schreibtischlampe" in html
     assert "49,90 € → 50 € (aufgerundet, Ausgabe)" in html  # Rundungsschritt im Rechenweg
+
+
+def test_page_shows_whole_euro_field_without_cents_but_work_keeps_them(tmp_path: Path) -> None:
+    http = client(tmp_path)
+    origin = {"Origin": f"http://127.0.0.1:{PORT}"}
+    http.post(
+        "/arbeit/arbeitsmittel",
+        data={
+            "year": "2025",
+            "amount": "86,40",
+            "date": "2025-03-14",
+            "description": "Schreibtischlampe",
+        },
+        headers=origin,
+    )
+
+    html = http.get("/steuerjahr/anlage-n/2025").text
+
+    assert '<strong class="betrag">87 €</strong>' in html
+    assert "87,00 €" not in html
+    assert "86,40 €" in html  # Posten des Moduls Arbeit bleibt genau
 
 
 def test_page_shows_not_yet_computable_with_chain(tmp_path: Path) -> None:
