@@ -142,7 +142,9 @@ def camel_parts(name: str) -> list[str]:
     return [p.lower() for p in re.findall(r"[A-Z]+(?![a-z])|[A-Z][a-z0-9]*|[a-z0-9]+", name)]
 
 
-def avoided_type_names(names: set[str], avoid: set[str]) -> list[str]:
+def avoided_type_names(names: set[str], avoid: set[str], declared: set[str]) -> list[str]:
+    """Typnamen mit gemiedenem Bestandteil; ein Wort, das selbst `Code:`-Name ist, gilt nicht."""
+    avoid = avoid - {name.lower() for name in declared}
     return sorted(name for name in names if avoid.intersection(camel_parts(name)))
 
 
@@ -191,7 +193,8 @@ def test_code_names_exist(context: str) -> None:
 
 
 def test_no_type_with_avoided_name(context: str) -> None:
-    assert avoided_type_names(defined_types(SRC), avoid_words(context)) == []
+    names = defined_types(SRC)
+    assert avoided_type_names(names, avoid_words(context), code_names(context)) == []
 
 
 def test_coined_terms_limit(context: str) -> None:
@@ -244,10 +247,15 @@ def test_avoid_word_only_matches_whole_words() -> None:
 
 def test_type_name_with_avoided_component_is_found() -> None:
     avoid = avoid_words(SAMPLE)
-    assert avoided_type_names({"ModuleRegistry", "ModuleRegistration", "MyManifest"}, avoid) == [
-        "ModuleRegistry",
-        "MyManifest",
-    ]
+    names = {"ModuleRegistry", "ModuleRegistration", "MyManifest"}
+    assert avoided_type_names(names, avoid, set()) == ["ModuleRegistry", "MyManifest"]
+
+
+def test_avoid_word_that_is_a_code_name_is_not_avoided_for_types() -> None:
+    avoid = {"snapshot", "plugin"}
+    declared = {"Snapshot"}
+    assert avoided_type_names({"Snapshot"}, avoid, declared) == []
+    assert avoided_type_names({"PluginThing", "Snapshot"}, avoid, declared) == ["PluginThing"]
 
 
 def test_code_name_check_fails_when_built_name_stays_on_list() -> None:
