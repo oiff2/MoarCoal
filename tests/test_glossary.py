@@ -18,7 +18,7 @@ SRC = ROOT / "src" / "moarcoal"
 TEMPLATES = SRC / "templates"
 
 # Wörter aus _Avoid_-Zeilen, die im sichtbaren Text der Vorlagen trotzdem stehen dürfen.
-TEMPLATE_EXCEPTIONS = {"warnung", "fehler", "kennung"}  # Schweregrade; „E-Kennung“ (ELSTER)
+TEMPLATE_EXCEPTIONS = {"warnung", "fehler", "e-kennung"}  # Schweregrade; Wendung „E-Kennung“
 
 # `Code:`-Namen aus CONTEXT.md, die noch nicht im App-Code gebaut sind. Gebaute Namen müssen hier
 # raus (der Test schlägt sonst fehl), ebenso Namen, die nicht mehr in CONTEXT.md stehen.
@@ -113,6 +113,8 @@ def visible_text(template_source: str) -> str:
 
 
 def avoided_in_text(text: str, avoid: set[str], exceptions: set[str]) -> list[str]:
+    for phrase in exceptions:  # erlaubte Wendungen vor der Prüfung ausblenden
+        text = re.sub(re.escape(phrase), " ", text, flags=re.I)
     return sorted(
         word
         for word in avoid - exceptions
@@ -220,6 +222,13 @@ def test_avoid_word_in_template_is_found_but_not_exceptions_or_markup() -> None:
     html += "{# Manifest #}"
     text = visible_text(html)
     assert avoided_in_text(text, avoid, TEMPLATE_EXCEPTIONS) == ["issue"]
+
+
+def test_exception_phrase_hides_only_the_phrase() -> None:
+    exceptions = {"e-kennung"}
+    assert avoided_in_text("Die E-Kennung der Zeile", {"kennung"}, exceptions) == []
+    assert avoided_in_text("Die Kennung der Zeile", {"kennung"}, exceptions) == ["kennung"]
+    assert avoided_in_text("E-Kennung und Kennung", {"kennung"}, exceptions) == ["kennung"]
 
 
 def test_avoid_word_only_matches_whole_words() -> None:
