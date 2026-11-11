@@ -1,13 +1,14 @@
 # MoarCoal
 
-Personal finance app (taxes/ELSTER, receipts, real estate). No code yet; currently designing the scaffold. Docs and app text in German; code and identifiers in English.
+Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is done; building starts with the Durchstich (#27). Docs and app text in German; code and identifiers in English.
 
 ## Where things are
 
 - `CONTEXT.md`: glossary. Use its terms in code and docs; add each new term there as soon as it's settled.
 - `docs/adr/`: architecture decisions. Read the ones that touch your area before you change anything.
 - `docs/grundgeruest.md`: architecture spec of the scaffold (Datenebene, Module, contract, storage), merged from the map. Start here before building.
-- [Wayfinder-Karte: Grundgerüst MoarCoal](https://github.com/oiff2/MoarCoal/issues/1): the current plan. Read it before any planning or design work; its sub-issues are the open design questions.
+- [Durchstich #27](https://github.com/oiff2/MoarCoal/issues/27): the current work, first build stage per `docs/grundgeruest.md` (section „Bauabschnitte“). Build only what it needs.
+- [Wayfinder-Karte: Grundgerüst MoarCoal](https://github.com/oiff2/MoarCoal/issues/1) (closed): decisions behind the spec, one sub-issue per design question.
 - `erkenntnisse.md`: lessons from the predecessor project Kohlebau. Use it for orientation; it is not a spec.
 
 ## Privacy

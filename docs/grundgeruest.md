@@ -4,6 +4,35 @@ Architektur von MoarCoal, zusammengeführt aus der [Wayfinder-Karte: Grundgerüs
 
 Rangfolge bei Widerspruch: ADR vor diesem Dokument vor Ticket; ein späteres Ticket vor einem früheren. Was bei der Zusammenführung aufgelöst wurde, steht in [Abschnitt 10](#10-bei-der-zusammenführung-aufgelöst).
 
+## Bauabschnitte
+
+Die Entscheidungen unten gelten alle, gebaut werden sie aber nicht auf einmal. Zuerst kommt ein Durchstich, ein echter Ablauf von Anfang bis Ende. Von der Datenebene entsteht nur, was er braucht. Was der Bau widerlegt, wird hier nachgezogen.
+
+**Abschnitt 1: Durchstich** ([#27](https://github.com/oiff2/MoarCoal/issues/27)): Nutzereingaben für Anlage N 2025, daraus Ausgewiesene Werte, Zuordnung zu Zeilen im Steuerjahr, Übertragungsprotokoll einlesen und abgleichen.
+
+- Einträge und Adressen; Dokument mit Verweis auf den Ablageort; ein Nutzer, der Eigentümer steht trotzdem am Eintrag
+- Contract mit Betrag oder noch nicht berechenbar, Einzelposten, Fundstelle, Belegstand, Rechenweg; Wertekatalog; `Values` mit Zwischenspeicher, Zykluserkennung und Prüfungen; `use` zwischen zwei Modulen
+- Modulanmeldung, `ModuleState`, `evaluate(...)`
+- Befunde und Befundliste, ohne Ausblenden
+- `apply` mit `Put`/`Delete`, Prüfsummen, `.backup/`, temporäre Datei und Umbenennen; `schema`-Feld ab der ersten Datei
+- Server mit Absicherung (Abschnitt 6), Testkern (Abschnitt 9)
+
+**Abschnitt 2**, sobald der Durchstich steht: Auslesen mit Claude als Vorschlag mit Bestätigung (Abschnitt 7), am Beispiel des Bescheid-Abgleichs; Schnappschuss bei Abgabe, ohne Dokumentkopie; Erwarteter Beleg in einfacher Form; Ausblenden von Befunden; Eingang.
+
+**Später, wenn es gebraucht wird**:
+
+- Journal über mehrere Dateien ([ADR 0006](adr/0006-schreibweg-vorgang-mit-journal.md)): sobald Vorgänge regelmäßig mehrere Dateien schreiben
+- Migration beim Start und Start-Archiv ([ADR 0004](adr/0004-migration-beim-start.md)): bei der ersten Schemaänderung
+- Zusammenführen mit Alias (`Merge`)
+- Neu auslesen mit Vorlagenfassung
+- Dokumentkopie beim Einfrieren ([Dokumente nach Abgabe](https://github.com/oiff2/MoarCoal/issues/13))
+- abgeleitete Sperrliste aus `Sensitive[str]` (Abschnitt 8)
+- Abschalten von Modulen und „entfällt“: mit dem zweiten Nutzer
+- Rhythmus und Ausnahmen am Erwarteten Beleg, Wiederfinden verschobener Dokumente, Abgleich zwischen Quellen
+- Selbstbeendigung des Servers, Hellmodus
+
+Die Befunde in [3.5](#35-befunde) sind die Zielliste; gebaut wird jeder mit dem Baustein, der ihn erzeugt.
+
 ## 1. Leitplanken
 
 - Die **Datenebene** hält gespeicherte Daten und die Fachbausteine, die alle Module gleich brauchen. Themenlogik gehört ins **Modul**.
