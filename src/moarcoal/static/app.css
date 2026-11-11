@@ -13,3 +13,7 @@ form.inline { display: inline; }
 .belegstand-pending { border-color: orange; }
 .belegstand-proven { border-color: green; }
 .rechenweg { margin: 0.25rem 0; }
+.befunde { padding-left: 1.25rem; }
+.schweregrad-error strong { color: crimson; }
+.schweregrad-warning strong { color: darkorange; }
+tr:target { outline: 2px solid darkorange; }

@@ -2,6 +2,7 @@
 
 from moarcoal.documents import DocumentKind
 from moarcoal.modules.tax_year.anlage_n import VALUES
+from moarcoal.modules.tax_year.comparison import FINDING_KINDS, protocol_findings
 from moarcoal.modules.tax_year.entries import (
     KINDS,
     TRANSFER_PROTOCOL_KEY,
@@ -28,6 +29,8 @@ REGISTRATION = ModuleRegistration(
     kinds=KINDS,
     values=VALUES,
     document_kinds=(TRANSFER_PROTOCOL,),
+    finding_kinds=FINDING_KINDS,
+    findings=protocol_findings,
 )
 
 __all__ = ["REGISTRATION", "TRANSFER_PROTOCOL", "ProtocolLine", "ProtocolReading"]

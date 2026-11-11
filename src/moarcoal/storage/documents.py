@@ -15,7 +15,8 @@ class Document(Entry):
     """Eine aufgenommene Datei: Ablageort + relativer Pfad + SHA-256, höchstens eine Dokumentart.
 
     Die Datei bleibt am Ablageort und wird nur gelesen (ADR 0003). Hat die Dokumentart einen
-    Bezugszeitraum, stehen Beginn und Ende hier.
+    Bezugszeitraum, stehen Beginn und Ende hier. `taken_in_at` ist der Zeitpunkt des Aufnehmens
+    (UTC; bei älteren Dokumenten leer).
     """
 
     site: str = Field(min_length=1)
@@ -24,6 +25,7 @@ class Document(Entry):
     document_kind: str | None = None
     period_start: datetime.date | None = None
     period_end: datetime.date | None = None
+    taken_in_at: datetime.datetime | None = None
 
     @model_validator(mode="after")
     def _period_is_complete(self) -> Self:

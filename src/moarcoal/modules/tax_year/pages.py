@@ -99,4 +99,10 @@ def anlage_n(request: Request, year: int) -> HTMLResponse:
     values = values_of(request)
     user = user_of(request)
     rows = [(field, values.get(field.key, user, Period.year(year))) for field in fields]
-    return render(request, "tax_year/anlage_n.html", year=year, rows=rows, findings=values.findings)
+    return render(
+        request,
+        "tax_year/anlage_n.html",
+        year=year,
+        rows=rows,
+        findings=values.finding_list(user, year),
+    )

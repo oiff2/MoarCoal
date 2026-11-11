@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_value.html" import value_view %}
+{% from "_findings.html" import finding_list %}
 {% block title %}Anlage N {{ year }} – MoarCoal{% endblock %}
 {% block main %}
 <h1>Anlage N {{ year }}</h1>
@@ -8,11 +9,7 @@
 
 {% if findings %}
 <h2>Befunde</h2>
-<ul class="fehler">
-  {% for finding in findings %}
-  <li>{{ finding.severity.value }}: {{ finding.message }}</li>
-  {% endfor %}
-</ul>
+{{ finding_list(findings) }}
 {% endif %}
 
 <table class="felder">

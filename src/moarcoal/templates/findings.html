@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "_findings.html" import finding_list %}
+{% block title %}Befunde {{ year }} – MoarCoal{% endblock %}
+{% block main %}
+<h1>Befunde {{ year }}</h1>
+{% if findings %}
+<p>{{ findings | length }} Befund(e). Ein Klick führt zur Stelle, an der man den Befund prüft.</p>
+{{ finding_list(findings) }}
+{% else %}
+<p>Keine Befunde.</p>
+{% endif %}
+{% endblock %}

@@ -83,6 +83,7 @@ def take_in(
             document_kind=kind.key,
             period_start=datetime.date(year, 1, 1) if kind.has_period else None,
             period_end=datetime.date(year, 12, 31) if kind.has_period else None,
+            taken_in_at=datetime.datetime.now(datetime.UTC),
         )
     except ValidationError:
         return IntakeRejected(("Ablageort und Pfad müssen angegeben werden.",))

@@ -93,6 +93,23 @@ class Values:
             self.findings.append(Finding(CYCLE, Severity.ERROR, ref, text, chain))
         return NotYetComputable(ref.key, ref.user, ref.time, ref.subject, text)
 
+    def finding_list(self, user: str, year: int) -> list[Finding]:
+        """Befundliste: rechnet alle Zeitraumwerte des Jahrs, sammelt die Befunde der Datenebene
+        und der Module. Berechnet auf Anfrage, nie gespeichert; Fehler zuerst."""
+        period = Period.year(year)
+        for entry in self.catalog.entries():
+            if entry.time_kind is TimeKind.PERIOD:  # Stichtagswerte: noch nicht gebaut
+                if entry.has_subject:
+                    self.all(entry.key, user, period)
+                else:
+                    self.get(entry.key, user, period)
+        found = list(self.findings)
+        for module in self._modules.values():
+            if module.findings is not None:
+                found.extend(module.findings(self._module_state(module.key, user), self, year))
+        order = {Severity.ERROR: 0, Severity.WARNING: 1, Severity.NOTE: 2}
+        return sorted(found, key=lambda f: order[f.severity])
+
     def subjects(self, key: str, user: str, time: TimeRef) -> list[Subject]:
         """Die Bezugsobjekte, die das Modul des Schlüssels zum Zeitbezug aufzählt."""
         definition = self.catalog.definition(key)

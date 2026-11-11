@@ -1,0 +1,11 @@
+{#- Gemeinsame Anzeige von Befunden: Schweregrad, Text, Link zur Stelle. -#}
+{% macro finding_list(findings) %}
+<ul class="befunde">
+  {% for finding in findings %}
+  <li class="schweregrad-{{ finding.severity.name | lower }}">
+    <strong>{{ finding.severity.value }}</strong>
+    {% if finding.href %}<a href="{{ finding.href }}">{{ finding.message }}</a>{% else %}{{ finding.message }}{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endmacro %}

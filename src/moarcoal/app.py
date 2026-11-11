@@ -14,12 +14,13 @@ from moarcoal.modules import MODULES
 from moarcoal.registration import ModuleRegistration
 from moarcoal.security import SecurityMiddleware
 from moarcoal.storage import open_store
-from moarcoal.web import entry_url, format_amount, format_eur, render
+from moarcoal.web import entry_url, format_amount, format_eur, render, user_of, values_of
 
 PACKAGE_DIR = Path(__file__).parent
 TEMPLATES_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
 # Durchstich: ein Nutzer, die Nutzerliste kommt später; der Anzeigename ist erfunden.
+DEFAULT_YEAR = 2025  # Durchstich: das globale Jahr ist noch nicht gebaut
 DEFAULT_USER = "ich"
 DEFAULT_USER_NAME = "Max Mustermann"
 
@@ -51,5 +52,10 @@ def create_app(
     @app.get("/", response_class=HTMLResponse)
     def start(request: Request) -> HTMLResponse:  # pyright: ignore[reportUnusedFunction]
         return render(request, "start.html")
+
+    @app.get("/befunde", response_class=HTMLResponse)
+    def findings(request: Request, year: int = DEFAULT_YEAR) -> HTMLResponse:  # pyright: ignore[reportUnusedFunction]
+        found = values_of(request).finding_list(user_of(request), year)
+        return render(request, "findings.html", year=year, findings=found)
 
     return app

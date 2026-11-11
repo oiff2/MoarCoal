@@ -1,4 +1,4 @@
-"""Befunde, die die Datenebene beim Rechnen erzeugt (im Durchstich: Zyklus)."""
+"""Befunde und Befundarten; die Datenebene erzeugt beim Rechnen den Zyklus, Module den Rest."""
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -15,14 +15,26 @@ class Severity(StrEnum):
 
 
 @dataclass(frozen=True)
+class FindingKind:
+    """Eine Befundart, die ein Modul anmeldet: Schlüssel (`<modul>.<name>`) und Titel."""
+
+    key: str
+    title: str
+
+
+@dataclass(frozen=True)
 class Finding:
-    """Ein Befund: Befundart (`kind`), Schweregrad, betroffener Wert, Text und ggf. Kette."""
+    """Ein Befund: Befundart (`kind`), Schweregrad, betroffener Wert, Text und ggf. Kette.
+
+    `href` führt zur Stelle, an der man den Befund prüft (leer: kein Link).
+    """
 
     kind: str
     severity: Severity
     target: ValueRef
     message: str
     chain: tuple[ValueRef, ...] = ()
+    href: str = ""
 
 
 CYCLE = "cycle"

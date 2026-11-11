@@ -25,6 +25,12 @@ Ein Punkt, der die Aufmerksamkeit eines Nutzers verdient (z. B. ausstehender Bel
 Befunde werden auf Anfrage aus dem aktuellen Stand berechnet und verschwinden, sobald ihre Ursache behoben ist; ein Nutzer kann einen Befund mit Notiz ausblenden, bis sich der zugrunde liegende Stand ändert (Code: `Finding`).
 _Avoid_: Issue, Problem, Warnung oder Fehler (allein, das sind Schweregrade), quittieren, erledigen
 
+**Befundart**:
+Die Sorte eines Befunds, angemeldet von der Datenebene oder einem Modul mit Schlüssel (`<modul>.<name>`) und Titel; sie bestimmt Schweregrad und Text (Code: `FindingKind`).
+
+**Abgleich**:
+Der Vergleich eines Felds der Anlage mit dem, was das Übertragungsprotokoll an ELSTER übertragen zeigt: exakt, ohne Toleranz und ohne Runden; weicht der Inhalt vom Ausgewiesenen Wert ab, fehlt das Feld im Protokoll oder ist es mehrdeutig, entsteht ein Befund (Warnung), mit Link zur Stelle im Protokoll. Gilt das zuletzt aufgenommene Protokoll des Jahrs.
+
 **Befundliste** _(geprägt)_:
 Die eine Stelle, an der alle nicht ausgeblendeten Befunde eines Nutzers zum gewählten Jahr über alle Module hinweg gesammelt werden; ausgeblendete Fehler zählt sie weiter mit.
 _Avoid_: Review, Inbox, To-do, Durchsicht

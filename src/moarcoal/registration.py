@@ -1,13 +1,18 @@
 """Modulanmeldung und eingegrenzter Stand eines Moduls (docs/grundgeruest.md, 3.4 und 4)."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
 from fastapi import APIRouter
 
 from moarcoal.documents import DocumentKind
 from moarcoal.storage import Document, Entry, EntryAddress, EntryKind, State, entry_checksum
+from moarcoal.values.calculation import ValueSource
 from moarcoal.values.catalog import ValueDefinition
+from moarcoal.values.findings import Finding, FindingKind
+
+type FindingSource = Callable[[ModuleState, ValueSource, int], Iterable[Finding]]
+"""Befunde eines Moduls für ein Jahr: eigener Stand, Werte (auch fremde) und das Jahr."""
 
 
 @dataclass(frozen=True)
@@ -27,6 +32,8 @@ class ModuleRegistration:
     values: tuple[ValueDefinition, ...] = ()
     entry_url: Callable[[EntryAddress], str | None] = lambda address: None
     document_kinds: tuple[DocumentKind, ...] = ()
+    finding_kinds: tuple[FindingKind, ...] = ()
+    findings: FindingSource | None = None
 
 
 class ForeignKindError(LookupError):
