@@ -1,15 +1,16 @@
 """Abgleich der Felder der Anlage N mit dem Übertragungsprotokoll (Befunde des Steuerjahrs).
 
-Verglichen wird exakt und ohne Toleranz: Der Wert wird nicht gerundet, auch wenn früher gerundete
-Beträge eingereicht wurden. Gesetzliches Runden kommt später. Mehrere Zeilen derselben E-Kennung
-werden bei EUR-Feldern summiert; bei Tagen und km sind sie mehrdeutig.
+Verglichen wird exakt und ohne Toleranz gegen den gerundeten Wert des Felds (das Steuerjahr rundet
+nach Einheit und Richtung, siehe `anlage_n`). Weicht das Protokoll nur durch Rundung ab, nennt der
+Text Differenz und Richtung. Mehrere Zeilen derselben E-Kennung werden bei EUR-Feldern summiert;
+bei Tagen und km sind sie mehrdeutig.
 """
 
 import re
 from collections.abc import Iterator
 from decimal import Decimal, InvalidOperation
 
-from moarcoal.modules.tax_year.anlage_n import FORMS, FormField
+from moarcoal.modules.tax_year.anlage_n import FORMS, Direction, FormField, show
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolLine, ProtocolReading
 from moarcoal.registration import ModuleState
 from moarcoal.values.calculation import ValueSource
@@ -62,17 +63,29 @@ def protocol_url(reading: ProtocolReading, data_name: str = "") -> str:
     return f"{base}#{data_name}" if data_name else base
 
 
-def _shown(value: Decimal, unit: Unit) -> str:
-    text = f"{value:.2f}" if unit is Unit.EUR else f"{value.normalize():f}"
-    text = text.replace(".", ",")
-    return f"{text} €" if unit is Unit.EUR else f"{text} {unit.value}"
-
-
 def _sum(lines: list[ProtocolLine]) -> Decimal | None:
     numbers = [parse_german_number(line.content) for line in lines]
     if any(n is None for n in numbers):
         return None
     return sum((n for n in numbers if n is not None), Decimal(0))
+
+
+def _deviation_text(field: FormField, expected: Decimal, transferred: Decimal) -> str:
+    """Text der Abweichung; liegt sie nur an der Rundung, mit Differenz und Richtung."""
+    shown = show(expected, field.unit)
+    plain = f"Wert {shown}, Protokoll {show(transferred, field.unit)}."
+    if not field.whole_numbers:
+        return plain
+    if transferred != transferred.to_integral_value():
+        return f"nicht gerundet: {show(transferred, field.unit)} statt {shown}."
+    difference = transferred - expected
+    if abs(difference) > 1 or field.direction is None and field.unit is not Unit.KM:
+        return plain
+    # Zu Ungunsten: weniger Ausgabe bzw. Entfernung, mehr Einnahme.
+    unfavorable = (difference > 0) == (field.direction is Direction.INCOME)
+    how = "aufgerundet" if difference > 0 else "abgerundet"
+    side = "Ungunsten" if unfavorable else "Gunsten"
+    return f"um {show(abs(difference), field.unit)} {how}, zu deinen {side} (Wert {shown})."
 
 
 def _field_findings(
@@ -101,11 +114,11 @@ def _field_findings(
         )
         return
     transferred = _sum(lines)
-    shown = _shown(value.amount.value, value.amount.unit)
+    shown = show(value.amount.value, value.amount.unit)
     if transferred is None:
         text = f"Wert {shown}, Protokoll „{lines[0].content}“ ist keine Zahl."
     elif transferred != value.amount.value:
-        text = f"Wert {shown}, Protokoll {_shown(transferred, field.unit)}."
+        text = _deviation_text(field, value.amount.value, transferred)
     else:
         return
     yield Finding(DEVIATION, Severity.WARNING, ref, f"{name}: {text}", href=first)

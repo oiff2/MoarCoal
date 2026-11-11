@@ -2,6 +2,7 @@
 
 import datetime
 from collections.abc import Callable
+from decimal import Decimal
 from pathlib import Path
 
 import httpx
@@ -16,6 +17,10 @@ from moarcoal.modules.tax_year.anlage_n import (
     N_EQUIPMENT,
     N_WORKPLACE_DAYS,
     N_WORKPLACE_DISTANCE,
+    Direction,
+    FormField,
+    Rounding,
+    round_for_field,
 )
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import FirstWorkplace, UserInput, WorkEquipment
@@ -36,6 +41,8 @@ from moarcoal.values.model import (
     ValueKey,
     ValueLocator,
 )
+
+WORK_EQUIPMENT = ValueKey("work.equipment")
 
 PORT = 4711
 YEAR = Period.year(2025)
@@ -97,7 +104,7 @@ def test_fields_show_the_captured_inputs_through_use_with_chain() -> None:
 
     assert days.amount == Amount.of(180, Unit.DAYS)
     assert km.amount == Amount.of(12, Unit.KM)
-    assert equipment.amount == Amount.eur_cents(4990)
+    assert equipment.amount == Amount.eur_cents(5000)  # 49,90 € als Ausgabe aufgerundet
     (item,) = days.items
     assert isinstance(item.locator, ValueLocator)
     assert item.locator.value.key == "work.workdays"
@@ -105,6 +112,66 @@ def test_fields_show_the_captured_inputs_through_use_with_chain() -> None:
     assert [i.locator.entry_address for i in item.locator.value.items] == [place.address]
     assert days.backing is Backing.ASSUMED  # geerbt vom schwächsten Belegstand
     assert [s.kind for s in days.workings.steps] == ["item", "step"]
+
+
+# --- Runden der Felder -------------------------------------------------------------------------
+
+
+def test_equipment_is_rounded_up_with_a_step_and_work_stays_exact() -> None:
+    values = evaluate([WORK, TAX_YEAR], [workplace(), lamp(8640)])
+
+    field = exposed(values.get(N_EQUIPMENT, "anna", YEAR))
+    work = exposed(values.get(WORK_EQUIPMENT, "anna", YEAR))
+
+    assert field.amount == Amount.of(87, Unit.EUR)
+    assert field.workings.steps[-1].text == "86,40 € → 87 € (aufgerundet, Ausgabe)"
+    assert field.workings.steps[-1].amount == Amount.of(87, Unit.EUR)
+    assert work.amount == Amount.eur_cents(8640)
+
+
+def test_field_that_already_fits_gets_no_rounding_step() -> None:
+    values = evaluate([WORK, TAX_YEAR], [workplace(), lamp(8700)])
+
+    field = exposed(values.get(N_EQUIPMENT, "anna", YEAR))
+
+    assert [s.kind for s in field.workings.steps] == ["item", "step"]
+
+
+@pytest.mark.parametrize("value", ["12.4", "12.9"])
+def test_km_are_rounded_down_to_whole_km(value: str) -> None:
+    calculation = Calculation(None, None, YEAR, None)  # type: ignore[arg-type]
+    (field,) = [f for f in FIELDS_2025 if f.key == N_WORKPLACE_DISTANCE]
+
+    rounded = round_for_field(calculation, field, Amount(Decimal(value), Unit.KM))
+
+    assert rounded == Amount.of(12, Unit.KM)
+    assert calculation.steps[0].text.endswith("→ 12 km (auf volle km abgerundet)")
+
+
+def test_income_field_rounds_down_and_cent_field_stays_exact() -> None:
+    income = FormField(
+        ValueKey("demo.income"), None, "1", "Erstattung", Unit.EUR, Rounding.WHOLE_EUROS,
+        Direction.INCOME,
+    )  # fmt: skip
+    cents = FormField(ValueKey("demo.tax"), None, "2", "Lohnsteuer", Unit.EUR, Rounding.EURO_CENTS)
+    calculation = Calculation(None, None, YEAR, None)  # type: ignore[arg-type]
+
+    down = round_for_field(calculation, income, Amount(Decimal("86.60"), Unit.EUR))
+    exact = round_for_field(calculation, cents, Amount(Decimal("86.60"), Unit.EUR))
+
+    assert down == Amount.of(86, Unit.EUR)
+    assert calculation.steps[0].text == "86,60 € → 86 € (abgerundet, Einnahme)"
+    assert exact == Amount(Decimal("86.60"), Unit.EUR)
+    assert len(calculation.steps) == 1
+
+
+def test_euro_field_needs_a_direction_exactly_when_it_takes_whole_euros() -> None:
+    with pytest.raises(ValueError, match="Richtung"):
+        FormField(ValueKey("demo.x"), None, "1", "x", Unit.EUR, Rounding.WHOLE_EUROS)
+    with pytest.raises(ValueError, match="Richtung"):
+        FormField(
+            ValueKey("demo.x"), None, "1", "x", Unit.EUR, Rounding.EURO_CENTS, Direction.EXPENSE
+        )
 
 
 def test_catalog_has_only_the_fields_of_the_durchstich() -> None:
@@ -343,11 +410,12 @@ def test_page_shows_values_with_expandable_chains(tmp_path: Path) -> None:
     assert page.status_code == 200
     html = page.text
     assert "E0203503" in html and "E0203504" in html
-    assert "180 Tage" in html and "12 km" in html and "49,90 €" in html
+    assert "180 Tage" in html and "12 km" in html and "50,00 €" in html
     assert "noch unbekannt" in html  # E-Kennung der Arbeitsmittel
     assert html.count("<details>") >= 6  # je Feld aufklappbar, dazu der Posten des Arbeit-Werts
     assert "Wert work.workdays" in html
     assert "Schreibtischlampe" in html
+    assert "49,90 € → 50 € (aufgerundet, Ausgabe)" in html  # Rundungsschritt im Rechenweg
 
 
 def test_page_shows_not_yet_computable_with_chain(tmp_path: Path) -> None:

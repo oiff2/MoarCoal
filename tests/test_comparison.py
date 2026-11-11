@@ -3,6 +3,7 @@
 import datetime
 import json
 import shutil
+from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from fastapi.testclient import TestClient
 from moarcoal.app import create_app
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading
+from moarcoal.modules.tax_year.anlage_n import FORMS, N_EQUIPMENT
 from moarcoal.modules.tax_year.comparison import (
     AMBIGUOUS,
     DEVIATION,
@@ -30,6 +32,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
 DAYS, KM = "E0203503", "E0203504"
+EQUIPMENT = "E0000000"  # erfunden; Arbeitsmittel hat noch keine echte E-Kennung
 
 
 def line(elster_id: str, content: str, index: str = "1_1-1-1") -> ProtocolLine:
@@ -45,7 +48,7 @@ def line(elster_id: str, content: str, index: str = "1_1-1-1") -> ProtocolLine:
 
 
 def entries(
-    lines: list[ProtocolLine], workdays: int = 220, km: int = 12, taken: int = 1
+    lines: list[ProtocolLine], workdays: int = 220, km: int = 12, taken: int = 1, cents: int = 4990
 ) -> list[Entry]:
     document = Document(
         owner="anna",
@@ -67,7 +70,7 @@ def entries(
         WorkEquipment(
             owner="anna",
             year=2025,
-            input=UserInput(amount_cents=4990, date=datetime.date(2025, 3, 14), description="x"),
+            input=UserInput(amount_cents=cents, date=datetime.date(2025, 3, 14), description="x"),
         ),
         document,
         reading,
@@ -111,10 +114,40 @@ def test_missing_line_is_a_warning() -> None:
     assert KM in found[0].message
 
 
-def test_exact_comparison_does_not_round_the_value() -> None:
-    items = entries([line(DAYS, "220"), line(KM, "12,4")], km=12)
+@pytest.fixture
+def equipment_with_elster_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Arbeitsmittel hat noch keine echte E-Kennung; für den Abgleich bekommt es eine erfundene."""
+    fields = tuple(
+        replace(f, elster_id=EQUIPMENT) if f.key == N_EQUIPMENT else f for f in FORMS[2025]
+    )
+    monkeypatch.setitem(FORMS, 2025, fields)
 
-    assert [f.kind for f in findings(items) if f.kind == DEVIATION] == [DEVIATION]
+
+def deviations(lines: list[ProtocolLine], cents: int = 4990, km: int = 12) -> list[Finding]:
+    return [f for f in findings(entries(lines, km=km, cents=cents)) if f.kind == DEVIATION]
+
+
+def test_rounded_whole_euro_value_matches_without_finding(equipment_with_elster_id: None) -> None:
+    assert deviations([line(DAYS, "220"), line(KM, "12"), line(EQUIPMENT, "87")], 8640) == []
+
+
+def test_unrounded_or_wrongly_rounded_equipment_is_a_deviation(
+    equipment_with_elster_id: None,
+) -> None:
+    base = [line(DAYS, "220"), line(KM, "12")]
+
+    (cents,) = deviations([*base, line(EQUIPMENT, "86,40")], 8640)
+    (down,) = deviations([*base, line(EQUIPMENT, "86")], 8640)
+
+    assert cents.severity is Severity.WARNING
+    assert "nicht gerundet: 86,40 € statt 87 €" in cents.message
+    assert "um 1 € abgerundet, zu deinen Ungunsten" in down.message
+
+
+def test_protocol_12_matches_12_4_km_but_12_4_does_not() -> None:
+    assert deviations([line(DAYS, "220"), line(KM, "12")], km=12) == []
+    (found,) = deviations([line(DAYS, "220"), line(KM, "12,4")], km=12)
+    assert "nicht gerundet: 12,4 km statt 12 km" in found.message
 
 
 def test_not_yet_computable_value_gets_no_comparison_finding() -> None:
