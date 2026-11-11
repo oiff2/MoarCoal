@@ -8,7 +8,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import Store
+from moarcoal.storage import EntryAddress, Store
+from moarcoal.values.engine import Values
+from moarcoal.values.model import Amount, Unit
 
 
 def format_eur(cents: int) -> str:
@@ -16,6 +18,24 @@ def format_eur(cents: int) -> str:
     euros, rest = divmod(abs(cents), 100)
     text = f"{euros:,}".replace(",", ".") + f",{rest:02d} €"
     return "-" + text if cents < 0 else text
+
+
+def format_amount(amount: Amount) -> str:
+    """Betrag mit Einheit, deutsch formatiert: '1.234,56 €', '180 Tage', '12 km'."""
+    if amount.unit is Unit.EUR:
+        return format_eur(int((amount.value * 100).to_integral_value()))
+    text = f"{amount.value.normalize():f}".replace(".", ",")
+    return f"{text} {amount.unit.value}"
+
+
+def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) -> str | None:
+    """Link zum Eintrag, wie das besitzende Modul ihn nennt; unbekannte Art: kein Link."""
+    return next((url for m in modules if (url := m.entry_url(address)) is not None), None)
+
+
+def values_of(request: Request) -> Values:
+    """`Values` der Anfrage, auf dem Stand zu Beginn der Anfrage."""
+    return Values(request.app.state.modules, store_of(request).state())
 
 
 def store_of(request: Request) -> Store:

@@ -23,23 +23,10 @@ TEMPLATE_EXCEPTIONS = {"warnung", "fehler"}  # Schweregrade eines Befunds
 # `Code:`-Namen aus CONTEXT.md, die noch nicht im App-Code gebaut sind. Gebaute Namen müssen hier
 # raus (der Test schlägt sonst fehl), ebenso Namen, die nicht mehr in CONTEXT.md stehen.
 NOT_YET_BUILT = {
-    "Backing",
-    "ExposedValue",
     "ExtractionTemplate",
-    "KeyDate",
-    "LineItem",
-    "Locator",
-    "NotApplicable",
-    "NotYetComputable",
-    "Period",
     "Proposal",
     "Snapshot",
     "Source",
-    "Subject",
-    "TimeRef",
-    "ValueCatalog",
-    "ValueKey",
-    "Workings",
 }
 
 COINED_LIMIT = 30

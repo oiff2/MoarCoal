@@ -1,7 +1,8 @@
 """Modul Arbeit: Angaben zur Anlage N von Hand erfassen (Durchstich, #30)."""
 
 from moarcoal.modules.work.entries import KINDS, FirstWorkplace, UserInput, WorkEquipment
-from moarcoal.modules.work.pages import MODULE_KEY, router
+from moarcoal.modules.work.pages import MODULE_KEY, entry_url, router
+from moarcoal.modules.work.values import VALUES
 from moarcoal.registration import ModuleRegistration
 
 REGISTRATION = ModuleRegistration(
@@ -11,6 +12,8 @@ REGISTRATION = ModuleRegistration(
     nav_url="/arbeit",
     router=router,
     kinds=KINDS,
+    values=VALUES,
+    entry_url=entry_url,
 )
 
 __all__ = ["REGISTRATION", "FirstWorkplace", "UserInput", "WorkEquipment"]

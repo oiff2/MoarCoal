@@ -7,3 +7,9 @@ th, td { text-align: left; padding: 0.25rem 0.75rem; border-bottom: 1px solid gr
 label { display: block; margin: 0.25rem 0; }
 .fehler { color: crimson; }
 form.inline { display: inline; }
+.ausgewiesen { margin: 0.25rem 0; }
+.ausgewiesen summary { cursor: pointer; }
+.belegstand { margin-left: 0.75rem; padding: 0 0.4rem; border: 1px solid gray; border-radius: 0.25rem; font-size: 0.85em; }
+.belegstand-pending { border-color: orange; }
+.belegstand-proven { border-color: green; }
+.rechenweg { margin: 0.25rem 0; }

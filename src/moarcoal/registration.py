@@ -1,15 +1,17 @@
 """Modulanmeldung und eingegrenzter Stand eines Moduls (docs/grundgeruest.md, 3.4 und 4)."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from fastapi import APIRouter
 
 from moarcoal.storage import Entry, EntryAddress, EntryKind, State, entry_checksum
+from moarcoal.values.catalog import ValueDefinition
 
 
 @dataclass(frozen=True)
 class ModuleRegistration:
-    """Was ein Modul beim Start über sich bekannt gibt. Bisher: Schlüssel, Name, Seiten, Arten.
+    """Was ein Modul beim Start über sich bekannt gibt: Schlüssel, Name, Seiten, Arten, Werte.
 
     Je Art nennt `kinds` Dateiformat und die Funktion Eintrag -> Pfad; die Datenebene lädt und
     schreibt danach, das Modul fasst keine Datei an.
@@ -21,6 +23,8 @@ class ModuleRegistration:
     nav_url: str
     router: APIRouter
     kinds: tuple[EntryKind, ...]
+    values: tuple[ValueDefinition, ...] = ()
+    entry_url: Callable[[EntryAddress], str | None] = lambda address: None
 
 
 class ForeignKindError(LookupError):

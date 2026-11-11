@@ -1,0 +1,46 @@
+{#- Gemeinsamer Anzeigebaustein für Ausgewiesene Werte: Betrag, Belegstand, aufklappbare Einzelposten und Rechenweg. Ohne Skript und ohne Inline-Stil (CSP), aufklappen über <details>. -#}
+{% macro value_view(title, result) %}
+<div class="ausgewiesen">
+  {% if result.outcome == "amount" %}
+  <details>
+    <summary>
+      <span class="titel">{{ title }}:</span>
+      <strong class="betrag">{{ result.amount | amount }}</strong>
+      <span class="belegstand belegstand-{{ result.backing.name | lower }}">Belegstand: {{ result.backing.label }}</span>
+    </summary>
+    <h4>Einzelposten</h4>
+    {% if result.items %}
+    <table class="einzelposten">
+      <tr><th>Bezeichnung</th><th>Betrag</th><th>Fundstelle</th><th>Belegstand</th></tr>
+      {% for item in result.items %}
+      <tr>
+        <td>{{ item.label }}</td>
+        <td>{{ item.amount | amount }}</td>
+        <td>
+          {% set url = entry_url(item.locator.entry_address) if item.locator.entry_address else none %}
+          {% if url %}<a href="{{ url }}">{{ item.locator.label }}</a>{% else %}{{ item.locator.label }}{% endif %}
+        </td>
+        <td>{{ item.backing.label }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p>Keine Einzelposten.</p>
+    {% endif %}
+    <h4>Rechenweg</h4>
+    <ol class="rechenweg">
+      {% for step in result.workings.steps %}
+      <li class="schritt-{{ step.kind }}">
+        {% if step.kind == "item" %}Einzelposten{% elif step.kind == "decision" %}Entscheidung{% else %}Zwischenergebnis{% endif %}:
+        {{ step.text }}{% if step.amount %}: {{ step.amount | amount }}{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+  </details>
+  {% elif result.outcome == "not_yet" %}
+  <span class="titel">{{ title }}:</span> <strong class="fehler">noch nicht berechenbar</strong> ({{ result.reason }})
+  {% else %}
+  <span class="titel">{{ title }}:</span> <strong>entfällt</strong> ({{ result.reason }})
+  {% endif %}
+</div>
+{% endmacro %}

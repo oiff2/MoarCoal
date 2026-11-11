@@ -1,8 +1,22 @@
 {% extends "base.html" %}
+{% from "_value.html" import value_view %}
 {% block title %}Arbeit – MoarCoal{% endblock %}
 {% block main %}
 <h1>Arbeit</h1>
 <p>Angaben für die Anlage N, von Hand erfasst. Sie gelten als angenommen, bis ein Beleg dazukommt.</p>
+
+{% for year in years %}
+<section class="werte">
+  <h2>Ausgewiesene Werte {{ year.year }}</h2>
+  {% for entry, workdays, distance in year.workplaces %}
+  <h3>Erste Tätigkeitsstätte{% if entry.description %} ({{ entry.description }}){% endif %}</h3>
+  {{ value_view("Arbeitstage", workdays) }}
+  {{ value_view("Einfache Entfernung", distance) }}
+  {% endfor %}
+  <h3>Arbeitsmittel</h3>
+  {{ value_view("Summe der Arbeitsmittel", year.equipment) }}
+</section>
+{% endfor %}
 
 <h2>Erste Tätigkeitsstätte</h2>
 {% if workplaces %}

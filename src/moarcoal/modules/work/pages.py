@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 from decimal import Decimal, InvalidOperation
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -15,6 +15,7 @@ from moarcoal.modules.work.entries import (
     UserInput,
     WorkEquipment,
 )
+from moarcoal.modules.work.values import DISTANCE_KM, EQUIPMENT, WORKDAYS
 from moarcoal.registration import ModuleState
 from moarcoal.storage import (
     Applied,
@@ -25,7 +26,8 @@ from moarcoal.storage import (
     entry_checksum,
     new_id,
 )
-from moarcoal.web import form_fields, module_state, render, store_of, user_of
+from moarcoal.values.model import Period
+from moarcoal.web import form_fields, module_state, render, store_of, user_of, values_of
 
 MODULE_KEY = "work"
 router = APIRouter(prefix="/arbeit")
@@ -124,6 +126,14 @@ KINDS = {
 }
 
 
+def entry_url(address: EntryAddress) -> str | None:
+    """Link zur Änderungsseite eines Eintrags des Moduls, sonst `None`."""
+    for kind in KINDS.values():
+        if kind.model.__name__ == address.kind:
+            return f"/arbeit/{kind.slug}/{address.id}"
+    return None
+
+
 def _kind(slug: str) -> Kind:
     kind = KINDS.get(slug)
     if kind is None:
@@ -171,6 +181,32 @@ def _values(entry: Entry | None) -> Fields:
             return {"year": "2025"}
 
 
+def _years(request: Request, state: ModuleState) -> list[dict[str, Any]]:
+    """Je Jahr mit Angaben die Ausgewiesenen Werte des Moduls, zum Anzeigen."""
+    entries = [*state.all(FirstWorkplace), *state.all(WorkEquipment)]
+    years = sorted({e.year for e in entries})
+    values = values_of(request)
+    user = user_of(request)
+    result: list[dict[str, Any]] = []
+    for year in years:
+        period = Period.year(year)
+        result.append(
+            {
+                "year": year,
+                "workplaces": list(
+                    zip(
+                        [e for e in state.all(FirstWorkplace) if e.year == year],
+                        values.all(WORKDAYS, user, period),
+                        values.all(DISTANCE_KM, user, period),
+                        strict=True,
+                    )
+                ),
+                "equipment": values.get(EQUIPMENT, user, period),
+            }
+        )
+    return result
+
+
 def _overview(
     request: Request,
     errors: dict[str, list[str]],
@@ -182,6 +218,7 @@ def _overview(
         request,
         "work/index.html",
         status_code,
+        years=_years(request, state),
         workplaces=[(e, entry_checksum(e)) for e in state.all(FirstWorkplace)],
         equipment=[(e, entry_checksum(e)) for e in state.all(WorkEquipment)],
         kinds=KINDS,

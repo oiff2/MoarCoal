@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -13,7 +14,7 @@ from moarcoal.modules import MODULES
 from moarcoal.registration import ModuleRegistration
 from moarcoal.security import SecurityMiddleware
 from moarcoal.storage import open_store
-from moarcoal.web import format_eur, render
+from moarcoal.web import entry_url, format_amount, format_eur, render
 
 PACKAGE_DIR = Path(__file__).parent
 TEMPLATES_DIR = PACKAGE_DIR / "templates"
@@ -36,6 +37,9 @@ def create_app(
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     environment = Environment(loader=FileSystemLoader(TEMPLATES_DIR), autoescape=True)
     environment.filters["eur"] = format_eur
+    environment.filters["amount"] = format_amount
+    globals_: dict[str, Any] = environment.globals  # pyright: ignore[reportAssignmentType]
+    globals_["entry_url"] = lambda address: entry_url(app.state.modules, address)  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
     app.state.templates = Jinja2Templates(env=environment)
     app.state.modules = tuple(modules)
     app.state.user = user
