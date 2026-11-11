@@ -8,7 +8,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
-from moarcoal.modules.work.entries import FirstWorkplace, UserInput, WorkEquipment
+from moarcoal.modules.work.entries import (
+    DEFAULT_WORKDAYS,
+    MAX_WORKDAYS,
+    FirstWorkplace,
+    UserInput,
+    WorkEquipment,
+)
 from moarcoal.registration import ModuleState
 from moarcoal.storage import (
     Applied,
@@ -30,7 +36,7 @@ type Build = Callable[[Fields, str, str], tuple[Entry | None, list[str]]]
 # Hinweis je Feld, wenn die Prüfung es ablehnt (Pydantic liefert nur englische Meldungen).
 HINTS = {
     "year": "Steuerjahr: Jahr zwischen 2000 und 2100",
-    "workdays": "Arbeitstage: ganze Zahl von 0 bis 366",
+    "workdays": f"Arbeitstage: ganze Zahl von 0 bis {MAX_WORKDAYS}",
     "distance_km": "Einfache Entfernung: ganze Zahl von 0 bis 1000 km",
     "description": "Beschreibung: höchstens 200 Zeichen",
     "amount_cents": "Betrag: größer als 0, mit höchstens zwei Nachkommastellen, z. B. 49,90",
@@ -136,6 +142,13 @@ def _own_state(request: Request) -> ModuleState:
     return module_state(request, MODULE_KEY)
 
 
+def _new_values(slug: str) -> Fields:
+    """Vorbelegung eines neuen Formulars."""
+    if slug == "erste-taetigkeitsstaette":
+        return {"year": "2025", "workdays": str(DEFAULT_WORKDAYS)}
+    return {"year": "2025"}
+
+
 def _values(entry: Entry | None) -> Fields:
     """Vorbelegung der Formularfelder aus einem Eintrag."""
     match entry:
@@ -179,7 +192,7 @@ def _overview(
 
 @router.get("", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
-    return _overview(request, {}, {slug: _values(None) for slug in KINDS})
+    return _overview(request, {}, {s: _new_values(s) for s in KINDS})
 
 
 @router.get("/{slug}/{entry_id}", response_class=HTMLResponse)
@@ -225,7 +238,10 @@ def create(
     entry, errors = kind.build(fields, user_of(request), new_id())
     if entry is None:
         return _overview(
-            request, {slug: errors}, {s: fields if s == slug else _values(None) for s in KINDS}, 422
+            request,
+            {slug: errors},
+            {s: fields if s == slug else _new_values(s) for s in KINDS},
+            422,
         )
     result = store_of(request).apply([Put(entry)])
     if not isinstance(result, Applied):
@@ -233,7 +249,7 @@ def create(
         return _overview(
             request,
             {slug: reasons},
-            {s: fields if s == slug else _values(None) for s in KINDS},
+            {s: fields if s == slug else _new_values(s) for s in KINDS},
             409,
         )
     return RedirectResponse("/arbeit", status_code=303)

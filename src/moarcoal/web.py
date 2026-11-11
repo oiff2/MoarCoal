@@ -44,5 +44,8 @@ def render(request: Request, name: str, status_code: int = 200, **context: Any) 
     templates: Jinja2Templates = request.app.state.templates
     registrations: tuple[ModuleRegistration, ...] = request.app.state.modules
     return templates.TemplateResponse(
-        request, name, {"modules": registrations, **context}, status_code=status_code
+        request,
+        name,
+        {"modules": registrations, "user_name": request.app.state.user_name, **context},
+        status_code=status_code,
     )

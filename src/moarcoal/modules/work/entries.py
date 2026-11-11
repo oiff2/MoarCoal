@@ -11,6 +11,8 @@ MIN_YEAR = 2000
 MAX_YEAR = 2100
 MAX_CENTS = 100_000_000
 TEXT_MAX = 200
+MAX_WORKDAYS = 250
+DEFAULT_WORKDAYS = MAX_WORKDAYS - 30  # abzüglich 30 Urlaubstage
 
 
 class UserInput(BaseModel):
@@ -27,7 +29,7 @@ class FirstWorkplace(Entry):
     """Erste Tätigkeitsstätte eines Steuerjahrs: Arbeitstage und einfache Entfernung in km."""
 
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
-    workdays: int = Field(ge=0, le=366)
+    workdays: int = Field(ge=0, le=MAX_WORKDAYS)
     distance_km: int = Field(ge=0, le=1000)
     description: str = Field(default="", max_length=TEXT_MAX)
 

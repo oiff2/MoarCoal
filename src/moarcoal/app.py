@@ -18,7 +18,9 @@ from moarcoal.web import format_eur, render
 PACKAGE_DIR = Path(__file__).parent
 TEMPLATES_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
-DEFAULT_USER = "ich"  # Durchstich: ein Nutzer; die Nutzerliste kommt später
+# Durchstich: ein Nutzer, die Nutzerliste kommt später; der Anzeigename ist erfunden.
+DEFAULT_USER = "ich"
+DEFAULT_USER_NAME = "Max Mustermann"
 
 
 def create_app(
@@ -26,6 +28,7 @@ def create_app(
     data_dir: Path,
     modules: Sequence[ModuleRegistration] = MODULES,
     user: str = DEFAULT_USER,
+    user_name: str = DEFAULT_USER_NAME,
 ) -> FastAPI:
     """`data_dir` wird immer übergeben; `default_data_dir()` gilt nur beim Start der App."""
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -36,6 +39,7 @@ def create_app(
     app.state.templates = Jinja2Templates(env=environment)
     app.state.modules = tuple(modules)
     app.state.user = user
+    app.state.user_name = user_name
     app.state.store = open_store(data_dir, [kind for module in modules for kind in module.kinds])
     for module in modules:
         app.include_router(module.router)

@@ -27,8 +27,8 @@ EQUIPMENT = {
 }
 
 
-def make_client(root: Path, user: str = "anna") -> httpx.Client:
-    app = create_app(PORT, root, user=user)
+def make_client(root: Path, user: str = "anna", user_name: str = "Max Mustermann") -> httpx.Client:
+    app = create_app(PORT, root, user=user, user_name=user_name)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -231,3 +231,32 @@ def test_text_is_escaped(tmp_path: Path) -> None:
     client.post("/arbeit/arbeitsmittel", data=data, headers=ORIGIN)
     page = client.get("/arbeit").text
     assert "<b>fett</b>" not in page and "&lt;b&gt;fett&lt;/b&gt;" in page
+
+
+def test_workdays_limit_is_250(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    over = client.post(
+        "/arbeit/erste-taetigkeitsstaette", data=WORKPLACE | {"workdays": "251"}, headers=ORIGIN
+    )
+    assert over.status_code == 422 and "bis 250" in over.text
+    assert list(tmp_path.iterdir()) == []
+    at_limit = client.post(
+        "/arbeit/erste-taetigkeitsstaette", data=WORKPLACE | {"workdays": "250"}, headers=ORIGIN
+    )
+    assert at_limit.status_code == 303
+
+
+def test_new_workplace_form_prefills_220_but_edit_keeps_stored_value(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    assert 'name="workdays" inputmode="numeric" value="220"' in client.get("/arbeit").text
+    client.post(
+        "/arbeit/erste-taetigkeitsstaette", data=WORKPLACE | {"workdays": "180"}, headers=ORIGIN
+    )
+    page = client.get(f"/arbeit/erste-taetigkeitsstaette/{only_id(tmp_path)}").text
+    assert 'name="workdays" inputmode="numeric" value="180"' in page
+
+
+def test_display_name_is_shown_and_replaceable(tmp_path: Path) -> None:
+    assert "Max Mustermann" in make_client(tmp_path).get("/arbeit").text
+    other = make_client(tmp_path, user_name="Erika Beispiel")
+    assert "Erika Beispiel" in other.get("/").text
