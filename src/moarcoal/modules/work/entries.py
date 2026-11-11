@@ -26,7 +26,12 @@ class UserInput(BaseModel):
 
 
 class FirstWorkplace(Entry):
-    """Erste Tätigkeitsstätte eines Steuerjahrs: Arbeitstage und einfache Entfernung in km."""
+    """Erste Tätigkeitsstätte eines Steuerjahrs: Arbeitstage und einfache Entfernung in km.
+
+    `workdays` sind die Tage, an denen der Nutzer die Tätigkeitsstätte aufgesucht hat (Anlage N
+    „aufgesucht an Tagen“), nicht alle Arbeitstage des Jahrs (Homeoffice, Dienstreisen fehlen).
+    Offen für die Ausarbeitung des Moduls Arbeit: Name, Formular und Abgrenzung danach richten.
+    """
 
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
     workdays: int = Field(ge=0, le=MAX_WORKDAYS)
