@@ -2,7 +2,7 @@
 
 import datetime
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from moarcoal.storage import Entry, EntryAddress, EntryKind, entry_kind
 
@@ -20,14 +20,9 @@ class ProtocolLine(BaseModel):
     vorkommen. `form` ist die Anlage (erstes Pfadsegment), `form_line` die Nummer im Vordruck.
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid", serialize_by_alias=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
-    # Gespeicherter Feldname bleibt `ekz` (Dateiformat unverändert).
-    elster_id: str = Field(
-        pattern=ELSTER_ID_PATTERN,
-        validation_alias=AliasChoices("elster_id", "ekz"),
-        serialization_alias="ekz",
-    )
+    elster_id: str = Field(pattern=ELSTER_ID_PATTERN)
     form: str = Field(min_length=1, max_length=TEXT_MAX)
     form_line: str = Field(pattern=r"^(\d{1,3})?$")
     label: str = Field(max_length=TEXT_MAX)

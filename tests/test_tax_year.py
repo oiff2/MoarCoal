@@ -375,8 +375,8 @@ def test_post_needs_origin(root: Path, site: Path) -> None:
     assert client.post("/steuerjahr/uebertragungsprotokolle", data={}).status_code == 403
 
 
-def test_protocol_line_is_stored_under_the_old_field_name() -> None:
+def test_protocol_line_is_stored_as_elster_id() -> None:
     line = parse_protocol(FIXTURE.read_bytes()).lines[0]
     dumped = line.model_dump(mode="json")
-    assert dumped["ekz"] == line.elster_id
-    assert "elster_id" not in dumped
+    assert dumped["elster_id"] == line.elster_id
+    assert len(dumped) == 7
