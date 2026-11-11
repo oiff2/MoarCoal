@@ -189,6 +189,25 @@ def test_latest_taken_in_protocol_counts() -> None:
     assert findings(new + old[1:]) == []
 
 
+def test_equal_taken_in_moment_is_decided_by_reading_id_not_by_storage_order() -> None:
+    def same_moment(items: list[Entry], reading_id: str) -> list[Entry]:
+        moment = datetime.datetime(2026, 3, 1, tzinfo=datetime.UTC)
+        return [
+            i.model_copy(update={"taken_in_at": moment})
+            if isinstance(i, Document)
+            else i.model_copy(update={"id": reading_id})
+            if isinstance(i, ProtocolReading)
+            else i
+            for i in items
+        ]
+
+    low = same_moment(entries([line(DAYS, "1"), line(KM, "1")], taken=1), "AAAAAAAAAA")
+    high = same_moment(entries([line(DAYS, "220"), line(KM, "12")], taken=2), "BBBBBBBBBB")
+
+    assert findings(low + high[1:]) == []
+    assert findings(high + low[1:]) == []
+
+
 def test_without_protocol_there_is_no_comparison() -> None:
     items: list[Entry] = [i for i in entries([line(DAYS, "1")]) if isinstance(i, FirstWorkplace)]
 

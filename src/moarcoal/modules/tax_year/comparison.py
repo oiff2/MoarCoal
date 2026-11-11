@@ -44,15 +44,18 @@ def parse_german_number(text: str) -> Decimal | None:
 
 
 def latest_reading(state: ModuleState, year: int) -> ProtocolReading | None:
-    """Das zuletzt aufgenommene Protokoll des Jahrs (nach `taken_in_at` seines Dokuments)."""
+    """Das zuletzt aufgenommene Protokoll des Jahrs.
+
+    Maßgeblich ist `taken_in_at` seines Dokuments, bei Gleichstand die `id` des Protokolls.
+    """
     taken = {d.address: d.taken_in_at for d in state.documents(TRANSFER_PROTOCOL_KEY)}
     readings = [r for r in state.all(ProtocolReading) if r.year == year and r.document in taken]
     if not readings:
         return None
 
-    def order(reading: ProtocolReading) -> tuple[bool, str]:
+    def order(reading: ProtocolReading) -> tuple[bool, str, str]:
         moment = taken[reading.document]
-        return (moment is not None, moment.isoformat() if moment else "")
+        return (moment is not None, moment.isoformat() if moment else "", reading.id)
 
     return max(readings, key=order)
 
