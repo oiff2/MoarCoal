@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from enum import StrEnum
 
+from moarcoal.modules.tax_year.entries import ElsterId
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
 from moarcoal.values.model import Amount, Unit, ValueKey
@@ -50,7 +51,7 @@ class FormField:
     """
 
     key: ValueKey
-    elster_id: str | None
+    elster_id: ElsterId | None
     form_line: str
     label: str
     unit: Unit

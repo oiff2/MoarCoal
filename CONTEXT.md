@@ -102,7 +102,7 @@ Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im 
 Ob ein Euro-Feld als Einnahme oder als Ausgabe zählt; sie bestimmt, wie sein Wert auf ganze Euro gerundet wird: zugunsten des Steuerpflichtigen, Einnahmen ab, Ausgaben auf. Erstattungen, Zuschüsse und Arbeitgeberanteile, die einen Abzug mindern, zählen als Einnahme (Code: `Direction`).
 
 **E-Kennung**:
-Die Kennung eines Felds in ELSTER (E und sieben Ziffern); der verlässliche Schlüssel einer Zeile, den man aus dem Übertragungsprotokoll erfährt oder vorab aus einer von Hand gespeicherten Seite der Erklärung in Mein ELSTER (`tools/elster_page_fields.py`).
+Die Kennung eines Felds in ELSTER (E und sieben Ziffern; Code: `ElsterId`); der verlässliche Schlüssel einer Zeile, den man aus dem Übertragungsprotokoll erfährt oder vorab aus einer von Hand gespeicherten Seite der Erklärung in Mein ELSTER (`tools/elster_page_fields.py`).
 _Avoid_: Feldnummer
 
 **Belegstand** _(geprägt)_:

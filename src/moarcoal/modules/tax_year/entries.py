@@ -1,6 +1,7 @@
 """Daten des Moduls Steuerjahr: die eingelesenen Zeilen eines Übertragungsprotokolls."""
 
 import datetime
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -8,8 +9,10 @@ from moarcoal.storage import Entry, EntryAddress, EntryKind, entry_kind
 
 SCHEMA = "tax_year/1"
 TRANSFER_PROTOCOL_KEY = "transfer_protocol"  # Schlüssel der Dokumentart
-ELSTER_ID_PATTERN = r"^E\d{7}$"
+ELSTER_ID_PATTERN = r"^E\d{7}$"  # einzige Stelle des Musters
 TEXT_MAX = 500
+
+type ElsterId = Annotated[str, Field(pattern=ELSTER_ID_PATTERN)]
 
 
 class ProtocolLine(BaseModel):
@@ -22,7 +25,7 @@ class ProtocolLine(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    elster_id: str = Field(pattern=ELSTER_ID_PATTERN)
+    elster_id: ElsterId
     form: str = Field(min_length=1, max_length=TEXT_MAX)
     form_line: str = Field(pattern=r"^(\d{1,3})?$")
     label: str = Field(max_length=TEXT_MAX)
