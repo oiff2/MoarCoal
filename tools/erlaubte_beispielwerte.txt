@@ -8,3 +8,6 @@ DE02 1203 0000 0000 2020 51
 
 # Beispiel-Steuer-ID aus Dokumentationen
 86095742719
+
+# Zufällige Ziffernfolge in einem Wheel-Hash in uv.lock (ruff), keine Steuer-ID
+35564556999

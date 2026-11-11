@@ -113,7 +113,10 @@ def staged_added_lines() -> list[tuple[str, str]]:
     """(file, added line) pairs from the staged diff."""
     out = subprocess.run(
         ["git", "diff", "--cached", "-U0", "--no-color", "--diff-filter=d"],
-        capture_output=True, text=True, check=True, cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=REPO_ROOT,
     ).stdout
     lines: list[tuple[str, str]] = []
     current = "?"
@@ -176,7 +179,9 @@ def main(argv: list[str]) -> int:
         for p in body_files(command):
             full = p if p.is_absolute() else cwd / p
             if full.is_file():
-                findings += scan(full.read_text(encoding="utf-8", errors="replace"), str(p), allow, deny)
+                findings += scan(
+                    full.read_text(encoding="utf-8", errors="replace"), str(p), allow, deny
+                )
         blocked_exit = 2  # exit code 2 blocks the tool call, stderr goes to Claude
     else:
         print(__doc__, file=sys.stderr)

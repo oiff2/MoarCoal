@@ -1,0 +1,1 @@
+"""MoarCoal: Persönliche Finanzverwaltung."""

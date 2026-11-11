@@ -6,8 +6,10 @@ itself passes the pre-commit check.
 
 import io
 import json
+from pathlib import Path
 
 import privacy_guard as pg
+import pytest
 
 
 def make_iban(bank_and_account: str) -> str:
@@ -73,21 +75,21 @@ def test_denylist_matches_ignoring_case_and_spaces_without_echoing() -> None:
     assert "Musterweg" not in str(findings[0])
 
 
-def run_claude_hook(monkeypatch, command: str, cwd: str = ".") -> int:
+def run_claude_hook(monkeypatch: pytest.MonkeyPatch, command: str, cwd: str = ".") -> int:
     event = {"tool_name": "Bash", "tool_input": {"command": command}, "cwd": cwd}
     monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(event)))
     monkeypatch.setattr(pg, "DENYLIST_PATH", pg.REPO_ROOT / "nonexistent")
     return pg.main(["x", "claude-hook"])
 
 
-def test_claude_hook_blocks_gh_with_finding(monkeypatch) -> None:
+def test_claude_hook_blocks_gh_with_finding(monkeypatch: pytest.MonkeyPatch) -> None:
     assert run_claude_hook(monkeypatch, f'gh issue create --body "IBAN {IBAN}"') == 2
 
 
-def test_claude_hook_ignores_non_gh(monkeypatch) -> None:
+def test_claude_hook_ignores_non_gh(monkeypatch: pytest.MonkeyPatch) -> None:
     assert run_claude_hook(monkeypatch, f"echo {IBAN}") == 0
 
 
-def test_claude_hook_scans_body_file(monkeypatch, tmp_path) -> None:
+def test_claude_hook_scans_body_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     (tmp_path / "body.md").write_text(f"Steuer-ID {TIN}\n", encoding="utf-8")
     assert run_claude_hook(monkeypatch, "gh pr create --body-file body.md", str(tmp_path)) == 2
