@@ -15,7 +15,7 @@ from moarcoal.modules.work import REGISTRATION, FirstWorkplace, UserInput, WorkE
 from moarcoal.modules.work.values import DISTANCE_KM, EQUIPMENT, WORKDAYS
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import EntryAddress
-from moarcoal.values.calculation import Calculation
+from moarcoal.values.calculation import Calculation, NotYetSignal
 from moarcoal.values.catalog import (
     CatalogEntry,
     CatalogError,
@@ -255,6 +255,12 @@ def test_key_must_have_module_and_name() -> None:
     with pytest.raises(ValueError):
         ValueKey("workdays")
     assert ValueKey("work.workdays").module == "work"
+
+
+def test_calculation_year_is_the_calendar_year_and_fails_for_a_key_date() -> None:
+    assert Calculation(None, None, YEAR, None).year == 2025  # type: ignore[arg-type]
+    with pytest.raises(NotYetSignal, match="kein Kalenderjahr"):
+        _ = Calculation(None, None, KeyDate.year_end(2025), None).year  # type: ignore[arg-type]
 
 
 def test_backing_is_ordered_and_follows_the_locator() -> None:

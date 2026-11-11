@@ -13,7 +13,7 @@ from enum import StrEnum
 
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
-from moarcoal.values.model import Amount, Period, Unit, ValueKey
+from moarcoal.values.model import Amount, Unit, ValueKey
 
 FORM = "N"  # Anlage N (Person A)
 
@@ -126,21 +126,13 @@ FIELDS_2025: tuple[FormField, ...] = (
 FORMS: dict[int, tuple[FormField, ...]] = {2025: FIELDS_2025}
 
 
-def year_of(calculation: Calculation) -> int:
-    time = calculation.time
-    year = time.calendar_year if isinstance(time, Period) else None
-    if year is None:
-        calculation.not_yet("Der Zeitraum ist kein Kalenderjahr")
-    return year
-
-
 def _field(key: ValueKey) -> FormField:
     return next(f for f in FIELDS_2025 if f.key == key)
 
 
 def _work_value(calculation: Calculation, field: FormField, source: ValueKey, label: str) -> Amount:
     """Übernimmt den Wert je erster Tätigkeitsstätte; mehrere sind noch nicht zugeordnet."""
-    year = year_of(calculation)
+    year = calculation.year
     subjects = calculation.subjects_of(source)
     if not subjects:
         calculation.not_yet(f"Für {year} ist keine erste Tätigkeitsstätte erfasst")
@@ -167,7 +159,7 @@ def compute_workplace_distance(calculation: Calculation) -> Amount:
 
 
 def compute_equipment(calculation: Calculation) -> Amount:
-    year_of(calculation)
+    _ = calculation.year  # bricht bei einem Zeitraum ohne Kalenderjahr ab
     item = calculation.use(WORK_EQUIPMENT, label="Summe der Arbeitsmittel")
     if item is None:
         calculation.not_applicable("Arbeitsmittel entfallen")

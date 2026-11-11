@@ -10,6 +10,7 @@ from moarcoal.values.model import (
     Locator,
     NotApplicable,
     NotYetComputable,
+    Period,
     Subject,
     TimeRef,
     ValueKey,
@@ -145,6 +146,14 @@ class Calculation:
     def decide(self, text: str) -> None:
         """Ausdrückliche Entscheidung der Rechnung, sichtbar im Rechenweg."""
         self.steps.append(WorkingStep("decision", text))
+
+    @property
+    def year(self) -> int:
+        """Das Kalenderjahr des Zeitraums; bei einem Stichtag oder anderem Zeitraum: noch nicht."""
+        year = self.time.calendar_year if isinstance(self.time, Period) else None
+        if year is None:
+            self.not_yet("Der Zeitraum ist kein Kalenderjahr")
+        return year
 
     def not_yet(self, reason: str) -> NoReturn:
         raise NotYetSignal(reason)

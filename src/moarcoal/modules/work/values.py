@@ -27,16 +27,8 @@ DISTANCE_KM = ValueKey("work.distance_km")
 EQUIPMENT = ValueKey("work.equipment")
 
 
-def _year(calculation: Calculation) -> int:
-    time = calculation.time
-    year = time.calendar_year if isinstance(time, Period) else None
-    if year is None:
-        calculation.not_yet("Der Zeitraum ist kein Kalenderjahr")
-    return year
-
-
 def _workplace(calculation: Calculation) -> FirstWorkplace:
-    year = _year(calculation)
+    year = calculation.year
     subject = calculation.subject
     entry = None if subject is None else calculation.own.get(subject.address)
     if not isinstance(entry, FirstWorkplace) or entry.year != year:
@@ -69,7 +61,7 @@ def _purchases(state: ModuleState, year: int) -> list[WorkEquipment]:
 
 def compute_equipment(calculation: Calculation) -> Amount:
     """Summe der Anschaffungen; ohne Anschaffung 0, mit Hinweis, wenn das Vorjahr welche hatte."""
-    year = _year(calculation)
+    year = calculation.year
     purchases = _purchases(calculation.own, year)
     zero = Amount.of(Decimal(0), Unit.EUR)
     if not purchases:
