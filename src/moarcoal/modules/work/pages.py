@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
+from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.modules.work.entries import (
     DEFAULT_WORKDAYS,
     MAX_WORKDAYS,
@@ -23,6 +24,7 @@ from moarcoal.storage import (
     Entry,
     EntryAddress,
     Put,
+    Rejected,
     entry_checksum,
     new_id,
 )
@@ -152,14 +154,14 @@ def _own_state(request: Request) -> ModuleState:
     return module_state(request, MODULE_KEY)
 
 
-def _new_values(slug: str) -> Fields:
+def _prefill_new(slug: str) -> Fields:
     """Vorbelegung eines neuen Formulars."""
     if slug == "erste-taetigkeitsstaette":
-        return {"year": "2025", "workdays": str(DEFAULT_WORKDAYS)}
-    return {"year": "2025"}
+        return {"year": str(DEFAULT_YEAR), "workdays": str(DEFAULT_WORKDAYS)}
+    return {"year": str(DEFAULT_YEAR)}
 
 
-def _values(entry: Entry | None) -> Fields:
+def _prefill_from(entry: Entry | None) -> Fields:
     """Vorbelegung der Formularfelder aus einem Eintrag."""
     match entry:
         case FirstWorkplace():
@@ -178,7 +180,7 @@ def _values(entry: Entry | None) -> Fields:
                 "description": entry.input.description,
             }
         case _:
-            return {"year": "2025"}
+            return {"year": str(DEFAULT_YEAR)}
 
 
 def _years(request: Request, state: ModuleState) -> list[dict[str, Any]]:
@@ -207,6 +209,16 @@ def _years(request: Request, state: ModuleState) -> list[dict[str, Any]]:
     return result
 
 
+def _prefill_all(submitted: str | None = None, fields: Fields | None = None) -> dict[str, Fields]:
+    """Vorbelegung der Formulare der Übersicht: Eingabe für die abgeschickte Art, sonst neu."""
+    return {s: fields if s == submitted and fields is not None else _prefill_new(s) for s in KINDS}
+
+
+def _reasons(result: Rejected) -> list[str]:
+    """Die Gründe eines abgelehnten Speicherns als Fehlerliste."""
+    return list(result.reasons.values())
+
+
 def _overview(
     request: Request,
     errors: dict[str, list[str]],
@@ -229,7 +241,7 @@ def _overview(
 
 @router.get("", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
-    return _overview(request, {}, {s: _new_values(s) for s in KINDS})
+    return _overview(request, {}, _prefill_all())
 
 
 @router.get("/{slug}/{entry_id}", response_class=HTMLResponse)
@@ -245,7 +257,7 @@ def edit_page(request: Request, slug: str, entry_id: str) -> HTMLResponse:
         "work/edit.html",
         kind=kind,
         entry=entry,
-        values=_values(entry),
+        values=_prefill_from(entry),
         checksum=entry_checksum(entry),
         errors=[],
     )
@@ -277,16 +289,16 @@ def create(
         return _overview(
             request,
             {slug: errors},
-            {s: fields if s == slug else _new_values(s) for s in KINDS},
+            _prefill_all(slug, fields),
             422,
         )
     result = store_of(request).apply([Put(entry)])
     if not isinstance(result, Applied):
-        reasons = list(result.reasons.values())
+        reasons = _reasons(result)
         return _overview(
             request,
             {slug: reasons},
-            {s: fields if s == slug else _new_values(s) for s in KINDS},
+            _prefill_all(slug, fields),
             409,
         )
     return RedirectResponse("/arbeit", status_code=303)
@@ -305,7 +317,7 @@ def update(
         return _edit_response(request, kind, entry_id, fields, errors, 422)
     result = store_of(request).apply([Put(entry, expected=fields.get("checksum", ""))])
     if not isinstance(result, Applied):
-        reasons = list(result.reasons.values())
+        reasons = _reasons(result)
         return _edit_response(request, kind, entry_id, fields, reasons, 409)
     return RedirectResponse("/arbeit", status_code=303)
 
@@ -320,6 +332,6 @@ def delete(
         raise HTTPException(404)
     result = store_of(request).apply([Delete(address, expected=fields.get("checksum", ""))])
     if not isinstance(result, Applied):
-        reasons = list(result.reasons.values())
+        reasons = _reasons(result)
         return _edit_response(request, kind, entry_id, fields, reasons, 409)
     return RedirectResponse("/arbeit", status_code=303)
