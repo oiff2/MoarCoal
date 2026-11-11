@@ -64,10 +64,9 @@ def compute_distance(calculation: Calculation) -> Amount:
 def compute_equipment(calculation: Calculation) -> Amount:
     year = _year(calculation)
     purchases = [e for e in calculation.own.all(WorkEquipment) if e.year == year]
-    total = Amount.of(Decimal(0), Unit.EUR)
     if not purchases:
-        calculation.decide(f"Für {year} sind keine Arbeitsmittel erfasst; der Betrag ist 0")
-        return calculation.step("Summe der Arbeitsmittel", total)
+        calculation.not_yet(f"Für {year} sind keine Arbeitsmittel erfasst")
+    total = Amount.of(Decimal(0), Unit.EUR)
     for purchase in purchases:
         amount = Amount.eur_cents(purchase.input.amount_cents)
         calculation.item(purchase.input.description, amount, UserInputLocator(purchase.address))

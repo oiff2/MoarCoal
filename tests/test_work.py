@@ -137,6 +137,16 @@ def test_create_workplace_lands_in_data_dir(tmp_path: Path) -> None:
     assert "180" in page and "12 km" in page and "Büro" in page
 
 
+def test_year_without_equipment_shows_not_yet_computable(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    client.post("/arbeit/erste-taetigkeitsstaette", data=WORKPLACE, headers=ORIGIN)
+    page = client.get("/arbeit").text
+    assert "noch nicht berechenbar" in page
+    assert "keine Arbeitsmittel erfasst" in page
+    client.post("/arbeit/arbeitsmittel", data=EQUIPMENT, headers=ORIGIN)
+    assert "keine Arbeitsmittel erfasst" not in client.get("/arbeit").text
+
+
 def test_create_equipment_stores_cents(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     response = client.post("/arbeit/arbeitsmittel", data=EQUIPMENT, headers=ORIGIN)

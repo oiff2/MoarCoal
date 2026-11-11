@@ -123,20 +123,17 @@ def test_equipment_sums_purchases_of_the_year_with_a_line_item_each() -> None:
     assert result.workings.steps[-1].text == "Summe der Arbeitsmittel"
 
 
-def test_equipment_without_purchases_is_an_explicit_zero_with_reason() -> None:
-    result = exposed(evaluate([REGISTRATION], []).get(EQUIPMENT, "anna", YEAR))
+def test_equipment_without_purchases_is_not_yet_computable_with_reason() -> None:
+    result = evaluate([REGISTRATION], []).get(EQUIPMENT, "anna", YEAR)
 
-    assert result.amount == Amount(Decimal(0), Unit.EUR)
-    assert result.items == ()
-    assert result.backing is Backing.PROVEN
-    assert [s.kind for s in result.workings.steps] == ["decision", "step"]
-    assert "keine Arbeitsmittel" in result.workings.steps[0].text
+    assert isinstance(result, NotYetComputable)
+    assert "keine Arbeitsmittel" in result.reason
 
 
 def test_values_of_other_users_are_not_mixed_in() -> None:
     values = evaluate([REGISTRATION], [equipment(4990, "Lampe", user="berta")])
 
-    assert exposed(values.get(EQUIPMENT, "anna", YEAR)).amount.value == 0
+    assert isinstance(values.get(EQUIPMENT, "anna", YEAR), NotYetComputable)
     assert exposed(values.get(EQUIPMENT, "berta", YEAR)).amount.value == Decimal("49.90")
 
 
