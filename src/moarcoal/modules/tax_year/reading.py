@@ -25,7 +25,7 @@ from moarcoal.storage import Document, Entry
 READER_VERSION = 2
 MAX_LINES = 5000
 BELEGART = "E10"
-EKZ = re.compile(r"E\d{7}")
+ELSTER_ID = re.compile(r"E\d{7}")
 FORM_LINE = re.compile(r"\d{1,3}")
 HEADER_COMMENT = re.compile(r"^\s*(Belegart|Belegversion|Veranlagungsjahr):\s*(.*?)\s*$")
 INDEX_SUFFIX = re.compile(r"_usb([0-9][0-9_\-]*)$")
@@ -94,12 +94,12 @@ class _Protocol(HTMLParser):
             index = suffix.group(1) if suffix else ""
             path = (data_name[: suffix.start()] if suffix else data_name).removeprefix("id-")
             form, _, last = path.rpartition("-")
-            if not EKZ.fullmatch(last) or not form:
+            if not ELSTER_ID.fullmatch(last) or not form:
                 continue
             label = cells[cell_index - 1] if cell_index >= 2 else ""
             self.lines.append(
                 ProtocolLine(
-                    ekz=last,
+                    elster_id=last,
                     form=form.split("-", 1)[0],
                     form_line=form_line,
                     label=label[:TEXT_MAX],

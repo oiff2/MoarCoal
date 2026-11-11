@@ -2,13 +2,13 @@
 
 import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from moarcoal.storage import Entry, EntryAddress, EntryKind, entry_kind
 
 SCHEMA = "tax_year/1"
 TRANSFER_PROTOCOL_KEY = "transfer_protocol"  # Schlüssel der Dokumentart
-EKZ_PATTERN = r"^E\d{7}$"
+ELSTER_ID_PATTERN = r"^E\d{7}$"
 TEXT_MAX = 500
 
 
@@ -20,9 +20,14 @@ class ProtocolLine(BaseModel):
     vorkommen. `form` ist die Anlage (erstes Pfadsegment), `form_line` die Nummer im Vordruck.
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", serialize_by_alias=True)
 
-    ekz: str = Field(pattern=EKZ_PATTERN)
+    # Gespeicherter Feldname bleibt `ekz` (Dateiformat unverändert).
+    elster_id: str = Field(
+        pattern=ELSTER_ID_PATTERN,
+        validation_alias=AliasChoices("elster_id", "ekz"),
+        serialization_alias="ekz",
+    )
     form: str = Field(min_length=1, max_length=TEXT_MAX)
     form_line: str = Field(pattern=r"^(\d{1,3})?$")
     label: str = Field(max_length=TEXT_MAX)

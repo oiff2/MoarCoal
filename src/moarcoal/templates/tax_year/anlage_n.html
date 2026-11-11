@@ -17,7 +17,7 @@
   {% for field, result in rows %}
   <tr>
     <td>{{ field.form_line or "–" }}</td>
-    <td>{% if field.ekz %}{{ field.ekz }}{% else %}noch unbekannt{% endif %}</td>
+    <td>{% if field.elster_id %}{{ field.elster_id }}{% else %}noch unbekannt{% endif %}</td>
     <td>{{ field.label }}</td>
     <td>{{ value_view("Angabe", result) }}</td>
   </tr>

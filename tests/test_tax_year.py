@@ -69,7 +69,7 @@ def test_parse_protocol_reads_header_and_fields_as_printed() -> None:
     assert (parsed.belegart, parsed.belegversion, parsed.year) == ("E10", "2025", 2025)
     assert str(parsed.received) == "2026-03-01"
     fields = [
-        (line.ekz, line.form, line.form_line, line.label, line.content, line.index)
+        (line.elster_id, line.form, line.form_line, line.label, line.content, line.index)
         for line in parsed.lines
     ]
     assert fields == [
@@ -81,15 +81,15 @@ def test_parse_protocol_reads_header_and_fields_as_printed() -> None:
     ]
 
 
-def test_fundstelle_is_the_full_data_name_and_repeated_ekz_stay_separate() -> None:
+def test_fundstelle_is_the_full_data_name_and_repeated_elster_id_stay_separate() -> None:
     lines = parse_protocol(FIXTURE.read_bytes()).lines
     assert lines[0].data_name == "id-N-Werbungskosten-Fahrten-E0203503_usb1_1-1-1"
-    repeated = [line for line in lines if line.ekz == "E0107601"]
+    repeated = [line for line in lines if line.elster_id == "E0107601"]
     assert [line.content for line in repeated] == ["49,90", "20,00"]  # nicht summiert
     assert len({line.data_name for line in repeated}) == 2
 
 
-def test_parse_protocol_ignores_fields_without_ekz() -> None:
+def test_parse_protocol_ignores_fields_without_elster_id() -> None:
     parsed = parse_protocol(FIXTURE.read_bytes())
     texts = {line.content for line in parsed.lines}
     assert "wird ignoriert" not in texts
@@ -219,7 +219,7 @@ def test_take_in_stores_document_with_hash_and_reading(root: Path, site: Path) -
     assert (str(document.period_start), str(document.period_end)) == ("2025-01-01", "2025-12-31")
     assert reading.document == document.address
     assert reading.reader_version == READER_VERSION
-    assert [line.ekz for line in reading.lines][:2] == ["E0203503", "E0203504"]
+    assert [line.elster_id for line in reading.lines][:2] == ["E0203503", "E0203504"]
     assert (root / "nutzer" / "anna" / "dokumente.json").exists()
     assert (root / "nutzer" / "anna" / "tax_year" / "2025.json").exists()
 
@@ -373,3 +373,10 @@ def test_page_rejects_year_that_contradicts_the_head(root: Path, site: Path) -> 
 def test_post_needs_origin(root: Path, site: Path) -> None:
     client = make_client(root, site)
     assert client.post("/steuerjahr/uebertragungsprotokolle", data={}).status_code == 403
+
+
+def test_protocol_line_is_stored_under_the_old_field_name() -> None:
+    line = parse_protocol(FIXTURE.read_bytes()).lines[0]
+    dumped = line.model_dump(mode="json")
+    assert dumped["ekz"] == line.elster_id
+    assert "elster_id" not in dumped

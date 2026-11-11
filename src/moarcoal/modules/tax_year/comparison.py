@@ -19,13 +19,13 @@ from moarcoal.values.model import ExposedValue, Period, Unit, ValueRef
 DEVIATION = "tax_year.protocol_deviation"
 MISSING = "tax_year.protocol_missing"
 AMBIGUOUS = "tax_year.protocol_ambiguous"
-UNKNOWN_EKZ = "tax_year.protocol_unknown_ekz"
+UNKNOWN_ELSTER_ID = "tax_year.protocol_unknown_elster_id"
 
 FINDING_KINDS = (
     FindingKind(DEVIATION, "Übertragungsprotokoll weicht vom Wert ab"),
     FindingKind(MISSING, "Feld fehlt im Übertragungsprotokoll"),
     FindingKind(AMBIGUOUS, "Feld kommt im Übertragungsprotokoll mehrfach vor"),
-    FindingKind(UNKNOWN_EKZ, "E-Kennung unbekannt, nicht abgleichbar"),
+    FindingKind(UNKNOWN_ELSTER_ID, "E-Kennung unbekannt, nicht abgleichbar"),
 )
 
 GERMAN_NUMBER = re.compile(r"-?\d{1,3}(\.\d{3})*(,\d+)?|-?\d+(,\d+)?")
@@ -78,8 +78,8 @@ def _sum(lines: list[ProtocolLine]) -> Decimal | None:
 def _field_findings(
     field: FormField, ref: ValueRef, value: ExposedValue, reading: ProtocolReading
 ) -> Iterator[Finding]:
-    name = f"Anlage N Nr. {field.form_line}, {field.label} ({field.ekz})"
-    lines = [line for line in reading.lines if line.ekz == field.ekz]
+    name = f"Anlage N Nr. {field.form_line}, {field.label} ({field.elster_id})"
+    lines = [line for line in reading.lines if line.elster_id == field.elster_id]
     if not lines:
         yield Finding(
             MISSING,
@@ -122,10 +122,10 @@ def protocol_findings(state: ModuleState, values: ValueSource, year: int) -> lis
         period = Period.year(year)
         result = values.get(field.key, state.user, period)
         ref = ValueRef(field.key, state.user, period, None)
-        if field.ekz is None:
+        if field.elster_id is None:
             found.append(
                 Finding(
-                    UNKNOWN_EKZ,
+                    UNKNOWN_ELSTER_ID,
                     Severity.NOTE,
                     ref,
                     f"Anlage N, {field.label}: E-Kennung unbekannt, nicht abgleichbar.",

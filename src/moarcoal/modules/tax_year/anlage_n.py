@@ -30,7 +30,7 @@ class FormField:
     """
 
     key: ValueKey
-    ekz: str | None
+    elster_id: str | None
     form_line: str
     label: str
     unit: Unit

@@ -112,13 +112,13 @@ def test_catalog_has_only_the_fields_of_the_durchstich() -> None:
     tax_keys = {e.key for e in values.catalog.entries() if e.key.module == "tax_year"}
 
     assert tax_keys == {f.key for f in FIELDS_2025}
-    assert {f.ekz for f in FIELDS_2025} == {"E0203503", "E0203504", None}
+    assert {f.elster_id for f in FIELDS_2025} == {"E0203503", "E0203504", None}
 
 
-def test_field_without_known_ekz_is_not_invented() -> None:
+def test_field_without_known_elster_id_is_not_invented() -> None:
     (equipment_field,) = [f for f in FIELDS_2025 if f.key == N_EQUIPMENT]
 
-    assert equipment_field.ekz is None
+    assert equipment_field.elster_id is None
 
 
 def test_missing_input_makes_value_and_dependents_not_yet_computable_with_chain() -> None:

@@ -88,8 +88,12 @@ Werkzeug und Material, das ein Nutzer für die Arbeit selbst gekauft hat; erfass
 Das Modul für die Steuererklärung eines Jahres; im Durchstich nimmt es das Übertragungsprotokoll auf und liest es ein. Modulschlüssel `tax_year`.
 
 **Übertragungsprotokoll**:
-Das HTML-Dokument, das Mein ELSTER nach der Übertragung einer Steuererklärung ausstellt: je ausgefülltem Feld E-Kennung, Anlage, Nummer im Vordruck, Bezeichnung und übertragener Inhalt. Dokumentart des Moduls Steuerjahr mit Bezugszeitraum; die eingelesenen Felder, je mit Fundstelle im Dokument (dem vollen Feldnamen `data-name`), stehen in einem eigenen Eintrag (Code: `ProtocolReading`).
+Das HTML-Dokument, das Mein ELSTER nach der Übertragung einer Steuererklärung ausstellt: je ausgefülltem Feld E-Kennung, Anlage, Nummer im Vordruck, Bezeichnung und übertragener Inhalt. Dokumentart des Moduls Steuerjahr mit Bezugszeitraum; die eingelesenen Felder, je mit Fundstelle im Dokument (dem vollen Feldnamen `data-name`), stehen in einem eigenen Eintrag (Code: `ProtocolReading`), jedes eingelesene Feld als **Protokollfeld**.
 _Avoid_: Sendeprotokoll, Eingabeprotokoll
+
+**Protokollfeld**:
+Ein ausgefülltes Feld des Übertragungsprotokolls, roh wie gedruckt: E-Kennung, Anlage, Nummer im Vordruck, Bezeichnung, Inhalt, Index einer Wiederholgruppe und als Fundstelle der volle Feldname im Dokument; dieselbe E-Kennung kann mehrfach vorkommen (Code: `ProtocolLine`).
+_Avoid_: Protokollzeile, Zeile
 
 **Feld**:
 Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im Vordruck und E-Kennung (solange unbekannt, leer); das Steuerjahr ordnet jedem Feld, das MoarCoal abdeckt, einen Ausgewiesenen Wert zu (Code: `FormField`). Im Durchstich nur drei Felder der Anlage N 2025.

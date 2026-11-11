@@ -17,7 +17,7 @@ from moarcoal.modules.tax_year.comparison import (
     AMBIGUOUS,
     DEVIATION,
     MISSING,
-    UNKNOWN_EKZ,
+    UNKNOWN_ELSTER_ID,
     parse_german_number,
 )
 from moarcoal.modules.work import REGISTRATION as WORK
@@ -32,15 +32,15 @@ ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
 DAYS, KM = "E0203503", "E0203504"
 
 
-def line(ekz: str, content: str, index: str = "1_1-1-1") -> ProtocolLine:
+def line(elster_id: str, content: str, index: str = "1_1-1-1") -> ProtocolLine:
     return ProtocolLine(
-        ekz=ekz,
+        elster_id=elster_id,
         form="N",
         form_line="",
         label="Beispiel",
         content=content,
         index=index,
-        data_name=f"id-N-Beispiel-{ekz}_usb{index}",
+        data_name=f"id-N-Beispiel-{elster_id}_usb{index}",
     )
 
 
@@ -83,10 +83,10 @@ def kinds(found: list[Finding]) -> list[str]:
     return sorted(f.kind for f in found)
 
 
-def test_matching_protocol_gives_only_the_unknown_ekz_note() -> None:
+def test_matching_protocol_gives_only_the_unknown_elster_id_note() -> None:
     found = findings(entries([line(DAYS, "220"), line(KM, "12")]))
 
-    assert kinds(found) == [UNKNOWN_EKZ]
+    assert kinds(found) == [UNKNOWN_ELSTER_ID]
     assert found[0].severity is Severity.NOTE
 
 
@@ -121,28 +121,30 @@ def test_not_yet_computable_value_gets_no_comparison_finding() -> None:
     items = [i for i in entries([line(DAYS, "1")]) if not isinstance(i, FirstWorkplace)]
     found = findings(items)
 
-    assert kinds(found) == [UNKNOWN_EKZ]  # der Fehler "noch nicht berechenbar" ist kein Befund
+    assert kinds(found) == [
+        UNKNOWN_ELSTER_ID
+    ]  # der Fehler "noch nicht berechenbar" ist kein Befund
 
 
 def test_repeated_days_or_km_are_ambiguous_not_compared() -> None:
     found = findings(entries([line(DAYS, "100", "1_1"), line(DAYS, "120", "2_1"), line(KM, "12")]))
 
-    assert kinds(found) == [AMBIGUOUS, UNKNOWN_EKZ]
+    assert kinds(found) == [AMBIGUOUS, UNKNOWN_ELSTER_ID]
     assert next(f for f in found if f.kind == AMBIGUOUS).severity is Severity.WARNING
 
 
 def test_lines_without_field_in_the_catalog_are_ignored() -> None:
     found = findings(entries([line(DAYS, "220"), line(KM, "12"), line("E0100004", "Musterstadt")]))
 
-    assert kinds(found) == [UNKNOWN_EKZ]
+    assert kinds(found) == [UNKNOWN_ELSTER_ID]
 
 
 def test_latest_taken_in_protocol_counts() -> None:
     old = entries([line(DAYS, "1"), line(KM, "1")], taken=1)
     new = entries([line(DAYS, "220"), line(KM, "12")], taken=2)
 
-    assert kinds(findings(old + new[2:])) == [UNKNOWN_EKZ]
-    assert kinds(findings(new + old[2:])) == [UNKNOWN_EKZ]
+    assert kinds(findings(old + new[2:])) == [UNKNOWN_ELSTER_ID]
+    assert kinds(findings(new + old[2:])) == [UNKNOWN_ELSTER_ID]
 
 
 def test_without_protocol_there_is_no_comparison() -> None:

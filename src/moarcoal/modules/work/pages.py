@@ -110,7 +110,7 @@ def build_equipment(fields: Fields, owner: str, entry_id: str) -> tuple[Entry | 
     return entry, []
 
 
-class Kind:
+class EntryForm:
     def __init__(self, slug: str, title: str, model: type[Entry], build: Build) -> None:
         self.slug = slug
         self.title = title
@@ -119,10 +119,10 @@ class Kind:
 
 
 KINDS = {
-    "erste-taetigkeitsstaette": Kind(
+    "erste-taetigkeitsstaette": EntryForm(
         "erste-taetigkeitsstaette", "Erste Tätigkeitsstätte", FirstWorkplace, build_workplace
     ),
-    "arbeitsmittel": Kind("arbeitsmittel", "Arbeitsmittel", WorkEquipment, build_equipment),
+    "arbeitsmittel": EntryForm("arbeitsmittel", "Arbeitsmittel", WorkEquipment, build_equipment),
 }
 
 
@@ -134,14 +134,14 @@ def entry_url(address: EntryAddress) -> str | None:
     return None
 
 
-def _kind(slug: str) -> Kind:
+def _kind(slug: str) -> EntryForm:
     kind = KINDS.get(slug)
     if kind is None:
         raise HTTPException(404)
     return kind
 
 
-def _address(kind: Kind, entry_id: str) -> EntryAddress:
+def _address(kind: EntryForm, entry_id: str) -> EntryAddress:
     try:
         return EntryAddress(kind=kind.model.__name__, id=entry_id)
     except ValueError as error:
@@ -252,7 +252,7 @@ def edit_page(request: Request, slug: str, entry_id: str) -> HTMLResponse:
 
 
 def _edit_response(
-    request: Request, kind: Kind, entry_id: str, fields: Fields, errors: list[str], status: int
+    request: Request, kind: EntryForm, entry_id: str, fields: Fields, errors: list[str], status: int
 ) -> HTMLResponse:
     return render(
         request,
