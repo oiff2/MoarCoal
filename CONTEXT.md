@@ -82,7 +82,7 @@ Werkzeug und Material, das ein Nutzer für die Arbeit selbst gekauft hat; erfass
 Das Modul für die Steuererklärung eines Jahres; im Durchstich nimmt es das Übertragungsprotokoll auf und liest es ein. Modulschlüssel `tax_year`.
 
 **Übertragungsprotokoll**:
-Das HTML-Dokument, das Mein ELSTER nach der Übertragung einer Steuererklärung ausstellt: je Zeile E-Kennung und übertragener Inhalt. Dokumentart des Moduls Steuerjahr mit Bezugszeitraum; die eingelesenen Zeilen, je mit Fundstelle im Dokument (Zeile der Datei), stehen in einem eigenen Eintrag (Code: `ProtocolReading`).
+Das HTML-Dokument, das Mein ELSTER nach der Übertragung einer Steuererklärung ausstellt: je ausgefülltem Feld E-Kennung, Anlage, Nummer im Vordruck, Bezeichnung und übertragener Inhalt. Dokumentart des Moduls Steuerjahr mit Bezugszeitraum; die eingelesenen Felder, je mit Fundstelle im Dokument (dem vollen Feldnamen `data-name`), stehen in einem eigenen Eintrag (Code: `ProtocolReading`).
 _Avoid_: Sendeprotokoll, Eingabeprotokoll
 
 **E-Kennung**:

@@ -1,5 +1,6 @@
 """Tests: Ablageorte, Dokument, Aufnehmen und Einlesen des Übertragungsprotokolls (nur tmp_path)."""
 
+import datetime
 import hashlib
 import json
 import shutil
@@ -63,36 +64,79 @@ def make_client(root: Path, site: Path) -> httpx.Client:
 # --- Einlese-Regel ----------------------------------------------------------------------------
 
 
-def test_parse_protocol_reads_ekz_label_content_and_source_line() -> None:
-    lines = parse_protocol(FIXTURE.read_bytes())
-    assert [(line.ekz, line.label, line.content, line.source_line) for line in lines] == [
-        ("E0100001", "Arbeitstage", "220", 10),
-        ("E0100002", "Einfache Entfernung in km", "12", 11),
-        ("E0100003", "Arbeitsmittel in EUR", "49,90", 12),
-        ("E0100004", "Ort & Datum", "Musterstadt", 17),
+def test_parse_protocol_reads_header_and_fields_as_printed() -> None:
+    parsed = parse_protocol(FIXTURE.read_bytes())
+    assert (parsed.belegart, parsed.belegversion, parsed.year) == ("E10", "2025", 2025)
+    assert str(parsed.received) == "2026-03-01"
+    fields = [
+        (line.ekz, line.form, line.form_line, line.label, line.content, line.index)
+        for line in parsed.lines
+    ]
+    assert fields == [
+        ("E0203503", "N", "5", "Arbeitstage", "220", "1_1-1-1"),
+        ("E0203504", "N", "6", "Einfache Entfernung in km", "12", "1_1-1-1"),
+        ("E0107601", "N", "12", "Arbeitsmittel (Art & Anschaffung)", "49,90", "1_1-1-1"),
+        ("E0107601", "N", "", "Weiteres Arbeitsmittel", "20,00", "2_1-1-1"),
+        ("E0100004", "ESt1A", "", "Ort", "Musterstadt", "1_1-1-1"),
     ]
 
 
-def test_parse_protocol_ignores_rows_without_ekz_and_tolerates_broken_html() -> None:
-    html = b"<table><tr><td>x<td>E0100009<td>1<tr><td>E12<td>kurz</table><tr><td>E0100010"
-    assert [(line.ekz, line.content) for line in parse_protocol(html)] == [
-        ("E0100009", "1"),
-        ("E0100010", ""),
-    ]
+def test_fundstelle_is_the_full_data_name_and_repeated_ekz_stay_separate() -> None:
+    lines = parse_protocol(FIXTURE.read_bytes()).lines
+    assert lines[0].data_name == "id-N-Werbungskosten-Fahrten-E0203503_usb1_1-1-1"
+    repeated = [line for line in lines if line.ekz == "E0107601"]
+    assert [line.content for line in repeated] == ["49,90", "20,00"]  # nicht summiert
+    assert len({line.data_name for line in repeated}) == 2
 
 
-def test_read_in_requires_lines_and_period() -> None:
-    document = Document(
+def test_parse_protocol_ignores_fields_without_ekz() -> None:
+    parsed = parse_protocol(FIXTURE.read_bytes())
+    texts = {line.content for line in parsed.lines}
+    assert "wird ignoriert" not in texts
+    assert "2025" not in texts  # Vorsatz-Zeitraum hat keine E-Kennung
+
+
+def test_parse_protocol_empty_year_falls_back_to_belegversion_or_none() -> None:
+    html = b"<!-- Belegart: E10 --><!-- Belegversion: 202501 --><!-- Veranlagungsjahr: -->"
+    assert parse_protocol(html).year is None
+    html = b"<!-- Belegart: E10 --><!-- Veranlagungsjahr: 2024 -->"
+    assert parse_protocol(html).year == 2024
+
+
+def make_document(year: int | None = 2025) -> Document:
+    return Document(
         owner="anna",
         site="Belege",
         path="a.html",
         sha256="0" * 64,
         document_kind="transfer_protocol",
+        period_start=datetime.date(year, 1, 1) if year else None,
+        period_end=datetime.date(year, 12, 31) if year else None,
     )
-    with pytest.raises(ReadInError, match="keine Zeile"):
-        read_in_protocol(document, b"<p>nichts</p>")
+
+
+def test_read_in_stores_fields_from_the_fixture() -> None:
+    (reading,) = read_in_protocol(make_document(), FIXTURE.read_bytes())
+    assert isinstance(reading, ProtocolReading)
+    assert (reading.year, reading.belegversion, len(reading.lines)) == (2025, "2025", 5)
+    assert reading.reader_version == READER_VERSION
+
+
+def test_read_in_refuses_other_documents_and_year_mismatch() -> None:
+    with pytest.raises(ReadInError, match="kein Übertragungsprotokoll"):
+        read_in_protocol(make_document(), b"<p>nichts</p>")
+    with pytest.raises(ReadInError, match="kein Feld mit E-Kennung"):
+        read_in_protocol(make_document(), b"<!-- Belegart: E10 --><p>leer</p>")
+    with pytest.raises(ReadInError, match="Steuerjahr 2025, eingetragen ist 2024"):
+        read_in_protocol(make_document(2024), FIXTURE.read_bytes())
     with pytest.raises(ReadInError, match="Bezugszeitraum"):
-        read_in_protocol(document, FIXTURE.read_bytes())
+        read_in_protocol(make_document(None), FIXTURE.read_bytes())
+
+
+def test_read_in_accepts_empty_head_year(tmp_path: Path) -> None:
+    html = FIXTURE.read_text(encoding="utf-8").replace("Belegversion: 2025", "Belegversion: ")
+    (reading,) = read_in_protocol(make_document(2024), html.encode("utf-8"))
+    assert isinstance(reading, ProtocolReading) and reading.year == 2024
 
 
 # --- Ablageorte -------------------------------------------------------------------------------
@@ -175,7 +219,7 @@ def test_take_in_stores_document_with_hash_and_reading(root: Path, site: Path) -
     assert (str(document.period_start), str(document.period_end)) == ("2025-01-01", "2025-12-31")
     assert reading.document == document.address
     assert reading.reader_version == READER_VERSION
-    assert [line.ekz for line in reading.lines][:2] == ["E0100001", "E0100002"]
+    assert [line.ekz for line in reading.lines][:2] == ["E0203503", "E0203504"]
     assert (root / "nutzer" / "anna" / "dokumente.json").exists()
     assert (root / "nutzer" / "anna" / "tax_year" / "2025.json").exists()
 
@@ -273,10 +317,11 @@ def test_pages_take_in_and_show_document_and_lines(root: Path, site: Path) -> No
     detail = client.get(response.headers["location"]).text
     assert "2025/protokoll.html" in detail
     assert hashlib.sha256(FIXTURE.read_bytes()).hexdigest() in detail
-    assert "E0100003" in detail
+    assert "E0203504" in detail
     assert "49,90" in detail
-    assert "Ort &amp; Datum" in detail
-    assert 'id="zeile-12"' in detail
+    assert "Arbeitsmittel (Art &amp; Anschaffung)" in detail
+    assert 'id="id-N-Werbungskosten-Fahrten-E0203503_usb1_1-1-1"' in detail
+    assert "01.03.2026" in detail
     overview = client.get("/steuerjahr").text
     assert "Belege / 2025/protokoll.html" in overview
     assert response.headers["location"] in overview
@@ -311,6 +356,18 @@ def test_detail_of_unknown_or_invalid_reading_is_404(root: Path, site: Path) -> 
     client = make_client(root, site)
     assert client.get("/steuerjahr/uebertragungsprotokolle/AAAAAAAAAA").status_code == 404
     assert client.get("/steuerjahr/uebertragungsprotokolle/klein").status_code == 404
+
+
+def test_page_rejects_year_that_contradicts_the_head(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    response = client.post(
+        "/steuerjahr/uebertragungsprotokolle",
+        data={"site": "Belege", "path": "2025/protokoll.html", "year": "2024"},
+        headers=ORIGIN,
+    )
+    assert response.status_code == 422
+    assert "gehört zum Steuerjahr 2025, eingetragen ist 2024" in response.text
+    assert not (root / "nutzer").exists()
 
 
 def test_post_needs_origin(root: Path, site: Path) -> None:

@@ -13,15 +13,19 @@
 {% else %}
 <p class="fehler">Das Dokument zu diesem Übertragungsprotokoll fehlt.</p>
 {% endif %}
+{% if reading.received %}<p>Eingang auf Server: {{ reading.received.strftime("%d.%m.%Y") }}</p>{% endif %}
 <h2>Eingelesene Angaben ({{ reading.lines | length }})</h2>
 <table>
-  <tr><th>E-Kennung</th><th>Bezeichnung</th><th>Inhalt</th><th>Stelle in der Datei</th></tr>
+  <tr><th>Anlage</th><th>Nr. im Vordruck</th><th>E-Kennung</th><th>Bezeichnung</th><th>Inhalt</th><th>Index</th><th>Stelle im Dokument</th></tr>
   {% for line in reading.lines %}
-  <tr id="zeile-{{ line.source_line }}">
+  <tr id="{{ line.data_name }}">
+    <td>{{ line.form }}</td>
+    <td>{{ line.form_line }}</td>
     <td>{{ line.ekz }}</td>
     <td>{{ line.label }}</td>
     <td>{{ line.content }}</td>
-    <td>{{ line.source_line }}</td>
+    <td>{{ line.index }}</td>
+    <td><a href="#{{ line.data_name }}"><code>{{ line.data_name }}</code></a></td>
   </tr>
   {% endfor %}
 </table>
