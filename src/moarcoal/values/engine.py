@@ -6,9 +6,11 @@ from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import Entry, State
 from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYetSignal
 from moarcoal.values.catalog import TimeKind, ValueCatalog
-from moarcoal.values.findings import CYCLE, Finding, Severity
+from moarcoal.values.findings import CYCLE, DUPLICATE_LOCATOR, Finding, Severity
 from moarcoal.values.model import (
     ExposedValue,
+    LineItem,
+    Locator,
     NotApplicable,
     NotYetComputable,
     Period,
@@ -22,6 +24,21 @@ from moarcoal.values.model import (
 
 class ContractViolation(Exception):
     """Eine Rechnung oder Anfrage bricht den Contract (Programmfehler)."""
+
+
+def _leaf_locators(items: Iterable[LineItem]) -> Iterable[Locator]:
+    """Fundstellen der Einzelposten; Posten anderer Werte (Ketten) werden aufgeklappt."""
+    for item in items:
+        used = item.locator.used_value
+        if used is None:
+            yield item.locator
+        else:
+            yield from _leaf_locators(used.items)
+
+
+def _describe(locator: Locator) -> str:
+    address = locator.entry_address
+    return f"{locator.label} {address}" if address is not None else locator.label
 
 
 class Values:
@@ -81,8 +98,24 @@ class Values:
             )
         finally:
             self._stack.pop()
+        if isinstance(result, ExposedValue):
+            self._check_duplicate_locators(result)
         self._cache[ref] = result
         return result
+
+    def _check_duplicate_locators(self, value: ExposedValue) -> None:
+        """Dieselbe Fundstelle nur einmal je Wert, auch über Ketten; sonst Fehler-Befund."""
+        seen: list[Locator] = []
+        duplicates: list[Locator] = []
+        for locator in _leaf_locators(value.items):
+            if locator in seen:
+                if locator not in duplicates:
+                    duplicates.append(locator)
+            else:
+                seen.append(locator)
+        for locator in duplicates:
+            text = f"Fundstelle mehrfach im Wert {value.key}: {_describe(locator)}"
+            self.findings.append(Finding(DUPLICATE_LOCATOR, Severity.ERROR, value.ref, text))
 
     def _cycle(self, ref: ValueRef) -> NotYetComputable:
         """Die Anfrage läuft schon: Zyklus, mit Fehler-Befund und Kette."""

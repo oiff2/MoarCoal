@@ -38,3 +38,4 @@ class Finding:
 
 
 CYCLE = "cycle"
+DUPLICATE_LOCATOR = "duplicate_locator"

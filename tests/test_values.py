@@ -23,7 +23,8 @@ from moarcoal.values.catalog import (
     UnknownValueKey,
     ValueDefinition,
 )
-from moarcoal.values.engine import ContractViolation, evaluate
+from moarcoal.values.engine import ContractViolation, Values, evaluate
+from moarcoal.values.findings import DUPLICATE_LOCATOR, Finding, Severity
 from moarcoal.values.model import (
     Amount,
     Backing,
@@ -310,3 +311,114 @@ def test_page_shows_values_with_workings_and_backing(tmp_path: Path) -> None:
 
 def test_page_without_entries_shows_no_value_section(tmp_path: Path) -> None:
     assert "Ausgewiesene Werte" not in make_client(tmp_path).get("/arbeit").text
+
+
+# --- Doppelte Fundstellen -----------------------------------------------------------------------
+
+INPUT = UserInputLocator(EntryAddress(kind="Demo", id="7KQ2M3XA4T"))
+OTHER_INPUT = UserInputLocator(EntryAddress(kind="Demo", id="6KQ2M3XA4T"))
+
+
+def input_value(locator: UserInputLocator, cents: int = 100) -> Callable[[Calculation], Amount]:
+    def compute(calc: Calculation) -> Amount:
+        item = calc.item("Posten", Amount.eur_cents(cents), locator)
+        return item.amount
+
+    return compute
+
+
+def duplicates(values: Values) -> list[Finding]:
+    return [f for f in values.findings if f.kind == DUPLICATE_LOCATOR]
+
+
+def test_same_locator_twice_in_one_value_is_an_error_finding_but_value_is_computed() -> None:
+    def compute(calc: Calculation) -> Amount:
+        calc.item("a", Amount.eur_cents(100), INPUT)
+        calc.item("b", Amount.eur_cents(200), INPUT)
+        return Amount.eur_cents(300)
+
+    values = evaluate([custom(definition("demo.twice", compute))], [])
+
+    result = values.get("demo.twice", "anna", YEAR)
+
+    assert exposed(result).amount == Amount.eur_cents(300)
+    (finding,) = duplicates(values)
+    assert finding.severity is Severity.ERROR
+    assert finding.target == result.ref
+    assert str(INPUT.address) in finding.message
+
+
+def test_same_locator_via_a_chain_is_an_error_finding() -> None:
+    def top(calc: Calculation) -> Amount:
+        calc.item("direkt", Amount.eur_cents(100), INPUT)
+        used = calc.use("demo.base")
+        assert used is not None
+        return Amount.eur_cents(200)
+
+    values = evaluate(
+        [custom(definition("demo.top", top), definition("demo.base", input_value(INPUT)))], []
+    )
+
+    values.get("demo.top", "anna", YEAR)
+
+    (finding,) = duplicates(values)
+    assert finding.target.key == "demo.top"
+    assert finding.severity is Severity.ERROR
+
+
+def test_same_locator_in_two_chain_values_of_one_value_counts() -> None:
+    def top(calc: Calculation) -> Amount:
+        calc.use("demo.left")
+        calc.use("demo.right")
+        return Amount.eur_cents(200)
+
+    values = evaluate(
+        [
+            custom(
+                definition("demo.top", top),
+                definition("demo.left", input_value(INPUT)),
+                definition("demo.right", input_value(INPUT)),
+            )
+        ],
+        [],
+    )
+
+    values.get("demo.top", "anna", YEAR)
+
+    assert [f.target.key for f in duplicates(values)] == ["demo.top"]
+
+
+def test_distinct_locators_give_no_finding() -> None:
+    def top(calc: Calculation) -> Amount:
+        calc.use("demo.left")
+        calc.use("demo.right")
+        calc.item("direkt", Amount.eur_cents(100), UserInputLocator(workplace().address))
+        return Amount.eur_cents(300)
+
+    values = evaluate(
+        [
+            custom(
+                definition("demo.top", top),
+                definition("demo.left", input_value(INPUT)),
+                definition("demo.right", input_value(OTHER_INPUT)),
+            )
+        ],
+        [],
+    )
+
+    values.get("demo.top", "anna", YEAR)
+
+    assert values.findings == []
+
+
+def test_duplicate_locator_shows_up_in_the_finding_list() -> None:
+    def compute(calc: Calculation) -> Amount:
+        calc.item("a", Amount.eur_cents(100), INPUT)
+        calc.item("b", Amount.eur_cents(100), INPUT)
+        return Amount.eur_cents(200)
+
+    values = evaluate([custom(definition("demo.twice", compute))], [])
+
+    found = values.finding_list("anna", 2025)
+
+    assert [f.kind for f in found] == [DUPLICATE_LOCATOR]
