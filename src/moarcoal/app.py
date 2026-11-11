@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import Environment, FileSystemLoader
 
+from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.modules import MODULES
 from moarcoal.registration import ModuleRegistration
 from moarcoal.security import SecurityMiddleware
@@ -20,7 +21,6 @@ PACKAGE_DIR = Path(__file__).parent
 TEMPLATES_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
 # Durchstich: ein Nutzer, die Nutzerliste kommt später; der Anzeigename ist erfunden.
-DEFAULT_YEAR = 2025  # Durchstich: das globale Jahr ist noch nicht gebaut
 DEFAULT_USER = "ich"
 DEFAULT_USER_NAME = "Max Mustermann"
 

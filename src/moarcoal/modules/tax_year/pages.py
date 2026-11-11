@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
+from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.documents import DocumentKind, IntakeRejected, take_in
 from moarcoal.modules.tax_year.anlage_n import FORMS
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
@@ -17,7 +18,6 @@ MODULE_KEY = "tax_year"
 router = APIRouter(prefix="/steuerjahr")
 
 type Fields = dict[str, str]
-DEFAULT_YEAR = "2025"
 
 
 def _own_state(request: Request) -> ModuleState:
@@ -51,7 +51,7 @@ def _overview(
 
 @router.get("", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
-    return _overview(request, [], {"year": DEFAULT_YEAR})
+    return _overview(request, [], {"year": str(DEFAULT_YEAR)})
 
 
 @router.post("/uebertragungsprotokolle")
