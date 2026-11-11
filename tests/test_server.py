@@ -1,5 +1,6 @@
 """Tests der Absicherung (ADR 0007) und der Startseite, über den Test-Client."""
 
+import socket
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -7,7 +8,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from moarcoal.__main__ import DEFAULT_PORT, read_data_dir, read_port
+from moarcoal.__main__ import DEFAULT_PORT, main, read_data_dir, read_port
 from moarcoal.app import create_app
 from moarcoal.storage import default_data_dir
 
@@ -145,3 +146,19 @@ def test_data_dir_default_and_override() -> None:
 
 def test_start_page_links_registered_modules() -> None:
     assert 'href="/arbeit"' in client().get("/").text
+
+
+def test_main_aborts_when_port_taken(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as blocker:
+        blocker.bind(("127.0.0.1", 0))
+        blocker.listen()
+        port = blocker.getsockname()[1]
+        monkeypatch.setenv("MOARCOAL_PORT", str(port))
+        monkeypatch.setenv("MOARCOAL_DATA_DIR", str(tmp_path))
+        with pytest.raises(SystemExit) as exit_info:
+            main()
+    assert exit_info.value.code not in (0, None)
+    err = capsys.readouterr().err
+    assert f"Port {port}" in err and "nicht frei" in err and "MOARCOAL_PORT" in err
