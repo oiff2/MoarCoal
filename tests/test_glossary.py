@@ -24,8 +24,6 @@ TEMPLATE_EXCEPTIONS = {"warnung", "fehler"}  # Schweregrade eines Befunds
 # raus (der Test schlägt sonst fehl), ebenso Namen, die nicht mehr in CONTEXT.md stehen.
 NOT_YET_BUILT = {
     "Backing",
-    "Change",
-    "EntryAddress",
     "ExposedValue",
     "ExtractionTemplate",
     "KeyDate",
@@ -39,7 +37,6 @@ NOT_YET_BUILT = {
     "Proposal",
     "Snapshot",
     "Source",
-    "State",
     "Subject",
     "TimeRef",
     "ValueCatalog",

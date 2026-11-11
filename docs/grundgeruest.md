@@ -308,6 +308,8 @@ result = store.apply([                      # ein Vorgang
 - Ein Vorgang ist nicht an einen Nutzer gebunden; jeder Eintrag trägt seinen Eigentümer, Gemeinsames (Aussteller, Ausblendungen im Eingang) geht denselben Weg.
 - Keine Seam zum Dateisystem: Tests nutzen echte Wegwerfverzeichnisse. Wiederherstellung über das Journal wird geprüft, indem der Test den Zustand nach einem Absturz (temporäre Dateien mit oder ohne Journal) anlegt und startet; ein einzelner Test lässt intern `os.replace` scheitern.
 
+**Stand des Baus (Durchstich, [#29](https://github.com/oiff2/MoarCoal/issues/29)):** Das Journal ist noch nicht gebaut. Scheitert das Umbenennen mittendrin, stellt `apply` die schon ersetzten Dateien wieder her; ein Absturz mitten im Umbenennen ist nicht abgedeckt. Eine Datei enthält `{"schema", "entries": {"<Adresse>": {…}}}`; eine Datei, die leer würde, entfällt. Jede Eintragsart nennt vorerst selbst Dateiformat (`file_schema`) und Pfad (`path`), bis es die Modulanmeldung gibt. Code: `src/moarcoal/storage/`.
+
 ### 5.3 Start-Reihenfolge
 
 1. Journal zu Ende führen bzw. Temp-Reste verwerfen
