@@ -19,9 +19,15 @@ from types import MappingProxyType
 
 from pydantic import ValidationError
 
-from moarcoal.storage.entries import Entry, EntryAddress, entry_checksum, kind_collisions
+from moarcoal.storage.entries import (
+    Entry,
+    EntryAddress,
+    EntryKind,
+    entry_checksum,
+    kind_collisions,
+)
 
-DEFAULT_DATA_DIR = Path.home() / "MoarCoal"
+DEFAULT_DATA_DIR_NAME = "MoarCoal"
 DATA_DIRS = ("nutzer", "gemeinsam")  # hier liegen Einträge; .backup, .cache und config nicht
 BACKUP_DIR = ".backup"
 BACKUP_KEEP = 20
@@ -87,7 +93,7 @@ class State:
 
 
 def default_data_dir() -> Path:
-    return DEFAULT_DATA_DIR
+    return Path.home() / DEFAULT_DATA_DIR_NAME
 
 
 def _sha256(data: bytes) -> str:
@@ -158,9 +164,9 @@ def _restore_file(target: Path, original: bytes | None) -> None:
 
 
 class Store:
-    def __init__(self, root: Path, kinds: Sequence[type[Entry]]) -> None:
+    def __init__(self, root: Path, kinds: Sequence[EntryKind]) -> None:
         self._root = root
-        self._kinds = {cls.__name__: cls for cls in kinds}
+        self._kinds = {kind.model.__name__: kind for kind in kinds}
         self._lock = threading.Lock()
         self._file_checksums: dict[str, str] = {}
         self._state = State(MappingProxyType({}))
@@ -172,6 +178,9 @@ class Store:
 
     def state(self) -> State:
         return self._state
+
+    def _path_of(self, entry: Entry) -> str:
+        return self._kinds[type(entry).__name__].path(entry)
 
     # --- Laden ------------------------------------------------------------------------------
 
@@ -202,16 +211,16 @@ class Store:
         for key, fields in raw_entries.items():
             try:
                 address = EntryAddress.parse(key)
-                cls = self._kinds.get(address.kind)
-                if cls is None:
+                kind = self._kinds.get(address.kind)
+                if kind is None:
                     raise StoreError(f"{relative}: unbekannte Art {address.kind!r}")
-                entry = cls.model_validate(fields)
+                entry = kind.model.model_validate(fields)
             except (ValueError, ValidationError) as error:
                 raise StoreError(f"{relative}: Eintrag {key} ist ungültig") from error
-            if entry.address != address or entry.path() != relative:
+            if entry.address != address or kind.path(entry) != relative:
                 raise StoreError(f"{relative}: Eintrag {key} gehört nicht in diese Datei")
-            if schema != cls.file_schema:
-                raise StoreError(f"{relative}: Format {schema!r}, erwartet {cls.file_schema!r}")
+            if schema != kind.schema:
+                raise StoreError(f"{relative}: Format {schema!r}, erwartet {kind.schema!r}")
             entries.append(entry)
         return entries
 
@@ -246,7 +255,7 @@ class Store:
                         continue
                     valid = type(entry).model_validate(entry.model_dump())
                     new_entries[address] = valid
-                    touch(valid.path(), address)
+                    touch(self._path_of(valid), address)
                 case Delete(expected=expected):
                     if current is None:
                         reasons[address] = "Eintrag existiert nicht."
@@ -256,7 +265,7 @@ class Store:
                         continue
                     del new_entries[address]
             if current is not None:
-                touch(current.path(), address)
+                touch(self._path_of(current), address)
         if reasons:
             return Rejected(reasons)
 
@@ -270,11 +279,12 @@ class Store:
 
     def _check_put(self, entry: Entry, expected: str | None, current: Entry | None) -> str | None:
         cls = type(entry)
-        if self._kinds.get(cls.__name__) is not cls:
+        kind = self._kinds.get(cls.__name__)
+        if kind is None or kind.model is not cls:
             return f"Unbekannte Art {cls.__name__}."
         try:
             valid = cls.model_validate(entry.model_dump())
-            path = valid.path()
+            path = kind.path(valid)
         except ValidationError as error:
             details = "; ".join(
                 f"{'.'.join(str(p) for p in e['loc'])}: {e['msg']}" for e in error.errors()
@@ -305,8 +315,8 @@ class Store:
                 for address in addresses:
                     reasons[address] = "Datei wurde von Hand geändert."
                 continue
-            members = [e for e in new_entries.values() if e.path() == path]
-            schemas = {type(e).file_schema for e in members}
+            members = [e for e in new_entries.values() if self._path_of(e) == path]
+            schemas = {self._kinds[type(e).__name__].schema for e in members}
             if len(schemas) > 1:
                 for address in addresses:
                     reasons[address] = "Arten mit verschiedenem Dateiformat in einer Datei."
@@ -345,9 +355,9 @@ class Store:
             old.unlink()
 
 
-def open_store(root: Path, kinds: Sequence[type[Entry]]) -> Store:
+def open_store(root: Path, kinds: Sequence[EntryKind]) -> Store:
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten."""
-    collisions = kind_collisions(list(kinds))
+    collisions = kind_collisions([kind.model for kind in kinds])
     if collisions:
         raise StoreError(f"Arten nicht eindeutig: {', '.join(collisions)}")
     return Store(root, kinds)

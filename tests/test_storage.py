@@ -4,7 +4,6 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import ClassVar
 
 import pytest
 from pydantic import ValidationError
@@ -19,6 +18,7 @@ from moarcoal.storage import (
     Store,
     StoreError,
     entry_checksum,
+    entry_kind,
     kind_collisions,
     new_id,
     open_store,
@@ -26,26 +26,24 @@ from moarcoal.storage import (
 
 
 class Expense(Entry):
-    file_schema: ClassVar[str] = "test/1"
-
     year: int
     cents: int
 
-    def path(self) -> str:
-        return f"nutzer/{self.owner}/test/{self.year}.json"
-
 
 class Trip(Entry):
-    file_schema: ClassVar[str] = "test/1"
-
     year: int
 
-    def path(self) -> str:
-        return f"nutzer/{self.owner}/test/{self.year}.json"
+
+def yearly_path(entry: Expense | Trip) -> str:
+    return f"nutzer/{entry.owner}/test/{entry.year}.json"
+
+
+EXPENSE_KIND = entry_kind(Expense, "test/1", yearly_path)
+TRIP_KIND = entry_kind(Trip, "test/1", yearly_path)
 
 
 def make_store(root: Path) -> Store:
-    return open_store(root, [Expense, Trip])
+    return open_store(root, [EXPENSE_KIND, TRIP_KIND])
 
 
 def expense(cents: int = 1000, year: int = 2025, owner: str = "anna") -> Expense:
@@ -99,7 +97,13 @@ def test_kind_collisions_are_found() -> None:
 def test_open_store_refuses_duplicate_kinds(tmp_path: Path) -> None:
     other_expense = type("Expense", (Entry,), {})
     with pytest.raises(StoreError, match="Expense"):
-        open_store(tmp_path, [Expense, other_expense])
+        open_store(
+            tmp_path,
+            [
+                EXPENSE_KIND,
+                entry_kind(other_expense, "test/1", lambda entry: f"nutzer/{entry.owner}/x.json"),
+            ],
+        )
 
 
 # --- Anlegen, Ändern, Löschen -----------------------------------------------------------------
@@ -222,10 +226,7 @@ def test_same_address_twice_in_one_operation_is_rejected(tmp_path: Path) -> None
 
 def test_unregistered_kind_and_unsafe_path_are_rejected(tmp_path: Path) -> None:
     class Stranger(Entry):
-        file_schema: ClassVar[str] = "test/1"
-
-        def path(self) -> str:
-            return "nutzer/anna/stranger.json"
+        pass
 
     store = make_store(tmp_path)
     assert isinstance(store.apply([Put(Stranger(owner="anna"))]), Rejected)

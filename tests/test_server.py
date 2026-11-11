@@ -1,17 +1,29 @@
 """Tests der Absicherung (ADR 0007) und der Startseite, über den Test-Client."""
 
+from collections.abc import Iterator
+from pathlib import Path
+
 import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from moarcoal.__main__ import DEFAULT_PORT, read_port
+from moarcoal.__main__ import DEFAULT_PORT, read_data_dir, read_port
 from moarcoal.app import create_app
+from moarcoal.storage import default_data_dir
 
 PORT = 4711
+DATA_DIR: list[Path] = []  # Wegwerfverzeichnis des laufenden Tests, nie das echte
+
+
+@pytest.fixture(autouse=True)
+def _data_dir(tmp_path: Path) -> Iterator[None]:  # pyright: ignore[reportUnusedFunction]
+    DATA_DIR.append(tmp_path)
+    yield
+    DATA_DIR.clear()
 
 
 def client(host: str = "127.0.0.1") -> httpx.Client:
-    return TestClient(create_app(PORT), base_url=f"http://{host}:{PORT}")
+    return TestClient(create_app(PORT, DATA_DIR[0]), base_url=f"http://{host}:{PORT}")
 
 
 def test_start_page_ok_and_loads_local_htmx() -> None:
@@ -123,3 +135,13 @@ def test_port_default_and_override() -> None:
 def test_invalid_port_exits_with_message(value: str) -> None:
     with pytest.raises(SystemExit, match="MOARCOAL_PORT"):
         read_port({"MOARCOAL_PORT": value})
+
+
+def test_data_dir_default_and_override() -> None:
+    assert read_data_dir({}) == default_data_dir() == Path.home() / "MoarCoal"
+    assert read_data_dir({"MOARCOAL_DATA_DIR": "/tmp/anderswo"}) == Path("/tmp/anderswo")
+    assert read_data_dir({"MOARCOAL_DATA_DIR": ""}) == default_data_dir()
+
+
+def test_start_page_links_registered_modules() -> None:
+    assert 'href="/arbeit"' in client().get("/").text

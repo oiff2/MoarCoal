@@ -3,8 +3,10 @@
 from moarcoal.storage.entries import (
     Entry,
     EntryAddress,
+    EntryKind,
     all_kinds,
     entry_checksum,
+    entry_kind,
     kind_collisions,
     new_id,
 )
@@ -27,6 +29,7 @@ __all__ = [
     "Delete",
     "Entry",
     "EntryAddress",
+    "EntryKind",
     "Put",
     "Rejected",
     "State",
@@ -35,6 +38,7 @@ __all__ = [
     "all_kinds",
     "default_data_dir",
     "entry_checksum",
+    "entry_kind",
     "kind_collisions",
     "new_id",
     "open_store",

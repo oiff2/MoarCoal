@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Arbeit – MoarCoal{% endblock %}
+{% block main %}
+<h1>Arbeit</h1>
+<p>Angaben für die Anlage N, von Hand erfasst. Sie gelten als angenommen, bis ein Beleg dazukommt.</p>
+
+<h2>Erste Tätigkeitsstätte</h2>
+{% if workplaces %}
+<table>
+  <tr><th>Jahr</th><th>Arbeitstage</th><th>Einfache Entfernung</th><th>Beschreibung</th><th></th></tr>
+  {% for entry, checksum in workplaces %}
+  <tr>
+    <td>{{ entry.year }}</td>
+    <td>{{ entry.workdays }}</td>
+    <td>{{ entry.distance_km }} km</td>
+    <td>{{ entry.description }}</td>
+    <td><a href="/arbeit/erste-taetigkeitsstaette/{{ entry.id }}">Ändern</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Noch keine Angaben.</p>
+{% endif %}
+<h3>Neue erste Tätigkeitsstätte</h3>
+{% with kind = kinds["erste-taetigkeitsstaette"], errors = errors.get("erste-taetigkeitsstaette", []), values = values["erste-taetigkeitsstaette"] %}
+{% include "work/_errors.html" %}
+<form method="post" action="/arbeit/{{ kind.slug }}">
+  {% include "work/_fields.html" %}
+  <button type="submit">Speichern</button>
+</form>
+{% endwith %}
+
+<h2>Arbeitsmittel</h2>
+{% if equipment %}
+<table>
+  <tr><th>Jahr</th><th>Betrag</th><th>Datum</th><th>Beschreibung</th><th></th></tr>
+  {% for entry, checksum in equipment %}
+  <tr>
+    <td>{{ entry.year }}</td>
+    <td>{{ entry.input.amount_cents | eur }}</td>
+    <td>{{ entry.input.date.strftime("%d.%m.%Y") }}</td>
+    <td>{{ entry.input.description }}</td>
+    <td><a href="/arbeit/arbeitsmittel/{{ entry.id }}">Ändern</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Noch keine Angaben.</p>
+{% endif %}
+<h3>Neues Arbeitsmittel</h3>
+{% with kind = kinds["arbeitsmittel"], errors = errors.get("arbeitsmittel", []), values = values["arbeitsmittel"] %}
+{% include "work/_errors.html" %}
+<form method="post" action="/arbeit/{{ kind.slug }}">
+  {% include "work/_fields.html" %}
+  <button type="submit">Speichern</button>
+</form>
+{% endwith %}
+{% endblock %}

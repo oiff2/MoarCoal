@@ -3,7 +3,9 @@
 import hashlib
 import json
 import secrets
-from typing import ClassVar, Self
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Self, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -37,16 +39,9 @@ class EntryAddress(BaseModel):
 
 
 class Entry(BaseModel):
-    """Basis jeder Eintragsart. Die Art ist der Klassenname.
-
-    Eine Unterklasse nennt in `file_schema` das Dateiformat (`<modul>/<n>`, ein Format je
-    Datei) und in `path` die Datei (relativ zum Datenverzeichnis, mit `/`), in die sie
-    gehört. Das ersetzt die Funktion Eintrag -> Pfad der Modulanmeldung, bis es diese gibt.
-    """
+    """Basis jeder Eintragsart. Die Art ist der Klassenname."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
-
-    file_schema: ClassVar[str]
 
     id: str = Field(default_factory=new_id, pattern=ID_PATTERN)
     owner: str = Field(min_length=1)
@@ -55,8 +50,22 @@ class Entry(BaseModel):
     def address(self) -> EntryAddress:
         return EntryAddress(kind=type(self).__name__, id=self.id)
 
-    def path(self) -> str:
-        raise NotImplementedError(f"{type(self).__name__} muss `path` festlegen")
+
+@dataclass(frozen=True)
+class EntryKind:
+    """Eine Eintragsart, wie die Modulanmeldung sie nennt (docs/grundgeruest.md, 4 und 5.2).
+
+    `schema` ist das Dateiformat (`<modul>/<n>`, ein Format je Datei); `path` ist die reine
+    Funktion Eintrag -> Datei (relativ zum Datenverzeichnis, mit `/`).
+    """
+
+    model: type[Entry]
+    schema: str
+    path: Callable[[Entry], str]
+
+
+def entry_kind[E: Entry](model: type[E], schema: str, path: Callable[[E], str]) -> EntryKind:
+    return EntryKind(model, schema, cast(Callable[[Entry], str], path))
 
 
 def entry_checksum(entry: Entry) -> str:

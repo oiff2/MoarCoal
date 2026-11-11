@@ -66,8 +66,17 @@ Der Kanal, über den Daten von außen in MoarCoal gelangen: eDaten-Abruf aus Mei
 _Avoid_: Herkunft, Import, Datenquelle
 
 **Nutzereingabe**:
-Ein von Hand erfasster Betrag mit Datum und Beschreibung, eingebettet in eine eigene Eintragsart des Moduls; als Fundstelle ergibt sie den Belegstand angenommen.
+Ein von Hand erfasster Betrag mit Datum und Beschreibung, eingebettet in eine eigene Eintragsart des Moduls; als Fundstelle ergibt sie den Belegstand angenommen (Code: `UserInput`).
 _Avoid_: manuelle Buchung, Handeingabe
+
+**Arbeit**:
+Das Modul für die Angaben zur nichtselbständigen Arbeit (Anlage N), im Durchstich von Hand erfasst: erste Tätigkeitsstätte und Arbeitsmittel. Modulschlüssel `work`.
+
+**Erste Tätigkeitsstätte**:
+Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die Arbeitstage und die einfache Entfernung in km von der Wohnung dorthin (Code: `FirstWorkplace`).
+
+**Arbeitsmittel**:
+Werkzeug und Material, das ein Nutzer für die Arbeit selbst gekauft hat; erfasst wird je Anschaffung ein Betrag als Nutzereingabe mit dem Steuerjahr, für das er gilt (Code: `WorkEquipment`).
 
 **Belegstand** _(geprägt)_:
 Ob ein Einzelposten durch einen Beleg gedeckt ist; er ergibt sich aus der Art der Fundstelle: belegt (Fundstelle ist eine Stelle in einem Dokument oder ein eDaten-Satz), ausstehend (Fundstelle ist ein Erwarteter Beleg, der Betrag gilt, bis der Beleg da ist) oder angenommen (Fundstelle ist eine Nutzereingabe, kein Beleg zu erwarten). Stützt sich ein Einzelposten auf einen anderen Ausgewiesenen Wert, erbt er dessen schwächsten Belegstand. Vom schwächsten zum stärksten: ausstehend, angenommen, belegt. Der Belegstand eines Ausgewiesenen Werts ist der schwächste seiner Einzelposten; ohne Einzelposten (z. B. ausdrücklich 0) ist er belegt (Code: `Backing`).

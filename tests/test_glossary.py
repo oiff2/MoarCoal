@@ -29,8 +29,6 @@ NOT_YET_BUILT = {
     "KeyDate",
     "LineItem",
     "Locator",
-    "ModuleRegistration",
-    "ModuleState",
     "NotApplicable",
     "NotYetComputable",
     "Period",

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ kind.title }} ändern – MoarCoal{% endblock %}
+{% block main %}
+{% set entry_id = entry.id if entry else entry_id %}
+<h1>{{ kind.title }} ändern</h1>
+<p><a href="/arbeit">Zurück zu Arbeit</a></p>
+{% include "work/_errors.html" %}
+<form method="post" action="/arbeit/{{ kind.slug }}/{{ entry_id }}">
+  <input type="hidden" name="checksum" value="{{ checksum }}">
+  {% include "work/_fields.html" %}
+  <button type="submit">Speichern</button>
+</form>
+<form method="post" action="/arbeit/{{ kind.slug }}/{{ entry_id }}/loeschen" class="inline">
+  <input type="hidden" name="checksum" value="{{ checksum }}">
+  <button type="submit">Löschen</button>
+</form>
+{% endblock %}

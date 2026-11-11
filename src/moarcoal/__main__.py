@@ -4,14 +4,17 @@ import os
 import socket
 import sys
 from collections.abc import Mapping
+from pathlib import Path
 
 import uvicorn
 
 from moarcoal.app import create_app
+from moarcoal.storage import default_data_dir
 
 HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 PORT_ENV = "MOARCOAL_PORT"
+DATA_DIR_ENV = "MOARCOAL_DATA_DIR"
 
 
 def read_port(env: Mapping[str, str] = os.environ) -> int:
@@ -27,6 +30,12 @@ def read_port(env: Mapping[str, str] = os.environ) -> int:
     return port
 
 
+def read_data_dir(env: Mapping[str, str] = os.environ) -> Path:
+    """Datenverzeichnis: `MOARCOAL_DATA_DIR` oder `~/MoarCoal`."""
+    raw = env.get(DATA_DIR_ENV)
+    return Path(raw) if raw else default_data_dir()
+
+
 def main() -> None:
     port = read_port()
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -40,7 +49,7 @@ def main() -> None:
             file=sys.stderr,
         )
         raise SystemExit(1) from error
-    server = uvicorn.Server(uvicorn.Config(create_app(port), log_level="info"))
+    server = uvicorn.Server(uvicorn.Config(create_app(port, read_data_dir()), log_level="info"))
     try:
         server.run(sockets=[sock])
     finally:

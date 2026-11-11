@@ -1,0 +1,25 @@
+{# Felder einer Art; `kind.slug` wählt, `values` belegt vor #}
+<label>Steuerjahr
+  <input name="year" inputmode="numeric" value="{{ values.get('year', '') }}" required>
+</label>
+{% if kind.slug == "erste-taetigkeitsstaette" %}
+<label>Arbeitstage
+  <input name="workdays" inputmode="numeric" value="{{ values.get('workdays', '') }}" required>
+</label>
+<label>Einfache Entfernung in km
+  <input name="distance_km" inputmode="numeric" value="{{ values.get('distance_km', '') }}" required>
+</label>
+<label>Beschreibung (optional)
+  <input name="description" value="{{ values.get('description', '') }}">
+</label>
+{% else %}
+<label>Betrag in EUR
+  <input name="amount" inputmode="decimal" value="{{ values.get('amount', '') }}" required>
+</label>
+<label>Datum
+  <input name="date" type="date" value="{{ values.get('date', '') }}" required>
+</label>
+<label>Beschreibung
+  <input name="description" value="{{ values.get('description', '') }}" required>
+</label>
+{% endif %}
