@@ -203,8 +203,8 @@ def http(tmp_path: Path) -> httpx.Client:
     site.mkdir()
     shutil.copy(FIXTURE, site / "protokoll.html")
     root = tmp_path / "daten"
-    (root / "gemeinsam").mkdir(parents=True)
-    (root / "gemeinsam" / "ablageorte.json").write_text(
+    (root / "common").mkdir(parents=True)
+    (root / "common" / "sites.json").write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
     app = create_app(PORT, root, user="anna")

@@ -37,7 +37,7 @@ class Document(Entry):
 
 
 def document_path(entry: Document) -> str:
-    return f"nutzer/{entry.owner}/dokumente.json"
+    return f"users/{entry.owner}/documents.json"
 
 
 DATA_LAYER_KINDS: tuple[EntryKind, ...] = (entry_kind(Document, DOCUMENT_SCHEMA, document_path),)

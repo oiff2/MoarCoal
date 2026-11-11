@@ -47,7 +47,7 @@ class ProtocolReading(Entry):
 
 
 def reading_path(entry: ProtocolReading) -> str:
-    return f"nutzer/{entry.owner}/tax_year/{entry.year}.json"
+    return f"users/{entry.owner}/tax_year/{entry.year}.json"
 
 
 KINDS: tuple[EntryKind, ...] = (entry_kind(ProtocolReading, SCHEMA, reading_path),)

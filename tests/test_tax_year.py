@@ -52,7 +52,7 @@ def make_store(root: Path, site: Path):
 
 def make_client(root: Path, site: Path) -> httpx.Client:
     root.mkdir(parents=True, exist_ok=True)
-    sites = root / "gemeinsam" / "ablageorte.json"
+    sites = root / "common" / "sites.json"
     sites.parent.mkdir(parents=True, exist_ok=True)
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
@@ -163,7 +163,7 @@ def test_read_site_file_rejects_symlink_out_of_the_site(
 
 
 def test_sites_come_from_the_shared_file_and_are_not_entries(root: Path, site: Path) -> None:
-    file = root / "gemeinsam" / "ablageorte.json"
+    file = root / "common" / "sites.json"
     file.parent.mkdir(parents=True)
     file.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
@@ -182,10 +182,10 @@ def test_sites_come_from_the_shared_file_and_are_not_entries(root: Path, site: P
     ],
 )
 def test_invalid_sites_file_stops_the_start(root: Path, content: str) -> None:
-    file = root / "gemeinsam" / "ablageorte.json"
+    file = root / "common" / "sites.json"
     file.parent.mkdir(parents=True)
     file.write_text(content, encoding="utf-8")
-    with pytest.raises(StoreError, match="ablageorte.json"):
+    with pytest.raises(StoreError, match="sites.json"):
         open_store(root, REGISTRATION.kinds)
 
 
@@ -220,8 +220,8 @@ def test_take_in_stores_document_with_hash_and_reading(root: Path, site: Path) -
     assert reading.document == document.address
     assert reading.reader_version == READER_VERSION
     assert [line.elster_id for line in reading.lines][:2] == ["E0203503", "E0203504"]
-    assert (root / "nutzer" / "anna" / "dokumente.json").exists()
-    assert (root / "nutzer" / "anna" / "tax_year" / "2025.json").exists()
+    assert (root / "users" / "anna" / "documents.json").exists()
+    assert (root / "users" / "anna" / "tax_year" / "2025.json").exists()
 
 
 def test_take_in_does_not_copy_or_change_the_file(root: Path, site: Path) -> None:
@@ -367,7 +367,7 @@ def test_page_rejects_year_that_contradicts_the_head(root: Path, site: Path) -> 
     )
     assert response.status_code == 422
     assert "gehört zum Steuerjahr 2025, eingetragen ist 2024" in response.text
-    assert not (root / "nutzer").exists()
+    assert not (root / "users").exists()
 
 
 def test_post_needs_origin(root: Path, site: Path) -> None:

@@ -29,11 +29,11 @@ from moarcoal.storage.entries import (
 )
 
 DEFAULT_DATA_DIR_NAME = "MoarCoal"
-DATA_DIRS = ("nutzer", "gemeinsam")  # hier liegen Einträge; .backup, .cache und config nicht
+DATA_DIRS = ("users", "common")  # hier liegen Einträge; .backup, .cache und config nicht
 BACKUP_DIR = ".backup"
 BACKUP_KEEP = 20
 TEMP_SUFFIX = ".tmp"
-SITES_FILE = "gemeinsam/ablageorte.json"  # keine Einträge, sondern die benannten Ablageorte
+SITES_FILE = "common/sites.json"  # keine Einträge, sondern die benannten Ablageorte
 SITES_SCHEMA = "ablageorte/1"
 MAX_SITE_FILE_BYTES = 50_000_000
 
@@ -173,7 +173,7 @@ def _restore_file(target: Path, original: bytes | None) -> None:
 
 
 def _load_sites(root: Path) -> dict[str, Path]:
-    """Ablageorte aus `gemeinsam/ablageorte.json`; fehlt die Datei, gibt es keine."""
+    """Ablageorte aus `common/sites.json`; fehlt die Datei, gibt es keine."""
     raw = _read_if_exists(root / SITES_FILE)
     if raw is None:
         return {}
@@ -417,7 +417,7 @@ def open_store(
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
 
     Die Arten der Datenebene (Dokument) kommen immer dazu. `sites` nennt die Ablageorte
-    (Name -> Ordner); ohne Angabe gilt `gemeinsam/ablageorte.json`.
+    (Name -> Ordner); ohne Angabe gilt `common/sites.json`.
     """
     all_kinds = (*DATA_LAYER_KINDS, *kinds)
     collisions = kind_collisions([kind.model for kind in all_kinds])

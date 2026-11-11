@@ -33,7 +33,7 @@ def make_client(root: Path, user: str = "anna", user_name: str = "Max Mustermann
 
 
 def work_file(root: Path, user: str = "anna", year: int = 2025) -> Path:
-    return root / "nutzer" / user / "work" / f"{year}.json"
+    return root / "users" / user / "work" / f"{year}.json"
 
 
 def stored(root: Path) -> dict[str, dict[str, object]]:

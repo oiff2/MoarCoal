@@ -230,7 +230,7 @@ Quellen: [Schnappschuss](https://github.com/oiff2/MoarCoal/issues/5), [Dokumente
 
 - Ausgelöst von einem Modul zu einem Anlass (erst: Abgabe, belegt durch das Übertragungsprotokoll). Der Bescheid erzeugt keinen. Berichtigungen ergeben einen neuen Schnappschuss daneben. Altjahre vor 2025 haben keine.
 - Eingefroren wird die **ganze Kette**: jeder Wert mit Einzelposten, Belegstand, Rechenweg und Fundstellen, auch Werte, die noch nicht berechenbar waren oder entfallen (mit Grund). Einfrieren verhindert nichts.
-- Im selben Vorgang werden alle Dokumente aus Fundstellen der Kette und das auslösende Dokument nach `nutzer/<id>/dokumente/<sha256-prefix>/` kopiert (dedupliziert). Diese Kopien werden nie gelöscht, solange ein Schnappschuss auf sie verweist.
+- Im selben Vorgang werden alle Dokumente aus Fundstellen der Kette und das auslösende Dokument nach `users/<id>/documents/<sha256-prefix>/` kopiert (dedupliziert). Diese Kopien werden nie gelöscht, solange ein Schnappschuss auf sie verweist.
 - Eingaben bleiben änderbar. Der Vergleich Schnappschuss ↔ aktueller Stand liefert Abweichungen je Stufe der Kette; ob daraus ein Befund wird, entscheidet das auslösende Modul.
 - Format klein und stabil (Schlüssel, Beträge, Einzelposten, Fundstellen als Klartext), wird nicht migriert.
 
@@ -268,19 +268,20 @@ Quellen: [Speicher](https://github.com/oiff2/MoarCoal/issues/3), [Dateistruktur]
 
 ```
 ~/MoarCoal/                         lokal in WSL, kein Sync-Ordner
-├── nutzer/<id>/
+├── users/<id>/
 │   ├── <modul>/…                   Gliederung nach Jahr/Bezugsobjekt legt das Modul je Art fest (Eintrag → Pfad)
 │   ├── <baustein>/…                Bausteine der Datenebene je Nutzer (Dokumente, Verträge, …)
-│   └── dokumente/<sha256-prefix>/  übernommene Dateien: Uploads und Kopien beim Einfrieren
-├── gemeinsam/
-│   ├── aussteller…                 Aussteller-Katalog
-│   ├── ablageorte.json             benannte Ablageorte, in der Oberfläche bearbeitbar
-│   └── sperrliste-abgeleitet.txt   aus sensiblen Feldern, liest tools/privacy_guard.py
+│   └── documents/<sha256-prefix>/  übernommene Dateien: Uploads und Kopien beim Einfrieren
+├── common/
+│   ├── issuers…                    Aussteller-Katalog
+│   ├── sites.json                  benannte Ablageorte, in der Oberfläche bearbeitbar
+│   └── derived-denylist.txt        aus sensiblen Feldern, liest tools/privacy_guard.py
 ├── config/                         App-Einstellungen (u. a. Port)
 ├── .backup/                        letzte 20 Fassungen je Datei, gekürzt beim Start
 └── .cache/                         löschbar, nicht gesichert (späterer SQLite-Index, Vorschaubilder)
 ```
 
+- Ordner- und Dateinamen im Datenverzeichnis sind englisch wie der Code (`users/`, `common/`, Module unter ihrem Code-Namen, z. B. `tax_year/`); die Oberfläche bleibt deutsch.
 - Nur JSON, stabil formatiert: Schlüssel sortiert, eingerückt, UTF-8, Zeilenende am Dateiende. Jede Datei trägt `"schema": "<modul>/<n>"`.
 - Dokumente an Ablageorten werden verwiesen (Ablageort + relativer Pfad + SHA-256), nie kopiert, außer beim Einfrieren. MoarCoal liest dort nur.
 - Fehlt eine Datei, wird der Ablageort nach demselben SHA-256 durchsucht. Gelesen wird beim Zugriff, persistiert nur über die Schnittstelle (siehe [Abschnitt 10](#10-bei-der-zusammenführung-aufgelöst)).
@@ -313,9 +314,9 @@ result = store.apply([                      # ein Vorgang
 
 **Stand des Baus (Durchstich, [#29](https://github.com/oiff2/MoarCoal/issues/29)):** Das Journal ist noch nicht gebaut. Scheitert das Umbenennen mittendrin, stellt `apply` die schon ersetzten Dateien wieder her; ein Absturz mitten im Umbenennen ist nicht abgedeckt. Eine Datei enthält `{"schema", "entries": {"<Adresse>": {…}}}`; eine Datei, die leer würde, entfällt. Dateiformat und Pfad je Eintragsart stehen in `EntryKind` (`schema`, `path`), das die Modulanmeldung in `kinds` liefert ([#30](https://github.com/oiff2/MoarCoal/issues/30)); `open_store` bekommt diese Liste. Code: `src/moarcoal/storage/`.
 
-**Stand des Baus (Durchstich, [#30](https://github.com/oiff2/MoarCoal/issues/30)):** `ModuleRegistration` (`src/moarcoal/registration.py`) trägt bisher Schlüssel, Bereichsname, Navigationseintrag, Router und `kinds`; die feste Liste steht in `src/moarcoal/modules/__init__.py`. `ModuleState` ist auf die Arten des Moduls und einen Nutzer eingegrenzt; eine fremde Art ist ein Programmfehler (`ForeignKindError`). Das Modul Arbeit (`work`) hat die Arten `FirstWorkplace` und `WorkEquipment` mit dem eingebetteten `UserInput`, Dateien unter `nutzer/<id>/work/<jahr>.json`. Die App bekommt das Datenverzeichnis über `create_app(port, data_dir)`; `__main__` nimmt `MOARCOAL_DATA_DIR` oder `default_data_dir()`. Der Nutzer ist im Durchstich fest (`DEFAULT_USER`). Formulare sind einfache POSTs mit 303-Weiterleitung, ohne htmx.
+**Stand des Baus (Durchstich, [#30](https://github.com/oiff2/MoarCoal/issues/30)):** `ModuleRegistration` (`src/moarcoal/registration.py`) trägt bisher Schlüssel, Bereichsname, Navigationseintrag, Router und `kinds`; die feste Liste steht in `src/moarcoal/modules/__init__.py`. `ModuleState` ist auf die Arten des Moduls und einen Nutzer eingegrenzt; eine fremde Art ist ein Programmfehler (`ForeignKindError`). Das Modul Arbeit (`work`) hat die Arten `FirstWorkplace` und `WorkEquipment` mit dem eingebetteten `UserInput`, Dateien unter `users/<id>/work/<jahr>.json`. Die App bekommt das Datenverzeichnis über `create_app(port, data_dir)`; `__main__` nimmt `MOARCOAL_DATA_DIR` oder `default_data_dir()`. Der Nutzer ist im Durchstich fest (`DEFAULT_USER`). Formulare sind einfache POSTs mit 303-Weiterleitung, ohne htmx.
 
-**Stand des Baus (Durchstich, [#33](https://github.com/oiff2/MoarCoal/issues/33)):** `Document` (`storage/documents.py`, Datei `nutzer/<id>/dokumente.json`, Format `datenebene/1`) trägt Ablageort, relativen Pfad, SHA-256, Dokumentart und Bezugszeitraum (Beginn/Ende); `open_store` nimmt die Arten der Datenebene immer dazu. Ablageorte stehen in `gemeinsam/ablageorte.json` (`{"schema": "ablageorte/1", "sites": {Name: absoluter Ordner}}`, vorerst von Hand gepflegt, keine Einträge) oder werden `open_store(root, kinds, sites)` übergeben; `Store.read_site_file` liest nur, weist `..`, absolute Pfade und Links aus dem Ablageort hinaus ab. Eine Dokumentart (`DocumentKind`, `documents.py`) steht in der Modulanmeldung (`document_kinds`) mit Einlese-Regel `read_in(Document, bytes) -> Einträge`; `take_in` liest die Datei, weist eine schon aufgenommene (gleicher SHA-256, gleicher Nutzer) ab und schreibt Dokument und eingelesene Einträge in einem Vorgang. Das Modul Steuerjahr (`tax_year`) liest das Übertragungsprotokoll ein (Aufbau nach dem Vorgängerprojekt, ADR 0012 dort): Kopf aus HTML-Kommentaren (`Belegart: E10`, `Belegversion`, `Veranlagungsjahr`, oft leer) und dem Text „Eingang auf Server“; jedes Feld ist eine Tabellenzeile mit einem `<span data-name="id-<Anlage>-…-E<7 Ziffern>_usb<Index>">` in der Zelle des Inhalts. Je Feld mit E-Kennung (letztes Pfadsegment) steht im Eintrag `ProtocolReading` (`nutzer/<id>/tax_year/<jahr>.json`) eine `ProtocolLine`: E-Kennung, Anlage, Nummer im Vordruck (erste Zelle, 1 bis 3 Ziffern), Bezeichnung (Zelle vor dem Inhalt), Inhalt als Rohtext, Index der Wiederholgruppe und als Fundstelle der volle `data-name`. Dieselbe E-Kennung kann mehrfach vorkommen; nichts wird summiert oder umgerechnet (das ist der Abgleich, #34). Felder ohne E-Kennung entfallen. Gibt der Kopf ein Jahr an (Veranlagungsjahr, sonst eine vierstellige Belegversion) und widerspricht es dem eingetragenen Steuerjahr, weist das Aufnehmen ab. Neu Einlesen beim Start und der Hinweis-Befund „Einlesen hat einen Wert geändert“ fehlen noch (`reader_version` steht schon am Eintrag).
+**Stand des Baus (Durchstich, [#33](https://github.com/oiff2/MoarCoal/issues/33)):** `Document` (`storage/documents.py`, Datei `users/<id>/documents.json`, Format `datenebene/1`) trägt Ablageort, relativen Pfad, SHA-256, Dokumentart und Bezugszeitraum (Beginn/Ende); `open_store` nimmt die Arten der Datenebene immer dazu. Ablageorte stehen in `common/sites.json` (`{"schema": "ablageorte/1", "sites": {Name: absoluter Ordner}}`, vorerst von Hand gepflegt, keine Einträge) oder werden `open_store(root, kinds, sites)` übergeben; `Store.read_site_file` liest nur, weist `..`, absolute Pfade und Links aus dem Ablageort hinaus ab. Eine Dokumentart (`DocumentKind`, `documents.py`) steht in der Modulanmeldung (`document_kinds`) mit Einlese-Regel `read_in(Document, bytes) -> Einträge`; `take_in` liest die Datei, weist eine schon aufgenommene (gleicher SHA-256, gleicher Nutzer) ab und schreibt Dokument und eingelesene Einträge in einem Vorgang. Das Modul Steuerjahr (`tax_year`) liest das Übertragungsprotokoll ein (Aufbau nach dem Vorgängerprojekt, ADR 0012 dort): Kopf aus HTML-Kommentaren (`Belegart: E10`, `Belegversion`, `Veranlagungsjahr`, oft leer) und dem Text „Eingang auf Server“; jedes Feld ist eine Tabellenzeile mit einem `<span data-name="id-<Anlage>-…-E<7 Ziffern>_usb<Index>">` in der Zelle des Inhalts. Je Feld mit E-Kennung (letztes Pfadsegment) steht im Eintrag `ProtocolReading` (`users/<id>/tax_year/<jahr>.json`) eine `ProtocolLine`: E-Kennung, Anlage, Nummer im Vordruck (erste Zelle, 1 bis 3 Ziffern), Bezeichnung (Zelle vor dem Inhalt), Inhalt als Rohtext, Index der Wiederholgruppe und als Fundstelle der volle `data-name`. Dieselbe E-Kennung kann mehrfach vorkommen; nichts wird summiert oder umgerechnet (das ist der Abgleich, #34). Felder ohne E-Kennung entfallen. Gibt der Kopf ein Jahr an (Veranlagungsjahr, sonst eine vierstellige Belegversion) und widerspricht es dem eingetragenen Steuerjahr, weist das Aufnehmen ab. Neu Einlesen beim Start und der Hinweis-Befund „Einlesen hat einen Wert geändert“ fehlen noch (`reader_version` steht schon am Eintrag).
 
 ### 5.3 Start-Reihenfolge
 
@@ -354,7 +355,7 @@ Quellen: [Claude als Baustein](https://github.com/oiff2/MoarCoal/issues/7), [ADR
 Quelle: [Sensible Werte](https://github.com/oiff2/MoarCoal/issues/14).
 
 - Felder werden am Pydantic-Modell als `Sensitive[str]` markiert, einmal je Feldtyp. Bei Ausstellern nur, wenn sie Privatperson sind.
-- Die Datenebene schreibt daraus `gemeinsam/sperrliste-abgeleitet.txt`: ganze Werte ab 6 Zeichen, bei Namen und Anschriften zusätzlich Teile ab 6 Zeichen. `tools/privacy_guard.py` liest sie neben der handgepflegten Sperrliste, ohne Modelle zu importieren; fehlt sie, warnt es.
+- Die Datenebene schreibt daraus `common/derived-denylist.txt`: ganze Werte ab 6 Zeichen, bei Namen und Anschriften zusätzlich Teile ab 6 Zeichen. `tools/privacy_guard.py` liest sie neben der handgepflegten Sperrliste, ohne Modelle zu importieren; fehlt sie, warnt es.
 - Gilt für git, GitHub und das Protokoll der App (dort maskiert), nicht für Claude.
 
 ## 9. Glossar und Testkern
@@ -397,7 +398,7 @@ Echte Widersprüche, hier entschieden:
 
 Bewusst nicht entschieden; das Gerüst legt es beim Bauen fest, ohne dass sich an den Entscheidungen oben etwas ändert:
 
-- Dateinamen und -zuschnitt je Baustein und Modul unter `nutzer/<id>/`; Ablage der Nutzerliste; Ort des Start-Archivs (nicht in sich selbst sichern) und wie viele behalten werden.
+- Dateinamen und -zuschnitt je Baustein und Modul unter `users/<id>/`; Ablage der Nutzerliste; Ort des Start-Archivs (nicht in sich selbst sichern) und wie viele behalten werden.
 - Format des Schlüssels im Wertekatalog (die Skizze nutzt `<bereich>.<name>`, z. B. `property.loan_interest`).
 - Wie der Server erkennt, dass keine Seite mehr offen ist.
 - Form des Fingerabdrucks eines Befunds und der Prüfsumme eines Eintrags im Formular.

@@ -35,7 +35,7 @@ class Trip(Entry):
 
 
 def yearly_path(entry: Expense | Trip) -> str:
-    return f"nutzer/{entry.owner}/test/{entry.year}.json"
+    return f"users/{entry.owner}/test/{entry.year}.json"
 
 
 EXPENSE_KIND = entry_kind(Expense, "test/1", yearly_path)
@@ -51,7 +51,7 @@ def expense(cents: int = 1000, year: int = 2025, owner: str = "anna") -> Expense
 
 
 def file_of(root: Path, owner: str = "anna", year: int = 2025) -> Path:
-    return root / "nutzer" / owner / "test" / f"{year}.json"
+    return root / "users" / owner / "test" / f"{year}.json"
 
 
 def create(store: Store, entry: Entry) -> None:
@@ -101,7 +101,7 @@ def test_open_store_refuses_duplicate_kinds(tmp_path: Path) -> None:
             tmp_path,
             [
                 EXPENSE_KIND,
-                entry_kind(other_expense, "test/1", lambda entry: f"nutzer/{entry.owner}/x.json"),
+                entry_kind(other_expense, "test/1", lambda entry: f"users/{entry.owner}/x.json"),
             ],
         )
 
@@ -349,7 +349,7 @@ def test_backup_keeps_previous_versions_and_only_the_last_twenty(tmp_path: Path)
     store = make_store(tmp_path)
     entry = expense(cents=0)
     create(store, entry)
-    backups = tmp_path / ".backup" / "nutzer" / "anna" / "test" / "2025.json"
+    backups = tmp_path / ".backup" / "users" / "anna" / "test" / "2025.json"
     assert not backups.exists()  # beim Anlegen gab es nichts zu sichern
     current = entry
     for cents in range(1, 26):

@@ -42,7 +42,7 @@ class WorkEquipment(Entry):
 
 
 def yearly_path(entry: FirstWorkplace | WorkEquipment) -> str:
-    return f"nutzer/{entry.owner}/work/{entry.year}.json"
+    return f"users/{entry.owner}/work/{entry.year}.json"
 
 
 KINDS: tuple[EntryKind, ...] = (
