@@ -32,7 +32,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
 DAYS, KM = "E0203503", "E0203504"
-EQUIPMENT = "E0000000"  # erfunden; Arbeitsmittel hat noch keine echte E-Kennung
+EQUIPMENT = "E0204403"
 
 
 def line(elster_id: str, content: str, index: str = "1_1-1-1") -> ProtocolLine:
@@ -48,8 +48,9 @@ def line(elster_id: str, content: str, index: str = "1_1-1-1") -> ProtocolLine:
 
 
 def entries(
-    lines: list[ProtocolLine], workdays: int = 220, km: int = 12, taken: int = 1, cents: int = 4990
+    lines: list[ProtocolLine], workdays: int = 220, km: int = 12, taken: int = 1, cents: int = 0
 ) -> list[Entry]:
+    """Ohne `cents` sind keine Arbeitsmittel erfasst (Wert 0)."""
     document = Document(
         owner="anna",
         site="Belege",
@@ -67,10 +68,18 @@ def entries(
         FirstWorkplace(
             owner="anna", year=2025, workdays=workdays, distance_km=km, description="Büro"
         ),
-        WorkEquipment(
-            owner="anna",
-            year=2025,
-            input=UserInput(amount_cents=cents, date=datetime.date(2025, 3, 14), description="x"),
+        *(
+            [
+                WorkEquipment(
+                    owner="anna",
+                    year=2025,
+                    input=UserInput(
+                        amount_cents=cents, date=datetime.date(2025, 3, 14), description="x"
+                    ),
+                )
+            ]
+            if cents
+            else []
         ),
         document,
         reading,
@@ -86,7 +95,14 @@ def kinds(found: list[Finding]) -> list[str]:
     return sorted(f.kind for f in found)
 
 
-def test_matching_protocol_gives_only_the_unknown_elster_id_note() -> None:
+def test_matching_protocol_gives_no_finding() -> None:
+    assert findings(entries([line(DAYS, "220"), line(KM, "12")])) == []
+
+
+def test_field_without_elster_id_gets_a_note(monkeypatch: pytest.MonkeyPatch) -> None:
+    fields = tuple(replace(f, elster_id=None) if f.key == N_EQUIPMENT else f for f in FORMS[2025])
+    monkeypatch.setitem(FORMS, 2025, fields)
+
     found = findings(entries([line(DAYS, "220"), line(KM, "12")]))
 
     assert kinds(found) == [UNKNOWN_ELSTER_ID]
@@ -114,36 +130,21 @@ def test_missing_line_is_a_warning() -> None:
     assert KM in found[0].message
 
 
-@pytest.fixture
-def equipment_with_elster_id(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Arbeitsmittel hat noch keine echte E-Kennung; für den Abgleich bekommt es eine erfundene."""
-    fields = tuple(
-        replace(f, elster_id=EQUIPMENT) if f.key == N_EQUIPMENT else f for f in FORMS[2025]
-    )
-    monkeypatch.setitem(FORMS, 2025, fields)
-
-
-def deviations(lines: list[ProtocolLine], cents: int = 4990, km: int = 12) -> list[Finding]:
+def deviations(lines: list[ProtocolLine], cents: int = 0, km: int = 12) -> list[Finding]:
     return [f for f in findings(entries(lines, km=km, cents=cents)) if f.kind == DEVIATION]
 
 
-def test_rounded_whole_euro_value_matches_without_finding(equipment_with_elster_id: None) -> None:
+def test_rounded_whole_euro_value_matches_without_finding() -> None:
     assert deviations([line(DAYS, "220"), line(KM, "12"), line(EQUIPMENT, "87")], 8640) == []
 
 
-def test_zero_value_matches_a_field_missing_from_the_protocol(
-    equipment_with_elster_id: None,
-) -> None:
-    items = [
-        i for i in entries([line(DAYS, "220"), line(KM, "12")]) if not isinstance(i, WorkEquipment)
-    ]
-
-    assert findings(items) == []  # ELSTER überträgt leere Felder nicht
+def test_zero_value_matches_a_field_missing_from_the_protocol() -> None:
+    assert (
+        findings(entries([line(DAYS, "220"), line(KM, "12")])) == []
+    )  # ELSTER überträgt leere Felder nicht
 
 
-def test_unrounded_or_wrongly_rounded_equipment_is_a_deviation(
-    equipment_with_elster_id: None,
-) -> None:
+def test_unrounded_or_wrongly_rounded_equipment_is_a_deviation() -> None:
     base = [line(DAYS, "220"), line(KM, "12")]
 
     (cents,) = deviations([*base, line(EQUIPMENT, "86,40")], 8640)
@@ -164,30 +165,28 @@ def test_not_yet_computable_value_gets_no_comparison_finding() -> None:
     items = [i for i in entries([line(DAYS, "1")]) if not isinstance(i, FirstWorkplace)]
     found = findings(items)
 
-    assert kinds(found) == [
-        UNKNOWN_ELSTER_ID
-    ]  # der Fehler "noch nicht berechenbar" ist kein Befund
+    assert found == []  # der Fehler "noch nicht berechenbar" ist kein Befund
 
 
 def test_repeated_days_or_km_are_ambiguous_not_compared() -> None:
     found = findings(entries([line(DAYS, "100", "1_1"), line(DAYS, "120", "2_1"), line(KM, "12")]))
 
-    assert kinds(found) == [AMBIGUOUS, UNKNOWN_ELSTER_ID]
+    assert kinds(found) == [AMBIGUOUS]
     assert next(f for f in found if f.kind == AMBIGUOUS).severity is Severity.WARNING
 
 
 def test_lines_without_field_in_the_catalog_are_ignored() -> None:
     found = findings(entries([line(DAYS, "220"), line(KM, "12"), line("E0100004", "Musterstadt")]))
 
-    assert kinds(found) == [UNKNOWN_ELSTER_ID]
+    assert found == []
 
 
 def test_latest_taken_in_protocol_counts() -> None:
     old = entries([line(DAYS, "1"), line(KM, "1")], taken=1)
     new = entries([line(DAYS, "220"), line(KM, "12")], taken=2)
 
-    assert kinds(findings(old + new[2:])) == [UNKNOWN_ELSTER_ID]
-    assert kinds(findings(new + old[2:])) == [UNKNOWN_ELSTER_ID]
+    assert findings(old + new[1:]) == []
+    assert findings(new + old[1:]) == []
 
 
 def test_without_protocol_there_is_no_comparison() -> None:
@@ -238,7 +237,7 @@ def test_whole_flow_finding_list_links_to_the_protocol(http: httpx.Client) -> No
 
     assert page.status_code == 200
     assert "Wert 219 Tage, Protokoll 220 Tage" in page.text
-    assert "Warnung" in page.text and "E-Kennung unbekannt, nicht abgleichbar" in page.text
+    assert "Warnung" in page.text
     href = next(
         part.split('"')[1]
         for part in page.text.split("href=")[1:]

@@ -99,9 +99,9 @@ def round_for_field(calculation: Calculation, field: FormField, amount: Amount) 
     )
 
 
-# Quelle von E-Kennung, Nr. im Vordruck und Bezeichnung: Feldkatalog des Vorgängerprojekts
-# (Abschnitt „8 - Entfernungspauschale“). Für Arbeitsmittel ist keine E-Kennung bekannt; sie
-# steht erst fest, wenn ein echtes Übertragungsprotokoll das Feld zeigt.
+# Quelle von E-Kennung, Nr. im Vordruck und Bezeichnung: Tage und km aus dem Feldkatalog des
+# Vorgängerprojekts (Abschnitt „8 - Entfernungspauschale“), Arbeitsmittel aus der Seite
+# „10 - Aufwendungen für Arbeitsmittel“ in Mein ELSTER (Summe, tools/elster_page_fields.py).
 FIELDS_2025: tuple[FormField, ...] = (
     FormField(N_WORKPLACE_DAYS, "E0203503", "29", "aufgesucht an Tagen", Unit.DAYS, Rounding.NONE),
     FormField(
@@ -113,7 +113,13 @@ FIELDS_2025: tuple[FormField, ...] = (
         Rounding.WHOLE_KM,
     ),
     FormField(
-        N_EQUIPMENT, None, "", "Arbeitsmittel", Unit.EUR, Rounding.WHOLE_EUROS, Direction.EXPENSE
+        N_EQUIPMENT,
+        "E0204403",
+        "56",
+        "Arbeitsmittel",
+        Unit.EUR,
+        Rounding.WHOLE_EUROS,
+        Direction.EXPENSE,
     ),
 )
 

@@ -179,13 +179,7 @@ def test_catalog_has_only_the_fields_of_the_durchstich() -> None:
     tax_keys = {e.key for e in values.catalog.entries() if e.key.module == "tax_year"}
 
     assert tax_keys == {f.key for f in FIELDS_2025}
-    assert {f.elster_id for f in FIELDS_2025} == {"E0203503", "E0203504", None}
-
-
-def test_field_without_known_elster_id_is_not_invented() -> None:
-    (equipment_field,) = [f for f in FIELDS_2025 if f.key == N_EQUIPMENT]
-
-    assert equipment_field.elster_id is None
+    assert {f.elster_id for f in FIELDS_2025} == {"E0203503", "E0203504", "E0204403"}
 
 
 def test_no_equipment_gives_a_zero_field_and_other_fields_stay_unaffected() -> None:
@@ -424,9 +418,8 @@ def test_page_shows_values_with_expandable_chains(tmp_path: Path) -> None:
 
     assert page.status_code == 200
     html = page.text
-    assert "E0203503" in html and "E0203504" in html
+    assert "E0203503" in html and "E0203504" in html and "E0204403" in html
     assert "180 Tage" in html and "12 km" in html and "50 €" in html and "50,00 €" not in html
-    assert "noch unbekannt" in html  # E-Kennung der Arbeitsmittel
     assert html.count("<details>") >= 6  # je Feld aufklappbar, dazu der Posten des Arbeit-Werts
     assert "Wert work.workdays" in html
     assert "Schreibtischlampe" in html
