@@ -93,3 +93,23 @@ def test_claude_hook_ignores_non_gh(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_claude_hook_scans_body_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     (tmp_path / "body.md").write_text(f"Steuer-ID {TIN}\n", encoding="utf-8")
     assert run_claude_hook(monkeypatch, "gh pr create --body-file body.md", str(tmp_path)) == 2
+
+
+def diff_adding(path: str, line: str) -> str:
+    return f"diff --git a/{path} b/{path}\n--- a/{path}\n+++ b/{path}\n@@ -0,0 +1 @@\n+{line}\n"
+
+
+def test_staged_lines_in_uv_lock_are_skipped() -> None:
+    line = f'wheels = [{{ hash = "sha256:ab{TIN}cd" }}]'
+    assert pg.parse_added_lines(diff_adding("uv.lock", line)) == []
+
+
+def test_same_line_in_other_file_is_still_reported() -> None:
+    lines = pg.parse_added_lines(diff_adding("docs/notiz.md", f"Steuer-ID {TIN}"))
+    assert lines == [("docs/notiz.md", f"Steuer-ID {TIN}")]
+    assert kinds(lines[0][1]) == ["Steuer-ID"]
+
+
+def test_only_uv_lock_by_path_is_skipped() -> None:
+    assert pg.parse_added_lines(diff_adding("sub/uv.lock", "x")) != []
+    assert pg.parse_added_lines(diff_adding("poetry.lock", "x")) != []

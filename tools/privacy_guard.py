@@ -34,6 +34,10 @@ DENYLIST_PATH = Path(
 IBAN_RE = re.compile(r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){3,7}(?: ?[A-Z0-9]{1,4})?\b")
 STEUER_ID_RE = re.compile(r"(?<!\d)\d{2} ?\d{3} ?\d{3} ?\d{3}(?!\d)")
 STEUERNUMMER_RE = re.compile(r"(?<![\d/])\d{2,3}/\d{3,4}/\d{4,5}(?![\d/])")
+# Files whose added lines are not scanned (exact repo-relative path): lock file
+# hashes contain digit runs that look like a Steuer-ID.
+SKIPPED_FILES = frozenset({"uv.lock"})
+
 EMAIL_RE = re.compile(r"\b[\w.+-]+@([\w-]+(?:\.[\w-]+)+)\b")
 ALLOWED_EMAIL_DOMAINS = re.compile(
     r"(^|\.)(example\.(com|org|net|de)|test|invalid|localhost"
@@ -118,12 +122,16 @@ def staged_added_lines() -> list[tuple[str, str]]:
         check=True,
         cwd=REPO_ROOT,
     ).stdout
+    return parse_added_lines(out)
+
+
+def parse_added_lines(diff: str) -> list[tuple[str, str]]:
     lines: list[tuple[str, str]] = []
     current = "?"
-    for line in out.splitlines():
+    for line in diff.splitlines():
         if line.startswith("+++ "):
             current = line[6:] if line.startswith("+++ b/") else line[4:]
-        elif line.startswith("+") and not line.startswith("+++"):
+        elif line.startswith("+") and not line.startswith("+++") and current not in SKIPPED_FILES:
             lines.append((current, line[1:]))
     return lines
 
