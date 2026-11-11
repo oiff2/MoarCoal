@@ -94,6 +94,8 @@ def _field_findings(
     name = f"Anlage N Nr. {field.form_line}, {field.label} ({field.elster_id})"
     lines = [line for line in reading.lines if line.elster_id == field.elster_id]
     if not lines:
+        if value.amount.value == 0:
+            return  # ELSTER überträgt leere Felder nicht; 0 und fehlendes Feld stimmen überein
         yield Finding(
             MISSING,
             Severity.WARNING,

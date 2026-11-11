@@ -131,6 +131,16 @@ def test_rounded_whole_euro_value_matches_without_finding(equipment_with_elster_
     assert deviations([line(DAYS, "220"), line(KM, "12"), line(EQUIPMENT, "87")], 8640) == []
 
 
+def test_zero_value_matches_a_field_missing_from_the_protocol(
+    equipment_with_elster_id: None,
+) -> None:
+    items = [
+        i for i in entries([line(DAYS, "220"), line(KM, "12")]) if not isinstance(i, WorkEquipment)
+    ]
+
+    assert findings(items) == []  # ELSTER überträgt leere Felder nicht
+
+
 def test_unrounded_or_wrongly_rounded_equipment_is_a_deviation(
     equipment_with_elster_id: None,
 ) -> None:

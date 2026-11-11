@@ -1,7 +1,9 @@
 """Tests der Modulanmeldung, des eingegrenzten Stands und des Moduls Arbeit (nur tmp_path)."""
 
+import datetime
 import json
 import re
+from decimal import Decimal
 from pathlib import Path
 
 import httpx
@@ -12,8 +14,13 @@ from moarcoal.app import create_app
 from moarcoal.modules import MODULES, ModuleState
 from moarcoal.modules.work import REGISTRATION, FirstWorkplace, UserInput, WorkEquipment
 from moarcoal.modules.work.pages import parse_cents
+from moarcoal.modules.work.values import EQUIPMENT as EQUIPMENT_KEY
+from moarcoal.modules.work.values import EQUIPMENT_GAP
 from moarcoal.registration import ForeignKindError, ModuleRegistration
-from moarcoal.storage import Applied, EntryAddress, Put, entry_checksum, open_store
+from moarcoal.storage import Applied, Entry, EntryAddress, Put, entry_checksum, open_store
+from moarcoal.values.engine import evaluate
+from moarcoal.values.findings import Finding, Severity
+from moarcoal.values.model import Amount, ExposedValue, Period, Unit
 from moarcoal.web import format_eur
 
 PORT = 4711
@@ -137,11 +144,53 @@ def test_create_workplace_lands_in_data_dir(tmp_path: Path) -> None:
     assert "180" in page and "12 km" in page and "Büro" in page
 
 
-def test_year_without_equipment_shows_not_yet_computable(tmp_path: Path) -> None:
+def purchase(year: int, cents: int = 4990) -> WorkEquipment:
+    return WorkEquipment(
+        owner="anna",
+        year=year,
+        input=UserInput(amount_cents=cents, date=datetime.date(year, 3, 14), description="Lampe"),
+    )
+
+
+def equipment_2025(items: list[Entry]) -> tuple[object, list[Finding]]:
+    values = evaluate([REGISTRATION], items)
+    value = values.get(EQUIPMENT_KEY, "anna", Period.year(2025))
+    return value, values.finding_list("anna", 2025)
+
+
+def test_no_equipment_this_or_previous_year_is_zero_without_finding() -> None:
+    value, found = equipment_2025([])
+
+    assert isinstance(value, ExposedValue)
+    assert value.amount == Amount.of(Decimal(0), Unit.EUR)
+    assert value.items == ()
+    assert any("auch im Vorjahr 2024 keine" in s.text for s in value.workings.steps)
+    assert found == []
+
+
+def test_no_equipment_after_previous_year_with_equipment_is_zero_with_note() -> None:
+    value, found = equipment_2025([purchase(2024)])
+
+    assert isinstance(value, ExposedValue)
+    assert value.amount == Amount.of(Decimal(0), Unit.EUR)
+    (note,) = found
+    assert note.kind == EQUIPMENT_GAP and note.severity is Severity.NOTE
+    assert "2024" in note.message and "2025" in note.message
+    assert note.href == "/arbeit"
+
+
+def test_equipment_this_year_gives_no_note() -> None:
+    value, found = equipment_2025([purchase(2024), purchase(2025)])
+
+    assert isinstance(value, ExposedValue) and value.amount.value == Decimal("49.90")
+    assert found == []
+
+
+def test_year_without_equipment_shows_zero(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     client.post("/arbeit/erste-taetigkeitsstaette", data=WORKPLACE, headers=ORIGIN)
     page = client.get("/arbeit").text
-    assert "noch nicht berechenbar" in page
+    assert "noch nicht berechenbar" not in page
     assert "keine Arbeitsmittel erfasst" in page
     client.post("/arbeit/arbeitsmittel", data=EQUIPMENT, headers=ORIGIN)
     assert "keine Arbeitsmittel erfasst" not in client.get("/arbeit").text

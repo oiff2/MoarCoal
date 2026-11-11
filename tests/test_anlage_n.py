@@ -188,16 +188,31 @@ def test_field_without_known_elster_id_is_not_invented() -> None:
     assert equipment_field.elster_id is None
 
 
-def test_missing_input_makes_value_and_dependents_not_yet_computable_with_chain() -> None:
+def test_no_equipment_gives_a_zero_field_and_other_fields_stay_unaffected() -> None:
     values = evaluate([WORK, TAX_YEAR], [workplace()])
 
     result = values.get(N_EQUIPMENT, "anna", YEAR)
 
-    assert isinstance(result, NotYetComputable)
-    assert "keine Arbeitsmittel" in result.reason
-    assert [link.key for link in result.chain] == ["work.equipment"]
-    # Der Wert der anderen Felder bleibt davon unberührt.
+    assert isinstance(result, ExposedValue) and result.amount.value == 0
     assert isinstance(values.get(N_WORKPLACE_DAYS, "anna", YEAR), ExposedValue)
+
+
+def test_not_yet_computable_input_passes_on_with_chain() -> None:
+    def base(calc: Calculation) -> Amount:
+        calc.not_yet("keine Eingabe")
+
+    def top(calc: Calculation) -> Amount:
+        item = calc.use("demo.base")
+        assert item is not None
+        return item.amount
+
+    values = evaluate([custom(definition("demo.base", base), definition("demo.top", top))], [])
+
+    result = values.get("demo.top", "anna", YEAR)
+
+    assert isinstance(result, NotYetComputable)
+    assert "keine Eingabe" in result.reason
+    assert [link.key for link in result.chain] == ["demo.base"]
 
 
 def test_without_workplace_the_fields_are_not_yet_computable() -> None:

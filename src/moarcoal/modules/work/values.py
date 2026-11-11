@@ -8,8 +8,9 @@ from decimal import Decimal
 
 from moarcoal.modules.work.entries import FirstWorkplace, WorkEquipment
 from moarcoal.registration import ModuleState
-from moarcoal.values.calculation import Calculation
+from moarcoal.values.calculation import Calculation, ValueSource
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
+from moarcoal.values.findings import Finding, FindingKind, Severity
 from moarcoal.values.model import (
     Amount,
     Period,
@@ -18,6 +19,7 @@ from moarcoal.values.model import (
     Unit,
     UserInputLocator,
     ValueKey,
+    ValueRef,
 )
 
 WORKDAYS = ValueKey("work.workdays")
@@ -61,17 +63,47 @@ def compute_distance(calculation: Calculation) -> Amount:
     return calculation.step("Einfache Entfernung laut Eingabe", distance)
 
 
+def _purchases(state: ModuleState, year: int) -> list[WorkEquipment]:
+    return [e for e in state.all(WorkEquipment) if e.year == year]
+
+
 def compute_equipment(calculation: Calculation) -> Amount:
+    """Summe der Anschaffungen; ohne Anschaffung 0, mit Hinweis, wenn das Vorjahr welche hatte."""
     year = _year(calculation)
-    purchases = [e for e in calculation.own.all(WorkEquipment) if e.year == year]
+    purchases = _purchases(calculation.own, year)
+    zero = Amount.of(Decimal(0), Unit.EUR)
     if not purchases:
-        calculation.not_yet(f"Für {year} sind keine Arbeitsmittel erfasst")
+        previous = year - 1
+        before = (
+            f"im Vorjahr {previous} schon (siehe Hinweis)"
+            if _purchases(calculation.own, previous)
+            else f"auch im Vorjahr {previous} keine"
+        )
+        calculation.decide(f"Für {year} sind keine Arbeitsmittel erfasst, {before}")
+        return calculation.step("Keine Arbeitsmittel", zero)
     total = Amount.of(Decimal(0), Unit.EUR)
     for purchase in purchases:
         amount = Amount.eur_cents(purchase.input.amount_cents)
         calculation.item(purchase.input.description, amount, UserInputLocator(purchase.address))
         total = Amount(total.value + amount.value, Unit.EUR)
     return calculation.step("Summe der Arbeitsmittel", total)
+
+
+EQUIPMENT_GAP = "work.equipment_gap"
+
+FINDING_KINDS = (FindingKind(EQUIPMENT_GAP, "Arbeitsmittel im Vorjahr, im Steuerjahr keine"),)
+
+
+def work_findings(state: ModuleState, values: ValueSource, year: int) -> list[Finding]:
+    """Hinweis, wenn das Vorjahr Arbeitsmittel hatte und das Steuerjahr keine (vergessen?)."""
+    if _purchases(state, year) or not _purchases(state, year - 1):
+        return []
+    ref = ValueRef(EQUIPMENT, state.user, Period.year(year), None)
+    text = (
+        f"Für {year - 1} sind Arbeitsmittel erfasst, für {year} keine; "
+        "der Wert ist 0. Fehlt eine Anschaffung?"
+    )
+    return [Finding(EQUIPMENT_GAP, Severity.NOTE, ref, text, href="/arbeit")]
 
 
 VALUES: tuple[ValueDefinition, ...] = (
