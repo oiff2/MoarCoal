@@ -1,7 +1,9 @@
 """Modul Steuerjahr: Übertragungsprotokoll einlesen, Werte Feldern der Anlage N zuordnen."""
 
+from functools import partial
+
 from moarcoal.documents import DocumentKind
-from moarcoal.modules.tax_year.anlage_n import VALUES
+from moarcoal.modules.tax_year.anlage_n import FORMS, Forms, values_for
 from moarcoal.modules.tax_year.comparison import FINDING_KINDS, protocol_findings
 from moarcoal.modules.tax_year.entries import (
     KINDS,
@@ -20,17 +22,23 @@ TRANSFER_PROTOCOL = DocumentKind(
     read_in=read_in_protocol,
 )
 
-REGISTRATION = ModuleRegistration(
-    key=MODULE_KEY,
-    area_name="Steuerjahr",
-    nav_label="Steuerjahr",
-    nav_url="/steuerjahr",
-    router=router,
-    kinds=KINDS,
-    values=VALUES,
-    document_kinds=(TRANSFER_PROTOCOL,),
-    finding_kinds=FINDING_KINDS,
-    findings=protocol_findings,
-)
 
-__all__ = ["REGISTRATION", "TRANSFER_PROTOCOL", "ProtocolLine", "ProtocolReading"]
+def registration(forms: Forms = FORMS) -> ModuleRegistration:
+    """Die Modulanmeldung über den Feldern `forms`; Tests geben einen eigenen Katalog vor."""
+    return ModuleRegistration(
+        key=MODULE_KEY,
+        area_name="Steuerjahr",
+        nav_label="Steuerjahr",
+        nav_url="/steuerjahr",
+        router=router,
+        kinds=KINDS,
+        values=values_for(forms),
+        document_kinds=(TRANSFER_PROTOCOL,),
+        finding_kinds=FINDING_KINDS,
+        findings=partial(protocol_findings, forms=forms),
+    )
+
+
+REGISTRATION = registration()
+
+__all__ = ["REGISTRATION", "registration", "TRANSFER_PROTOCOL", "ProtocolLine", "ProtocolReading"]
