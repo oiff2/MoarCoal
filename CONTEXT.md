@@ -95,8 +95,15 @@ _Avoid_: Sendeprotokoll, Eingabeprotokoll
 Ein ausgefülltes Feld des Übertragungsprotokolls, roh wie gedruckt: E-Kennung, Anlage, Nummer im Vordruck, Bezeichnung, Inhalt, Index einer Wiederholgruppe und als Fundstelle der volle Feldname im Dokument; dieselbe E-Kennung kann mehrfach vorkommen (Code: `ProtocolLine`).
 _Avoid_: Protokollzeile, Zeile
 
+**Einkommensteuerbescheid**:
+Der Bescheid des Finanzamts über die Einkommensteuer (in ELSTER als „Berechnung des Finanzamts“ abrufbar). Dokumentart des Moduls Steuerjahr mit Bezugszeitraum; er wird nicht eingelesen, sondern von Claude nach der Auslese-Vorlage ausgelesen und vom Nutzer bestätigt. Er druckt viele Beträge in ganzen Euro, auch wo das Feld der Anlage Cent hat, und Abzüge mit Minus. Ein Bescheid erzeugt keinen Schnappschuss.
+_Avoid_: Steuerbescheid
+
+**Bescheid-Abgleich**:
+Der Vergleich der bestätigten Positionen des Einkommensteuerbescheids mit dem eingefrorenen Wert des Schnappschusses der Abgabe, je Feld der Anlage; zeigt, wo das Finanzamt anders angesetzt hat als abgegeben. Verglichen wird mit einer Spanne: bei ganzen Euro und bei Positionen, die der Bescheid gerundet druckt, passt jeder ganze Euro zwischen abgerundetem und aufgerundetem Wert, sonst exakt; das gedruckte Vorzeichen zählt nicht. Abweichung ergibt einen Befund (Warnung); ohne Schnappschuss gibt es nur einen Hinweis. Felder, die MoarCoal noch nicht berechnet, haben keinen Schnappschuss-Wert und bleiben ohne Abgleich. Nicht zu verwechseln mit dem Abgleich mit dem Übertragungsprotokoll.
+
 **Feld**:
-Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im Vordruck und E-Kennung (solange unbekannt, leer); das Steuerjahr ordnet jedem Feld, das MoarCoal abdeckt, einen Ausgewiesenen Wert zu (Code: `FormField`, dessen Rundung `Rounding`). Das Steuerjahr führt die Felder je Steuerjahr; bisher nur drei Felder der Anlage N 2025. Ein Euro-Feld nimmt entweder ganze Euro (gerundet nach seiner Richtung) oder Euro mit Cent (exakt, z. B. Steuerbeträge laut Bescheinigung); km werden auf volle Kilometer abgerundet.
+Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im Vordruck und E-Kennung (solange unbekannt, leer); das Steuerjahr ordnet jedem Feld, das MoarCoal berechnet, einen Ausgewiesenen Wert zu (Code: `FormField`, dessen Rundung `Rounding`). Das Steuerjahr führt die Felder je Steuerjahr und nimmt alle bekannten mit (Anlage N 2025: 23, auch solche ohne Betrag wie Text und Ja/Nein); berechnet werden bisher drei. Ein Euro-Feld nimmt entweder ganze Euro (gerundet nach seiner Richtung) oder Euro mit Cent (exakt, z. B. Steuerbeträge laut Bescheinigung); km werden auf volle Kilometer abgerundet.
 
 **Richtung**:
 Ob ein Euro-Feld als Einnahme oder als Ausgabe zählt; sie bestimmt, wie sein Wert auf ganze Euro gerundet wird: zugunsten des Steuerpflichtigen, Einnahmen ab, Ausgaben auf. Erstattungen, Zuschüsse und Arbeitgeberanteile, die einen Abzug mindern, zählen als Einnahme (Code: `Direction`).
