@@ -25,6 +25,7 @@ Die Entscheidungen unten gelten alle, gebaut werden sie aber nicht auf einmal. Z
 - Migration beim Start und Start-Archiv ([ADR 0004](adr/0004-migration-beim-start.md)): bei der ersten Schemaänderung
 - Zusammenführen mit Alias (`Merge`)
 - Neu auslesen mit Vorlagenfassung
+- Neu einlesen beim Start, mit Befund Neueinlesung (Fingerabdruck = Prüfsumme der Neueinlesung, [#57](https://github.com/oiff2/MoarCoal/issues/57)): sobald sich eine Einlese-Regel ändert
 - Dokumentkopie beim Einfrieren ([Dokumente nach Abgabe](https://github.com/oiff2/MoarCoal/issues/13))
 - abgeleitete Sperrliste aus `Sensitive[str]` (Abschnitt 8)
 - Abschalten von Modulen und „entfällt“: mit dem zweiten Nutzer
