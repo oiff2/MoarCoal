@@ -7,8 +7,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.documents import IntakeRejected, take_in
-from moarcoal.incoming import all_site_files, hide_file, incoming_files
-from moarcoal.storage import Applied, SiteFile
+from moarcoal.incoming import all_site_files, hidden_files, hide_file, incoming_files, show_file
+from moarcoal.storage import Applied, HiddenFile, SiteFile, entry_checksum
 from moarcoal.web import (
     document_kinds,
     entry_url,
@@ -43,6 +43,7 @@ def _page(
         status_code,
         files=_waiting(request),
         kinds=list(document_kinds(request).values()),
+        hidden=[(h, entry_checksum(h)) for h in hidden_files(store_of(request).state())],
         sites=store_of(request).site_names(),
         default_year=DEFAULT_YEAR,
         notice=notice,
@@ -109,4 +110,17 @@ def hide(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> R
     result = hide_file(store_of(request), file, fields.get("note", ""))
     if not isinstance(result, Applied):
         return _page(request, 409, " ".join(result.reasons.values()))
+    return RedirectResponse("/eingang", status_code=303)
+
+
+@router.post("/einblenden")
+def show(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
+    sha256 = fields.get("sha256", "")
+    state = store_of(request).state()
+    hidden = next((h for h in state.of_kind(HiddenFile) if h.sha256 == sha256), None)
+    if hidden is None:
+        return _page(request, 409, "Die Ausblendung gibt es nicht mehr.")
+    result = show_file(store_of(request), hidden, fields.get("checksum", ""))
+    if not isinstance(result, Applied):
+        return _page(request, 409, "Die Ausblendung wurde inzwischen geändert. Bitte neu prüfen.")
     return RedirectResponse("/eingang", status_code=303)

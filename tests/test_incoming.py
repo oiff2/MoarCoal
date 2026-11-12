@@ -108,7 +108,7 @@ def test_new_file_is_listed_and_gone_after_taking_in_even_when_renamed(
     taken = take(client)
     assert taken.status_code == 303
     assert taken.headers["location"].startswith("/steuerjahr/uebertragungsprotokolle/")
-    assert "2025/protokoll.html" not in client.get("/eingang").text
+    assert "2025/protokoll.html" not in waiting(client)
     (site / "2025" / "protokoll.html").rename(site / "umbenannt.html")
     assert "umbenannt.html" not in client.get("/eingang").text
 
@@ -121,7 +121,7 @@ def test_taking_in_is_per_user_hiding_is_for_all(root: Path, site: Path) -> None
     hidden = anna.post("/eingang/ausblenden", data={"sha256": SHA}, headers=ORIGIN)
     assert hidden.status_code == 409  # für Anna schon aufgenommen, nicht mehr im Eingang
     assert ben.post("/eingang/ausblenden", data={"sha256": SHA}, headers=ORIGIN).status_code == 303
-    assert "2025/protokoll.html" not in make_client(root, site, "carla").get("/eingang").text
+    assert "2025/protokoll.html" not in waiting(make_client(root, site, "carla"))
 
 
 def test_hiding_stores_a_common_entry_with_optional_note(root: Path, site: Path) -> None:
@@ -140,9 +140,68 @@ def test_hiding_stores_a_common_entry_with_optional_note(root: Path, site: Path)
         "2025/protokoll.html",
         "Muster",
     )
-    assert "2025/protokoll.html" not in client.get("/eingang").text
+    assert "2025/protokoll.html" not in waiting(client)
     again = client.post("/eingang/ausblenden", data={"sha256": SHA}, headers=ORIGIN)
     assert again.status_code == 409
+
+
+def waiting(client: httpx.Client) -> str:
+    """Der Teil der Seite Eingang oberhalb von „Ausgeblendet“."""
+    return client.get("/eingang").text.split("<h2>Ausgeblendet")[0]
+
+
+def hide(client: httpx.Client, note: str = "") -> None:
+    client.post("/eingang/ausblenden", data={"sha256": SHA, "note": note}, headers=ORIGIN)
+
+
+def checksum_in(client: httpx.Client) -> str:
+    return client.get("/eingang").text.split('name="checksum" value="')[1].split('"')[0]
+
+
+def test_hidden_section_shows_and_showing_brings_the_file_back_for_all(
+    root: Path, site: Path
+) -> None:
+    anna = make_client(root, site, "anna")
+    assert "Ausgeblendet" not in anna.get("/eingang").text
+    hide(anna, "Muster <b>")
+    page = anna.get("/eingang").text
+    assert "Ausgeblendet" in page and "Muster &lt;b&gt;" in page and "Muster <b>" not in page
+    ben = make_client(root, site, "ben")
+    take(ben)  # Ben hat sie aufgenommen
+    data = {"sha256": SHA, "checksum": checksum_in(anna)}
+    response = anna.post("/eingang/einblenden", data=data, headers=ORIGIN)
+    assert response.status_code == 303 and response.headers["location"] == "/eingang"
+    assert "Ausgeblendet" not in anna.get("/eingang").text
+    assert "2025/protokoll.html" in waiting(anna)
+    assert "2025/protokoll.html" in waiting(make_client(root, site, "carla"))
+    assert "2025/protokoll.html" not in waiting(ben)
+
+
+def test_showing_with_stale_checksum_or_missing_entry_gives_a_notice(
+    root: Path, site: Path
+) -> None:
+    client = make_client(root, site)
+    hide(client)
+    stale = client.post(
+        "/eingang/einblenden", data={"sha256": SHA, "checksum": "0" * 64}, headers=ORIGIN
+    )
+    assert stale.status_code == 409 and "inzwischen geändert" in stale.text
+    assert "Ausgeblendet" in client.get("/eingang").text
+    data = {"sha256": SHA, "checksum": checksum_in(client)}
+    client.post("/eingang/einblenden", data=data, headers=ORIGIN)
+    gone = client.post("/eingang/einblenden", data=data, headers=ORIGIN)
+    assert gone.status_code == 409 and "nicht mehr" in gone.text
+
+
+def test_hidden_file_gone_from_the_site_is_listed_and_can_be_shown(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    hide(client)
+    (site / "2025" / "protokoll.html").unlink()
+    assert "Ausgeblendet" in client.get("/eingang").text
+    data = {"sha256": SHA, "checksum": checksum_in(client)}
+    assert client.post("/eingang/einblenden", data=data, headers=ORIGIN).status_code == 303
+    page = client.get("/eingang").text
+    assert "Ausgeblendet" not in page and "2025/protokoll.html" not in page
 
 
 def test_hide_file_without_note_is_fine(root: Path, site: Path) -> None:
@@ -177,6 +236,7 @@ def test_get_never_writes_and_post_needs_origin(root: Path, site: Path) -> None:
     assert sorted(p.relative_to(root) for p in root.rglob("*")) == before
     assert client.post("/eingang/aufnehmen", data={"sha256": SHA}).status_code == 403
     assert client.post("/eingang/ausblenden", data={"sha256": SHA}).status_code == 403
+    assert client.post("/eingang/einblenden", data={"sha256": SHA}).status_code == 403
 
 
 def test_navigation_links_to_the_incoming_page(root: Path, site: Path) -> None:

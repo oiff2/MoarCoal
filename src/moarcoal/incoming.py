@@ -9,6 +9,7 @@ from collections.abc import Sequence
 from moarcoal.storage import (
     COMMON_OWNER,
     Applied,
+    Delete,
     Document,
     HiddenFile,
     Put,
@@ -44,3 +45,13 @@ def hide_file(store: Store, file: SiteFile, note: str) -> Applied | Rejected:
         owner=COMMON_OWNER, sha256=file.sha256, site=file.site, path=file.path, note=note.strip()
     )
     return store.apply([Put(entry)])
+
+
+def hidden_files(state: State) -> list[HiddenFile]:
+    """Alle Ausblendungen im Eingang, nach Pfad sortiert (auch ohne Ablageort)."""
+    return sorted(state.of_kind(HiddenFile), key=lambda h: (h.path, h.site, h.sha256))
+
+
+def show_file(store: Store, hidden: HiddenFile, expected: str) -> Applied | Rejected:
+    """Blendet die Datei wieder ein; `expected` ist die Prüfsumme der angezeigten Fassung."""
+    return store.apply([Delete(hidden.address, expected=expected)])

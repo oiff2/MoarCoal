@@ -41,4 +41,25 @@
   {% endfor %}
 </table>
 {% endif %}
+{% if hidden %}
+<h2>Ausgeblendet</h2>
+<p>Für alle Nutzer ausgeblendet, bis jemand die Datei wieder einblendet.</p>
+<table>
+  <tr><th>Ablageort</th><th>Datei</th><th>Notiz</th><th>Einblenden</th></tr>
+  {% for entry, checksum in hidden %}
+  <tr>
+    <td>{{ entry.site }}</td>
+    <td>{{ entry.path }}</td>
+    <td>{{ entry.note }}</td>
+    <td>
+      <form method="post" action="/eingang/einblenden">
+        <input type="hidden" name="sha256" value="{{ entry.sha256 }}">
+        <input type="hidden" name="checksum" value="{{ checksum }}">
+        <button type="submit">Wieder einblenden</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
 {% endblock %}
