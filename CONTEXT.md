@@ -32,7 +32,7 @@ Die Sorte eines Befunds, angemeldet von der Datenebene oder einem Modul mit Schl
 Der Vergleich eines Felds der Anlage mit dem, was das Übertragungsprotokoll an ELSTER übertragen zeigt: exakt und ohne Toleranz gegen den Wert des Felds, so wie er einzutragen ist (also schon gerundet, wo das Feld es verlangt); weicht der Inhalt vom Ausgewiesenen Wert ab, fehlt das Feld im Protokoll oder ist es mehrdeutig, entsteht ein Befund (Warnung), mit Link zur Stelle im Protokoll. Gilt das zuletzt aufgenommene Protokoll des Jahrs.
 
 **Befundliste** _(geprägt)_:
-Die eine Stelle, an der alle nicht ausgeblendeten Befunde eines Nutzers zum gewählten Jahr über alle Module hinweg gesammelt werden; ausgeblendete Fehler zählt sie weiter mit.
+Die eine Stelle, an der alle nicht ausgeblendeten Befunde eines Nutzers zum gewählten Jahr über alle Module hinweg gesammelt werden; ausgeblendete Fehler zählt sie weiter mit (Code: `FindingList`).
 _Avoid_: Review, Inbox, To-do, Durchsicht
 
 **ausblenden**:
@@ -141,6 +141,10 @@ _Avoid_: Registry, Verzeichnis, Katalog (allein)
 Die zu einem Anlass (z. B. Abgabe einer Steuererklärung) eingefrorenen Ausgewiesenen Werte samt Einzelposten, auch solche, die noch nicht berechenbar waren oder entfallen (mit Grund), und allen Werten, auf die sie sich stützen. Ein Schnappschuss ist unveränderlich und hängt nicht vom Ablageort ab, denn die Dokumente, auf die er verweist, werden beim Einfrieren ins Datenverzeichnis kopiert (gebaut ist das noch nicht: bisher steht nur Klartext im Schnappschuss); spätere Abweichungen von den aktuellen Werten werden sichtbar statt verhindert (Code: `Snapshot`; das Anlegen heißt einfrieren).
 _Avoid_: Sperre, Abgabestand, Festschreibung, Version
 
+**Anlass**:
+Das Ereignis, zu dem ein Schnappschuss eingefroren wird; gebaut ist nur die Abgabe, belegt durch das Übertragungsprotokoll (Code: `Occasion`).
+_Avoid_: Trigger, Grund, Ereignis (allein)
+
 **Abweichung**:
 Der Unterschied zwischen dem eingefrorenen Stand eines Schnappschusses und dem aktuellen Stand, je Stufe der Kette: Betrag, Ergebnisart oder Einzelposten (hinzugekommen, weggefallen, geändert). Aus ihr macht das Modul, das den Schnappschuss ausgelöst hat, einen Befund; nicht zu verwechseln mit dem Abgleich mit dem Übertragungsprotokoll (Code: `Deviation`).
 _Avoid_: Differenz, Diff, Änderung (das ist ein Teil eines Vorgangs)
@@ -150,7 +154,7 @@ Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); ge
 _Avoid_: Absender, Firma (im HGB der Handelsname), Gegenpartei
 
 **Eintrag**:
-Etwas Gespeichertes in MoarCoal mit eigener Adresse, z. B. Dokument, Aussteller, Vertrag, Immobilie, Darlehen, Dienstreise. Ausgewiesene Werte und ihre Einzelposten sind berechnet und keine Einträge; Vorschläge und die Ausnahmen eines Erwarteten Belegs sind gespeichert, hängen aber an einem Eintrag und haben keine eigene Adresse.
+Etwas Gespeichertes in MoarCoal mit eigener Adresse, z. B. Dokument, Aussteller, Vertrag, Immobilie, Darlehen, Dienstreise. Ausgewiesene Werte und ihre Einzelposten sind berechnet und keine Einträge. Was an einem anderen Eintrag hängt, ist trotzdem ein Eintrag mit eigener Adresse und verweist auf ihn, z. B. ein Vorschlag auf sein Dokument oder eine Ausblendung auf das Ziel ihres Befunds; es hat nur keine eigene Seite. Offen ist das noch für die Ausnahmen eines Erwarteten Belegs.
 _Avoid_: Datensatz, Objekt, Entität, Record
 
 **Eintragsart**:
