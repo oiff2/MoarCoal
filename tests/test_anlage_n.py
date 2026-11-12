@@ -28,7 +28,7 @@ from moarcoal.storage import EntryAddress
 from moarcoal.values.calculation import Calculation, Missing
 from moarcoal.values.catalog import CatalogEntry, TimeKind, UnknownValueKey, ValueDefinition
 from moarcoal.values.engine import ContractViolation, Foreign
-from moarcoal.values.findings import CYCLE, Severity
+from moarcoal.values.findings import CYCLE, Finding, Severity
 from moarcoal.values.model import (
     Amount,
     Backing,
@@ -438,3 +438,15 @@ def test_page_of_unknown_year_is_404_and_get_writes_nothing(tmp_path: Path) -> N
     assert http.get("/steuerjahr/anlage-n/2025").status_code == 200
 
     assert sorted(p for p in tmp_path.rglob("*") if p.is_file()) == before
+
+
+def test_cycle_fingerprint_follows_the_members() -> None:
+    def cycle(*names: str) -> Finding:
+        values = evaluate([custom(*cyclic(*names))], [])
+        values.get(names[0], "anna", YEAR)
+        (finding,) = values.findings
+        return finding
+
+    base = cycle("demo.a", "demo.b")
+
+    assert cycle("demo.a", "demo.b").fingerprint == base.fingerprint

@@ -1,5 +1,6 @@
 """Datenebene: Einträge, Adressen, Stand und Schreibweg. Nur hier werden Dateien gelesen."""
 
+from moarcoal.storage.dismissals import Dismissal
 from moarcoal.storage.documents import Document
 from moarcoal.storage.entries import (
     Entry,
@@ -29,6 +30,7 @@ __all__ = [
     "Applied",
     "Change",
     "Delete",
+    "Dismissal",
     "Document",
     "Entry",
     "EntryAddress",

@@ -20,6 +20,7 @@ from types import MappingProxyType
 
 from pydantic import ValidationError
 
+from moarcoal.storage.dismissals import DISMISSAL_KIND
 from moarcoal.storage.documents import DATA_LAYER_KINDS
 from moarcoal.storage.entries import (
     Entry,
@@ -435,10 +436,10 @@ def open_store(
 ) -> Store:
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
 
-    Die Arten der Datenebene (Dokument) kommen immer dazu. `sites` nennt die Ablageorte
+    Die Arten der Datenebene (Dokument, Ausblendung) kommen immer dazu. `sites` nennt die Ablageorte
     (Name -> Ordner); ohne Angabe gilt `common/sites.json`.
     """
-    all_kinds = (*DATA_LAYER_KINDS, *kinds)
+    all_kinds = (*DATA_LAYER_KINDS, DISMISSAL_KIND, *kinds)
     collisions = kind_collisions([kind.model for kind in all_kinds])
     if collisions:
         raise StoreError(f"Arten nicht eindeutig: {', '.join(collisions)}")

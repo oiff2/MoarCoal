@@ -1,12 +1,21 @@
 {% extends "base.html" %}
-{% from "_findings.html" import finding_list %}
+{% from "_findings.html" import finding_list, hidden_list %}
 {% block title %}Befunde {{ year }} – MoarCoal{% endblock %}
 {% block main %}
 <h1>Befunde {{ year }}</h1>
-{% if findings %}
-<p>{{ findings | length }} Befund(e). Ein Klick führt zur Stelle, an der man den Befund prüft.</p>
-{{ finding_list(findings) }}
+{% if notice %}<p class="fehler">{{ notice }}</p>{% endif %}
+{% if found.visible %}
+<p>{{ found.visible | length }} Befund(e). Ein Klick führt zur Stelle, an der man den Befund prüft.</p>
+{{ finding_list(found.visible, year, found.earlier, error, note) }}
 {% else %}
 <p>Keine Befunde.</p>
+{% endif %}
+{% if found.hidden %}
+<h2>Ausgeblendet</h2>
+<p>
+  {{ found.hidden | length }} Befund(e) ausgeblendet{% if found.hidden_errors %}, darunter {{ found.hidden_errors }} Fehler{% endif %}.
+  {% if show_hidden %}<a href="/befunde?year={{ year }}">Verbergen</a>{% else %}<a href="/befunde?year={{ year }}&amp;ausgeblendet=1">Anzeigen</a>{% endif %}
+</p>
+{% if show_hidden %}{{ hidden_list(found.hidden, year) }}{% endif %}
 {% endif %}
 {% endblock %}

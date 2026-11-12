@@ -18,7 +18,8 @@ SRC = ROOT / "src" / "moarcoal"
 TEMPLATES = SRC / "templates"
 
 # Wörter aus _Avoid_-Zeilen, die im sichtbaren Text der Vorlagen trotzdem stehen dürfen.
-TEMPLATE_EXCEPTIONS = {"warnung", "fehler", "e-kennung"}  # Schweregrade; Wendung „E-Kennung“
+# Schweregrade, Wendung „E-Kennung“, „ausblenden“ (Befunde; Avoid-Wort nur für Module)
+TEMPLATE_EXCEPTIONS = {"warnung", "fehler", "e-kennung", "ausblenden"}
 
 # `Code:`-Namen aus CONTEXT.md, die noch nicht im App-Code gebaut sind. Gebaute Namen müssen hier
 # raus (der Test schlägt sonst fehl), ebenso Namen, die nicht mehr in CONTEXT.md stehen.

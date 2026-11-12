@@ -3,10 +3,18 @@
 from collections.abc import Callable, Iterable, Mapping, Sequence
 
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import State
+from moarcoal.storage import Dismissal, State
 from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYetSignal
 from moarcoal.values.catalog import TimeKind, ValueCatalog
-from moarcoal.values.findings import CYCLE, DUPLICATE_LOCATOR, Finding, Severity
+from moarcoal.values.findings import (
+    CYCLE,
+    DUPLICATE_LOCATOR,
+    Finding,
+    FindingList,
+    Severity,
+    fingerprint,
+    split_findings,
+)
 from moarcoal.values.model import (
     ExposedValue,
     LineItem,
@@ -139,7 +147,14 @@ class Values:
                 seen.append(locator)
         for locator in duplicates:
             text = f"Fundstelle mehrfach im Wert {value.key}: {_describe(locator)}"
-            self.findings.append(Finding(DUPLICATE_LOCATOR, Severity.ERROR, value.ref, text))
+            found = Finding(
+                DUPLICATE_LOCATOR,
+                Severity.ERROR,
+                value.ref,
+                text,
+                fingerprint=fingerprint(value.key, _describe(locator)),
+            )
+            self.findings.append(found)
 
     def _cycle(self, ref: ValueRef) -> NotYetComputable:
         """Die Anfrage läuft schon: Zyklus, mit Fehler-Befund und Kette."""
@@ -147,12 +162,16 @@ class Values:
         text = "Zyklus: " + " → ".join(str(r.key) for r in chain)
         members = frozenset(chain)
         if not any(f.kind == CYCLE and frozenset(f.chain) == members for f in self.findings):
-            self.findings.append(Finding(CYCLE, Severity.ERROR, ref, text, chain))
+            keys = sorted({str(r.key) for r in chain})
+            self.findings.append(
+                Finding(CYCLE, Severity.ERROR, ref, text, chain, fingerprint(*keys))
+            )
         return NotYetComputable(ref.key, ref.user, ref.time, ref.subject, text)
 
-    def finding_list(self, user: str, year: int) -> list[Finding]:
+    def finding_list(self, user: str, year: int) -> FindingList:
         """Befundliste: rechnet alle Zeitraumwerte des Jahrs, sammelt die Befunde der Datenebene
-        und der Module. Berechnet auf Anfrage, nie gespeichert; Fehler zuerst."""
+        und der Module und teilt sie nach den Ausblendungen des Nutzers. Berechnet auf Anfrage,
+        nie gespeichert; Fehler zuerst."""
         period = Period.year(year)
         for entry in self.catalog.entries():
             if entry.time_kind is TimeKind.PERIOD:  # Stichtagswerte: noch nicht gebaut
@@ -165,7 +184,9 @@ class Values:
             if module.findings is not None:
                 found.extend(module.findings(self._module_state(module.key, user), self, year))
         order = {Severity.ERROR: 0, Severity.WARNING: 1, Severity.NOTE: 2}
-        return sorted(found, key=lambda f: order[f.severity])
+        found.sort(key=lambda f: order[f.severity])
+        dismissals = [d for d in self._state.of_kind(Dismissal) if d.owner == user]
+        return split_findings(found, dismissals)
 
     def subjects(self, key: str, user: str, time: TimeRef) -> list[Subject]:
         """Die Bezugsobjekte, die das Modul des Schlüssels zum Zeitbezug aufzählt."""

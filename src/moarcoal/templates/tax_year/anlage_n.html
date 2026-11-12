@@ -7,9 +7,9 @@
 <p><a href="/steuerjahr">Steuerjahr</a></p>
 <p>Die Angaben aus dem Modul Arbeit, geordnet nach den Feldern der Anlage N. Aufgeführt sind nur die Felder, die MoarCoal bisher abdeckt.</p>
 
-{% if findings %}
+{% if findings.visible %}
 <h2>Befunde</h2>
-{{ finding_list(findings) }}
+{{ finding_list(findings.visible) }}
 {% endif %}
 
 <table class="felder">

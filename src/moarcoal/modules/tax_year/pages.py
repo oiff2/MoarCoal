@@ -104,5 +104,5 @@ def anlage_n(request: Request, year: int) -> HTMLResponse:
         "tax_year/anlage_n.html",
         year=year,
         rows=rows,
-        findings=values.finding_list(user, year),
+        findings=values.finding_list(user, year),  # Vorlage zeigt die sichtbaren Befunde
     )

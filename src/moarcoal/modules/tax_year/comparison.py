@@ -13,7 +13,7 @@ from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolRea
 from moarcoal.modules.tax_year.fields import AmbiguousLines, FormField, NotANumber
 from moarcoal.registration import ModuleState
 from moarcoal.values.calculation import ValueSource
-from moarcoal.values.findings import Finding, FindingKind, Severity
+from moarcoal.values.findings import Finding, FindingKind, Severity, fingerprint
 from moarcoal.values.model import ExposedValue, Period, ValueRef
 
 DEVIATION = "tax_year.protocol_deviation"
@@ -66,11 +66,13 @@ def _field_findings(
             ref,
             f"{name}: Das Feld fehlt im Übertragungsprotokoll.",
             href=protocol_url(reading),
+            fingerprint=fingerprint(field.elster_id, value.amount.value),
         )
         return
     first = protocol_url(reading, lines[0].data_name)
     expected = value.amount.value
-    transferred = field.read_protocol([line.content for line in lines])
+    contents = [line.content for line in lines]
+    transferred = field.read_protocol(contents)
     match transferred:
         case AmbiguousLines(count=count):
             yield Finding(
@@ -80,6 +82,7 @@ def _field_findings(
                 f"{name}: Das Feld kommt {count}-mal im Protokoll vor; "
                 "ein Vergleich ist nicht möglich.",
                 href=first,
+                fingerprint=fingerprint(field.elster_id, *contents),
             )
             return
         case NotANumber(content=content):
@@ -88,7 +91,14 @@ def _field_findings(
             text = field.explain_deviation(expected, transferred)
         case _:
             return
-    yield Finding(DEVIATION, Severity.WARNING, ref, f"{name}: {text}", href=first)
+    yield Finding(
+        DEVIATION,
+        Severity.WARNING,
+        ref,
+        f"{name}: {text}",
+        href=first,
+        fingerprint=fingerprint(field.elster_id, expected, *contents),
+    )
 
 
 def protocol_findings(
@@ -112,6 +122,7 @@ def protocol_findings(
                     ref,
                     f"Anlage N, {field.label}: E-Kennung unbekannt, nicht abgleichbar.",
                     href=protocol_url(reading),
+                    fingerprint=fingerprint(field.key, field.label),
                 )
             )
         elif isinstance(result, ExposedValue):  # sonst gibt es nichts zu vergleichen

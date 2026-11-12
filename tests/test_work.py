@@ -155,7 +155,7 @@ def purchase(year: int, cents: int = 4990) -> WorkEquipment:
 def equipment_2025(items: list[Entry]) -> tuple[object, list[Finding]]:
     values = evaluate([REGISTRATION], items)
     value = values.get(EQUIPMENT_KEY, "anna", Period.year(2025))
-    return value, values.finding_list("anna", 2025)
+    return value, values.finding_list("anna", 2025).visible
 
 
 def test_no_equipment_this_or_previous_year_is_zero_without_finding() -> None:
