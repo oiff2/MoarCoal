@@ -6,10 +6,20 @@ from dataclasses import dataclass
 from fastapi import APIRouter
 
 from moarcoal.documents import DocumentKind
-from moarcoal.storage import Document, Entry, EntryAddress, EntryKind, State, entry_checksum
+from moarcoal.storage import (
+    Content,
+    Document,
+    Entry,
+    EntryAddress,
+    EntryKind,
+    Proposal,
+    State,
+    entry_checksum,
+)
 from moarcoal.values.calculation import ValueSource
 from moarcoal.values.catalog import ValueDefinition
 from moarcoal.values.findings import Finding, FindingKind
+from moarcoal.values.model import DocumentLocator, Source
 
 type FindingSource = Callable[[ModuleState, ValueSource, int], Iterable[Finding]]
 """Befunde eines Moduls für ein Jahr: eigener Stand, Werte (auch fremde) und das Jahr."""
@@ -74,6 +84,31 @@ class ModuleState:
         if document_kind is not None:
             found = [d for d in found if d.document_kind == document_kind]
         return sorted(found, key=lambda d: str(d.address))
+
+    def confirmed_fields(self, document: Document) -> dict[str, tuple[Content, DocumentLocator]]:
+        """Die bestätigten Felder des neuesten Vorschlags zum Dokument (Spec 3.6, Punkt 9).
+
+        Je Feldschlüssel der Inhalt (bei einer Korrektur der korrigierte) und die Fundstelle mit
+        Belegstand belegt; unbestätigte Felder fehlen. Dokumente anderer Nutzer: leer.
+        """
+        if document.owner != self._user:
+            return {}
+        proposals = [
+            p
+            for p in self._state.of_kind(Proposal)
+            if p.owner == self._user and p.document == document.address
+        ]
+        if not proposals:
+            return {}
+        latest = max(proposals, key=lambda p: (p.created_at, p.id))
+        return {
+            key: (
+                field.content,
+                DocumentLocator(document.address, Source.DOCUMENT_EXTRACTION, key, field.location),
+            )
+            for key, field in latest.fields.items()
+            if field.confirmed
+        }
 
     def checksum(self, address: EntryAddress) -> str | None:
         entry = self.get(address)

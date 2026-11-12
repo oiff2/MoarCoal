@@ -1,0 +1,359 @@
+"""Auslesen als Vorschlag: Vorlage, Auslesen, Bestätigen, Befund, Seite, Fundstelle (nur Fake)."""
+
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
+
+import httpx
+import pytest
+from fastapi import APIRouter
+from fastapi.testclient import TestClient
+
+from moarcoal.app import create_app
+from moarcoal.documents import DocumentKind
+from moarcoal.extraction import (
+    Extracted,
+    ExtractedField,
+    ExtractionFailed,
+    FailureReason,
+    FakeExtractor,
+)
+from moarcoal.extraction_template import ExtractionTemplate, TemplateField
+from moarcoal.proposals import UNCONFIRMED
+from moarcoal.registration import ModuleRegistration, ModuleState
+from moarcoal.storage import Document, Proposal, Store
+from moarcoal.values.model import Backing, DocumentLocator, Source
+
+PORT = 4711
+ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
+CONTENT = b"%PDF-1.4 erfundener Beispielinhalt"
+SHA = hashlib.sha256(CONTENT).hexdigest()
+TEMPLATE = ExtractionTemplate(
+    3,
+    (
+        TemplateField("tax", "Steuer", "EUR", "Betrag der festgesetzten Steuer"),
+        TemplateField("date", "Datum"),
+    ),
+)
+KIND = DocumentKind(
+    key="notice",
+    title="Beispielbescheid",
+    has_period=True,
+    read_in=lambda d, c: [],
+    extraction_template=TEMPLATE,
+)
+PLAIN = DocumentKind(key="plain", title="Ohne Vorlage", has_period=False, read_in=lambda d, c: [])
+REGISTRATION = ModuleRegistration(
+    key="beispiel",
+    area_name="Beispiel",
+    nav_label="Beispiel",
+    nav_url="/beispiel",
+    router=APIRouter(),
+    kinds=(),
+    document_kinds=(KIND, PLAIN),
+)
+
+
+def answer(tax: str = "1.234,00", date: str = "01.02.2026") -> Extracted:
+    fields = {
+        "tax": ExtractedField(value=tax, location="Seite 1, Zeile 4"),
+        "date": ExtractedField(value=date, location="Seite 1, Kopf"),
+    }
+    return Extracted(fields, json.dumps({k: v.model_dump() for k, v in fields.items()}))
+
+
+class Setup:
+    def __init__(self, root: Path, site: Path, fake: FakeExtractor) -> None:
+        self.fake = fake
+        sites = root / "common" / "sites.json"
+        sites.parent.mkdir(parents=True, exist_ok=True)
+        sites.write_text(
+            json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
+        )
+        self.app = create_app(PORT, root, [REGISTRATION], user="anna", extractor=fake)
+        self.client: httpx.Client = TestClient(
+            self.app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False
+        )
+
+    @property
+    def store(self) -> Store:
+        return self.app.state.store
+
+    def take_in(self, kind: str = "notice") -> str:
+        data = {"sha256": SHA, "kind": kind, "year": "2025"}
+        response = self.client.post("/eingang/aufnehmen", data=data, headers=ORIGIN)
+        assert response.status_code == 303
+        return response.headers["location"]
+
+    def post(self, url: str, **data: str) -> httpx.Response:
+        return self.client.post(url, data=data, headers=ORIGIN)
+
+    def document(self) -> Document:
+        return self.store.state().of_kind(Document)[0]
+
+    def proposal(self) -> Proposal:
+        return self.store.state().of_kind(Proposal)[0]
+
+    def module_state(self) -> ModuleState:
+        return ModuleState(self.store.state(), REGISTRATION, "anna")
+
+
+def make(tmp_path: Path, *answers: Extracted | ExtractionFailed) -> Setup:
+    site = tmp_path / "ablage"
+    site.mkdir()
+    (site / "bescheid.pdf").write_bytes(CONTENT)
+    return Setup(tmp_path / "daten", site, FakeExtractor(list(answers)))
+
+
+def findings(setup: Setup, year: int = 2025) -> list[Any]:
+    from moarcoal.values.engine import Values
+
+    values = Values([REGISTRATION], setup.store.state())
+    return [f for f in values.finding_list("anna", year).visible if f.kind == UNCONFIRMED]
+
+
+# --- Vorlage -----------------------------------------------------------------------------------
+
+
+def test_template_builds_the_schema_and_the_hint() -> None:
+    schema = TEMPLATE.json_schema()
+    assert list(schema["properties"]) == ["tax", "date"]
+    assert schema["required"] == ["tax", "date"]
+    assert "Einheit: EUR" in schema["properties"]["tax"]["description"]
+    assert "Betrag der festgesetzten Steuer" in TEMPLATE.hint()
+
+
+def test_template_rejects_duplicate_keys() -> None:
+    with pytest.raises(ValueError):
+        ExtractionTemplate(1, (TemplateField("a", "A"), TemplateField("a", "B")))
+
+
+# --- Auslesen ----------------------------------------------------------------------------------
+
+
+def test_take_in_leads_to_the_document_page_and_get_writes_nothing(tmp_path: Path) -> None:
+    setup = make(tmp_path)
+    location = setup.take_in()
+    assert location == f"/dokumente/{setup.document().id}"
+    before = setup.store.state().entries
+    page = setup.client.get(location)
+    assert page.status_code == 200
+    assert "Auslesen" in page.text
+    assert setup.store.state().entries == before
+    assert setup.fake.calls == []
+
+
+def test_extract_creates_a_proposal_with_the_template_version(tmp_path: Path) -> None:
+    setup = make(tmp_path, answer())
+    location = setup.take_in()
+    response = setup.post(f"{location}/auslesen")
+    assert response.status_code == 303
+    proposal = setup.proposal()
+    assert proposal.document == setup.document().address
+    assert proposal.template_version == 3
+    assert proposal.fields["tax"].value == "1.234,00"
+    assert proposal.fields["tax"].location == "Seite 1, Zeile 4"
+    assert not any(f.confirmed for f in proposal.fields.values())
+    assert "tax" in proposal.raw
+    content, media_type, schema, hint = setup.fake.calls[0]
+    assert (content, media_type) == (CONTENT, "application/pdf")
+    assert schema == TEMPLATE.json_schema()
+    assert hint == TEMPLATE.hint()
+
+
+def test_failed_extraction_creates_no_proposal_and_shows_the_message(tmp_path: Path) -> None:
+    failed = ExtractionFailed(FailureReason.TIMEOUT, "Claude hat nicht rechtzeitig geantwortet.")
+    setup = make(tmp_path, failed)
+    location = setup.take_in()
+    response = setup.post(f"{location}/auslesen")
+    assert response.status_code == 409
+    assert "Claude hat nicht rechtzeitig geantwortet." in response.text
+    assert setup.store.state().of_kind(Proposal) == []
+
+
+def test_extract_needs_origin(tmp_path: Path) -> None:
+    setup = make(tmp_path, answer())
+    location = setup.take_in()
+    response = setup.client.post(f"{location}/auslesen")
+    assert response.status_code == 403
+    assert setup.fake.calls == []
+
+
+def test_second_extraction_of_the_same_document_is_refused(tmp_path: Path) -> None:
+    setup = make(tmp_path, answer(), answer())
+    location = setup.take_in()
+    setup.post(f"{location}/auslesen")
+    assert setup.post(f"{location}/auslesen").status_code == 409
+    assert len(setup.fake.calls) == 1
+
+
+def test_kind_without_template_is_not_extracted(tmp_path: Path) -> None:
+    setup = make(tmp_path, answer())
+    location = setup.take_in("plain")
+    assert location == "/eingang"
+    document_url = f"/dokumente/{setup.document().id}"
+    assert "nicht ausgelesen" in setup.client.get(document_url).text
+    assert setup.post(f"{document_url}/auslesen").status_code == 409
+    assert setup.fake.calls == []
+
+
+def test_unknown_document_is_404(tmp_path: Path) -> None:
+    setup = make(tmp_path)
+    assert setup.client.get("/dokumente/AAAAAAAAAA").status_code == 404
+    assert setup.client.get("/dokumente/kaputt").status_code == 404
+
+
+# --- Bestätigen --------------------------------------------------------------------------------
+
+
+def extracted(tmp_path: Path, *answers: Extracted) -> tuple[Setup, str]:
+    setup = make(tmp_path, *(answers or (answer(),)))
+    location = setup.take_in()
+    setup.post(f"{location}/auslesen")
+    return setup, location
+
+
+def test_confirm_one_field_saves_it(tmp_path: Path) -> None:
+    setup, location = extracted(tmp_path)
+    response = setup.post(f"{location}/bestaetigen", field="tax", correction="")
+    assert response.status_code == 303
+    fields = setup.proposal().fields
+    assert fields["tax"].confirmed and fields["tax"].correction is None
+    assert not fields["date"].confirmed
+
+
+def test_correction_keeps_the_extracted_content_beside_it(tmp_path: Path) -> None:
+    setup, location = extracted(tmp_path)
+    setup.post(f"{location}/bestaetigen", field="tax", correction="1.243,00")
+    field = setup.proposal().fields["tax"]
+    assert field.confirmed
+    assert field.value == "1.234,00"
+    assert field.correction == "1.243,00"
+    page = setup.client.get(location).text
+    assert "1.234,00" in page and "1.243,00" in page
+
+
+def test_confirm_all(tmp_path: Path) -> None:
+    setup, location = extracted(tmp_path)
+    setup.post(f"{location}/bestaetigen", field="tax", correction="1.243,00")
+    response = setup.post(f"{location}/bestaetigen", all="1")
+    assert response.status_code == 303
+    fields = setup.proposal().fields
+    assert all(f.confirmed for f in fields.values())
+    assert fields["tax"].correction == "1.243,00"  # schon Bestätigtes bleibt
+
+
+def test_confirm_needs_origin_and_unknown_field_is_refused(tmp_path: Path) -> None:
+    setup, location = extracted(tmp_path)
+    assert setup.client.post(f"{location}/bestaetigen", data={"all": "1"}).status_code == 403
+    assert setup.post(f"{location}/bestaetigen", field="gibtsnicht").status_code == 409
+    assert not any(f.confirmed for f in setup.proposal().fields.values())
+
+
+def test_confirm_without_proposal_is_refused(tmp_path: Path) -> None:
+    setup = make(tmp_path)
+    location = setup.take_in()
+    assert setup.post(f"{location}/bestaetigen", all="1").status_code == 409
+
+
+def test_content_from_claude_is_escaped(tmp_path: Path) -> None:
+    evil = "<script>alert(1)</script>"
+    fields = {
+        "tax": ExtractedField(value=evil, location=f"{evil} Seite"),
+        "date": ExtractedField(value="x", location="y"),
+    }
+    setup, location = extracted(tmp_path, Extracted(fields, evil))
+    setup.post(f"{location}/bestaetigen", field="tax", correction=evil)
+    page = setup.client.get(location).text
+    assert "<script>alert(1)</script>" not in page
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in page
+    assert "<script>alert(1)" not in setup.client.get("/befunde?year=2025").text
+
+
+# --- Befund ------------------------------------------------------------------------------------
+
+
+def test_open_fields_give_a_note_with_a_link_and_confirming_all_removes_it(
+    tmp_path: Path,
+) -> None:
+    setup, location = extracted(tmp_path)
+    [finding] = findings(setup)
+    assert finding.severity.value == "Hinweis"
+    assert finding.href == location
+    assert "2 von 2" in finding.message
+    page = setup.client.get("/befunde?year=2025").text
+    assert f'href="{location}"' in page
+    setup.post(f"{location}/bestaetigen", field="tax")
+    [partly] = findings(setup)
+    assert "1 von 2" in partly.message
+    assert partly.fingerprint != finding.fingerprint
+    setup.post(f"{location}/bestaetigen", all="1")
+    assert findings(setup) == []
+
+
+def test_finding_belongs_to_the_year_of_the_document(tmp_path: Path) -> None:
+    setup, _ = extracted(tmp_path)
+    assert findings(setup, 2024) == []
+
+
+# --- Fundstelle und bestätigte Felder ----------------------------------------------------------
+
+
+def test_only_confirmed_fields_are_given_with_a_locator(tmp_path: Path) -> None:
+    setup, location = extracted(tmp_path)
+    document = setup.document()
+    assert setup.module_state().confirmed_fields(document) == {}
+    setup.post(f"{location}/bestaetigen", field="tax")
+    fields = setup.module_state().confirmed_fields(document)
+    assert list(fields) == ["tax"]
+    content, locator = fields["tax"]
+    assert content == "1.234,00"
+    assert locator == DocumentLocator(
+        document.address, Source.DOCUMENT_EXTRACTION, "tax", "Seite 1, Zeile 4"
+    )
+    assert locator.backing is Backing.PROVEN
+    assert locator.entry_address == document.address
+
+
+def test_corrected_field_gives_the_corrected_content_with_backing_proven(tmp_path: Path) -> None:
+    setup, location = extracted(tmp_path)
+    setup.post(f"{location}/bestaetigen", field="tax", correction="1.243,00")
+    content, locator = setup.module_state().confirmed_fields(setup.document())["tax"]
+    assert content == "1.243,00"
+    assert locator.source is Source.DOCUMENT_EXTRACTION
+    assert locator.place == "Seite 1, Zeile 4"
+    assert locator.backing is Backing.PROVEN
+
+
+def test_confirmed_fields_come_from_the_newest_proposal_and_only_for_the_owner(
+    tmp_path: Path,
+) -> None:
+    setup, location = extracted(tmp_path)
+    setup.post(f"{location}/bestaetigen", all="1")
+    document = setup.document()
+    older = setup.proposal()
+    newer = older.model_copy(
+        update={
+            "id": "AAAAAAAAAA",
+            "created_at": older.created_at.replace(year=older.created_at.year + 1),
+            "fields": {
+                k: f.model_copy(update={"confirmed": False}) for k, f in older.fields.items()
+            },
+        }
+    )
+    from moarcoal.storage import Put
+
+    setup.store.apply([Put(newer)])
+    assert setup.module_state().confirmed_fields(document) == {}
+    stranger = ModuleState(setup.store.state(), REGISTRATION, "berta")
+    assert stranger.confirmed_fields(document) == {}
+
+
+def test_document_locator_label_names_the_source_and_the_place() -> None:
+    from moarcoal.storage import EntryAddress
+
+    locator = DocumentLocator(
+        EntryAddress(kind="Document", id="AAAAAAAAAA"), Source.DOCUMENT_EXTRACTION, "k", "Seite 2"
+    )
+    assert locator.label == "Dokumentauslesung: Seite 2"

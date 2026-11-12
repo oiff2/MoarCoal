@@ -165,6 +165,39 @@ class ExpectedDocumentLocator(Locator):
         return Backing.PENDING
 
 
+class Source(StrEnum):
+    """Der Kanal, über den Daten aus einem Dokument kommen; der Wert ist die Anzeige."""
+
+    DOCUMENT_EXTRACTION = "Dokumentauslesung"
+    READ_IN = "Einlesung"
+
+
+@dataclass(frozen=True)
+class DocumentLocator(Locator):
+    """Stelle in einem Dokument: Dokument, Quelle, Feldschlüssel der Vorlage, Stelle als Klartext.
+
+    Nennt keinen bestimmten Vorschlag und bleibt so über Neu auslesen gültig. Belegstand belegt,
+    auch wenn der Nutzer den Inhalt korrigiert hat.
+    """
+
+    document: EntryAddress
+    source: Source
+    field_key: str
+    place: str
+
+    @property
+    def label(self) -> str:
+        return f"{self.source.value}: {self.place}" if self.place else self.source.value
+
+    @property
+    def entry_address(self) -> EntryAddress | None:
+        return self.document
+
+    @property
+    def backing(self) -> Backing:
+        return Backing.PROVEN
+
+
 @dataclass(frozen=True)
 class ValueLocator(Locator):
     """Anderer Ausgewiesener Wert: der Einzelposten erbt dessen Betrag und schwächsten Belegstand.

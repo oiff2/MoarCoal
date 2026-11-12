@@ -88,6 +88,8 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
         return rejected(*result.reasons)
     modules = request.app.state.modules
     target = next((url for e in result.entries if (url := entry_url(modules, e.address))), None)
+    if kind.extraction_template is not None:
+        target = f"/dokumente/{result.document.id}"  # dort liest der Nutzer das Dokument aus
     return RedirectResponse(target or "/eingang", status_code=303)
 
 

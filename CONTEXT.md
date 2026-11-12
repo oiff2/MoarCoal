@@ -64,7 +64,7 @@ Die festgehaltene Folge der Schritte, mit der ein Modul einen Ausgewiesenen Wert
 _Avoid_: Formel, Herleitung, Trace
 
 **Fundstelle** _(geprägt)_:
-Worauf sich ein Einzelposten stützt: eine Stelle in einem Dokument (Seite/Zeile), ein eDaten-Satz aus Mein ELSTER, ein Erwarteter Beleg, eine Nutzereingabe (genannt über ihre Adresse) oder ein anderer Ausgewiesener Wert (dann erbt der Einzelposten dessen Betrag und schwächsten Belegstand und hat keine eigene Quelle). Aus der Art der Fundstelle ergibt sich der Belegstand. Eine Stelle in einem Dokument nennt auch die Quelle, denn dasselbe Dokument kann ausgelesen und eingelesen sein (Code: `Locator`).
+Worauf sich ein Einzelposten stützt: eine Stelle in einem Dokument (Seite/Zeile), ein eDaten-Satz aus Mein ELSTER, ein Erwarteter Beleg, eine Nutzereingabe (genannt über ihre Adresse) oder ein anderer Ausgewiesener Wert (dann erbt der Einzelposten dessen Betrag und schwächsten Belegstand und hat keine eigene Quelle). Aus der Art der Fundstelle ergibt sich der Belegstand. Eine Stelle in einem Dokument nennt auch die Quelle, denn dasselbe Dokument kann ausgelesen und eingelesen sein; sie nennt Dokument, Quelle, Feldschlüssel der Vorlage und die Stelle als Klartext, aber keinen bestimmten Vorschlag (Code: `Locator`, für das Dokument `DocumentLocator`).
 _Avoid_: Referenz, Quelle (die Fundstelle ist die genaue Stelle, die Quelle der Kanal)
 
 **Quelle**:

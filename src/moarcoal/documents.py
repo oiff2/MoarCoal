@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from pydantic import ValidationError
 
+from moarcoal.extraction_template import ExtractionTemplate
 from moarcoal.storage import (
     Applied,
     Document,
@@ -35,12 +36,14 @@ class DocumentKind:
 
     `read_in` ist die Einlese-Regel: eine reine Funktion aus Dokument und Dateiinhalt, die die
     Einträge des Moduls liefert (oder `ReadInError` wirft). Sie fasst keine Datei an.
+    `extraction_template` ist die Auslese-Vorlage; ohne sie lässt sich die Art nicht auslesen.
     """
 
     key: str
     title: str
     has_period: bool
     read_in: Callable[[Document, bytes], Sequence[Entry]]
+    extraction_template: ExtractionTemplate | None = None
 
 
 @dataclass(frozen=True)

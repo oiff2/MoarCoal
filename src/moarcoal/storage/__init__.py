@@ -14,6 +14,7 @@ from moarcoal.storage.entries import (
 )
 from moarcoal.storage.expected_documents import ExpectedDocument
 from moarcoal.storage.hidden_files import COMMON_OWNER, HiddenFile
+from moarcoal.storage.proposals import PROPOSAL_KIND, Content, Proposal, ProposalField
 from moarcoal.storage.store import (
     Applied,
     Change,
@@ -31,8 +32,10 @@ from moarcoal.storage.store import (
 
 __all__ = [
     "COMMON_OWNER",
+    "PROPOSAL_KIND",
     "Applied",
     "Change",
+    "Content",
     "Delete",
     "Dismissal",
     "Document",
@@ -41,6 +44,8 @@ __all__ = [
     "EntryKind",
     "HiddenFile",
     "ExpectedDocument",
+    "Proposal",
+    "ProposalField",
     "Put",
     "Rejected",
     "SiteFile",
