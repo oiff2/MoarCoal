@@ -1,6 +1,6 @@
 # MoarCoal
 
-Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is done; the Durchstich (#27) is built, Abschnitt 2 (#46) is next. Docs and app text in German; code and identifiers in English.
+Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is done; the Durchstich (#27) is built, Abschnitt 2 (#46) is in progress. Docs and app text in German; code and identifiers in English.
 
 ## Where things are
 
