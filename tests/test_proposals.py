@@ -180,12 +180,38 @@ def test_extract_needs_origin(tmp_path: Path) -> None:
     assert setup.fake.calls == []
 
 
-def test_second_extraction_of_the_same_document_is_refused(tmp_path: Path) -> None:
-    setup = make(tmp_path, answer(), answer())
+def test_re_extraction_creates_a_new_proposal_next_to_the_old_one(tmp_path: Path) -> None:
+    setup = make(tmp_path, answer(), answer(tax="9.999,00"))
     location = setup.take_in()
     setup.post(f"{location}/auslesen")
+    setup.post(f"{location}/bestaetigen", all="1")
+    assert "Neu auslesen" in setup.client.get(location).text
+    assert setup.post(f"{location}/auslesen").status_code == 303
+    proposals = setup.store.state().of_kind(Proposal)
+    assert len(proposals) == 2
+    newest = max(proposals, key=lambda p: (p.created_at, p.id))
+    assert newest.fields["tax"].value == "9.999,00"
+    assert not any(f.confirmed for f in newest.fields.values())  # nichts übernommen
+    page = setup.client.get(location).text
+    assert "9.999,00" in page and "1.234,00" not in page
+    assert setup.module_state().confirmed_fields(setup.document()) == {}
+    [finding] = findings(setup)  # nur der neueste Vorschlag zählt
+    assert "2 von 2" in finding.message
+    setup.post(f"{location}/bestaetigen", field="tax")
+    content, _ = setup.module_state().confirmed_fields(setup.document())["tax"]
+    assert content == "9.999,00"
+
+
+def test_failed_re_extraction_keeps_the_current_proposal(tmp_path: Path) -> None:
+    failed = ExtractionFailed(FailureReason.TIMEOUT, "Zeitüberschreitung.")
+    setup = make(tmp_path, answer(), failed)
+    location = setup.take_in()
+    setup.post(f"{location}/auslesen")
+    setup.post(f"{location}/bestaetigen", all="1")
     assert setup.post(f"{location}/auslesen").status_code == 409
-    assert len(setup.fake.calls) == 1
+    assert len(setup.store.state().of_kind(Proposal)) == 1
+    content, _ = setup.module_state().confirmed_fields(setup.document())["tax"]
+    assert content == "1.234,00"
 
 
 def test_kind_without_template_is_not_extracted(tmp_path: Path) -> None:

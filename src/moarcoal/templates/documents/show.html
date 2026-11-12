@@ -39,6 +39,11 @@
 {% else %}
 <p>Alle Felder sind bestätigt.</p>
 {% endif %}
+<h2>Neu auslesen</h2>
+<p>Liest das Dokument noch einmal aus. Der neue Vorschlag gilt dann; bestätigt werden muss er neu, der alte bleibt gespeichert.</p>
+<form method="post" action="/dokumente/{{ document.id }}/auslesen">
+  <button type="submit">Neu auslesen</button>
+</form>
 {% elif template %}
 <h2>Auslesen</h2>
 <p>Claude liest dieses Dokument nach der Auslese-Vorlage der Dokumentart aus. Das Ergebnis ist ein Vorschlag, den Sie danach je Feld bestätigen oder korrigieren.</p>

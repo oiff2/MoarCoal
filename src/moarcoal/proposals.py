@@ -62,14 +62,13 @@ def read_out(
 ) -> Proposal | ReadOutRejected:
     """Liest `document` nach der Auslese-Vorlage seiner Art aus und legt den Vorschlag an.
 
-    Ein zweiter Vorschlag zum selben Dokument entsteht hier nicht (Neu auslesen kommt später).
+    Gibt es schon einen Vorschlag, entsteht ein neuer daneben (Neu auslesen); der neueste gilt,
+    Bestätigungen des alten werden nicht übernommen. Ein Fehlschlag legt nichts an.
     """
     kind = kinds.get(document.document_kind or "")
     template = None if kind is None else kind.extraction_template
     if template is None:
         return ReadOutRejected("Diese Dokumentart kann nicht ausgelesen werden.")
-    if proposals_of(store.state(), document):
-        return ReadOutRejected("Zu diesem Dokument gibt es schon einen Vorschlag.")
     try:
         content = store.read_site_file(document.site, document.path)
     except SiteFileError as error:
@@ -144,10 +143,11 @@ def proposal_findings(
     """
     documents = {d.address: d for d in state.of_kind(Document) if d.owner == user}
     found: list[Finding] = []
-    for proposal in sorted(state.of_kind(Proposal), key=lambda p: str(p.address)):
-        document = documents.get(proposal.document)
-        if proposal.owner != user or document is None:
+    for document in sorted(documents.values(), key=lambda d: str(d.address)):
+        history = proposals_of(state, document)
+        if not history:
             continue
+        proposal = history[-1]  # nur der neueste Vorschlag zählt
         if (
             document.period_start is not None
             and document.period_end is not None
