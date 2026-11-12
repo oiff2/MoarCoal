@@ -5,9 +5,8 @@ from fastapi.responses import HTMLResponse
 
 from moarcoal.modules.tax_year.anlage_n import FORMS
 from moarcoal.modules.tax_year.comparison import (
-    assessment_amounts,
+    current_assessment,
     describe_frozen,
-    latest_assessment,
     latest_snapshot,
 )
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
@@ -72,8 +71,8 @@ def anlage_n(request: Request, year: int) -> HTMLResponse:
         for field in fields
     ]
     snapshot = latest_snapshot(state, year)
-    assessment = latest_assessment(state, year)
-    printed = {} if assessment is None else assessment_amounts(state, assessment, fields)
+    assessment = current_assessment(state, year, fields)
+    printed = {} if assessment is None else assessment[1]
     frozen = {}
     if snapshot is not None:
         frozen = {

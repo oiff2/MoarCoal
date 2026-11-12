@@ -133,15 +133,20 @@ class FormField:
         """Ob der Betrag im Bescheid zum eingefrorenen Wert des Felds passt.
 
         Euro-Felder mit ganzen Euro und Positionen, die der Bescheid gerundet druckt, passen mit
-        einer Spanne: jeder ganze Euro zwischen abgerundetem und aufgerundetem Wert; sonst exakt
-        (ADR 0011 des Vorgängers). Das gedruckte Vorzeichen zählt nicht (Abzüge stehen mit Minus);
-        Positionen mit Vorzeichen sind noch nicht zugeordnet.
+        einer Spanne (ADR 0011 des Vorgängers): jeder ganze Euro zwischen abgerundetem und
+        aufgerundetem Wert. Ein Feld mit ganzen Euro friert den schon nach seiner Richtung
+        gerundeten Wert ein; der ungerundete liegt höchstens einen Euro daneben, die Spanne reicht
+        deshalb von einem Euro darunter bis einen darüber. Sonst exakt. Das gedruckte Vorzeichen
+        zählt nicht (Abzüge stehen mit Minus); Positionen mit Vorzeichen sind noch nicht zugeordnet.
         """
         frozen, printed = abs(frozen), abs(printed)
         if self.unit is not Unit.EUR or not (self.whole_euros or self.printed_rounded):
             return frozen == printed
-        whole = printed == printed.to_integral_value()
-        return whole and (
+        if printed != printed.to_integral_value():
+            return False
+        if self.whole_euros:
+            return frozen - 1 <= printed <= frozen + 1
+        return (
             frozen.to_integral_value(ROUND_FLOOR)
             <= printed
             <= frozen.to_integral_value(ROUND_CEILING)

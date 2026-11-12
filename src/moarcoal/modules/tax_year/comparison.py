@@ -53,6 +53,11 @@ FINDING_KINDS = (
 )
 
 
+def _taken_order(moment: datetime.datetime | None, entry_id: str) -> tuple[bool, float, str]:
+    """Reihenfolge nach Aufnahmezeitpunkt (ohne Zeitpunkt zuerst), bei Gleichstand nach `id`."""
+    return (moment is not None, moment.timestamp() if moment else 0.0, entry_id)
+
+
 def latest_reading(state: ModuleState, year: int) -> ProtocolReading | None:
     """Das zuletzt aufgenommene Protokoll des Jahrs.
 
@@ -63,11 +68,7 @@ def latest_reading(state: ModuleState, year: int) -> ProtocolReading | None:
     if not readings:
         return None
 
-    def order(reading: ProtocolReading) -> tuple[bool, str, str]:
-        moment = taken[reading.document]
-        return (moment is not None, moment.isoformat() if moment else "", reading.id)
-
-    return max(readings, key=order)
+    return max(readings, key=lambda r: _taken_order(taken[r.document], r.id))
 
 
 def protocol_url(reading: ProtocolReading, data_name: str = "") -> str:
@@ -208,38 +209,43 @@ def snapshot_findings(
     return found
 
 
-def latest_assessment(state: ModuleState, year: int) -> Document | None:
-    """Der zuletzt aufgenommene Einkommensteuerbescheid des Jahrs (bei Gleichstand die `id`)."""
-    found = [
-        d
-        for d in state.documents(ASSESSMENT_KEY)
-        if d.period_start is not None and d.period_start.year == year
-    ]
-
-    def order(document: Document) -> tuple[bool, str, str]:
-        moment = document.taken_in_at
-        return (moment is not None, moment.isoformat() if moment else "", document.id)
-
-    return max(found, key=order, default=None)
-
-
 def assessment_amounts(
     state: ModuleState, document: Document, fields: Sequence[FormField]
 ) -> dict[ValueKey, Decimal]:
     """Der Betrag laut Bescheid je Feld, dessen Positionen alle bestätigt sind.
 
     Ein Feld mit mehreren Positionen bekommt ihre Summe; eine bestätigte leere Position zählt 0,
-    ein gedrucktes Minus nicht. Unbestätigte Positionen gehen nicht ein.
+    ein gedrucktes Minus nicht (Abzüge stehen mit Minus; Positionen mit Vorzeichen sind noch nicht
+    zugeordnet). Unbestätigte Positionen gehen nicht ein, ebenso wenig ein Feld, dessen bestätigter
+    Inhalt keine Zahl ist.
     """
     confirmed = state.confirmed_fields(document)
     amounts: dict[ValueKey, Decimal] = {}
     for field in fields:
-        if field.assessment and all(key in confirmed for key in field.assessment):
-            contents = [confirmed[key][0] for key in field.assessment]
-            amounts[field.key] = sum(
-                (abs(c) for c in contents if isinstance(c, Decimal)), start=Decimal(0)
-            )
+        if not field.assessment or not all(key in confirmed for key in field.assessment):
+            continue
+        contents = [confirmed[key][0] for key in field.assessment]
+        numbers = [c for c in contents if isinstance(c, Decimal)]
+        if len(numbers) + contents.count(None) == len(contents):
+            amounts[field.key] = sum((abs(n) for n in numbers), start=Decimal(0))
     return amounts
+
+
+def current_assessment(
+    state: ModuleState, year: int, fields: Sequence[FormField]
+) -> tuple[Document, dict[ValueKey, Decimal]] | None:
+    """Der neueste Einkommensteuerbescheid des Jahrs, zu dem schon Positionen bestätigt sind, mit
+    den Beträgen je Feld. Ein neu aufgenommener, noch unbestätigter Bescheid verdrängt den
+    bestätigten nicht."""
+    found = [
+        d
+        for d in state.documents(ASSESSMENT_KEY)
+        if d.period_start is not None and d.period_start.year == year
+    ]
+    for document in sorted(found, key=lambda d: _taken_order(d.taken_in_at, d.id), reverse=True):
+        if amounts := assessment_amounts(state, document, fields):
+            return document, amounts
+    return None
 
 
 def _frozen_amount(snapshot: Snapshot, field: FormField, year: int) -> Decimal | None:
@@ -257,14 +263,14 @@ def assessment_findings(state: ModuleState, year: int, forms: Forms = FORMS) -> 
     """Befunde des Bescheid-Abgleichs: je Feld, das der Bescheid anders ansetzt als der
     Schnappschuss der Abgabe. Ohne Schnappschuss gibt es keinen Abgleich, nur einen Hinweis."""
     fields = forms.get(year)
-    document = latest_assessment(state, year)
-    if fields is None or document is None:
+    current = None if fields is None else current_assessment(state, year, fields)
+    if fields is None or current is None:
         return []
-    amounts = assessment_amounts(state, document, fields)
-    if not amounts:
-        return []
+    document, amounts = current
     snapshot = latest_snapshot(state, year)
     if snapshot is None:
+        if not any(f.computed and f.key in amounts for f in fields):
+            return []  # nichts Bestätigtes, das sich je abgleichen ließe
         return [
             Finding(
                 ASSESSMENT_NO_SNAPSHOT,

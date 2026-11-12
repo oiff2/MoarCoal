@@ -8,6 +8,7 @@ import datetime
 import hashlib
 import json
 import shutil
+from collections.abc import Mapping
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
@@ -39,7 +40,7 @@ from moarcoal.modules.tax_year.comparison import (
     ASSESSMENT_DEVIATION,
     ASSESSMENT_NO_SNAPSHOT,
     assessment_amounts,
-    latest_assessment,
+    current_assessment,
     snapshot_on_filing,
 )
 from moarcoal.modules.tax_year.fields import Direction, FormField, Rounding
@@ -103,8 +104,8 @@ def assessment(n: int = 1, year: int = 2025) -> Document:
 
 def proposal(
     document: Document,
-    confirmed: dict[str, str | None],
-    open_: dict[str, str] | None = None,
+    confirmed: Mapping[str, str | None],
+    open_: Mapping[str, str] | None = None,
 ) -> Entry:
     """Ein Vorschlag mit bestätigten und offenen Feldern (Schlüssel der Auslese-Vorlage)."""
     fields = {
@@ -181,7 +182,7 @@ def test_the_fields_with_a_position_in_the_assessment() -> None:
 
 
 def with_assessment(
-    confirmed: dict[str, str | None], foreign: Foreign | None = None
+    confirmed: Mapping[str, str | None], foreign: Foreign | None = None
 ) -> list[Finding]:
     document = assessment()
     items = [
@@ -338,7 +339,10 @@ def test_span_rules_of_the_field() -> None:
     assert not rounded.matches_assessment(Decimal("12.34"), Decimal("14"))
     assert not rounded.matches_assessment(Decimal("12.34"), Decimal("12.5"))
     assert whole.matches_assessment(Decimal("12"), Decimal("12"))
-    assert not whole.matches_assessment(Decimal("12"), Decimal("13"))
+    assert whole.matches_assessment(Decimal("87"), Decimal("86"))  # 86,40 eingefroren als 87
+    assert whole.matches_assessment(Decimal("87"), Decimal("88"))
+    assert not whole.matches_assessment(Decimal("87"), Decimal("85"))
+    assert not whole.matches_assessment(Decimal("87"), Decimal("87.5"))
     assert rounded.matches_assessment(Decimal("-12.34"), Decimal("13"))  # Vorzeichen zählt nicht
     assert days.matches_assessment(Decimal("220"), Decimal("-220"))
     assert not days.matches_assessment(Decimal("220"), Decimal("221"))
@@ -374,13 +378,43 @@ def test_a_sum_field_needs_all_its_positions_confirmed_and_adds_them() -> None:
     assert total.key not in assessment_amounts(one, document, FORMS[2025])
 
 
-def test_the_latest_assessment_of_the_year_counts() -> None:
-    old, new, other_year = assessment(1), assessment(2), assessment(3, year=2024)
-    state = state_of([old, new, other_year])
+def current_documents(
+    state: ModuleState, year: int, fields: tuple[FormField, ...]
+) -> list[Document]:
+    current = current_assessment(state, year, fields)
+    return [] if current is None else [current[0]]
 
-    assert latest_assessment(state, 2025) == new
-    assert latest_assessment(state, 2024) == other_year
-    assert latest_assessment(state, 2023) is None
+
+def test_the_newest_assessment_with_confirmed_positions_counts() -> None:
+    old, new, other_year = assessment(1), assessment(2), assessment(3, year=2024)
+    confirmed = {COMMUTE_DAYS: "1"}
+    items = [old, proposal(old, confirmed), new, proposal(new, confirmed), other_year]
+    state = state_of([*items, proposal(other_year, confirmed)])
+    fields = FORMS[2025]
+
+    assert current_documents(state, 2025, fields) == [new]
+    assert current_documents(state, 2024, fields) == [other_year]
+    assert current_documents(state, 2023, fields) == []
+
+
+def test_a_newer_assessment_without_confirmed_positions_does_not_displace_the_older() -> None:
+    old, new = assessment(1), assessment(2)
+    items = [
+        *filing(work()),
+        old,
+        proposal(old, {COMMUTE_DAYS: "219"}),
+        new,
+        proposal(new, {}, open_={COMMUTE_DAYS: "220"}),
+    ]
+
+    assert kinds(findings(items)) == [ASSESSMENT_DEVIATION]
+
+
+def test_no_snapshot_note_only_for_a_field_that_could_be_compared() -> None:
+    document = assessment()
+    uncomputed = [document, proposal(document, {GROSS_WAGES: "97.292"})]
+
+    assert findings(uncomputed) == []
 
 
 def test_deviation_fingerprint_follows_the_printed_and_the_frozen_amount() -> None:
