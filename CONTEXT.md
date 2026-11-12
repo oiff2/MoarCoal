@@ -202,7 +202,7 @@ Felder eines Dokuments mit festem Aufbau exakt und ohne Claude übernehmen (z. B
 _Avoid_: importieren, parsen
 
 **auslesen**:
-Felder eines Dokuments nach der Auslese-Vorlage seiner Dokumentart von Claude lesen lassen; das Ergebnis ist ein Vorschlag, der erst nach Bestätigung gilt. Gegenstück: einlesen (exakt, ohne Claude, ohne Bestätigung).
+Felder eines Dokuments nach der Auslese-Vorlage seiner Dokumentart von Claude lesen lassen; das Ergebnis ist ein Vorschlag, der erst nach Bestätigung gilt. Gegenstück: einlesen (exakt, ohne Claude, ohne Bestätigung) (Code: `Extractor`).
 _Avoid_: importieren, extrahieren, parsen
 
 **Vorschlag**:
