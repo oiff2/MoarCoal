@@ -19,7 +19,7 @@ from moarcoal.modules.tax_year.entries import (
     ProtocolReading,
 )
 from moarcoal.modules.tax_year.pages import MODULE_KEY, entry_url, router
-from moarcoal.modules.tax_year.reading import TITLE, read_in_protocol
+from moarcoal.modules.tax_year.reading import READER_VERSION, TITLE, read_in_protocol
 from moarcoal.modules.tax_year.structure import FormStructure
 from moarcoal.registration import ModuleRegistration
 
@@ -32,6 +32,7 @@ def transfer_protocol(forms: Forms = FORMS) -> DocumentKind:
         title=TITLE,
         has_period=True,
         read_in=read_in_protocol,
+        reader_version=READER_VERSION,
         after_take_in=partial(snapshot_on_filing, forms=forms),
         unique_per_period=True,
     )

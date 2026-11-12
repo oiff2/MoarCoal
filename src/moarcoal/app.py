@@ -1,6 +1,7 @@
 """App-Fabrik: FastAPI mit Jinja2-Vorlagen, lokal ausgeliefertem htmx und den Modulen."""
 
 import datetime
+import logging
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Annotated, Any
@@ -14,6 +15,7 @@ from jinja2 import Environment, FileSystemLoader
 from moarcoal.dismissals import NoteMissing, dismiss, undismiss
 from moarcoal.document_list import router as document_list_router
 from moarcoal.document_pages import router as document_router
+from moarcoal.documents import read_in_again
 from moarcoal.expected_documents_pages import router as expected_documents_router
 from moarcoal.extraction import ClaudeExtractor, Extractor
 from moarcoal.issuer_field import router as issuer_field_router
@@ -47,6 +49,7 @@ TEMPLATES_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
 # Durchstich: ein fester Nutzer; Nutzerliste und Nutzerwechsel kommen mit dem Prototyp (#62).
 DEFAULT_USER = "ich"
+log = logging.getLogger(__name__)
 
 
 def _required_year(fields: dict[str, str]) -> int:
@@ -93,6 +96,9 @@ def create_app(
             if kind.unique_per_period
         },
     )
+    document_kinds = {k.key: k for module in modules for k in module.document_kinds}
+    for line in read_in_again(app.state.store, document_kinds):  # Start, Schritt 5
+        log.info(line)
     for module in modules:
         app.include_router(module.router)
     app.include_router(belege_router)

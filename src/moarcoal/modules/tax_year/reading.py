@@ -21,7 +21,7 @@ from moarcoal.modules.tax_year.entries import (
     ProtocolLine,
     ProtocolReading,
 )
-from moarcoal.storage import Document, Entry
+from moarcoal.storage import Document, ReadInEntry
 
 READER_VERSION = 2
 MAX_LINES = 5000
@@ -67,7 +67,7 @@ def _line(field: HtmlField) -> ProtocolLine | None:
     )
 
 
-def read_in_protocol(document: Document, content: bytes) -> list[Entry]:
+def read_in_protocol(document: Document, content: bytes) -> list[ReadInEntry]:
     """Einlese-Regel der Dokumentart Übertragungsprotokoll."""
     if document.period_start is None:
         raise ReadInError("Das Dokument hat keinen Bezugszeitraum.")

@@ -26,8 +26,8 @@ from moarcoal.storage import (
     open_store,
 )
 
-ONCE = DocumentKind("once", "Einmalart", True, lambda d, c: [], unique_per_period=True)
-FREE = DocumentKind("free", "Freie Art", True, lambda d, c: [])
+ONCE = DocumentKind("once", "Einmalart", True, lambda d, c: [], 1, unique_per_period=True)
+FREE = DocumentKind("free", "Freie Art", True, lambda d, c: [], 1)
 KINDS = {"once": ONCE, "free": FREE}
 
 

@@ -2,7 +2,7 @@
 
 from moarcoal.storage.aborted_extractions import ABORTED_EXTRACTION_KIND, AbortedExtraction
 from moarcoal.storage.dismissals import Dismissal
-from moarcoal.storage.documents import Document
+from moarcoal.storage.documents import Document, ReadInDifference, ReadInEntry, Rereading
 from moarcoal.storage.entries import (
     Entry,
     EntryAddress,
@@ -81,7 +81,10 @@ __all__ = [
     "Proposal",
     "ProposalField",
     "Put",
+    "ReadInDifference",
+    "ReadInEntry",
     "Rejected",
+    "Rereading",
     "SiteFile",
     "SiteFileError",
     "State",

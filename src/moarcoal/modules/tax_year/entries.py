@@ -7,7 +7,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 from moarcoal.defaults import MAX_YEAR, MIN_YEAR
-from moarcoal.storage import Entry, EntryAddress, EntryKind, entry_kind
+from moarcoal.storage import Entry, EntryAddress, EntryKind, ReadInEntry, entry_kind
 
 SCHEMA = "tax_year/1"
 TRANSFER_PROTOCOL_KEY = "transfer_protocol"  # Schlüssel der Dokumentart
@@ -36,17 +36,16 @@ class ProtocolLine(BaseModel):
     data_name: str = Field(min_length=1, max_length=TEXT_MAX)
 
 
-class ProtocolReading(Entry):
+class ProtocolReading(ReadInEntry):
     """Ergebnis des Einlesens eines Übertragungsprotokolls, gehört zu genau einem Dokument.
 
-    `reader_version` nennt die Fassung der Einlese-Regel. Die Einlesung fällt mit dem Dokument weg;
-    nach dem Löschen lässt sich die Datei neu aufnehmen und wird neu eingelesen.
-    `belegversion` und `received` stammen aus dem Kopf (leer, wenn dort nicht vorhanden).
+    Dokument und Fassung der Einlese-Regel trägt `ReadInEntry`; ändert sich die Fassung, liest
+    die Datenebene beim Start neu ein. Die Einlesung fällt mit dem Dokument weg; nach dem Löschen
+    lässt sich die Datei neu aufnehmen und wird neu eingelesen. `belegversion` und `received`
+    stammen aus dem Kopf (leer, wenn dort nicht vorhanden).
     """
 
-    document: EntryAddress
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
-    reader_version: int = Field(ge=1)
     belegversion: str = Field(default="", max_length=TEXT_MAX)
     received: datetime.date | None = None
     lines: tuple[ProtocolLine, ...]

@@ -326,7 +326,7 @@ def test_take_in_is_one_vorgang(root: Path, site: Path) -> None:
         assert isinstance(reading, ProtocolReading)
         return [reading, reading]  # zweimal dieselbe Adresse: der Vorgang wird abgewiesen
 
-    kind = DocumentKind("transfer_protocol", "x", True, failing)
+    kind = DocumentKind("transfer_protocol", "x", True, failing, READER_VERSION)
     store = make_store(root, site)
     result = take_in(
         store, {kind.key: kind}, "anna", "Belege", "2025/protokoll.html", kind.key, 2025

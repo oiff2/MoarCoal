@@ -364,7 +364,7 @@ def test_finding_comes_back_when_the_set_of_files_changes(root: Path, site: Path
 
 
 def test_year_input_is_hidden_for_kinds_without_period(root: Path, site: Path) -> None:
-    contract = DocumentKind("demo.contract", "Beispielvertrag", False, lambda d, b: [])
+    contract = DocumentKind("demo.contract", "Beispielvertrag", False, lambda d, b: [], 1)
     demo = ModuleRegistration(
         key="demo",
         area_name="Demo",

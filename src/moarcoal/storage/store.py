@@ -23,7 +23,7 @@ from pydantic import ValidationError
 
 from moarcoal.storage.aborted_extractions import ABORTED_EXTRACTION_KIND
 from moarcoal.storage.dismissals import DISMISSAL_KIND
-from moarcoal.storage.documents import document_entry_kind
+from moarcoal.storage.documents import REREADING_KIND, document_entry_kind
 from moarcoal.storage.entries import (
     Entry,
     EntryAddress,
@@ -674,7 +674,7 @@ def open_store(
 ) -> Store:
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
 
-    Die Arten der Datenebene (Dokument, Aussteller, Ausblendungen, Erwarteter Beleg,
+    Die Arten der Datenebene (Dokument, Neueinlesung, Aussteller, Ausblendungen, Erwarteter Beleg,
     Schnappschuss) kommen immer dazu.
     `sites` nennt die Ablageorte (Name -> Ordner); ohne Angabe gilt `common/sites.json`.
     `once_per_period` (Schlüssel -> Name) nennt die Dokumentarten mit nur einem Dokument je
@@ -682,6 +682,7 @@ def open_store(
     """
     all_kinds = (
         document_entry_kind(once_per_period),
+        REREADING_KIND,
         DISMISSAL_KIND,
         HIDDEN_FILE_KIND,
         HIDDEN_FOLDER_KIND,

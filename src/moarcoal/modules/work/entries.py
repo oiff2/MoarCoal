@@ -13,7 +13,7 @@ from pydantic import (
 )
 
 from moarcoal.defaults import MAX_YEAR, MIN_YEAR
-from moarcoal.storage import Entry, EntryAddress, EntryKind, entry_checksum, entry_kind
+from moarcoal.storage import Entry, EntryAddress, EntryKind, ReadInEntry, entry_checksum, entry_kind
 from moarcoal.values.findings import fingerprint
 
 SCHEMA = "work/1"
@@ -72,18 +72,16 @@ class WorkEquipment(Entry):
     input: UserInput
 
 
-class WageTaxCertificate(Entry):
+class WageTaxCertificate(ReadInEntry):
     """Ergebnis des Einlesens einer Lohnsteuerbescheinigung (eDaten) zu genau einem Dokument.
 
     Beträge stehen in ganzen Cent, genau wie bescheinigt. `None` heißt: die Bescheinigung nennt die
     Angabe nicht (nie 0). `places` nennt je Angabe den vollen Feldnamen `data-name` als Fundstelle.
-    `reader_version` nennt die Fassung der Einlese-Regel. Die Bescheinigung fällt mit dem Dokument
-    weg; nach dem Löschen lässt sich die Datei erneut aufnehmen und wird neu eingelesen.
+    Dokument und Fassung der Einlese-Regel trägt `ReadInEntry`. Die Bescheinigung fällt mit dem
+    Dokument weg; nach dem Löschen lässt sich die Datei erneut aufnehmen und wird neu eingelesen.
     """
 
-    document: EntryAddress
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
-    reader_version: int = Field(ge=1)
     tax_class: int | None = Field(default=None, ge=1, le=6)
     gross_wages_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)
     income_tax_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)

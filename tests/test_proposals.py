@@ -44,9 +44,12 @@ KIND = DocumentKind(
     title="Beispielbescheid",
     has_period=True,
     read_in=lambda d, c: [],
+    reader_version=1,
     extraction_template=TEMPLATE,
 )
-PLAIN = DocumentKind(key="plain", title="Ohne Vorlage", has_period=False, read_in=lambda d, c: [])
+PLAIN = DocumentKind(
+    key="plain", title="Ohne Vorlage", has_period=False, read_in=lambda d, c: [], reader_version=1
+)
 REGISTRATION = ModuleRegistration(
     key="beispiel",
     area_name="Beispiel",

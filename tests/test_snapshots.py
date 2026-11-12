@@ -238,7 +238,7 @@ def test_years_without_fields_get_no_snapshot() -> None:
 
 
 def test_a_kind_without_after_take_in_stays_as_before(store: Store) -> None:
-    kind = DocumentKind("x", "x", False, lambda document, content: [])
+    kind = DocumentKind("x", "x", False, lambda document, content: [], 1)
     result = take_in(store, {"x": kind}, USER, "Belege", "protokoll.html", "x", 2025)
     assert isinstance(result, TakenIn)
     assert snapshots(store) == []

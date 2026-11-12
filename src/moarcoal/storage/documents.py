@@ -1,15 +1,20 @@
-"""Baustein Dokument: Verweis auf eine Datei an einem Ablageort (docs/grundgeruest.md, 3.2)."""
+"""Baustein Dokument: Verweis auf eine Datei an einem Ablageort (docs/grundgeruest.md, 3.2 und 3.6).
+
+Dazu die Basis eingelesener Einträge und die Neueinlesung, die festhält, was neues Einlesen
+beim Start geändert hat.
+"""
 
 import datetime
 from collections.abc import Collection, Mapping
 from typing import Self
 
-from pydantic import Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from moarcoal.storage.entries import Entry, EntryAddress, EntryKind, entry_kind
 
 DOCUMENT_SCHEMA = "datenebene/1"
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
+TEXT_MAX = 500
 
 
 class Document(Entry):
@@ -50,6 +55,44 @@ class Document(Entry):
             and self.period_end is not None
             and self.period_start.year <= year <= self.period_end.year
         )
+
+
+class ReadInEntry(Entry):
+    """Basis jedes Eintrags, den eine Einlese-Regel liefert; selbst keine Eintragsart.
+
+    `document` ist das eingelesene Dokument, `reader_version` die Fassung der Einlese-Regel.
+    Daran findet die Datenebene beim Start, was neu einzulesen ist. Eingelesene Einträge
+    verweisen nicht aufeinander, denn neues Einlesen vergibt ihre Kennungen nach Reihenfolge.
+    """
+
+    document: EntryAddress
+    reader_version: int = Field(ge=1)
+
+
+class ReadInDifference(BaseModel):
+    """Eine Stelle, die neues Einlesen geändert hat; `None`: vorher bzw. nachher nicht da."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    location: str = Field(min_length=1, max_length=TEXT_MAX)
+    before: str | None = Field(max_length=TEXT_MAX)
+    after: str | None = Field(max_length=TEXT_MAX)
+
+
+class Rereading(Entry):
+    """Neues Einlesen eines Dokuments beim Start, das eingelesene Werte geändert hat.
+
+    Hält die geänderten Stellen fest (höchstens die ersten, `difference_count` zählt alle),
+    denn die alten Werte sind danach ersetzt. Ergibt den Hinweis-Befund
+    „Einlesen hat einen Wert geändert“.
+    """
+
+    document: EntryAddress
+    reread_at: datetime.datetime
+    version_before: int = Field(ge=1)
+    version_after: int = Field(ge=1)
+    differences: tuple[ReadInDifference, ...] = Field(min_length=1)
+    difference_count: int = Field(ge=1)
 
 
 def document_path(entry: Document) -> str:
@@ -97,3 +140,10 @@ def document_entry_kind(once_per_period: Mapping[str, str] | None = None) -> Ent
         return None
 
     return entry_kind(Document, DOCUMENT_SCHEMA, document_path, check=check)
+
+
+def rereading_path(entry: Rereading) -> str:
+    return f"users/{entry.owner}/documents.json"
+
+
+REREADING_KIND = entry_kind(Rereading, DOCUMENT_SCHEMA, rereading_path, falls_with="document")

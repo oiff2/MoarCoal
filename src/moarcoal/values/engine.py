@@ -2,13 +2,13 @@
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 
-from moarcoal.documents import duplicate_findings
+from moarcoal.documents import DocumentKind, duplicate_findings, rereading_findings
 from moarcoal.expected_documents import expected_document_findings
 from moarcoal.incoming import incoming_files
 from moarcoal.issuers import issuer_findings
 from moarcoal.proposals import aborted_extraction_findings, proposal_findings
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import Dismissal, SiteFile, Snapshot, State
+from moarcoal.storage import Dismissal, EntryAddress, SiteFile, Snapshot, State
 from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYetSignal
 from moarcoal.values.catalog import TimeKind, ValueCatalog
 from moarcoal.values.findings import (
@@ -197,8 +197,9 @@ class Values:
         if self._state.denylist_failed:
             text = "Abgeleitete Sperrliste konnte nicht geschrieben werden"
             found.append(Finding(DENYLIST_NOT_WRITTEN, Severity.WARNING, "sperrliste", text))
-        kinds = {k.key: k for m in self._modules.values() for k in m.document_kinds}
+        kinds = self._document_kinds()
         found.extend(duplicate_findings(self._state, user, kinds))
+        found.extend(rereading_findings(self._state, user, year, kinds, self._entry_url))
         found.extend(proposal_findings(self._state, user, year, titles))
         found.extend(aborted_extraction_findings(self._state, user))
         found.extend(snapshot_findings(self._state.of_kind(Snapshot), user, year))
@@ -225,6 +226,13 @@ class Values:
         found.sort(key=lambda f: order[f.severity])
         dismissals = [d for d in self._state.of_kind(Dismissal) if d.owner == user]
         return split_findings(found, dismissals)
+
+    def _document_kinds(self) -> dict[str, DocumentKind]:
+        return {k.key: k for m in self._modules.values() for k in m.document_kinds}
+
+    def _entry_url(self, address: EntryAddress) -> str | None:
+        found = (m.entry_url(address) for m in self._modules.values())
+        return next((url for url in found if url is not None), None)
 
     def subjects(self, key: str, user: str, time: TimeRef) -> list[Subject]:
         """Die Bezugsobjekte, die das Modul des Schlüssels zum Zeitbezug aufzählt."""

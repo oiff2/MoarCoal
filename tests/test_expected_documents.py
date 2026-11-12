@@ -273,7 +273,7 @@ def test_another_user_cannot_open_the_entry(tmp_path: Path) -> None:
 
 
 def test_kinds_without_period_are_not_offered() -> None:
-    plain = DocumentKind("demo.vertrag", "Vertrag", False, lambda d, b: [])
+    plain = DocumentKind("demo.vertrag", "Vertrag", False, lambda d, b: [], 1)
     assert not plain.has_period
 
 

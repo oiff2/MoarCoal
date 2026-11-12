@@ -1,4 +1,5 @@
-"""Befunde und Befundarten; die Datenebene erzeugt beim Rechnen den Zyklus, Module den Rest."""
+"""Befunde und Befundarten; die Datenebene erzeugt Zyklus, doppelte Fundstelle und
+geändertes Einlesen, Module den Rest."""
 
 import hashlib
 from dataclasses import dataclass
@@ -74,6 +75,7 @@ class Finding:
 
 CYCLE = "cycle"
 DUPLICATE_LOCATOR = "duplicate_locator"
+READ_IN_CHANGED = "read_in_changed"
 INCOMING_FILES = "incoming_files"
 DENYLIST_NOT_WRITTEN = "denylist_not_written"
 

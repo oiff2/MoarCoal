@@ -12,7 +12,7 @@ steht im EStB für Arbeit und für Vermietung und Verpachtung.
 
 from moarcoal.documents import DocumentKind
 from moarcoal.extraction_template import ExtractionTemplate, TemplateField
-from moarcoal.storage import Document, Entry
+from moarcoal.storage import Document, ReadInEntry
 
 ASSESSMENT_KEY = "assessment"  # Schlüssel der Dokumentart
 
@@ -99,7 +99,7 @@ TEMPLATE = ExtractionTemplate(
 )
 
 
-def _no_read_in(document: Document, content: bytes) -> list[Entry]:
+def _no_read_in(document: Document, content: bytes) -> list[ReadInEntry]:
     return []  # der EStB wird nur ausgelesen, nicht eingelesen
 
 
@@ -108,6 +108,7 @@ ASSESSMENT = DocumentKind(
     title="Einkommensteuerbescheid (EStB)",
     has_period=True,
     read_in=_no_read_in,
+    reader_version=1,
     extraction_template=TEMPLATE,
     unique_per_period=True,
 )

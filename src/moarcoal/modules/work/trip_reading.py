@@ -82,6 +82,7 @@ STATEMENT = DocumentKind(
     title="Reiseaufstellung (Screenshot)",
     has_period=True,
     read_in=lambda document, content: [],  # wird nur ausgelesen, nicht eingelesen
+    reader_version=1,
     extraction_template=TEMPLATE,
 )
 

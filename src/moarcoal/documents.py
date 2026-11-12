@@ -1,14 +1,20 @@
-"""Dokumentarten der Module und das Aufnehmen einer Datei vom Ablageort (docs/grundgeruest.md, 3.6).
+"""Dokumentarten, Aufnehmen und Einlesen einer Datei vom Ablageort (docs/grundgeruest.md, 3.6).
 
 Aufnehmen macht aus einer Datei ein Dokument und liest es, wenn die Dokumentart eine Einlese-Regel
 hat, exakt ein; beides geschieht in einem Vorgang. Die Datei selbst bleibt am Ablageort.
+
+Beim Start liest `read_in_again` jedes Dokument neu ein, dessen eingelesene Einträge eine ältere
+Fassung der Einlese-Regel tragen. Ein geänderter Wert ersetzt den alten; was sich geändert hat,
+hält eine Neueinlesung fest, daraus wird der Hinweis-Befund „Einlesen hat einen Wert geändert“.
 """
 
 import datetime
 import hashlib
-from collections.abc import Callable, Mapping, Sequence
+import json
+from collections import Counter
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pydantic import ValidationError
 
@@ -18,26 +24,37 @@ from moarcoal.links import document_url
 from moarcoal.storage import (
     Applied,
     Change,
+    Delete,
     Document,
     Entry,
     EntryAddress,
     Put,
+    ReadInDifference,
+    ReadInEntry,
+    Rereading,
     SiteFileError,
     State,
     Store,
     entry_checksum,
 )
-from moarcoal.storage.documents import exists_already, period_clash
-from moarcoal.values.findings import Finding, Severity
+from moarcoal.storage.documents import TEXT_MAX, exists_already, period_clash
+from moarcoal.values.findings import READ_IN_CHANGED, Finding, Severity
 
 if TYPE_CHECKING:
     from moarcoal.values.engine import Values
 
 DUPLICATE_DOCUMENT = "document_duplicate"
+MAX_DIFFERENCES = 50  # so viele Stellen hält eine Neueinlesung fest; gezählt werden alle
+SHOWN_DIFFERENCES = 3  # so viele nennt der Befund
+OWN_FIELDS = frozenset({"id", "owner", "document", "reader_version"})  # kein eingelesener Wert
 
 
 class ReadInError(Exception):
     """Die Einlese-Regel kann die Datei nicht lesen; die Meldung ist für den Nutzer."""
+
+
+class ReadInRuleBroken(Exception):
+    """Eine Einlese-Regel hält ihren Vertrag nicht ein (Programmfehler)."""
 
 
 @dataclass(frozen=True)
@@ -45,7 +62,9 @@ class DocumentKind:
     """Eine Dokumentart, wie die Modulanmeldung sie nennt.
 
     `read_in` ist die Einlese-Regel: eine reine Funktion aus Dokument und Dateiinhalt, die die
-    Einträge des Moduls liefert (oder `ReadInError` wirft). Sie fasst keine Datei an.
+    Einträge des Moduls liefert (oder `ReadInError` wirft). Sie fasst keine Datei an. Jeder
+    Eintrag nennt das Dokument, dessen Eigentümer und `reader_version`, die Fassung der Regel;
+    wer die Regel so ändert, dass anderes herauskommen kann, zählt die Fassung hoch.
     `extraction_template` ist die Auslese-Vorlage; ohne sie lässt sich die Art nicht auslesen.
     `name_patterns` sind optionale reguläre Ausdrücke (ohne Groß-/Kleinschreibung, gegen Datei- und
     Ordnernamen), mit denen das Aufnehmen-Formular die Art vorbelegt; ohne Muster nie.
@@ -64,7 +83,8 @@ class DocumentKind:
     key: str
     title: str
     has_period: bool
-    read_in: Callable[[Document, bytes], Sequence[Entry]]
+    read_in: Callable[[Document, bytes], Sequence[ReadInEntry]]
+    reader_version: int
     extraction_template: ExtractionTemplate | None = None
     name_patterns: tuple[str, ...] = ()
     after_take_in: Callable[[Document, Sequence[Entry], "Values"], Sequence[Change]] | None = None
@@ -74,7 +94,7 @@ class DocumentKind:
 @dataclass(frozen=True)
 class TakenIn:
     document: Document
-    entries: tuple[Entry, ...]
+    entries: tuple[ReadInEntry, ...]
 
 
 @dataclass(frozen=True)
@@ -188,7 +208,7 @@ def take_in(
     except ValidationError:
         return IntakeRejected(("Ablageort und Pfad müssen angegeben werden.",))
     try:
-        entries = tuple(kind.read_in(document, content)) if kind else ()
+        entries = _read_in(kind, document, content) if kind else ()
     except ReadInError as error:
         return IntakeRejected((str(error),))
     taken = [document, *entries]
@@ -243,7 +263,7 @@ def change_document(
                 content = store.read_site_file(document.site, document.path)
                 if hashlib.sha256(content).hexdigest() != document.sha256:
                     return IntakeRejected(("Die Datei hat sich seit dem Aufnehmen geändert.",))
-                changes.extend(Put(entry) for entry in kind.read_in(updated, content))
+                changes.extend(Put(entry) for entry in _read_in(kind, updated, content))
             except (SiteFileError, ReadInError) as error:
                 return IntakeRejected((str(error),))
     changes.append(Put(updated, entry_checksum(document)))
@@ -251,3 +271,208 @@ def change_document(
     if not isinstance(result, Applied):
         return _rejected(result.reasons, state, kinds, updated)
     return result
+
+
+def _read_in(kind: DocumentKind, document: Document, content: bytes) -> tuple[ReadInEntry, ...]:
+    """Die Einlese-Regel anwenden und ihren Vertrag prüfen."""
+    entries = tuple(kind.read_in(document, content))
+    for entry in entries:
+        if not isinstance(entry, ReadInEntry):  # pyright: ignore[reportUnnecessaryIsInstance]
+            raise ReadInRuleBroken(f"{kind.key}: {type(entry).__name__} ist kein ReadInEntry")
+        if (entry.document, entry.owner, entry.reader_version) != (
+            document.address,
+            document.owner,
+            kind.reader_version,
+        ):
+            raise ReadInRuleBroken(
+                f"{kind.key}: {entry.address} nennt nicht Dokument, Eigentümer und Fassung"
+            )
+    return entries
+
+
+# --- Neu einlesen beim Start ------------------------------------------------------------------
+
+
+def read_entries_of(state: State, document: EntryAddress) -> list[ReadInEntry]:
+    """Die eingelesenen Einträge eines Dokuments, nach Adresse sortiert."""
+    found = [
+        e for e in state.entries.values() if isinstance(e, ReadInEntry) and e.document == document
+    ]
+    return sorted(found, key=lambda e: str(e.address))
+
+
+def read_in_again(
+    store: Store, kinds: Mapping[str, DocumentKind], now: datetime.datetime | None = None
+) -> list[str]:
+    """Neu einlesen, wo sich die Fassung der Einlese-Regel geändert hat (Start, Schritt 5).
+
+    Je Dokument ein eigener Vorgang. Ist die Datei nicht lesbar, ihr Inhalt geändert oder lehnt
+    die Regel sie jetzt ab, bleibt das alte Ergebnis stehen. Liefert je betroffenem Dokument
+    eine Zeile fürs Protokoll des Starts.
+    """
+    moment = now or datetime.datetime.now(datetime.UTC)
+    report: list[str] = []
+    for document in sorted(store.state().of_kind(Document), key=lambda d: str(d.address)):
+        kind = kinds.get(document.document_kind or "")
+        if kind is None:
+            continue
+        old = read_entries_of(store.state(), document.address)
+        if not old or all(e.reader_version == kind.reader_version for e in old):
+            continue  # nichts eingelesen oder schon mit der aktuellen Fassung
+        name = f"{document.site}/{document.path}"
+        try:
+            content = store.read_site_file(document.site, document.path)
+        except SiteFileError as error:
+            report.append(f"{name}: nicht neu eingelesen, {error}")
+            continue
+        if hashlib.sha256(content).hexdigest() != document.sha256:
+            report.append(f"{name}: nicht neu eingelesen, der Inhalt der Datei hat sich geändert.")
+            continue
+        try:
+            new = _read_in(kind, document, content)
+        except ReadInError as error:
+            report.append(f"{name}: nicht neu eingelesen, {error}")
+            continue
+        changes, differences = _replace(old, new)
+        if differences:
+            changes.append(
+                Put(
+                    Rereading(
+                        owner=document.owner,
+                        document=document.address,
+                        reread_at=moment,
+                        version_before=min(e.reader_version for e in old),
+                        version_after=kind.reader_version,
+                        differences=tuple(differences[:MAX_DIFFERENCES]),
+                        difference_count=len(differences),
+                    )
+                )
+            )
+        result = store.apply(changes)
+        if not isinstance(result, Applied):
+            reasons = "; ".join(result.reasons.values())
+            report.append(f"{name}: nicht neu eingelesen ({reasons})")
+            continue
+        report.append(f"{name}: neu eingelesen, {len(differences)} Stelle(n) geändert.")
+    return report
+
+
+def _replace(
+    old: Sequence[ReadInEntry], new: Sequence[ReadInEntry]
+) -> tuple[list[Change], list[ReadInDifference]]:
+    """Änderungen, die das alte Ergebnis durch das neue ersetzen, und die geänderten Stellen.
+
+    Hat eine Art vorher und nachher genau einen Eintrag, behält er seine Kennung und wird
+    Feld für Feld verglichen; sonst werden die Einträge der Art als Ganzes ersetzt.
+    """
+    changes: list[Change] = []
+    differences: list[ReadInDifference] = []
+    kinds = dict.fromkeys(type(e).__name__ for e in (*old, *new))
+    for kind in kinds:
+        before = [e for e in old if type(e).__name__ == kind]
+        after = [e for e in new if type(e).__name__ == kind]
+        if len(before) == 1 and len(after) == 1:
+            kept = after[0].model_copy(update={"id": before[0].id})
+            changes.append(Put(kept, expected=entry_checksum(before[0])))
+            differences.extend(_field_differences(kind, before[0], kept))
+            continue
+        changes.extend(Delete(e.address, entry_checksum(e)) for e in before)
+        changes.extend(Put(e) for e in after)
+        differences.extend(_entry_differences(kind, before, after))
+    return changes, differences
+
+
+def _flatten(value: object, location: str) -> Iterable[tuple[str, str]]:
+    if isinstance(value, dict):
+        for key, inner in cast(dict[str, object], value).items():
+            yield from _flatten(inner, f"{location}.{key}")
+    elif isinstance(value, list):
+        for number, inner in enumerate(cast(list[object], value), start=1):
+            yield from _flatten(inner, f"{location}[{number}]")
+    else:
+        yield location, value if isinstance(value, str) else json.dumps(value)
+
+
+def _values(kind: str, entry: ReadInEntry) -> dict[str, str]:
+    dumped = entry.model_dump(mode="json", exclude=set(OWN_FIELDS))
+    return dict(_flatten(dumped, kind))
+
+
+def _clip(text: str | None) -> str | None:
+    return None if text is None else text[:TEXT_MAX]
+
+
+def _field_differences(
+    kind: str, before: ReadInEntry, after: ReadInEntry
+) -> list[ReadInDifference]:
+    old, new = _values(kind, before), _values(kind, after)
+    return [
+        ReadInDifference(
+            location=_clip(where) or kind, before=_clip(old.get(where)), after=_clip(new.get(where))
+        )
+        for where in dict.fromkeys((*old, *new))
+        if old.get(where) != new.get(where)
+    ]
+
+
+def _entry_differences(
+    kind: str, before: Sequence[ReadInEntry], after: Sequence[ReadInEntry]
+) -> list[ReadInDifference]:
+    """Einträge als Ganzes: was nur vorher bzw. nur nachher vorkommt."""
+
+    def text(entry: ReadInEntry) -> str:
+        return json.dumps(_values(kind, entry), ensure_ascii=False, sort_keys=True)
+
+    old, new = Counter(map(text, before)), Counter(map(text, after))
+    gone, added = old - new, new - old
+    return [
+        *(ReadInDifference(location=kind, before=_clip(t), after=None) for t in gone.elements()),
+        *(ReadInDifference(location=kind, before=None, after=_clip(t)) for t in added.elements()),
+    ]
+
+
+# --- Befund „Einlesen hat einen Wert geändert“ ------------------------------------------------
+
+
+def rereading_findings(
+    state: State,
+    user: str,
+    year: int,
+    kinds: Mapping[str, DocumentKind],
+    entry_url: Callable[[EntryAddress], str | None],
+) -> list[Finding]:
+    """Ein Hinweis je Neueinlesung des Nutzers, deren Dokument das Jahr betrifft.
+
+    Dokumente ohne Bezugszeitraum gelten für jedes Jahr. Der Link führt zum ersten
+    eingelesenen Eintrag des Dokuments, wenn sein Modul eine Seite dafür hat.
+    """
+    found: list[Finding] = []
+    for rereading in sorted(state.of_kind(Rereading), key=lambda r: (r.reread_at, r.id)):
+        document = state.get(rereading.document)
+        if rereading.owner != user or not isinstance(document, Document):
+            continue
+        start, end = document.period_start, document.period_end
+        if start and end and not start.year <= year <= end.year:
+            continue
+        kind = kinds.get(document.document_kind or "")
+        title = kind.title if kind else "Dokument"
+        shown = "; ".join(_describe(d) for d in rereading.differences[:SHOWN_DIFFERENCES])
+        more = rereading.difference_count - min(SHOWN_DIFFERENCES, len(rereading.differences))
+        message = (
+            f"{title} {document.path}: Neues Einlesen (Fassung {rereading.version_before} → "
+            f"{rereading.version_after}) hat {rereading.difference_count} Stelle(n) geändert: "
+            f"{shown}" + (f" und {more} weitere." if more > 0 else ".")
+        )
+        entries = read_entries_of(state, document.address)
+        href = next((url for e in entries if (url := entry_url(e.address))), None)
+        found.append(
+            Finding(READ_IN_CHANGED, Severity.NOTE, rereading.address, message, href=href or "")
+        )
+    return found
+
+
+def _describe(difference: ReadInDifference) -> str:
+    def quoted(text: str | None) -> str:
+        return "nicht vorhanden" if text is None else f"„{text}“"
+
+    return f"{difference.location} {quoted(difference.before)} → {quoted(difference.after)}"

@@ -12,7 +12,7 @@ from pydantic import ValidationError
 from moarcoal.documents import ReadInError
 from moarcoal.elster_html import HtmlField, parse_elster_html
 from moarcoal.modules.work.entries import WageTaxCertificate
-from moarcoal.storage import Document, Entry
+from moarcoal.storage import Document, ReadInEntry
 from moarcoal.values.model import parse_german_number
 
 READER_VERSION = 1
@@ -48,7 +48,7 @@ def _tax_class(field: HtmlField) -> int:
     return int(field.text)
 
 
-def read_in_wage_tax_certificate(document: Document, content: bytes) -> list[Entry]:
+def read_in_wage_tax_certificate(document: Document, content: bytes) -> list[ReadInEntry]:
     """Einlese-Regel der Dokumentart Lohnsteuerbescheinigung."""
     if document.period_start is None:
         raise ReadInError("Das Dokument hat keinen Bezugszeitraum.")

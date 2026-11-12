@@ -16,7 +16,7 @@ from moarcoal.modules.work.entries import (
 from moarcoal.modules.work.pages import entry_url
 from moarcoal.modules.work.pages import router as pages_router
 from moarcoal.modules.work.places import PLACE_KINDS, Place
-from moarcoal.modules.work.reading import TITLE, read_in_wage_tax_certificate
+from moarcoal.modules.work.reading import READER_VERSION, TITLE, read_in_wage_tax_certificate
 from moarcoal.modules.work.trip_pages import router as trip_router
 from moarcoal.modules.work.trip_reading import STATEMENT
 from moarcoal.modules.work.values import FINDING_KINDS, VALUES, work_findings
@@ -29,6 +29,7 @@ WAGE_TAX_CERTIFICATE = DocumentKind(
     title=TITLE,
     has_period=True,
     read_in=read_in_wage_tax_certificate,
+    reader_version=READER_VERSION,
     unique_per_period=True,
 )
 

@@ -19,7 +19,7 @@ PORT = 4711
 
 
 def kind(key: str, *patterns: str) -> DocumentKind:
-    return DocumentKind(key, key, True, lambda document, content: [], name_patterns=patterns)
+    return DocumentKind(key, key, True, lambda document, content: [], 1, name_patterns=patterns)
 
 
 def issuer(name: str, *aliases: str) -> Issuer:
