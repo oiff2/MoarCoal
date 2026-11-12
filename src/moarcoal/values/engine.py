@@ -1,9 +1,9 @@
 """`Values`: rechnet Ausgewiesene Werte auf Anfrage, mit Zwischenspeicher und Prüfungen."""
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import Entry, State
+from moarcoal.storage import State
 from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYetSignal
 from moarcoal.values.catalog import TimeKind, ValueCatalog
 from moarcoal.values.findings import CYCLE, DUPLICATE_LOCATOR, Finding, Severity
@@ -16,6 +16,7 @@ from moarcoal.values.model import (
     Period,
     Subject,
     TimeRef,
+    ValueKey,
     ValueRef,
     ValueResult,
     Workings,
@@ -24,6 +25,13 @@ from moarcoal.values.model import (
 
 class ContractViolation(Exception):
     """Eine Rechnung oder Anfrage bricht den Contract (Programmfehler)."""
+
+
+type ForeignResult = Callable[[ValueRef], ValueResult]
+"""Fest vorgegebenes Ergebnis eines fremden Werts (nur Modul-Tests, `values.testing`)."""
+
+type Foreign = Mapping[tuple[str, Subject | None, TimeRef], ForeignResult]
+"""Fremde Werte je (Schlüssel, Bezugsobjekt, Zeitbezug), die an Stelle eines Moduls stehen."""
 
 
 def _leaf_locators(items: Iterable[LineItem]) -> Iterable[Locator]:
@@ -44,10 +52,16 @@ def _describe(locator: Locator) -> str:
 class Values:
     """Eine je Anfrage, auf dem festgehaltenen Stand. Rechnet jeden Wert höchstens einmal."""
 
-    def __init__(self, modules: Sequence[ModuleRegistration], state: State) -> None:
+    def __init__(
+        self, modules: Sequence[ModuleRegistration], state: State, foreign: Foreign | None = None
+    ) -> None:
         self._modules = {m.key: m for m in modules}
         self._state = state
         self.catalog = ValueCatalog.of((m.key, m.values) for m in modules)
+        self._foreign = dict(foreign or {})
+        self._foreign_keys = {key for key, _, _ in self._foreign}
+        if both := sorted(k for k in self._foreign_keys if k in self.catalog.definitions):
+            raise ContractViolation(f"angemeldet und vorgegeben: {', '.join(both)}")
         self._cache: dict[ValueRef, ValueResult] = {}
         self._stack: list[ValueRef] = []  # laufende Anfragen, zur Zykluserkennung
         self.findings: list[Finding] = []
@@ -59,6 +73,8 @@ class Values:
         self, key: str, user: str, time: TimeRef, subject: Subject | None = None
     ) -> ValueResult:
         """Ein Wert; ein unbekannter Schlüssel ist ein Programmfehler (`UnknownValueKey`)."""
+        if key in self._foreign_keys:
+            return self._foreign_get(key, user, time, subject)
         definition = self.catalog.definition(key)
         entry = definition.entry
         if (entry.time_kind is TimeKind.PERIOD) != isinstance(time, Period):
@@ -103,6 +119,14 @@ class Values:
         self._cache[ref] = result
         return result
 
+    def _foreign_get(
+        self, key: str, user: str, time: TimeRef, subject: Subject | None
+    ) -> ValueResult:
+        given = self._foreign.get((key, subject, time))
+        if given is None:
+            raise ContractViolation(f"{key}: keine Vorgabe für {subject} und {time}")
+        return given(ValueRef(ValueKey(key), user, time, subject))
+
     def _check_duplicate_locators(self, value: ExposedValue) -> None:
         """Dieselbe Fundstelle nur einmal je Wert, auch über Ketten; sonst Fehler-Befund."""
         seen: list[Locator] = []
@@ -145,6 +169,9 @@ class Values:
 
     def subjects(self, key: str, user: str, time: TimeRef) -> list[Subject]:
         """Die Bezugsobjekte, die das Modul des Schlüssels zum Zeitbezug aufzählt."""
+        if key in self._foreign_keys:
+            found = [s for k, s, t in self._foreign if k == key and t == time and s is not None]
+            return list(dict.fromkeys(found))
         definition = self.catalog.definition(key)
         if definition.subjects is None:
             raise ContractViolation(f"{definition.entry.key} hat keine Bezugsobjekte")
@@ -154,8 +181,3 @@ class Values:
     def all(self, key: str, user: str, time: TimeRef) -> list[ValueResult]:
         """Ein Ergebnis je Bezugsobjekt, das das Modul zu Schlüssel und Zeitbezug aufzählt."""
         return [self.get(key, user, time, s) for s in self.subjects(key, user, time)]
-
-
-def evaluate(modules: Sequence[ModuleRegistration], entries: Iterable[Entry]) -> Values:
-    """Für Modul-Tests: dieselbe `Values` wie im Betrieb, der Stand aus Einträgen ohne Dateien."""
-    return Values(modules, State({e.address: e for e in entries}))
