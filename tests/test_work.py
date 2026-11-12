@@ -18,9 +18,9 @@ from moarcoal.modules.work.values import EQUIPMENT as EQUIPMENT_KEY
 from moarcoal.modules.work.values import EQUIPMENT_GAP
 from moarcoal.registration import ForeignKindError, ModuleRegistration
 from moarcoal.storage import Applied, Entry, EntryAddress, Put, entry_checksum, open_store
-from moarcoal.values.engine import evaluate
 from moarcoal.values.findings import Finding, Severity
 from moarcoal.values.model import Amount, ExposedValue, Period, Unit
+from moarcoal.values.testing import evaluate
 from moarcoal.web import format_eur
 
 PORT = 4711

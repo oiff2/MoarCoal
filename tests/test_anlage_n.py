@@ -28,7 +28,7 @@ from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import EntryAddress
 from moarcoal.values.calculation import Calculation, Missing
 from moarcoal.values.catalog import CatalogEntry, TimeKind, UnknownValueKey, ValueDefinition
-from moarcoal.values.engine import ContractViolation, evaluate
+from moarcoal.values.engine import ContractViolation
 from moarcoal.values.findings import CYCLE, Severity
 from moarcoal.values.model import (
     Amount,
@@ -41,6 +41,7 @@ from moarcoal.values.model import (
     ValueKey,
     ValueLocator,
 )
+from moarcoal.values.testing import evaluate
 
 WORK_EQUIPMENT = ValueKey("work.equipment")
 

@@ -23,7 +23,7 @@ from moarcoal.values.catalog import (
     UnknownValueKey,
     ValueDefinition,
 )
-from moarcoal.values.engine import ContractViolation, Values, evaluate
+from moarcoal.values.engine import ContractViolation, Values
 from moarcoal.values.findings import DUPLICATE_LOCATOR, Finding, Severity
 from moarcoal.values.model import (
     Amount,
@@ -38,6 +38,7 @@ from moarcoal.values.model import (
     UserInputLocator,
     ValueKey,
 )
+from moarcoal.values.testing import evaluate, fixed, not_applicable, not_yet
 
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
@@ -421,3 +422,81 @@ def test_duplicate_locator_shows_up_in_the_finding_list() -> None:
     found = values.finding_list("anna", 2025)
 
     assert [f.kind for f in found] == [DUPLICATE_LOCATOR]
+
+
+# --- foreign: fremde Werte fest vorgegeben ------------------------------------------------------
+
+
+def uses(key: str, subject: Subject | None = None) -> Callable[[Calculation], Amount]:
+    def compute(calc: Calculation) -> Amount:
+        item = calc.use(key, subject)
+        return item.amount if item is not None else Amount.eur_cents(0)
+
+    return compute
+
+
+def test_foreign_value_is_used_like_a_computed_one_with_its_own_item() -> None:
+    given = Amount.eur_cents(8640)
+    values = evaluate(
+        [custom(definition("demo.top", uses("other.money")))],
+        foreign={("other.money", None, YEAR): fixed(given, Backing.PENDING)},
+    )
+
+    result = exposed(values.get("demo.top", "anna", YEAR))
+
+    assert result.amount == given
+    assert result.backing is Backing.PENDING
+    (item,) = result.items
+    used = item.locator.used_value
+    assert used is not None and used.key == "other.money" and len(used.items) == 1
+
+
+def test_foreign_not_yet_and_not_applicable_pass_on_like_real_values() -> None:
+    values = evaluate(
+        [custom(definition("demo.a", uses("other.a")), definition("demo.b", uses("other.b")))],
+        foreign={
+            ("other.a", None, YEAR): not_yet("keine Eingabe"),
+            ("other.b", None, YEAR): not_applicable("abgeschaltet"),
+        },
+    )
+
+    a = values.get("demo.a", "anna", YEAR)
+    b = exposed(values.get("demo.b", "anna", YEAR))
+
+    assert isinstance(a, NotYetComputable) and "keine Eingabe" in a.reason
+    assert [link.key for link in a.chain] == ["other.a"]
+    assert b.items == () and b.workings.steps[0].kind == "decision"
+
+
+def test_foreign_subjects_come_from_the_given_keys() -> None:
+    first, second = Subject(workplace().address), Subject(workplace(workdays=20).address)
+    values = evaluate(
+        [],
+        foreign={
+            ("other.days", first, YEAR): fixed(Amount.of(180, Unit.DAYS)),
+            ("other.days", second, YEAR): fixed(Amount.of(20, Unit.DAYS)),
+            ("other.days", first, Period.year(2024)): fixed(Amount.of(1, Unit.DAYS)),
+        },
+    )
+
+    assert values.subjects("other.days", "anna", YEAR) == [first, second]
+    assert values.subjects("other.days", "anna", Period.year(2023)) == []
+
+
+def test_foreign_key_without_given_time_is_a_programming_error() -> None:
+    values = evaluate([], foreign={("other.money", None, YEAR): fixed(Amount.eur_cents(1))})
+
+    with pytest.raises(ContractViolation, match="keine Vorgabe"):
+        values.get("other.money", "anna", Period.year(2024))
+
+
+def test_key_registered_and_given_is_a_programming_error() -> None:
+    with pytest.raises(ContractViolation, match="angemeldet und vorgegeben"):
+        evaluate([REGISTRATION], foreign={(EQUIPMENT, None, YEAR): fixed(Amount.eur_cents(1))})
+
+
+def test_key_neither_registered_nor_given_stays_unknown() -> None:
+    values = evaluate([], foreign={("other.money", None, YEAR): fixed(Amount.eur_cents(1))})
+
+    with pytest.raises(UnknownValueKey):
+        values.get("other.nope", "anna", YEAR)

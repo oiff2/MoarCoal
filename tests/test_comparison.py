@@ -25,8 +25,8 @@ from moarcoal.modules.tax_year.comparison import (
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import FirstWorkplace, UserInput, WorkEquipment
 from moarcoal.storage import Document, Entry
-from moarcoal.values.engine import evaluate
 from moarcoal.values.findings import Finding, Severity
+from moarcoal.values.testing import evaluate
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PORT = 4711
