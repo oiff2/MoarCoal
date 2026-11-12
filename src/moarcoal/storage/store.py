@@ -32,6 +32,7 @@ from moarcoal.storage.entries import (
 from moarcoal.storage.expected_documents import EXPECTED_DOCUMENT_KIND
 from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND
 from moarcoal.storage.proposals import PROPOSAL_KIND
+from moarcoal.storage.snapshots import SNAPSHOT_KIND
 
 DEFAULT_DATA_DIR_NAME = "MoarCoal"
 DATA_DIRS = ("users", "common")  # hier liegen Einträge; .backup, .cache und config nicht
@@ -481,7 +482,8 @@ def open_store(
 ) -> Store:
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
 
-    Die Arten der Datenebene (Dokument, Ausblendungen, Erwarteter Beleg) kommen immer dazu.
+    Die Arten der Datenebene (Dokument, Ausblendungen, Erwarteter Beleg, Schnappschuss) kommen
+    immer dazu.
     `sites` nennt die Ablageorte (Name -> Ordner); ohne Angabe gilt `common/sites.json`.
     """
     all_kinds = (
@@ -490,6 +492,7 @@ def open_store(
         HIDDEN_FILE_KIND,
         EXPECTED_DOCUMENT_KIND,
         PROPOSAL_KIND,
+        SNAPSHOT_KIND,
         *kinds,
     )
     collisions = kind_collisions([kind.model for kind in all_kinds])

@@ -15,6 +15,16 @@ from moarcoal.storage.entries import (
 from moarcoal.storage.expected_documents import ExpectedDocument
 from moarcoal.storage.hidden_files import COMMON_OWNER, HiddenFile
 from moarcoal.storage.proposals import PROPOSAL_KIND, Content, Proposal, ProposalField
+from moarcoal.storage.snapshots import (
+    FrozenAmount,
+    FrozenItem,
+    FrozenRef,
+    FrozenStep,
+    FrozenTime,
+    FrozenValue,
+    Occasion,
+    Snapshot,
+)
 from moarcoal.storage.store import (
     Applied,
     Change,
@@ -42,7 +52,15 @@ __all__ = [
     "Entry",
     "EntryAddress",
     "EntryKind",
+    "FrozenAmount",
+    "FrozenItem",
+    "FrozenRef",
+    "FrozenStep",
+    "FrozenTime",
+    "FrozenValue",
     "HiddenFile",
+    "Occasion",
+    "Snapshot",
     "ExpectedDocument",
     "Proposal",
     "ProposalField",

@@ -16,6 +16,7 @@ from moarcoal.web import (
     render,
     store_of,
     user_of,
+    values_on,
 )
 
 router = APIRouter(prefix="/eingang")
@@ -82,7 +83,14 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
         except ValueError:
             return rejected("Steuerjahr: ganze Zahl, z. B. 2025")
     result = take_in(
-        store_of(request), kinds, user_of(request), file.site, file.path, kind.key, year
+        store_of(request),
+        kinds,
+        user_of(request),
+        file.site,
+        file.path,
+        kind.key,
+        year,
+        values_on=lambda state: values_on(request, state),
     )
     if isinstance(result, IntakeRejected):
         return rejected(*result.reasons)

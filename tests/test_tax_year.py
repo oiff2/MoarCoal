@@ -4,6 +4,7 @@ import datetime
 import hashlib
 import json
 import shutil
+from collections.abc import Mapping
 from pathlib import Path
 
 import httpx
@@ -11,27 +12,53 @@ import pytest
 from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
-from moarcoal.documents import DocumentKind, IntakeRejected, ReadInError, TakenIn, take_in
+from moarcoal.documents import DocumentKind, IntakeRejected, ReadInError, TakenIn
+from moarcoal.documents import take_in as take_in_with
 from moarcoal.modules.tax_year import (
     REGISTRATION,
     TRANSFER_PROTOCOL,
     ProtocolReading,
 )
 from moarcoal.modules.tax_year.reading import READER_VERSION, parse_protocol, read_in_protocol
+from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.storage import (
     Applied,
     Document,
     Put,
     SiteFileError,
+    Store,
     StoreError,
     open_store,
 )
 from moarcoal.storage.store import site_folder
+from moarcoal.values.engine import Values
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
 KINDS = {TRANSFER_PROTOCOL.key: TRANSFER_PROTOCOL}
+
+
+def take_in(
+    store: Store,
+    kinds: Mapping[str, DocumentKind],
+    user: str,
+    site: str,
+    path: str,
+    kind_key: str,
+    year: int,
+) -> TakenIn | IntakeRejected:
+    """`take_in` mit `Values` über Steuerjahr und Arbeit, wie die Seite es übergibt."""
+    return take_in_with(
+        store,
+        kinds,
+        user,
+        site,
+        path,
+        kind_key,
+        year,
+        values_on=lambda state: Values([WORK, REGISTRATION], state),
+    )
 
 
 @pytest.fixture

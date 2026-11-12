@@ -127,6 +127,12 @@ class Locator:
         raise NotImplementedError
 
 
+def describe_locator(locator: Locator) -> str:
+    """Die Fundstelle als Klartext: Art und, falls sie auf einen Eintrag zeigt, dessen Adresse."""
+    address = locator.entry_address
+    return f"{locator.label} {address}" if address is not None else locator.label
+
+
 @dataclass(frozen=True)
 class UserInputLocator(Locator):
     """Nutzereingabe, genannt über die Adresse ihres Eintrags: Belegstand angenommen."""

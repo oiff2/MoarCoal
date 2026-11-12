@@ -13,6 +13,7 @@ from moarcoal.storage import (
     EntryAddress,
     EntryKind,
     Proposal,
+    Snapshot,
     State,
     entry_checksum,
 )
@@ -57,6 +58,7 @@ class ModuleState:
         self._state = state
         self._kinds = {kind.model.__name__ for kind in registration.kinds}
         self._user = user
+        self._module = registration.key
 
     @property
     def user(self) -> str:
@@ -109,6 +111,15 @@ class ModuleState:
             for key, field in latest.fields.items()
             if field.confirmed
         }
+
+    def snapshots(self) -> list[Snapshot]:
+        """Schnappschüsse des Nutzers, die dieses Modul ausgelöst hat (Baustein der Datenebene)."""
+        found = [
+            s
+            for s in self._state.of_kind(Snapshot)
+            if s.owner == self._user and s.module == self._module
+        ]
+        return sorted(found, key=lambda s: (s.taken_at, s.id))
 
     def checksum(self, address: EntryAddress) -> str | None:
         entry = self.get(address)

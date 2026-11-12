@@ -10,7 +10,7 @@ from fastapi.templating import Jinja2Templates
 from moarcoal.documents import DocumentKind
 from moarcoal.incoming import all_site_files
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import EntryAddress, ExpectedDocument, Store
+from moarcoal.storage import EntryAddress, ExpectedDocument, State, Store
 from moarcoal.values.engine import Values
 from moarcoal.values.model import Amount, format_amount
 
@@ -27,12 +27,15 @@ def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) ->
     return next((url for m in modules if (url := m.entry_url(address)) is not None), None)
 
 
+def values_on(request: Request, state: State) -> Values:
+    """`Values` der Anwendung auf einem beliebigen Stand (z. B. einem vorläufigen)."""
+    store = store_of(request)
+    return Values(request.app.state.modules, state, site_files=lambda: all_site_files(store))
+
+
 def values_of(request: Request) -> Values:
     """`Values` der Anfrage, auf dem Stand zu Beginn der Anfrage."""
-    store = store_of(request)
-    return Values(
-        request.app.state.modules, store.state(), site_files=lambda: all_site_files(store)
-    )
+    return values_on(request, store_of(request).state())
 
 
 def document_kinds(request: Request) -> dict[str, DocumentKind]:

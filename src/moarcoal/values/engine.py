@@ -6,7 +6,7 @@ from moarcoal.expected_documents import expected_document_findings
 from moarcoal.incoming import incoming_files
 from moarcoal.proposals import proposal_findings
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import Dismissal, SiteFile, State
+from moarcoal.storage import Dismissal, SiteFile, Snapshot, State
 from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYetSignal
 from moarcoal.values.catalog import TimeKind, ValueCatalog
 from moarcoal.values.findings import (
@@ -32,7 +32,9 @@ from moarcoal.values.model import (
     ValueRef,
     ValueResult,
     Workings,
+    describe_locator,
 )
+from moarcoal.values.snapshots import snapshot_findings
 
 
 class ContractViolation(Exception):
@@ -54,11 +56,6 @@ def _leaf_locators(items: Iterable[LineItem]) -> Iterable[Locator]:
             yield item.locator
         else:
             yield from _leaf_locators(used.items)
-
-
-def _describe(locator: Locator) -> str:
-    address = locator.entry_address
-    return f"{locator.label} {address}" if address is not None else locator.label
 
 
 class Values:
@@ -157,13 +154,13 @@ class Values:
             else:
                 seen.append(locator)
         for locator in duplicates:
-            text = f"Fundstelle mehrfach im Wert {value.key}: {_describe(locator)}"
+            text = f"Fundstelle mehrfach im Wert {value.key}: {describe_locator(locator)}"
             found = Finding(
                 DUPLICATE_LOCATOR,
                 Severity.ERROR,
                 value.ref,
                 text,
-                fingerprint=fingerprint(value.key, _describe(locator)),
+                fingerprint=fingerprint(value.key, describe_locator(locator)),
             )
             self.findings.append(found)
 
@@ -194,6 +191,7 @@ class Values:
         titles = {k.key: k.title for m in self._modules.values() for k in m.document_kinds}
         found.extend(expected_document_findings(self._state, user, year, titles))
         found.extend(proposal_findings(self._state, user, year, titles))
+        found.extend(snapshot_findings(self._state.of_kind(Snapshot), user, year))
         for module in self._modules.values():
             if module.findings is not None:
                 found.extend(module.findings(self._module_state(module.key, user), self, year))

@@ -6,26 +6,39 @@ Text Differenz und Richtung. Mehrere Zeilen derselben E-Kennung werden bei EUR-F
 bei Tagen und km sind sie mehrdeutig.
 """
 
-from collections.abc import Iterator
+import datetime
+from collections.abc import Iterator, Sequence
 
 from moarcoal.modules.tax_year.anlage_n import FORMS, Forms
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
 from moarcoal.modules.tax_year.fields import AmbiguousLines, FormField, NotANumber
 from moarcoal.registration import ModuleState
+from moarcoal.storage import Change, Document, Entry, FrozenValue, Occasion, Put, Snapshot
 from moarcoal.values.calculation import ValueSource
+from moarcoal.values.engine import Values
 from moarcoal.values.findings import Finding, FindingKind, Severity, fingerprint
 from moarcoal.values.model import ExposedValue, Period, ValueRef
+from moarcoal.values.snapshots import (
+    compare,
+    freeze,
+    frozen_time,
+    latest_snapshots,
+    outcome_text,
+)
 
 DEVIATION = "tax_year.protocol_deviation"
 MISSING = "tax_year.protocol_missing"
 AMBIGUOUS = "tax_year.protocol_ambiguous"
 UNKNOWN_ELSTER_ID = "tax_year.protocol_unknown_elster_id"
+SNAPSHOT_DEVIATION = "tax_year.snapshot_deviation"
+MODULE_KEY = "tax_year"
 
 FINDING_KINDS = (
     FindingKind(DEVIATION, "Übertragungsprotokoll weicht vom Wert ab"),
     FindingKind(MISSING, "Feld fehlt im Übertragungsprotokoll"),
     FindingKind(AMBIGUOUS, "Feld kommt im Übertragungsprotokoll mehrfach vor"),
     FindingKind(UNKNOWN_ELSTER_ID, "E-Kennung unbekannt, nicht abgleichbar"),
+    FindingKind(SNAPSHOT_DEVIATION, "Abweichung zum Schnappschuss"),
 )
 
 
@@ -128,3 +141,87 @@ def protocol_findings(
         elif isinstance(result, ExposedValue):  # sonst gibt es nichts zu vergleichen
             found.extend(_field_findings(field, ref, result, reading))
     return found
+
+
+def anlage_n_url(year: int) -> str:
+    return f"/steuerjahr/anlage-n/{year}"
+
+
+def latest_snapshot(state: ModuleState, year: int) -> Snapshot | None:
+    """Der neueste Schnappschuss der Abgabe des Jahrs, den dieses Modul ausgelöst hat."""
+    time = frozen_time(Period.year(year))
+    found = [s for s in state.snapshots() if s.occasion is Occasion.FILING and s.time == time]
+    return latest_snapshots(found)[-1] if found else None
+
+
+def describe_frozen(field: FormField, frozen: FrozenValue) -> str:
+    """Der eingefrorene Wert eines Felds als Klartext, ganze Euro ohne Cent."""
+    if frozen.outcome == "amount" and frozen.amount is not None:
+        return field.show(frozen.amount.value)
+    return outcome_text(frozen)
+
+
+def snapshot_findings(
+    state: ModuleState, values: ValueSource, year: int, forms: Forms = FORMS
+) -> list[Finding]:
+    """Warnung je Feld, dessen aktueller Wert vom eingefrorenen der Abgabe abweicht; verglichen
+    wird mit dem neuesten Schnappschuss des Jahrs."""
+    fields = forms.get(year)
+    snapshot = latest_snapshot(state, year)
+    if fields is None or snapshot is None:
+        return []
+    deviations = compare(snapshot, values)
+    period = Period.year(year)
+    found: list[Finding] = []
+    for field in fields:
+        mine = [
+            d for d in deviations if d.ref.key == field.key and d.ref.time == frozen_time(period)
+        ]
+        if not mine:
+            continue
+        name = f"Anlage N Nr. {field.form_line}, {field.label}"
+        taken = snapshot.taken_at.strftime("%d.%m.%Y")
+        texts = [d.text for d in mine]
+        found.append(
+            Finding(
+                SNAPSHOT_DEVIATION,
+                Severity.WARNING,
+                ValueRef(field.key, state.user, period, None),
+                f"{name}: Abweichung zum Schnappschuss bei Abgabe am {taken}. " + "; ".join(texts),
+                href=anlage_n_url(year),
+                fingerprint=fingerprint(snapshot.id, field.key, *texts),
+            )
+        )
+    return found
+
+
+def module_findings(
+    state: ModuleState, values: ValueSource, year: int, forms: Forms = FORMS
+) -> list[Finding]:
+    """Alle Befunde des Steuerjahrs: Abgleich mit dem Protokoll und Abweichung zum Schnappschuss."""
+    return [
+        *protocol_findings(state, values, year, forms),
+        *snapshot_findings(state, values, year, forms),
+    ]
+
+
+def snapshot_on_filing(
+    document: Document, entries: Sequence[Entry], values: Values, forms: Forms = FORMS
+) -> Sequence[Change]:
+    """Ergänzung beim Aufnehmen eines Protokolls (Spec 3.6 Punkt 8): friert die Werte der Felder
+    des Jahrs als Schnappschuss der Abgabe ein. Jahre ohne Felder (vor 2025): keiner."""
+    reading = next((e for e in entries if isinstance(e, ProtocolReading)), None)
+    fields = None if reading is None else forms.get(reading.year)
+    if reading is None or not fields:
+        return []
+    period = Period.year(reading.year)
+    snapshot = Snapshot(
+        owner=document.owner,
+        occasion=Occasion.FILING,
+        taken_at=document.taken_in_at or datetime.datetime.now(datetime.UTC),
+        module=MODULE_KEY,
+        document=document.address,
+        time=frozen_time(period),
+        values=freeze(values, document.owner, [f.key for f in fields], period),
+    )
+    return [Put(snapshot)]

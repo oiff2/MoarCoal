@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from moarcoal.modules.tax_year.anlage_n import FORMS
+from moarcoal.modules.tax_year.comparison import describe_frozen, latest_snapshot
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Document, EntryAddress
@@ -61,11 +62,22 @@ def anlage_n(request: Request, year: int) -> HTMLResponse:
     values = values_of(request)
     user = user_of(request)
     rows = [(field, values.get(field.key, user, Period.year(year))) for field in fields]
+    snapshot = latest_snapshot(_own_state(request), year)
+    frozen = {}
+    if snapshot is not None:
+        frozen = {
+            v.ref.key: describe_frozen(field, v)
+            for field in fields
+            for v in snapshot.values
+            if v.requested and v.ref.key == field.key
+        }
     return render(
         request,
         "tax_year/anlage_n.html",
         year=year,
         rows=rows,
+        snapshot=snapshot,
+        frozen=frozen,
         findings=values.finding_list(user, year),  # Vorlage zeigt die sichtbaren Befunde
     )
 

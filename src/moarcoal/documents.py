@@ -8,12 +8,14 @@ import datetime
 import hashlib
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
 from moarcoal.extraction_template import ExtractionTemplate
 from moarcoal.storage import (
     Applied,
+    Change,
     Document,
     Entry,
     Put,
@@ -21,6 +23,9 @@ from moarcoal.storage import (
     State,
     Store,
 )
+
+if TYPE_CHECKING:
+    from moarcoal.values.engine import Values
 
 MIN_YEAR = 2000
 MAX_YEAR = 2100
@@ -37,6 +42,11 @@ class DocumentKind:
     `read_in` ist die Einlese-Regel: eine reine Funktion aus Dokument und Dateiinhalt, die die
     Einträge des Moduls liefert (oder `ReadInError` wirft). Sie fasst keine Datei an.
     `extraction_template` ist die Auslese-Vorlage; ohne sie lässt sich die Art nicht auslesen.
+
+    `after_take_in` ist die optionale Ergänzung beim Aufnehmen (Spec 3.6 Punkt 8): aus Dokument,
+    eingelesenen Einträgen und `Values` auf einem vorläufigen Stand, der beide schon enthält,
+    liefert sie Änderungen, die im selben Vorgang geschrieben werden. Sie kann das Aufnehmen nicht
+    ablehnen; beim Neu-Einlesen läuft sie nicht erneut.
     """
 
     key: str
@@ -44,6 +54,7 @@ class DocumentKind:
     has_period: bool
     read_in: Callable[[Document, bytes], Sequence[Entry]]
     extraction_template: ExtractionTemplate | None = None
+    after_take_in: Callable[[Document, Sequence[Entry], "Values"], Sequence[Change]] | None = None
 
 
 @dataclass(frozen=True)
@@ -65,8 +76,13 @@ def take_in(
     path: str,
     kind_key: str,
     year: int,
+    *,
+    values_on: Callable[[State], "Values"] | None = None,
 ) -> TakenIn | IntakeRejected:
-    """Datei am Ablageort aufnehmen. `year` gilt als Bezugszeitraum, wenn die Art einen hat."""
+    """Datei am Ablageort aufnehmen. `year` gilt als Bezugszeitraum, wenn die Art einen hat.
+
+    `values_on` bildet `Values` auf einem Stand; die Ergänzung der Dokumentart braucht es.
+    """
     kind = kinds[kind_key]  # unbekannte Art ist ein Programmfehler
     if not MIN_YEAR <= year <= MAX_YEAR:
         return IntakeRejected((f"Steuerjahr: Jahr zwischen {MIN_YEAR} und {MAX_YEAR}",))
@@ -94,7 +110,14 @@ def take_in(
         entries = tuple(kind.read_in(document, content))
     except ReadInError as error:
         return IntakeRejected((str(error),))
-    result = store.apply([Put(document), *(Put(entry) for entry in entries)])
+    taken = [document, *entries]
+    changes: list[Change] = [Put(entry) for entry in taken]
+    if kind.after_take_in is not None:
+        if values_on is None:
+            raise ValueError(f"{kind.key}: die Ergänzung beim Aufnehmen braucht `values_on`")
+        provisional = State({**store.state().entries, **{e.address: e for e in taken}})
+        changes.extend(kind.after_take_in(document, entries, values_on(provisional)))
+    result = store.apply(changes)
     if not isinstance(result, Applied):
         return IntakeRejected(tuple(result.reasons.values()))
     return TakenIn(document, entries)
