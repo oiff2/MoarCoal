@@ -10,7 +10,7 @@ from fastapi.templating import Jinja2Templates
 from moarcoal.documents import DocumentKind
 from moarcoal.incoming import all_site_files
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import EntryAddress, Store
+from moarcoal.storage import EntryAddress, ExpectedDocument, Store
 from moarcoal.values.engine import Values
 from moarcoal.values.model import Amount, format_amount
 
@@ -22,6 +22,8 @@ def format_eur(cents: int) -> str:
 
 def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) -> str | None:
     """Link zum Eintrag, wie das besitzende Modul ihn nennt; unbekannte Art: kein Link."""
+    if address.kind == ExpectedDocument.__name__:  # Baustein der Datenebene
+        return f"/erwartete-belege/{address.id}"
     return next((url for m in modules if (url := m.entry_url(address)) is not None), None)
 
 

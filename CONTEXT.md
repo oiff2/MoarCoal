@@ -218,7 +218,7 @@ Ein Dokument, sofern es einen Betrag nachweist, auf den sich ein Einzelposten st
 _Avoid_: Quittung, Nachweis
 
 **Erwarteter Beleg**:
-Ein Beleg, der regelmäßig oder einmalig kommen soll, z. B. jährlich die Zinsbescheinigung zu einem Darlehen: Aussteller, Dokumentart, die Einträge, die er betrifft, Rhythmus mit Beginn und Ende sowie Beschaffungsweg und Beschaffungshinweis. Ein Eintrag, der von Beginn bis Ende gilt; für jeden Zeitraum seines Rhythmus ergibt sich daraus, welches Dokument fällig ist, ohne dass jährlich etwas neu angelegt wird. Er ist **erfüllt**, sobald ein passendes Dokument da ist; fällt er für einen Zeitraum aus, trägt er dafür eine Ausnahme mit Notiz.
+Ein Beleg, der regelmäßig oder einmalig kommen soll, z. B. jährlich die Zinsbescheinigung zu einem Darlehen: Aussteller, Dokumentart, die Einträge, die er betrifft, Rhythmus mit Beginn und Ende sowie Beschaffungsweg und Beschaffungshinweis. Ein Eintrag, der von Beginn bis Ende gilt; für jeden Zeitraum seines Rhythmus ergibt sich daraus, welches Dokument fällig ist, ohne dass jährlich etwas neu angelegt wird. Er ist **erfüllt**, sobald ein passendes Dokument da ist; fällt er für einen Zeitraum aus, trägt er dafür eine Ausnahme mit Notiz. Gebaut ist die **einfache Form**: Dokumentart, Beginn- und Endjahr (Ende offen erlaubt, jährlich) und Beschreibung (Code: `ExpectedDocument`); als Fundstelle ergibt er den Belegstand ausstehend (Code: `ExpectedDocumentLocator`).
 _Avoid_: Checkliste, Erwartung (allein), offener Beleg, Platzhalter
 
 **Dokumentart**:

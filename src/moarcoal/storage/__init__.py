@@ -12,6 +12,7 @@ from moarcoal.storage.entries import (
     kind_collisions,
     new_id,
 )
+from moarcoal.storage.expected_documents import ExpectedDocument
 from moarcoal.storage.hidden_files import COMMON_OWNER, HiddenFile
 from moarcoal.storage.store import (
     Applied,
@@ -39,6 +40,7 @@ __all__ = [
     "EntryAddress",
     "EntryKind",
     "HiddenFile",
+    "ExpectedDocument",
     "Put",
     "Rejected",
     "SiteFile",

@@ -1,0 +1,17 @@
+{# Felder eines Erwarteten Belegs; `kinds` nennt die Dokumentarten, `values` belegt vor #}
+<label>Dokumentart
+  <select name="document_kind" required>
+    {% for key, kind in kinds.items() %}
+    <option value="{{ key }}"{% if values.get('document_kind') == key %} selected{% endif %}>{{ kind.title }}</option>
+    {% endfor %}
+  </select>
+</label>
+<label>Erwartet ab Jahr
+  <input name="start_year" inputmode="numeric" value="{{ values.get('start_year', '') }}" required>
+</label>
+<label>Erwartet bis Jahr (ohne Angabe: ohne Ende)
+  <input name="end_year" inputmode="numeric" value="{{ values.get('end_year', '') }}">
+</label>
+<label>Beschreibung (optional)
+  <input name="description" value="{{ values.get('description', '') }}">
+</label>

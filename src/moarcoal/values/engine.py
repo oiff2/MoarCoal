@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 
+from moarcoal.expected_documents import expected_document_findings
 from moarcoal.incoming import incoming_files
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import Dismissal, SiteFile, State
@@ -189,6 +190,8 @@ class Values:
                 else:
                     self.get(entry.key, user, period)
         found = list(self.findings)
+        titles = {k.key: k.title for m in self._modules.values() for k in m.document_kinds}
+        found.extend(expected_document_findings(self._state, user, year, titles))
         for module in self._modules.values():
             if module.findings is not None:
                 found.extend(module.findings(self._module_state(module.key, user), self, year))

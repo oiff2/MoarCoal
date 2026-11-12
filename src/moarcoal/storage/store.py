@@ -29,6 +29,7 @@ from moarcoal.storage.entries import (
     entry_checksum,
     kind_collisions,
 )
+from moarcoal.storage.expected_documents import EXPECTED_DOCUMENT_KIND
 from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND
 
 DEFAULT_DATA_DIR_NAME = "MoarCoal"
@@ -479,10 +480,16 @@ def open_store(
 ) -> Store:
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
 
-    Die Arten der Datenebene (Dokument, Ausblendungen) kommen immer dazu. `sites` nennt die
-    Ablageorte (Name -> Ordner); ohne Angabe gilt `common/sites.json`.
+    Die Arten der Datenebene (Dokument, Ausblendungen, Erwarteter Beleg) kommen immer dazu.
+    `sites` nennt die Ablageorte (Name -> Ordner); ohne Angabe gilt `common/sites.json`.
     """
-    all_kinds = (*DATA_LAYER_KINDS, DISMISSAL_KIND, HIDDEN_FILE_KIND, *kinds)
+    all_kinds = (
+        *DATA_LAYER_KINDS,
+        DISMISSAL_KIND,
+        HIDDEN_FILE_KIND,
+        EXPECTED_DOCUMENT_KIND,
+        *kinds,
+    )
     collisions = kind_collisions([kind.model for kind in all_kinds])
     if collisions:
         raise StoreError(f"Arten nicht eindeutig: {', '.join(collisions)}")

@@ -147,6 +147,25 @@ class UserInputLocator(Locator):
 
 
 @dataclass(frozen=True)
+class ExpectedDocumentLocator(Locator):
+    """Erwarteter Beleg, genannt über die Adresse seines Eintrags: Belegstand ausstehend."""
+
+    address: EntryAddress
+
+    @property
+    def label(self) -> str:
+        return "Erwarteter Beleg"
+
+    @property
+    def entry_address(self) -> EntryAddress | None:
+        return self.address
+
+    @property
+    def backing(self) -> Backing:
+        return Backing.PENDING
+
+
+@dataclass(frozen=True)
 class ValueLocator(Locator):
     """Anderer Ausgewiesener Wert: der Einzelposten erbt dessen Betrag und schwächsten Belegstand.
 
