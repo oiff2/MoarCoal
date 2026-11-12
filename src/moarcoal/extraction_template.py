@@ -5,7 +5,14 @@ Fassungsnummer. Daraus entstehen das JSON-Schema und der Hinweis für den `Extra
 """
 
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any
+
+from moarcoal.storage import Content
+from moarcoal.values.model import parse_german_number
+
+type Confirmed = Content | Decimal
+"""Inhalt eines bestätigten Felds, wie ihn ein Modul bekommt: Felder mit Einheit als `Decimal`."""
 
 
 @dataclass(frozen=True)
@@ -25,6 +32,26 @@ class TemplateField:
         if self.hint:
             parts.append(self.hint)
         return ". ".join(parts)
+
+    def read(self, content: Content) -> Confirmed:
+        """Inhalt in der Form, die das Modul bekommt; gleich, ob ausgelesen oder korrigiert.
+
+        Ein Feld mit Einheit ist eine Zahl: aus Claudes Zahl oder einem deutschen Zahltext wird
+        `Decimal`, leer bleibt `None`. Alles andere bleibt, wie es ist. Ist der Inhalt eines Felds
+        mit Einheit keine Zahl, folgt `ValueError`.
+        """
+        if not self.unit or content is None:
+            return content
+        if isinstance(content, bool):
+            raise ValueError(f"{self.label}: Zahl erwartet")
+        if isinstance(content, int | float):
+            return Decimal(str(content))
+        if not content.strip():
+            return None
+        number = parse_german_number(content)
+        if number is None:
+            raise ValueError(f"{self.label}: Zahl erwartet, z. B. 1.234,56")
+        return number
 
 
 @dataclass(frozen=True)

@@ -3,7 +3,7 @@
 import datetime
 import re
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from enum import IntEnum, StrEnum
 from typing import ClassVar, Self
 
@@ -54,6 +54,20 @@ def format_amount(amount: Amount, *, whole_euros: bool = False) -> str:
     exponent = value.normalize().as_tuple().exponent
     places = -exponent if isinstance(exponent, int) and exponent < 0 else 0
     return f"{_german(value, places)} {amount.unit.value}"
+
+
+GERMAN_NUMBER = re.compile(r"-?\d{1,3}(\.\d{3})*(,\d+)?|-?\d+(,\d+)?")
+
+
+def parse_german_number(text: str) -> Decimal | None:
+    """'1.234,56' -> 1234.56; ein angehängtes € oder EUR ist erlaubt; sonst `None`."""
+    cleaned = text.strip().removesuffix("€").removesuffix("EUR").strip()
+    if not GERMAN_NUMBER.fullmatch(cleaned):
+        return None
+    try:
+        return Decimal(cleaned.replace(".", "").replace(",", "."))
+    except InvalidOperation:
+        return None
 
 
 @dataclass(frozen=True)

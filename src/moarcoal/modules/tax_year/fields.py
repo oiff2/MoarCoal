@@ -5,14 +5,13 @@ Die Werte der Felder sind gesetzlich gerundet, je nach Einheit und Richtung des 
 das Feld aus derselben Angabe ab: bei Euro die Richtung, km zählen wie eine Ausgabe, Tage ohne.
 """
 
-import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal, InvalidOperation
+from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from enum import StrEnum
 
 from moarcoal.modules.tax_year.entries import ElsterId
-from moarcoal.values.model import Amount, Unit, ValueKey, format_amount
+from moarcoal.values.model import Amount, Unit, ValueKey, format_amount, parse_german_number
 
 
 class Direction(StrEnum):
@@ -29,20 +28,6 @@ class Rounding(StrEnum):
     EURO_CENTS = "Euro mit Cent"  # exakt
     WHOLE_KM = "volle km"  # abgerundet
     NONE = "ganzzahlig"  # Tage: schon ganzzahlig
-
-
-GERMAN_NUMBER = re.compile(r"-?\d{1,3}(\.\d{3})*(,\d+)?|-?\d+(,\d+)?")
-
-
-def parse_german_number(text: str) -> Decimal | None:
-    """'1.234,56' -> 1234.56; ein angehängtes € oder EUR ist erlaubt; sonst `None`."""
-    cleaned = text.strip().removesuffix("€").removesuffix("EUR").strip()
-    if not GERMAN_NUMBER.fullmatch(cleaned):
-        return None
-    try:
-        return Decimal(cleaned.replace(".", "").replace(",", "."))
-    except InvalidOperation:
-        return None
 
 
 @dataclass(frozen=True)

@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
+from moarcoal.documents import DocumentKind
 from moarcoal.extraction import Extractor
 from moarcoal.proposals import (
     ReadOutRejected,
@@ -35,10 +36,14 @@ def _document(request: Request, document_id: str) -> Document:
     return document
 
 
+def _kind(request: Request, document: Document) -> DocumentKind | None:
+    return document_kinds(request).get(document.document_kind or "")
+
+
 def _page(
     request: Request, document: Document, status_code: int = 200, notice: str = ""
 ) -> HTMLResponse:
-    kind = document_kinds(request).get(document.document_kind or "")
+    kind = _kind(request, document)
     template = None if kind is None else kind.extraction_template
     proposals = proposals_of(store_of(request).state(), document)
     proposal = proposals[-1] if proposals else None
@@ -80,7 +85,9 @@ def confirm_fields(
     if not proposals:
         return _page(request, document, 409, "Zu diesem Dokument gibt es keinen Vorschlag.")
     key = None if fields.get("all") else fields.get("field", "")
-    result = confirm(store_of(request), proposals[-1], key, fields.get("correction"))
+    kind = _kind(request, document)
+    template = None if kind is None else kind.extraction_template
+    result = confirm(store_of(request), proposals[-1], template, key, fields.get("correction"))
     if not isinstance(result, Applied):
         return _page(request, document, 409, result.message)
     return RedirectResponse(f"/dokumente/{document.id}", status_code=303)

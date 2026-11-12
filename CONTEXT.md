@@ -218,7 +218,7 @@ Ein festgehaltener Abbruch des Claude-Aufrufs beim Auslesen eines Dokuments, wei
 _Avoid_: Fehlversuch, Absturz
 
 **Vorschlag**:
-Das Ergebnis einer Auslesung an einem Dokument: Felder mit Inhalt und Stelle im Dokument (Seite/Zeile), die erst nach Bestätigung durch den Nutzer (je Feld, ggf. korrigiert) in Daten eines Moduls übergehen; bleibt danach samt Korrekturen erhalten (Code: `Proposal`).
+Das Ergebnis einer Auslesung an einem Dokument: Felder mit Inhalt und Stelle im Dokument (Seite/Zeile), die erst nach Bestätigung durch den Nutzer (je Feld, ggf. korrigiert) in Daten eines Moduls übergehen; ein Feld mit Einheit lässt sich nur mit einer Zahl bestätigen; bleibt danach samt Korrekturen erhalten (Code: `Proposal`).
 _Avoid_: Entwurf, Vorschlagswert, unbestätigter Einzelposten
 
 **Auslese-Vorlage** _(geprägt)_:

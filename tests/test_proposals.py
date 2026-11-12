@@ -3,6 +3,7 @@
 import hashlib
 import json
 from collections.abc import Sequence
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -200,7 +201,7 @@ def test_re_extraction_creates_a_new_proposal_next_to_the_old_one(tmp_path: Path
     assert "2 von 2" in finding.message
     setup.post(f"{location}/bestaetigen", field="tax")
     content, _ = setup.module_state().confirmed_fields(setup.document())["tax"]
-    assert content == "9.999,00"
+    assert content == Decimal("9999.00")
 
 
 def test_failed_re_extraction_keeps_the_current_proposal(tmp_path: Path) -> None:
@@ -212,7 +213,7 @@ def test_failed_re_extraction_keeps_the_current_proposal(tmp_path: Path) -> None
     assert setup.post(f"{location}/auslesen").status_code == 409
     assert len(setup.store.state().of_kind(Proposal)) == 1
     content, _ = setup.module_state().confirmed_fields(setup.document())["tax"]
-    assert content == "1.234,00"
+    assert content == Decimal("1234.00")
 
 
 def test_kind_without_template_is_not_extracted(tmp_path: Path) -> None:
@@ -335,7 +336,7 @@ def test_only_confirmed_fields_are_given_with_a_locator(tmp_path: Path) -> None:
     fields = setup.module_state().confirmed_fields(document)
     assert list(fields) == ["tax"]
     content, locator = fields["tax"]
-    assert content == "1.234,00"
+    assert content == Decimal("1234.00")
     assert locator == DocumentLocator(
         document.address, Source.DOCUMENT_EXTRACTION, "tax", "Seite 1, Zeile 4"
     )
@@ -343,11 +344,50 @@ def test_only_confirmed_fields_are_given_with_a_locator(tmp_path: Path) -> None:
     assert locator.entry_address == document.address
 
 
+def test_field_with_unit_comes_as_a_number_whether_extracted_or_corrected(
+    tmp_path: Path,
+) -> None:
+    number = Extracted(
+        {
+            "tax": ExtractedField(value=1234.5, location="Seite 1"),
+            "date": ExtractedField(value="01.02.2026", location="Kopf"),
+        },
+        "{}",
+    )
+    setup, location = extracted(tmp_path, number)
+    setup.post(f"{location}/bestaetigen", all="1")
+    fields = setup.module_state().confirmed_fields(setup.document())
+    assert fields["tax"][0] == Decimal("1234.5")
+    assert fields["date"][0] == "01.02.2026"  # ohne Einheit bleibt der Text
+    setup.post(f"{location}/bestaetigen", field="tax", correction="1.300,10 €")
+    assert setup.module_state().confirmed_fields(setup.document())["tax"][0] == Decimal("1300.10")
+
+
+def test_correction_of_a_field_with_unit_must_be_a_number(tmp_path: Path) -> None:
+    setup, location = extracted(tmp_path)
+    response = setup.post(f"{location}/bestaetigen", field="tax", correction="zwölf")
+    assert response.status_code == 409
+    assert "Steuer: Zahl erwartet" in response.text
+    assert not setup.proposal().fields["tax"].confirmed
+
+
+def test_extracted_text_that_is_no_number_cannot_be_confirmed_without_correction(
+    tmp_path: Path,
+) -> None:
+    setup, location = extracted(tmp_path, answer(tax="siehe Anlage"))
+    assert setup.post(f"{location}/bestaetigen", all="1").status_code == 409
+    assert not any(f.confirmed for f in setup.proposal().fields.values())
+    setup.post(f"{location}/bestaetigen", field="tax", correction="")
+    assert not setup.proposal().fields["tax"].confirmed
+    setup.post(f"{location}/bestaetigen", field="tax", correction="12,00")
+    assert setup.module_state().confirmed_fields(setup.document())["tax"][0] == Decimal("12.00")
+
+
 def test_corrected_field_gives_the_corrected_content_with_backing_proven(tmp_path: Path) -> None:
     setup, location = extracted(tmp_path)
     setup.post(f"{location}/bestaetigen", field="tax", correction="1.243,00")
     content, locator = setup.module_state().confirmed_fields(setup.document())["tax"]
-    assert content == "1.243,00"
+    assert content == Decimal("1243.00")
     assert locator.source is Source.DOCUMENT_EXTRACTION
     assert locator.place == "Seite 1, Zeile 4"
     assert locator.backing is Backing.PROVEN

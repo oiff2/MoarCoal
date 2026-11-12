@@ -20,6 +20,7 @@ from moarcoal.extraction import (
     Extractor,
     FailureReason,
 )
+from moarcoal.extraction_template import ExtractionTemplate
 from moarcoal.storage import (
     AbortedExtraction,
     Applied,
@@ -179,12 +180,17 @@ def _proposal(
 
 
 def confirm(
-    store: Store, proposal: Proposal, key: str | None, correction: str | None = None
+    store: Store,
+    proposal: Proposal,
+    template: ExtractionTemplate | None,
+    key: str | None,
+    correction: str | None = None,
 ) -> Applied | ReadOutRejected:
     """Bestätigt das Feld `key` (mit Korrektur, wenn angegeben) oder, ohne `key`, alle offenen.
 
     Eine leere Korrektur bestätigt den ausgelesenen Inhalt. Der ausgelesene Inhalt bleibt in
-    jedem Fall am Feld stehen.
+    jedem Fall am Feld stehen. Ein Feld mit Einheit lässt sich nur mit einer Zahl (oder leer)
+    bestätigen, damit `confirmed_fields` je Feld dieselbe Form liefert (`TemplateField.read`).
     """
     fields = dict(proposal.fields)
     if key is None:
@@ -199,6 +205,17 @@ def confirm(
         fields[key] = field.model_copy(
             update={"confirmed": True, "correction": text if text else None}
         )
+    problems: list[str] = []
+    for name, field in fields.items():
+        spec = None if template is None else template.field(name)
+        if spec is None or field is proposal.fields[name]:
+            continue  # unverändert oder ohne Vorlage
+        try:
+            spec.read(field.content)
+        except ValueError as error:
+            problems.append(str(error))
+    if problems:
+        return ReadOutRejected(" ".join(problems))
     changed = proposal.model_copy(update={"fields": fields})
     result = store.apply([Put(changed, expected=store.state().checksum(proposal.address))])
     if not isinstance(result, Applied):
