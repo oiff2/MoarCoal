@@ -1,7 +1,10 @@
-"""Tests: `use`, Zykluserkennung und das Modul Steuerjahr (Anlage N 2025) über `evaluate(...)`."""
+"""Tests: `use`, Zykluserkennung und das Modul Steuerjahr (Anlage N) über `evaluate(...)`.
 
-import datetime
+Die Werte von Arbeit sind fest vorgegeben (`foreign`); nur die Seiten laufen mit dem echten Modul.
+"""
+
 from collections.abc import Callable
+from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
 
@@ -17,36 +20,39 @@ from moarcoal.modules.tax_year.anlage_n import (
     N_EQUIPMENT,
     N_WORKPLACE_DAYS,
     N_WORKPLACE_DISTANCE,
+    WORK_DISTANCE_KM,
+    WORK_EQUIPMENT,
+    WORK_WORKDAYS,
     Direction,
     FormField,
     Rounding,
     round_for_field,
 )
-from moarcoal.modules.work import REGISTRATION as WORK
-from moarcoal.modules.work import FirstWorkplace, UserInput, WorkEquipment
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import EntryAddress
 from moarcoal.values.calculation import Calculation, Missing
 from moarcoal.values.catalog import CatalogEntry, TimeKind, UnknownValueKey, ValueDefinition
-from moarcoal.values.engine import ContractViolation
+from moarcoal.values.engine import ContractViolation, Foreign
 from moarcoal.values.findings import CYCLE, Severity
 from moarcoal.values.model import (
     Amount,
     Backing,
     ExposedValue,
+    NotApplicable,
     NotYetComputable,
     Period,
+    Subject,
     Unit,
     UserInputLocator,
     ValueKey,
     ValueLocator,
 )
-from moarcoal.values.testing import evaluate
-
-WORK_EQUIPMENT = ValueKey("work.equipment")
+from moarcoal.values.testing import evaluate, fixed, not_applicable
 
 PORT = 4711
 YEAR = Period.year(2025)
+PLACE = Subject(EntryAddress(kind="FirstWorkplace", id="AAAAAAAAAA"))
+OTHER_PLACE = Subject(EntryAddress(kind="FirstWorkplace", id="BBBBBBBBBB"))
 
 
 def exposed(result: object) -> ExposedValue:
@@ -76,41 +82,40 @@ def _assumed() -> UserInputLocator:
     return UserInputLocator(EntryAddress(kind="FirstWorkplace", id="AAAAAAAAAA"))
 
 
-def workplace(workdays: int = 180, distance_km: int = 12) -> FirstWorkplace:
-    return FirstWorkplace(
-        owner="anna", year=2025, workdays=workdays, distance_km=distance_km, description="Büro"
-    )
+def place(subject: Subject = PLACE, workdays: int = 180, km: int = 12) -> Foreign:
+    """Die Werte von Arbeit zu einer ersten Tätigkeitsstätte 2025."""
+    return {
+        (WORK_WORKDAYS, subject, YEAR): fixed(Amount.of(workdays, Unit.DAYS)),
+        (WORK_DISTANCE_KM, subject, YEAR): fixed(Amount.of(km, Unit.KM)),
+    }
 
 
-def lamp(cents: int = 4990) -> WorkEquipment:
-    return WorkEquipment(
-        owner="anna",
-        year=2025,
-        input=UserInput(
-            amount_cents=cents, date=datetime.date(2025, 3, 14), description="Schreibtischlampe"
-        ),
-    )
+def equipment(cents: int = 4990) -> Foreign:
+    return {(WORK_EQUIPMENT, None, YEAR): fixed(Amount.eur_cents(cents))}
+
+
+def tax_year(foreign: Foreign) -> Callable[[ValueKey, Period], object]:
+    values = evaluate([TAX_YEAR], foreign=foreign)
+    return lambda key, time=YEAR: values.get(key, "anna", time)
 
 
 # --- Steuerjahr ordnet Werte der Anlage N zu --------------------------------------------------
 
 
-def test_fields_show_the_captured_inputs_through_use_with_chain() -> None:
-    place = workplace()
-    values = evaluate([WORK, TAX_YEAR], [place, lamp()])
+def test_fields_show_the_given_inputs_through_use_with_chain() -> None:
+    value = tax_year({**place(), **equipment()})
 
-    days = exposed(values.get(N_WORKPLACE_DAYS, "anna", YEAR))
-    km = exposed(values.get(N_WORKPLACE_DISTANCE, "anna", YEAR))
-    equipment = exposed(values.get(N_EQUIPMENT, "anna", YEAR))
+    days = exposed(value(N_WORKPLACE_DAYS, YEAR))
+    km = exposed(value(N_WORKPLACE_DISTANCE, YEAR))
+    stuff = exposed(value(N_EQUIPMENT, YEAR))
 
     assert days.amount == Amount.of(180, Unit.DAYS)
     assert km.amount == Amount.of(12, Unit.KM)
-    assert equipment.amount == Amount.eur_cents(5000)  # 49,90 € als Ausgabe aufgerundet
+    assert stuff.amount == Amount.eur_cents(5000)  # 49,90 € als Ausgabe aufgerundet
     (item,) = days.items
     assert isinstance(item.locator, ValueLocator)
     assert item.locator.value.key == "work.workdays"
-    # Die Kette: der Posten des Arbeit-Werts ist die Nutzereingabe, erreichbar über die Fundstelle.
-    assert [i.locator.entry_address for i in item.locator.value.items] == [place.address]
+    assert item.locator.value.subject == PLACE
     assert days.backing is Backing.ASSUMED  # geerbt vom schwächsten Belegstand
     assert [s.kind for s in days.workings.steps] == ["item", "step"]
 
@@ -118,22 +123,17 @@ def test_fields_show_the_captured_inputs_through_use_with_chain() -> None:
 # --- Runden der Felder -------------------------------------------------------------------------
 
 
-def test_equipment_is_rounded_up_with_a_step_and_work_stays_exact() -> None:
-    values = evaluate([WORK, TAX_YEAR], [workplace(), lamp(8640)])
-
-    field = exposed(values.get(N_EQUIPMENT, "anna", YEAR))
-    work = exposed(values.get(WORK_EQUIPMENT, "anna", YEAR))
+def test_equipment_is_rounded_up_with_a_step_and_the_item_stays_exact() -> None:
+    field = exposed(tax_year({**place(), **equipment(8640)})(N_EQUIPMENT, YEAR))
 
     assert field.amount == Amount.of(87, Unit.EUR)
     assert field.workings.steps[-1].text == "86,40 € → 87 € (aufgerundet, Ausgabe)"
     assert field.workings.steps[-1].amount == Amount.of(87, Unit.EUR)
-    assert work.amount == Amount.eur_cents(8640)
+    assert field.items[0].amount == Amount.eur_cents(8640)
 
 
 def test_field_that_already_fits_gets_no_rounding_step() -> None:
-    values = evaluate([WORK, TAX_YEAR], [workplace(), lamp(8700)])
-
-    field = exposed(values.get(N_EQUIPMENT, "anna", YEAR))
+    field = exposed(tax_year({**place(), **equipment(8700)})(N_EQUIPMENT, YEAR))
 
     assert [s.kind for s in field.workings.steps] == ["item", "step"]
 
@@ -175,23 +175,6 @@ def test_euro_field_needs_a_direction_exactly_when_it_takes_whole_euros() -> Non
         )
 
 
-def test_catalog_has_only_the_fields_of_the_durchstich() -> None:
-    values = evaluate([WORK, TAX_YEAR], [])
-    tax_keys = {e.key for e in values.catalog.entries() if e.key.module == "tax_year"}
-
-    assert tax_keys == {f.key for f in FIELDS_2025}
-    assert {f.elster_id for f in FIELDS_2025} == {"E0203503", "E0203504", "E0204403"}
-
-
-def test_no_equipment_gives_a_zero_field_and_other_fields_stay_unaffected() -> None:
-    values = evaluate([WORK, TAX_YEAR], [workplace()])
-
-    result = values.get(N_EQUIPMENT, "anna", YEAR)
-
-    assert isinstance(result, ExposedValue) and result.amount.value == 0
-    assert isinstance(values.get(N_WORKPLACE_DAYS, "anna", YEAR), ExposedValue)
-
-
 def test_not_yet_computable_input_passes_on_with_chain() -> None:
     def base(calc: Calculation) -> Amount:
         calc.not_yet("keine Eingabe")
@@ -210,30 +193,55 @@ def test_not_yet_computable_input_passes_on_with_chain() -> None:
     assert [link.key for link in result.chain] == ["demo.base"]
 
 
-def test_without_workplace_the_fields_are_not_yet_computable() -> None:
-    values = evaluate([WORK, TAX_YEAR], [])
+def test_catalog_has_only_the_fields_of_the_durchstich() -> None:
+    values = evaluate([TAX_YEAR])
+    tax_keys = {e.key for e in values.catalog.entries()}
+
+    assert tax_keys == {f.key for f in FIELDS_2025}
+    assert {f.elster_id for f in FIELDS_2025} == {"E0203503", "E0203504", "E0204403"}
+
+
+def test_equipment_that_does_not_apply_makes_the_field_not_apply_too() -> None:
+    value = tax_year({**place(), (WORK_EQUIPMENT, None, YEAR): not_applicable("abgeschaltet")})
+
+    result = value(N_EQUIPMENT, YEAR)
+
+    assert isinstance(result, NotApplicable)
+    assert isinstance(value(N_WORKPLACE_DAYS, YEAR), ExposedValue)
+
+
+def test_workplace_of_another_year_does_not_count_for_the_field() -> None:
+    previous = Period.year(2024)
+    value = tax_year(
+        {
+            (WORK_WORKDAYS, PLACE, previous): fixed(Amount.of(180, Unit.DAYS)),
+            (WORK_DISTANCE_KM, PLACE, previous): fixed(Amount.of(12, Unit.KM)),
+            **equipment(),
+        }
+    )
 
     for key in (N_WORKPLACE_DAYS, N_WORKPLACE_DISTANCE):
-        result = values.get(key, "anna", YEAR)
+        result = value(key, YEAR)
         assert isinstance(result, NotYetComputable)
         assert "keine erste Tätigkeitsstätte" in result.reason
 
 
 def test_several_workplaces_are_not_assigned_silently() -> None:
-    values = evaluate([WORK, TAX_YEAR], [workplace(), workplace(workdays=20)])
+    value = tax_year({**place(), **place(OTHER_PLACE, workdays=20)})
 
-    result = values.get(N_WORKPLACE_DAYS, "anna", YEAR)
+    result = value(N_WORKPLACE_DAYS, YEAR)
 
     assert isinstance(result, NotYetComputable)
     assert "2 erste Tätigkeitsstätten" in result.reason
 
 
-def test_other_years_do_not_leak_into_the_field() -> None:
-    values = evaluate([WORK, TAX_YEAR], [workplace()])
+def test_year_without_catalog_is_not_yet_computable() -> None:
+    value = tax_year({**place(), **equipment()})
 
-    result = values.get(N_WORKPLACE_DAYS, "anna", Period.year(2024))
-
-    assert isinstance(result, NotYetComputable)
+    for key in (N_WORKPLACE_DAYS, N_WORKPLACE_DISTANCE, N_EQUIPMENT):
+        result = value(key, Period.year(2024))
+        assert isinstance(result, NotYetComputable)
+        assert result.reason == "Anlage N 2024 deckt MoarCoal noch nicht ab"
 
 
 # --- use und try_use --------------------------------------------------------------------------
@@ -290,10 +298,18 @@ def test_use_of_unknown_key_is_a_programming_error() -> None:
 
 def test_use_checks_unit_and_subject_like_get() -> None:
     def top(calc: Calculation) -> Amount:
-        calc.use("work.workdays")  # braucht ein Bezugsobjekt
+        calc.use("other.per_subject")  # braucht ein Bezugsobjekt
         return Amount.eur_cents(0)
 
-    values = evaluate([WORK, custom(definition("demo.top", top))], [])
+    per_subject = ValueDefinition(
+        CatalogEntry(ValueKey("other.per_subject"), "Beispiel", Unit.EUR, TimeKind.PERIOD, True),
+        lambda calc: Amount.eur_cents(0),
+        lambda state, time: [],
+    )
+    other = ModuleRegistration(
+        key="other", area_name="", nav_label="", nav_url="", router=APIRouter(), kinds=()
+    )
+    values = evaluate([custom(definition("demo.top", top)), replace(other, values=(per_subject,))])
 
     with pytest.raises(ContractViolation, match="Bezugsobjekt"):
         values.get("demo.top", "anna", YEAR)
