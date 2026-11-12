@@ -17,3 +17,5 @@ form.inline { display: inline; }
 .schweregrad-error strong { color: crimson; }
 .schweregrad-warning strong { color: darkorange; }
 tr:target { outline: 2px solid darkorange; }
+/* Eingang: das Jahr nur bei Dokumentarten mit Bezugszeitraum */
+form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }

@@ -23,10 +23,10 @@
         <input type="hidden" name="sha256" value="{{ file.sha256 }}">
         <label>Dokumentart
           <select name="kind">
-            {% for kind in kinds %}<option value="{{ kind.key }}"{% if row.get("kind") == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
+            {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if row.get("kind") == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
           </select>
         </label>
-        <label>Jahr <input name="year" value="{{ row.get('year', default_year) }}" size="6"></label>
+        <label class="jahr">Jahr <input name="year" value="{{ row.get('year', default_year) }}" size="6"></label>
         <button type="submit">Aufnehmen</button>
       </form>
     </td>

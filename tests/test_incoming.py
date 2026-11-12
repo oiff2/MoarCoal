@@ -6,11 +6,14 @@ from pathlib import Path
 
 import httpx
 import pytest
+from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
+from moarcoal.documents import DocumentKind
 from moarcoal.incoming import all_site_files, hide_file, incoming_files
 from moarcoal.modules.tax_year import REGISTRATION
+from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import Applied, HiddenFile, SiteFileError, open_store
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
@@ -284,3 +287,29 @@ def test_finding_comes_back_when_the_set_of_files_changes(root: Path, site: Path
     again = main_of(client, "/befunde?year=2025")
     assert "2 Dateien im Eingang" in again
     assert "war ausgeblendet: später" in again
+
+
+def test_year_input_is_hidden_for_kinds_without_period(root: Path, site: Path) -> None:
+    contract = DocumentKind("demo.contract", "Beispielvertrag", False, lambda d, b: [])
+    demo = ModuleRegistration(
+        key="demo",
+        area_name="Demo",
+        nav_label="Demo",
+        nav_url="/demo",
+        router=APIRouter(),
+        kinds=(),
+        document_kinds=(contract,),
+    )
+    sites = root / "common" / "sites.json"
+    sites.parent.mkdir(parents=True, exist_ok=True)
+    sites.write_text(
+        json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
+    )
+    app = create_app(PORT, root, [REGISTRATION, demo], user="anna")
+    client = TestClient(app, base_url=f"http://127.0.0.1:{PORT}")
+    page = main_of(client, "/eingang")
+    assert '<option value="demo.contract" data-ohne-zeitraum>' in page
+    assert '<option value="transfer_protocol">' in page
+    assert '<label class="jahr">' in page
+    css = Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
+    assert "form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }" in css
