@@ -11,7 +11,7 @@ from moarcoal.modules.tax_year.entries import (
     ProtocolLine,
     ProtocolReading,
 )
-from moarcoal.modules.tax_year.pages import MODULE_KEY, router
+from moarcoal.modules.tax_year.pages import MODULE_KEY, entry_url, router
 from moarcoal.modules.tax_year.reading import read_in_protocol
 from moarcoal.registration import ModuleRegistration
 
@@ -31,6 +31,7 @@ def registration(forms: Forms = FORMS) -> ModuleRegistration:
         nav_label="Steuerjahr",
         nav_url="/steuerjahr",
         router=router,
+        entry_url=entry_url,
         kinds=KINDS,
         values=values_for(forms),
         document_kinds=(TRANSFER_PROTOCOL,),

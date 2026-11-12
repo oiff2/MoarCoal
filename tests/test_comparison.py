@@ -5,6 +5,7 @@ echten Modul Arbeit.
 """
 
 import datetime
+import hashlib
 import json
 import shutil
 from dataclasses import replace
@@ -258,8 +259,12 @@ def test_whole_flow_finding_list_links_to_the_protocol(http: httpx.Client) -> No
         headers=ORIGIN,
     )
     taken = http.post(
-        "/steuerjahr/uebertragungsprotokolle",
-        data={"site": "Belege", "path": "protokoll.html", "year": "2025"},
+        "/eingang/aufnehmen",
+        data={
+            "sha256": hashlib.sha256(FIXTURE.read_bytes()).hexdigest(),
+            "kind": "transfer_protocol",
+            "year": "2025",
+        },
         headers=ORIGIN,
     )
     assert taken.status_code == 303

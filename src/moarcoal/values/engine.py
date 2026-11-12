@@ -2,13 +2,15 @@
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 
+from moarcoal.incoming import incoming_files
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import Dismissal, State
+from moarcoal.storage import Dismissal, SiteFile, State
 from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYetSignal
 from moarcoal.values.catalog import TimeKind, ValueCatalog
 from moarcoal.values.findings import (
     CYCLE,
     DUPLICATE_LOCATOR,
+    INCOMING_FILES,
     Finding,
     FindingList,
     Severity,
@@ -61,9 +63,16 @@ class Values:
     """Eine je Anfrage, auf dem festgehaltenen Stand. Rechnet jeden Wert höchstens einmal."""
 
     def __init__(
-        self, modules: Sequence[ModuleRegistration], state: State, foreign: Foreign | None = None
+        self,
+        modules: Sequence[ModuleRegistration],
+        state: State,
+        foreign: Foreign | None = None,
+        site_files: Callable[[], Sequence[SiteFile]] | None = None,
     ) -> None:
+        """`site_files` listet die Dateien der Ablageorte, erst wenn die Befunde sie brauchen;
+        ohne Angabe gibt es keinen Befund „Dateien im Eingang“."""
         self._modules = {m.key: m for m in modules}
+        self._site_files = site_files
         self._state = state
         self.catalog = ValueCatalog.of((m.key, m.values) for m in modules)
         self._foreign = dict(foreign or {})
@@ -183,6 +192,22 @@ class Values:
         for module in self._modules.values():
             if module.findings is not None:
                 found.extend(module.findings(self._module_state(module.key, user), self, year))
+        if self._site_files is not None:
+            waiting = incoming_files(self._site_files(), self._state, user)
+            if waiting:
+                count = len(waiting)
+                text = "1 Datei im Eingang" if count == 1 else f"{count} Dateien im Eingang"
+                fingerprint_ = fingerprint(*sorted(f.sha256 for f in waiting))
+                found.append(
+                    Finding(
+                        INCOMING_FILES,
+                        Severity.NOTE,
+                        "eingang",
+                        text,
+                        href="/eingang",
+                        fingerprint=fingerprint_,
+                    )
+                )
         order = {Severity.ERROR: 0, Severity.WARNING: 1, Severity.NOTE: 2}
         found.sort(key=lambda f: order[f.severity])
         dismissals = [d for d in self._state.of_kind(Dismissal) if d.owner == user]

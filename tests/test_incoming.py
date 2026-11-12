@@ -1,0 +1,226 @@
+"""Tests: Eingang, Ausblenden im Eingang und der Befund „Dateien im Eingang“ (nur tmp_path)."""
+
+import hashlib
+import json
+from pathlib import Path
+
+import httpx
+import pytest
+from fastapi.testclient import TestClient
+
+from moarcoal.app import create_app
+from moarcoal.incoming import all_site_files, hide_file, incoming_files
+from moarcoal.modules.tax_year import REGISTRATION
+from moarcoal.storage import Applied, HiddenFile, SiteFileError, open_store
+
+FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
+PORT = 4711
+ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
+SHA = hashlib.sha256(FIXTURE.read_bytes()).hexdigest()
+
+
+@pytest.fixture
+def site(tmp_path: Path) -> Path:
+    folder = tmp_path / "ablage"
+    (folder / "2025").mkdir(parents=True)
+    (folder / "2025" / "protokoll.html").write_bytes(FIXTURE.read_bytes())
+    return folder
+
+
+@pytest.fixture
+def root(tmp_path: Path) -> Path:
+    return tmp_path / "daten"
+
+
+def make_client(root: Path, site: Path, user: str = "anna") -> httpx.Client:
+    sites = root / "common" / "sites.json"
+    sites.parent.mkdir(parents=True, exist_ok=True)
+    sites.write_text(
+        json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
+    )
+    app = create_app(PORT, root, user=user)
+    return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
+
+
+def take(client: httpx.Client, sha: str = SHA, year: str = "2025") -> httpx.Response:
+    data = {"sha256": sha, "kind": "transfer_protocol", "year": year}
+    return client.post("/eingang/aufnehmen", data=data, headers=ORIGIN)
+
+
+def main_of(client: httpx.Client, url: str) -> str:
+    return client.get(url).text.split("<main>")[1]
+
+
+# --- Auflisten ---------------------------------------------------------------------------------
+
+
+def test_list_site_files_is_recursive_with_size_and_sha256(root: Path, site: Path) -> None:
+    (site / "lose.txt").write_text("abc", encoding="utf-8")
+    store = open_store(root, REGISTRATION.kinds, {"Belege": site})
+    files = {f.path: f for f in store.list_site_files("Belege")}
+    assert sorted(files) == ["2025/protokoll.html", "lose.txt"]
+    assert files["lose.txt"].size == 3
+    assert files["lose.txt"].sha256 == hashlib.sha256(b"abc").hexdigest()
+    assert files["2025/protokoll.html"].sha256 == SHA
+    with pytest.raises(SiteFileError, match="Unbekannter Ablageort"):
+        store.list_site_files("Anderswo")
+
+
+def test_list_site_files_skips_links_out_of_the_site(
+    root: Path, site: Path, tmp_path: Path
+) -> None:
+    outside = tmp_path / "geheim"
+    outside.mkdir()
+    (outside / "x.txt").write_text("x", encoding="utf-8")
+    (site / "datei-link.txt").symlink_to(outside / "x.txt")
+    (site / "ordner-link").symlink_to(outside, target_is_directory=True)
+    (site / "kaputt").symlink_to(outside / "fehlt.txt")
+    store = open_store(root, REGISTRATION.kinds, {"Belege": site})
+    assert [f.path for f in store.list_site_files("Belege")] == ["2025/protokoll.html"]
+
+
+def test_list_site_files_keeps_links_inside_the_site(root: Path, site: Path) -> None:
+    (site / "kopie.html").symlink_to(site / "2025" / "protokoll.html")
+    store = open_store(root, REGISTRATION.kinds, {"Belege": site})
+    assert [f.path for f in store.list_site_files("Belege")] == [
+        "2025/protokoll.html",
+        "kopie.html",
+    ]
+
+
+def test_same_content_twice_is_one_file_in_the_incoming_list(root: Path, site: Path) -> None:
+    (site / "kopie.html").write_bytes(FIXTURE.read_bytes())
+    store = open_store(root, REGISTRATION.kinds, {"Belege": site})
+    waiting = incoming_files(all_site_files(store), store.state(), "anna")
+    assert [f.path for f in waiting] == ["2025/protokoll.html"]
+
+
+# --- Seite -------------------------------------------------------------------------------------
+
+
+def test_new_file_is_listed_and_gone_after_taking_in_even_when_renamed(
+    root: Path, site: Path
+) -> None:
+    client = make_client(root, site)
+    page = client.get("/eingang").text
+    assert "2025/protokoll.html" in page
+    assert "Übertragungsprotokoll" in page
+    taken = take(client)
+    assert taken.status_code == 303
+    assert taken.headers["location"].startswith("/steuerjahr/uebertragungsprotokolle/")
+    assert "2025/protokoll.html" not in client.get("/eingang").text
+    (site / "2025" / "protokoll.html").rename(site / "umbenannt.html")
+    assert "umbenannt.html" not in client.get("/eingang").text
+
+
+def test_taking_in_is_per_user_hiding_is_for_all(root: Path, site: Path) -> None:
+    anna = make_client(root, site, "anna")
+    take(anna)
+    ben = make_client(root, site, "ben")
+    assert "2025/protokoll.html" in ben.get("/eingang").text  # Ben hat sie nicht aufgenommen
+    hidden = anna.post("/eingang/ausblenden", data={"sha256": SHA}, headers=ORIGIN)
+    assert hidden.status_code == 409  # für Anna schon aufgenommen, nicht mehr im Eingang
+    assert ben.post("/eingang/ausblenden", data={"sha256": SHA}, headers=ORIGIN).status_code == 303
+    assert "2025/protokoll.html" not in make_client(root, site, "carla").get("/eingang").text
+
+
+def test_hiding_stores_a_common_entry_with_optional_note(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    response = client.post(
+        "/eingang/ausblenden", data={"sha256": SHA, "note": " Muster "}, headers=ORIGIN
+    )
+    assert response.status_code == 303 and response.headers["location"] == "/eingang"
+    stored = json.loads((root / "common" / "hidden_files.json").read_text(encoding="utf-8"))
+    assert stored["schema"] == "datenebene/1"
+    (entry,) = stored["entries"].values()
+    assert entry["owner"] == "common"
+    assert (entry["sha256"], entry["site"], entry["path"], entry["note"]) == (
+        SHA,
+        "Belege",
+        "2025/protokoll.html",
+        "Muster",
+    )
+    assert "2025/protokoll.html" not in client.get("/eingang").text
+    again = client.post("/eingang/ausblenden", data={"sha256": SHA}, headers=ORIGIN)
+    assert again.status_code == 409
+
+
+def test_hide_file_without_note_is_fine(root: Path, site: Path) -> None:
+    store = open_store(root, REGISTRATION.kinds, {"Belege": site})
+    (file,) = store.list_site_files("Belege")
+    assert isinstance(hide_file(store, file, ""), Applied)
+    (hidden,) = store.state().of_kind(HiddenFile)
+    assert hidden.note == ""
+
+
+def test_rejection_stays_in_the_row_with_422(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    response = take(client, year="2024")
+    assert response.status_code == 422
+    assert "gehört zum Steuerjahr 2025, eingetragen ist 2024" in response.text
+    assert "2025/protokoll.html" in response.text
+    assert 'value="2024"' in response.text
+    assert not (root / "users").exists()
+    assert take(client, year="abc").status_code == 422
+    no_kind = client.post(
+        "/eingang/aufnehmen", data={"sha256": SHA, "kind": "", "year": "2025"}, headers=ORIGIN
+    )
+    assert no_kind.status_code == 422
+    assert take(client, sha="0" * 64).status_code == 409
+
+
+def test_get_never_writes_and_post_needs_origin(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    before = sorted(p.relative_to(root) for p in root.rglob("*"))
+    client.get("/eingang")
+    client.get("/befunde?year=2025")
+    assert sorted(p.relative_to(root) for p in root.rglob("*")) == before
+    assert client.post("/eingang/aufnehmen", data={"sha256": SHA}).status_code == 403
+    assert client.post("/eingang/ausblenden", data={"sha256": SHA}).status_code == 403
+
+
+def test_navigation_links_to_the_incoming_page(root: Path, site: Path) -> None:
+    assert 'href="/eingang"' in make_client(root, site).get("/").text
+
+
+# --- Befund „Dateien im Eingang“ -----------------------------------------------------------------
+
+
+def test_finding_counts_files_links_to_the_page_and_vanishes(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    page = main_of(client, "/befunde?year=2025")
+    assert "1 Datei im Eingang" in page
+    assert 'href="/eingang"' in page
+    take(client)
+    assert "im Eingang" not in main_of(client, "/befunde?year=2025")
+
+
+def test_finding_is_per_user(root: Path, site: Path) -> None:
+    anna = make_client(root, site, "anna")
+    take(anna)
+    ben = make_client(root, site, "ben")
+    assert "1 Datei im Eingang" in main_of(ben, "/befunde?year=2025")
+    assert "im Eingang" not in main_of(anna, "/befunde?year=2025")
+
+
+def test_finding_comes_back_when_the_set_of_files_changes(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    page = main_of(client, "/befunde?year=2025")
+    fingerprint = page.split('name="fingerprint" value="')[1].split('"')[0]
+    dismissed = client.post(
+        "/befunde/ausblenden",
+        data={
+            "year": "2025",
+            "kind": "incoming_files",
+            "target": "eingang",
+            "fingerprint": fingerprint,
+            "note": "später",
+        },
+        headers=ORIGIN,
+    )
+    assert dismissed.status_code == 303
+    assert "1 Datei im Eingang" not in main_of(client, "/befunde?year=2025")
+    (site / "neu.txt").write_text("neu", encoding="utf-8")
+    again = main_of(client, "/befunde?year=2025")
+    assert "2 Dateien im Eingang" in again
+    assert "war ausgeblendet: später" in again

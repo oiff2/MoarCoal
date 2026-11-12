@@ -7,6 +7,8 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from moarcoal.documents import DocumentKind
+from moarcoal.incoming import all_site_files
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import EntryAddress, Store
 from moarcoal.values.engine import Values
@@ -25,7 +27,16 @@ def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) ->
 
 def values_of(request: Request) -> Values:
     """`Values` der Anfrage, auf dem Stand zu Beginn der Anfrage."""
-    return Values(request.app.state.modules, store_of(request).state())
+    store = store_of(request)
+    return Values(
+        request.app.state.modules, store.state(), site_files=lambda: all_site_files(store)
+    )
+
+
+def document_kinds(request: Request) -> dict[str, DocumentKind]:
+    """Alle Dokumentarten aller Modulanmeldungen, nach Schlüssel."""
+    registrations: tuple[ModuleRegistration, ...] = request.app.state.modules
+    return {k.key: k for r in registrations for k in r.document_kinds}
 
 
 def store_of(request: Request) -> Store:

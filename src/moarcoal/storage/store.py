@@ -29,6 +29,7 @@ from moarcoal.storage.entries import (
     entry_checksum,
     kind_collisions,
 )
+from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND
 
 DEFAULT_DATA_DIR_NAME = "MoarCoal"
 DATA_DIRS = ("users", "common")  # hier liegen Einträge; .backup, .cache und config nicht
@@ -46,6 +47,16 @@ class StoreError(Exception):
 
 class SiteFileError(Exception):
     """Eine Datei an einem Ablageort lässt sich nicht lesen; die Meldung ist für den Nutzer."""
+
+
+@dataclass(frozen=True)
+class SiteFile:
+    """Eine Datei an einem Ablageort: Ablageort, Pfad relativ dazu (mit `/`), Größe, SHA-256."""
+
+    site: str
+    path: str
+    size: int
+    sha256: str
 
 
 @dataclass(frozen=True)
@@ -218,6 +229,7 @@ class Store:
         self._kinds = {kind.model.__name__: kind for kind in kinds}
         self._lock = threading.Lock()
         self._file_checksums: dict[str, str] = {}
+        self._site_hashes: dict[tuple[str, int, int], str] = {}  # (Datei, Größe, mtime) -> SHA-256
         self._state = State(MappingProxyType({}))
         self._load()
 
@@ -252,6 +264,37 @@ class Store:
             ) from error
         except OSError as error:
             raise SiteFileError(f"Die Datei lässt sich nicht lesen ({error.strerror}).") from error
+
+    def list_site_files(self, site: str) -> list[SiteFile]:
+        """Alle Dateien eines Ablageorts, rekursiv und nach Pfad sortiert; es wird nur gelesen.
+
+        Es gelten die Regeln von `read_site_file`: Verzeichnis-Links werden nicht verfolgt, Dateien
+        mit Ziel außerhalb des Ablageorts, zu große und unlesbare Dateien fehlen in der Liste.
+        """
+        folder = self._sites.get(site)
+        if folder is None:
+            raise SiteFileError(f"Unbekannter Ablageort {site!r}.")
+        base = folder.resolve()
+        found: list[SiteFile] = []
+        for current, _, names in os.walk(base):
+            for name in names:
+                file = Path(current) / name
+                try:
+                    target = file.resolve()
+                    if not target.is_relative_to(base) or not target.is_file():
+                        continue
+                    info = target.stat()
+                    if info.st_size > MAX_SITE_FILE_BYTES:
+                        continue
+                    key = (str(target), info.st_size, info.st_mtime_ns)
+                    sha256 = self._site_hashes.get(key)
+                    if sha256 is None:
+                        sha256 = self._site_hashes[key] = _sha256(target.read_bytes())
+                except OSError:
+                    continue
+                relative = file.relative_to(base).as_posix()
+                found.append(SiteFile(site, relative, info.st_size, sha256))
+        return sorted(found, key=lambda f: f.path)
 
     def _path_of(self, entry: Entry) -> str:
         return self._kinds[type(entry).__name__].path(entry)
@@ -436,10 +479,10 @@ def open_store(
 ) -> Store:
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
 
-    Die Arten der Datenebene (Dokument, Ausblendung) kommen immer dazu. `sites` nennt die Ablageorte
-    (Name -> Ordner); ohne Angabe gilt `common/sites.json`.
+    Die Arten der Datenebene (Dokument, Ausblendungen) kommen immer dazu. `sites` nennt die
+    Ablageorte (Name -> Ordner); ohne Angabe gilt `common/sites.json`.
     """
-    all_kinds = (*DATA_LAYER_KINDS, DISMISSAL_KIND, *kinds)
+    all_kinds = (*DATA_LAYER_KINDS, DISMISSAL_KIND, HIDDEN_FILE_KIND, *kinds)
     collisions = kind_collisions([kind.model for kind in all_kinds])
     if collisions:
         raise StoreError(f"Arten nicht eindeutig: {', '.join(collisions)}")

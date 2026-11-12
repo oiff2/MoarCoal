@@ -14,6 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.dismissals import NoteMissing, dismiss, undismiss
 from moarcoal.extraction import ClaudeExtractor, Extractor
+from moarcoal.incoming_pages import router as incoming_router
 from moarcoal.modules import MODULES
 from moarcoal.registration import ModuleRegistration
 from moarcoal.security import SecurityMiddleware
@@ -70,6 +71,7 @@ def create_app(
     app.state.store = open_store(data_dir, [kind for module in modules for kind in module.kinds])
     for module in modules:
         app.include_router(module.router)
+    app.include_router(incoming_router)
 
     @app.get("/", response_class=HTMLResponse)
     def start(request: Request) -> HTMLResponse:  # pyright: ignore[reportUnusedFunction]

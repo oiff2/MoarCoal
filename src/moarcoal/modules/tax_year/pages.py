@@ -1,37 +1,24 @@
-"""Seiten des Moduls Steuerjahr: Übertragungsprotokoll aufnehmen und die Zeilen ansehen."""
+"""Seiten des Moduls Steuerjahr: Übersicht, Protokollzeilen ansehen, Anlage N."""
 
-from typing import Annotated
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
-
-from moarcoal.defaults import DEFAULT_YEAR
-from moarcoal.documents import DocumentKind, IntakeRejected, take_in
 from moarcoal.modules.tax_year.anlage_n import FORMS
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
-from moarcoal.registration import ModuleRegistration, ModuleState
+from moarcoal.registration import ModuleState
 from moarcoal.storage import Document, EntryAddress
 from moarcoal.values.model import Period
-from moarcoal.web import form_fields, module_state, render, store_of, user_of, values_of
+from moarcoal.web import module_state, render, user_of, values_of
 
 MODULE_KEY = "tax_year"
 router = APIRouter(prefix="/steuerjahr")
-
-type Fields = dict[str, str]
 
 
 def _own_state(request: Request) -> ModuleState:
     return module_state(request, MODULE_KEY)
 
 
-def _document_kinds(request: Request) -> dict[str, DocumentKind]:
-    registrations: tuple[ModuleRegistration, ...] = request.app.state.modules
-    return {k.key: k for r in registrations for k in r.document_kinds}
-
-
-def _overview(
-    request: Request, errors: list[str], values: Fields, status_code: int = 200
-) -> HTMLResponse:
+def _overview(request: Request) -> HTMLResponse:
     state = _own_state(request)
     documents = {d.address: d for d in state.documents(TRANSFER_PROTOCOL_KEY)}
     readings = [
@@ -41,38 +28,13 @@ def _overview(
     return render(
         request,
         "tax_year/index.html",
-        status_code,
         readings=readings,
-        sites=store_of(request).site_names(),
-        errors=errors,
-        values=values,
     )
 
 
 @router.get("", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
-    return _overview(request, [], {"year": str(DEFAULT_YEAR)})
-
-
-@router.post("/uebertragungsprotokolle")
-def take_in_protocol(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
-    try:
-        year = int(fields.get("year", "").strip())
-    except ValueError:
-        return _overview(request, ["Steuerjahr: ganze Zahl, z. B. 2025"], fields, 422)
-    result = take_in(
-        store_of(request),
-        _document_kinds(request),
-        user_of(request),
-        fields.get("site", ""),
-        fields.get("path", "").strip(),
-        TRANSFER_PROTOCOL_KEY,
-        year,
-    )
-    if isinstance(result, IntakeRejected):
-        return _overview(request, list(result.reasons), fields, 422)
-    (reading,) = result.entries
-    return RedirectResponse(f"/steuerjahr/uebertragungsprotokolle/{reading.id}", status_code=303)
+    return _overview(request)
 
 
 @router.get("/uebertragungsprotokolle/{reading_id}", response_class=HTMLResponse)
@@ -106,3 +68,10 @@ def anlage_n(request: Request, year: int) -> HTMLResponse:
         rows=rows,
         findings=values.finding_list(user, year),  # Vorlage zeigt die sichtbaren Befunde
     )
+
+
+def entry_url(address: EntryAddress) -> str | None:
+    """Link zur Seite eines eingelesenen Protokolls, sonst `None`."""
+    if address.kind == ProtocolReading.__name__:
+        return f"/steuerjahr/uebertragungsprotokolle/{address.id}"
+    return None

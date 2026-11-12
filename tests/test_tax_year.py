@@ -326,19 +326,29 @@ def test_document_put_by_hand_is_checked(root: Path, site: Path) -> None:
 # --- Seiten -----------------------------------------------------------------------------------
 
 
+def take_in_via_page(
+    client: httpx.Client, year: str = "2025", kind: str = "transfer_protocol"
+) -> httpx.Response:
+    return client.post(
+        "/eingang/aufnehmen",
+        data={
+            "sha256": hashlib.sha256(FIXTURE.read_bytes()).hexdigest(),
+            "kind": kind,
+            "year": year,
+        },
+        headers=ORIGIN,
+    )
+
+
 def test_pages_take_in_and_show_document_and_lines(root: Path, site: Path) -> None:
     client = make_client(root, site)
     page = client.get("/steuerjahr")
     assert page.status_code == 200
     assert "Noch kein Übertragungsprotokoll" in page.text
-    assert '<option value="Belege"' in page.text
 
-    response = client.post(
-        "/steuerjahr/uebertragungsprotokolle",
-        data={"site": "Belege", "path": "2025/protokoll.html", "year": "2025"},
-        headers=ORIGIN,
-    )
+    response = take_in_via_page(client)
     assert response.status_code == 303
+    assert response.headers["location"].startswith("/steuerjahr/uebertragungsprotokolle/")
     detail = client.get(response.headers["location"]).text
     assert "2025/protokoll.html" in detail
     assert hashlib.sha256(FIXTURE.read_bytes()).hexdigest() in detail
@@ -359,24 +369,6 @@ def test_page_get_never_writes(root: Path, site: Path) -> None:
     assert sorted(p.relative_to(root) for p in root.rglob("*")) == before
 
 
-def test_page_shows_errors_and_keeps_input(root: Path, site: Path) -> None:
-    client = make_client(root, site)
-    response = client.post(
-        "/steuerjahr/uebertragungsprotokolle",
-        data={"site": "Belege", "path": "../x", "year": "2025"},
-        headers=ORIGIN,
-    )
-    assert response.status_code == 422
-    assert "ohne" in response.text
-    assert 'value="../x"' in response.text
-    bad_year = client.post(
-        "/steuerjahr/uebertragungsprotokolle",
-        data={"site": "Belege", "path": "2025/protokoll.html", "year": "abc"},
-        headers=ORIGIN,
-    )
-    assert bad_year.status_code == 422
-
-
 def test_detail_of_unknown_or_invalid_reading_is_404(root: Path, site: Path) -> None:
     client = make_client(root, site)
     assert client.get("/steuerjahr/uebertragungsprotokolle/AAAAAAAAAA").status_code == 404
@@ -385,19 +377,10 @@ def test_detail_of_unknown_or_invalid_reading_is_404(root: Path, site: Path) -> 
 
 def test_page_rejects_year_that_contradicts_the_head(root: Path, site: Path) -> None:
     client = make_client(root, site)
-    response = client.post(
-        "/steuerjahr/uebertragungsprotokolle",
-        data={"site": "Belege", "path": "2025/protokoll.html", "year": "2024"},
-        headers=ORIGIN,
-    )
+    response = take_in_via_page(client, year="2024")
     assert response.status_code == 422
     assert "gehört zum Steuerjahr 2025, eingetragen ist 2024" in response.text
     assert not (root / "users").exists()
-
-
-def test_post_needs_origin(root: Path, site: Path) -> None:
-    client = make_client(root, site)
-    assert client.post("/steuerjahr/uebertragungsprotokolle", data={}).status_code == 403
 
 
 def test_protocol_line_is_stored_as_elster_id() -> None:

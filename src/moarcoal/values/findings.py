@@ -30,8 +30,10 @@ def fingerprint(*parts: object) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def target_text(target: ValueRef | EntryAddress) -> str:
+def target_text(target: ValueRef | EntryAddress | str) -> str:
     """Das Ziel als Text, mit dem ein Befund erkannt wird (ohne Nutzer)."""
+    if isinstance(target, str):
+        return target
     if isinstance(target, EntryAddress):
         return str(target)
     match target.time:
@@ -49,12 +51,13 @@ class Finding:
 
     `href` führt zur Stelle, an der man den Befund prüft (leer: kein Link). `fingerprint` ist der
     Fingerabdruck des Stands, aus dem der Erzeuger den Befund gebildet hat (`fingerprint(...)`);
-    ohne Angabe ist es der des Texts. Erkannt wird ein Befund an Befundart und Ziel.
+    ohne Angabe ist es der des Texts. Ein Ziel als Text steht für etwas ohne Adresse (z. B. den
+    Eingang). Erkannt wird ein Befund an Befundart und Ziel.
     """
 
     kind: str
     severity: Severity
-    target: ValueRef | EntryAddress
+    target: ValueRef | EntryAddress | str
     message: str
     chain: tuple[ValueRef, ...] = ()
     href: str = ""
@@ -71,6 +74,7 @@ class Finding:
 
 CYCLE = "cycle"
 DUPLICATE_LOCATOR = "duplicate_locator"
+INCOMING_FILES = "incoming_files"
 
 
 @dataclass(frozen=True)

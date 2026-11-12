@@ -12,12 +12,14 @@ from moarcoal.storage.entries import (
     kind_collisions,
     new_id,
 )
+from moarcoal.storage.hidden_files import COMMON_OWNER, HiddenFile
 from moarcoal.storage.store import (
     Applied,
     Change,
     Delete,
     Put,
     Rejected,
+    SiteFile,
     SiteFileError,
     State,
     Store,
@@ -27,6 +29,7 @@ from moarcoal.storage.store import (
 )
 
 __all__ = [
+    "COMMON_OWNER",
     "Applied",
     "Change",
     "Delete",
@@ -35,8 +38,10 @@ __all__ = [
     "Entry",
     "EntryAddress",
     "EntryKind",
+    "HiddenFile",
     "Put",
     "Rejected",
+    "SiteFile",
     "SiteFileError",
     "State",
     "Store",
