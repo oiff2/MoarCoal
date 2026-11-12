@@ -1,18 +1,15 @@
-"""Felder der Anlage N 2025, die der Durchstich abdeckt, und die Zuordnung der Werte zu ihnen.
+"""Felder der Anlage N je Steuerjahr, die MoarCoal abdeckt, und die Zuordnung der Werte zu ihnen.
 
-Der Katalog enthält nur diese Felder. Ein Feld zeigt die erfassten Angaben wie ELSTER sie
-verlangt, ohne Steuerrechnung (keine Entfernungspauschale). Die Werte kommen aus dem Modul Arbeit,
-das das Steuerjahr nur über ihre Schlüssel kennt. Die Werte der Felder sind gesetzlich gerundet,
-je nach Einheit und Richtung des Felds; der Rundungsschritt steht im Rechenweg, die Werte des Moduls
-Arbeit bleiben genau (docs/recherche-runden-anlage-n.md).
+Der Katalog enthält bisher nur die Felder des Durchstichs für 2025. Ein Feld zeigt die erfassten
+Angaben wie ELSTER sie verlangt, ohne Steuerrechnung (keine Entfernungspauschale). Die Werte kommen
+aus dem Modul Arbeit, das das Steuerjahr nur über ihre Schlüssel kennt. Die Werte der Felder sind
+gerundet, wie das Feld es verlangt (`fields`); der Rundungsschritt steht im Rechenweg, die Werte
+des Moduls Arbeit bleiben genau.
 """
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
-from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
-from enum import StrEnum
 
-from moarcoal.modules.tax_year.entries import ElsterId
+from moarcoal.modules.tax_year.fields import Direction, FormField, Rounding
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
 from moarcoal.values.model import Amount, Unit, ValueKey
@@ -28,75 +25,13 @@ N_WORKPLACE_DISTANCE = ValueKey("tax_year.n_workplace_distance")
 N_EQUIPMENT = ValueKey("tax_year.n_equipment")
 
 
-class Direction(StrEnum):
-    """Richtung eines Euro-Felds: Einnahme oder Ausgabe; der Wert ist die Anzeige im Rechenweg."""
-
-    INCOME = "Einnahme"
-    EXPENSE = "Ausgabe"
-
-
-class Rounding(StrEnum):
-    """Wie der Wert eines Felds gerundet wird, bevor er einzutragen ist."""
-
-    WHOLE_EUROS = "ganze Euro"  # zugunsten des Steuerpflichtigen, je nach Richtung
-    EURO_CENTS = "Euro mit Cent"  # exakt
-    WHOLE_KM = "volle km"  # abgerundet
-    NONE = "ganzzahlig"  # Tage: schon ganzzahlig
-
-
-@dataclass(frozen=True)
-class FormField:
-    """Ein Feld einer Anlage: Bezeichnung, E-Kennung (leer, solange unbekannt), Nr. im Vordruck.
-
-    `key` ist der Schlüssel des Ausgewiesenen Werts, den das Steuerjahr dem Feld zuordnet.
-    """
-
-    key: ValueKey
-    elster_id: ElsterId | None
-    form_line: str
-    label: str
-    unit: Unit
-    rounding: Rounding
-    direction: Direction | None = None  # nur bei ganzen Euro
-
-    def __post_init__(self) -> None:
-        if (self.rounding is Rounding.WHOLE_EUROS) != (self.direction is not None):
-            raise ValueError(f"{self.label}: Richtung gehört genau zu Feldern mit ganzen Euro")
-
-    @property
-    def whole_numbers(self) -> bool:
-        """Ob das Feld nur ganze Zahlen nimmt (Nachkommastellen heißen: ungerundet)."""
-        return self.rounding is not Rounding.EURO_CENTS
-
-
-def show(value: Decimal, unit: Unit) -> str:
-    """Wert deutsch mit Einheit: ganze Euro ohne Cent, sonst centgenau: '87 €', '86,40 €'."""
-    if unit is Unit.EUR:
-        text = f"{value:.0f}" if value == value.to_integral_value() else f"{value:.2f}"
-    else:
-        text = f"{value.normalize():f}"
-    text = text.replace(".", ",")
-    return f"{text} €" if unit is Unit.EUR else f"{text} {unit.value}"
-
-
-def round_for_field(calculation: Calculation, field: FormField, amount: Amount) -> Amount:
-    """Rundet den Endwert nach dem Feld; ein Wert, der schon passt, bekommt keinen Schritt."""
-    value = amount.value
-    match field.rounding:
-        case Rounding.WHOLE_EUROS:
-            income = field.direction is Direction.INCOME
-            rounded = value.to_integral_value(ROUND_FLOOR if income else ROUND_CEILING)
-            how = "abgerundet" if income else "aufgerundet"
-            reason = f"{how}, {field.direction}"
-        case Rounding.WHOLE_KM:
-            rounded = value.to_integral_value(ROUND_FLOOR)
-            reason = "auf volle km abgerundet"
-        case _:
-            return amount
-    if rounded == value:
+def _rounded(calculation: Calculation, field: FormField, amount: Amount) -> Amount:
+    """Rundet den Endwert nach dem Feld, mit Schritt im Rechenweg; passt er schon, ohne Schritt."""
+    rounded, reason = field.round(amount.value)
+    if reason is None:
         return amount
     return calculation.step(
-        f"{show(value, amount.unit)} → {show(rounded, amount.unit)} ({reason})",
+        f"{field.show(amount.value)} → {field.show(rounded)} ({reason})",
         Amount(rounded, amount.unit),
     )
 
@@ -155,7 +90,7 @@ def _work_value(calculation: Calculation, field: FormField, source: ValueKey, la
     if item is None:
         calculation.not_applicable(f"{label} entfällt")
     amount = calculation.step(f"{label} übernommen", item.amount)
-    return round_for_field(calculation, field, amount)
+    return _rounded(calculation, field, amount)
 
 
 def compute_workplace_days(calculation: Calculation, field: FormField) -> Amount:
@@ -171,7 +106,7 @@ def compute_equipment(calculation: Calculation, field: FormField) -> Amount:
     if item is None:
         calculation.not_applicable("Arbeitsmittel entfallen")
     amount = calculation.step("Summe der Arbeitsmittel übernommen", item.amount)
-    return round_for_field(calculation, field, amount)
+    return _rounded(calculation, field, amount)
 
 
 _COMPUTE: dict[ValueKey, Callable[[Calculation, FormField], Amount]] = {

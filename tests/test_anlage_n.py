@@ -5,7 +5,6 @@ Die Werte von Arbeit sind fest vorgegeben (`foreign`); nur die Seiten laufen mit
 
 from collections.abc import Callable
 from dataclasses import replace
-from decimal import Decimal
 from pathlib import Path
 
 import httpx
@@ -23,10 +22,6 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_DISTANCE_KM,
     WORK_EQUIPMENT,
     WORK_WORKDAYS,
-    Direction,
-    FormField,
-    Rounding,
-    round_for_field,
 )
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import EntryAddress
@@ -136,43 +131,6 @@ def test_field_that_already_fits_gets_no_rounding_step() -> None:
     field = exposed(tax_year({**place(), **equipment(8700)})(N_EQUIPMENT, YEAR))
 
     assert [s.kind for s in field.workings.steps] == ["item", "step"]
-
-
-@pytest.mark.parametrize("value", ["12.4", "12.9"])
-def test_km_are_rounded_down_to_whole_km(value: str) -> None:
-    calculation = Calculation(None, None, YEAR, None)  # type: ignore[arg-type]
-    (field,) = [f for f in FIELDS_2025 if f.key == N_WORKPLACE_DISTANCE]
-
-    rounded = round_for_field(calculation, field, Amount(Decimal(value), Unit.KM))
-
-    assert rounded == Amount.of(12, Unit.KM)
-    assert calculation.steps[0].text.endswith("→ 12 km (auf volle km abgerundet)")
-
-
-def test_income_field_rounds_down_and_cent_field_stays_exact() -> None:
-    income = FormField(
-        ValueKey("demo.income"), None, "1", "Erstattung", Unit.EUR, Rounding.WHOLE_EUROS,
-        Direction.INCOME,
-    )  # fmt: skip
-    cents = FormField(ValueKey("demo.tax"), None, "2", "Lohnsteuer", Unit.EUR, Rounding.EURO_CENTS)
-    calculation = Calculation(None, None, YEAR, None)  # type: ignore[arg-type]
-
-    down = round_for_field(calculation, income, Amount(Decimal("86.60"), Unit.EUR))
-    exact = round_for_field(calculation, cents, Amount(Decimal("86.60"), Unit.EUR))
-
-    assert down == Amount.of(86, Unit.EUR)
-    assert calculation.steps[0].text == "86,60 € → 86 € (abgerundet, Einnahme)"
-    assert exact == Amount(Decimal("86.60"), Unit.EUR)
-    assert len(calculation.steps) == 1
-
-
-def test_euro_field_needs_a_direction_exactly_when_it_takes_whole_euros() -> None:
-    with pytest.raises(ValueError, match="Richtung"):
-        FormField(ValueKey("demo.x"), None, "1", "x", Unit.EUR, Rounding.WHOLE_EUROS)
-    with pytest.raises(ValueError, match="Richtung"):
-        FormField(
-            ValueKey("demo.x"), None, "1", "x", Unit.EUR, Rounding.EURO_CENTS, Direction.EXPENSE
-        )
 
 
 def test_not_yet_computable_input_passes_on_with_chain() -> None:

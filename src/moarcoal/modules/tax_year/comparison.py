@@ -1,21 +1,20 @@
 """Abgleich der Felder der Anlage N mit dem Übertragungsprotokoll (Befunde des Steuerjahrs).
 
 Verglichen wird exakt und ohne Toleranz gegen den gerundeten Wert des Felds (das Steuerjahr rundet
-nach Einheit und Richtung, siehe `anlage_n`). Weicht das Protokoll nur durch Rundung ab, nennt der
+nach Einheit und Richtung, siehe `fields`). Weicht das Protokoll nur durch Rundung ab, nennt der
 Text Differenz und Richtung. Mehrere Zeilen derselben E-Kennung werden bei EUR-Feldern summiert;
 bei Tagen und km sind sie mehrdeutig.
 """
 
-import re
 from collections.abc import Iterator
-from decimal import Decimal, InvalidOperation
 
-from moarcoal.modules.tax_year.anlage_n import FORMS, Direction, FormField, Forms, show
-from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolLine, ProtocolReading
+from moarcoal.modules.tax_year.anlage_n import FORMS, Forms
+from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
+from moarcoal.modules.tax_year.fields import AmbiguousLines, FormField, NotANumber
 from moarcoal.registration import ModuleState
 from moarcoal.values.calculation import ValueSource
 from moarcoal.values.findings import Finding, FindingKind, Severity
-from moarcoal.values.model import ExposedValue, Period, Unit, ValueRef
+from moarcoal.values.model import ExposedValue, Period, ValueRef
 
 DEVIATION = "tax_year.protocol_deviation"
 MISSING = "tax_year.protocol_missing"
@@ -28,19 +27,6 @@ FINDING_KINDS = (
     FindingKind(AMBIGUOUS, "Feld kommt im Übertragungsprotokoll mehrfach vor"),
     FindingKind(UNKNOWN_ELSTER_ID, "E-Kennung unbekannt, nicht abgleichbar"),
 )
-
-GERMAN_NUMBER = re.compile(r"-?\d{1,3}(\.\d{3})*(,\d+)?|-?\d+(,\d+)?")
-
-
-def parse_german_number(text: str) -> Decimal | None:
-    """'1.234,56' -> 1234.56; ein angehängtes € oder EUR ist erlaubt; sonst `None`."""
-    cleaned = text.strip().removesuffix("€").removesuffix("EUR").strip()
-    if not GERMAN_NUMBER.fullmatch(cleaned):
-        return None
-    try:
-        return Decimal(cleaned.replace(".", "").replace(",", "."))
-    except InvalidOperation:
-        return None
 
 
 def latest_reading(state: ModuleState, year: int) -> ProtocolReading | None:
@@ -66,31 +52,6 @@ def protocol_url(reading: ProtocolReading, data_name: str = "") -> str:
     return f"{base}#{data_name}" if data_name else base
 
 
-def _sum(lines: list[ProtocolLine]) -> Decimal | None:
-    numbers = [parse_german_number(line.content) for line in lines]
-    if any(n is None for n in numbers):
-        return None
-    return sum((n for n in numbers if n is not None), Decimal(0))
-
-
-def _deviation_text(field: FormField, expected: Decimal, transferred: Decimal) -> str:
-    """Text der Abweichung; liegt sie nur an der Rundung, mit Differenz und Richtung."""
-    shown = show(expected, field.unit)
-    plain = f"Wert {shown}, Protokoll {show(transferred, field.unit)}."
-    if not field.whole_numbers:
-        return plain
-    if transferred != transferred.to_integral_value():
-        return f"nicht gerundet: {show(transferred, field.unit)} statt {shown}."
-    difference = transferred - expected
-    if abs(difference) > 1 or field.direction is None and field.unit is not Unit.KM:
-        return plain
-    # Zu Ungunsten: weniger Ausgabe bzw. Entfernung, mehr Einnahme.
-    unfavorable = (difference > 0) == (field.direction is Direction.INCOME)
-    how = "aufgerundet" if difference > 0 else "abgerundet"
-    side = "Ungunsten" if unfavorable else "Gunsten"
-    return f"um {show(abs(difference), field.unit)} {how}, zu deinen {side} (Wert {shown})."
-
-
 def _field_findings(
     field: FormField, ref: ValueRef, value: ExposedValue, reading: ProtocolReading
 ) -> Iterator[Finding]:
@@ -108,24 +69,25 @@ def _field_findings(
         )
         return
     first = protocol_url(reading, lines[0].data_name)
-    if field.unit is not Unit.EUR and len(lines) > 1:
-        yield Finding(
-            AMBIGUOUS,
-            Severity.WARNING,
-            ref,
-            f"{name}: Das Feld kommt {len(lines)}-mal im Protokoll vor; "
-            "ein Vergleich ist nicht möglich.",
-            href=first,
-        )
-        return
-    transferred = _sum(lines)
-    shown = show(value.amount.value, value.amount.unit)
-    if transferred is None:
-        text = f"Wert {shown}, Protokoll „{lines[0].content}“ ist keine Zahl."
-    elif transferred != value.amount.value:
-        text = _deviation_text(field, value.amount.value, transferred)
-    else:
-        return
+    expected = value.amount.value
+    transferred = field.read_protocol([line.content for line in lines])
+    match transferred:
+        case AmbiguousLines(count=count):
+            yield Finding(
+                AMBIGUOUS,
+                Severity.WARNING,
+                ref,
+                f"{name}: Das Feld kommt {count}-mal im Protokoll vor; "
+                "ein Vergleich ist nicht möglich.",
+                href=first,
+            )
+            return
+        case NotANumber(content=content):
+            text = f"Wert {field.show(expected)}, Protokoll „{content}“ ist keine Zahl."
+        case _ if transferred != expected:
+            text = field.explain_deviation(expected, transferred)
+        case _:
+            return
     yield Finding(DEVIATION, Severity.WARNING, ref, f"{name}: {text}", href=first)
 
 

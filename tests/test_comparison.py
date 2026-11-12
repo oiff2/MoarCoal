@@ -8,7 +8,6 @@ import datetime
 import json
 import shutil
 from dataclasses import replace
-from decimal import Decimal
 from pathlib import Path
 
 import httpx
@@ -30,7 +29,6 @@ from moarcoal.modules.tax_year.comparison import (
     DEVIATION,
     MISSING,
     UNKNOWN_ELSTER_ID,
-    parse_german_number,
 )
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import Document, Entry, EntryAddress
@@ -213,14 +211,6 @@ def test_equal_taken_in_moment_is_decided_by_reading_id_not_by_storage_order() -
 
 def test_without_protocol_there_is_no_comparison() -> None:
     assert findings([], work(workdays=1)) == []
-
-
-def test_german_numbers() -> None:
-    assert parse_german_number("1.234,56") == Decimal("1234.56")
-    assert parse_german_number("220") == Decimal(220)
-    assert parse_german_number("49,90 €") == Decimal("49.90")
-    assert parse_german_number("abc") is None
-    assert parse_german_number("1,2,3") is None
 
 
 # --- Mit dem echten Modul Arbeit ----------------------------------------------------------------
