@@ -37,6 +37,7 @@ from moarcoal.values.model import (
     Unit,
     UserInputLocator,
     ValueKey,
+    format_amount,
 )
 from moarcoal.values.testing import evaluate, fixed, not_applicable, not_yet
 
@@ -500,3 +501,23 @@ def test_key_neither_registered_nor_given_stays_unknown() -> None:
 
     with pytest.raises(UnknownValueKey):
         values.get("other.nope", "anna", YEAR)
+
+
+# --- Anzeige eines Betrags ----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("amount", "whole_euros", "text"),
+    [
+        (Amount.eur_cents(123456), False, "1.234,56 €"),
+        (Amount.eur_cents(123400), False, "1.234,00 €"),
+        (Amount.eur_cents(123400), True, "1.234 €"),
+        (Amount.eur_cents(8640), True, "86,40 €"),  # ungerundet: nichts abschneiden
+        (Amount.eur_cents(-5), False, "-0,05 €"),
+        (Amount.of(220, Unit.DAYS), False, "220 Tage"),
+        (Amount(Decimal("12.40"), Unit.KM), False, "12,4 km"),
+        (Amount.of(1500, Unit.KM), False, "1.500 km"),
+    ],
+)
+def test_amounts_read_the_same_everywhere(amount: Amount, whole_euros: bool, text: str) -> None:
+    assert format_amount(amount, whole_euros=whole_euros) == text

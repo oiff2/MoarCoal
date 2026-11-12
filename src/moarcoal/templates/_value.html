@@ -5,7 +5,7 @@
   <details>
     <summary>
       <span class="titel">{{ title }}:</span>
-      <strong class="betrag">{{ (result.amount.value | int | string ~ " €") if whole else (result.amount | amount) }}</strong>
+      <strong class="betrag">{{ result.amount | amount(whole_euros=whole) }}</strong>
       <span class="belegstand belegstand-{{ result.backing.name | lower }}">Belegstand: {{ result.backing.label }}</span>
     </summary>
     <h4>Einzelposten</h4>
@@ -33,7 +33,7 @@
       {% for step in result.workings.steps %}
       <li class="schritt-{{ step.kind }}">
         {% if step.kind == "item" %}Einzelposten{% elif step.kind == "decision" %}Entscheidung{% else %}Zwischenergebnis{% endif %}:
-        {{ step.text }}{% if step.amount %}: {{ (step.amount.value | int | string ~ " €") if whole and loop.last else (step.amount | amount) }}{% endif %}
+        {{ step.text }}{% if step.amount %}: {{ step.amount | amount(whole_euros=whole and loop.last) }}{% endif %}
       </li>
       {% endfor %}
     </ol>

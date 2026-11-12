@@ -10,22 +10,12 @@ from fastapi.templating import Jinja2Templates
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import EntryAddress, Store
 from moarcoal.values.engine import Values
-from moarcoal.values.model import Amount, Unit
+from moarcoal.values.model import Amount, format_amount
 
 
 def format_eur(cents: int) -> str:
     """Ganze Cent als deutscher Betrag, z. B. 123456 -> '1.234,56 €'."""
-    euros, rest = divmod(abs(cents), 100)
-    text = f"{euros:,}".replace(",", ".") + f",{rest:02d} €"
-    return "-" + text if cents < 0 else text
-
-
-def format_amount(amount: Amount) -> str:
-    """Betrag mit Einheit, deutsch formatiert: '1.234,56 €', '180 Tage', '12 km'."""
-    if amount.unit is Unit.EUR:
-        return format_eur(int((amount.value * 100).to_integral_value()))
-    text = f"{amount.value.normalize():f}".replace(".", ",")
-    return f"{text} {amount.unit.value}"
+    return format_amount(Amount.eur_cents(cents))
 
 
 def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) -> str | None:
