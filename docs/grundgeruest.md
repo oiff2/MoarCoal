@@ -17,7 +17,7 @@ Die Entscheidungen unten gelten alle, gebaut werden sie aber nicht auf einmal. Z
 - `apply` mit `Put`/`Delete`, Prüfsummen, `.backup/`, temporäre Datei und Umbenennen; `schema`-Feld ab der ersten Datei
 - Server mit Absicherung (Abschnitt 6), Testkern (Abschnitt 9)
 
-**Abschnitt 2**, sobald der Durchstich steht: Auslesen mit Claude als Vorschlag mit Bestätigung (Abschnitt 7), am Beispiel des Bescheid-Abgleichs; Schnappschuss bei Abgabe, ohne Dokumentkopie; Erwarteter Beleg in einfacher Form; Ausblenden von Befunden; Eingang.
+**Abschnitt 2** ([#46](https://github.com/oiff2/MoarCoal/issues/46)), sobald der Durchstich steht: Auslesen mit Claude als Vorschlag mit Bestätigung (Abschnitt 7), am Beispiel des Bescheid-Abgleichs; Schnappschuss bei Abgabe, ohne Dokumentkopie; Erwarteter Beleg in einfacher Form; Ausblenden von Befunden; Eingang.
 
 **Später, wenn es gebraucht wird**:
 
