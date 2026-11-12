@@ -240,8 +240,11 @@ Eine Datei aus dem Eingang zum Dokument machen; danach wird sie je nach Dokument
 _Avoid_: importieren, einlesen (für diesen Schritt)
 
 **einlesen**:
-Felder eines Dokuments mit festem Aufbau exakt und ohne Claude übernehmen (z. B. Übertragungsprotokoll); das Ergebnis gilt ohne Bestätigung, wird nie von Hand korrigiert und fällt mit dem Dokument weg; neu eingelesen wird durch Löschen und erneutes Aufnehmen der Datei.
+Felder eines Dokuments mit festem Aufbau exakt und ohne Claude übernehmen (z. B. Übertragungsprotokoll); das Ergebnis gilt ohne Bestätigung, wird nie von Hand korrigiert und fällt mit dem Dokument weg; Löschen und erneutes Aufnehmen der Datei liest sie neu ein. Die eingelesenen Einträge nennen ihr Dokument und die **Fassung** der Einlese-Regel (Code: `ReadInEntry`); trägt ein Eintrag eine ältere Fassung, als die Dokumentart angibt, wird das Dokument beim Start neu eingelesen.
 _Avoid_: importieren, parsen
+
+**Neueinlesung** _(geprägt)_:
+Was neues Einlesen beim Start an einem Dokument geändert hat: alte und neue Fassung, Zeitpunkt und die geänderten Stellen mit altem und neuem Inhalt. Sie entsteht nur, wenn sich etwas geändert hat, denn die alten Werte sind danach ersetzt; sie ergibt den Hinweis-Befund „Einlesen hat einen Wert geändert“ (Code: `Rereading`).
 
 **auslesen**:
 Felder eines Dokuments nach der Auslese-Vorlage seiner Dokumentart von Claude lesen lassen; das Ergebnis ist ein Vorschlag, der erst nach Bestätigung gilt. Gegenstück: einlesen (exakt, ohne Claude, ohne Bestätigung) (Code: `Extractor`).
