@@ -209,6 +209,10 @@ _Avoid_: importieren, parsen
 Felder eines Dokuments nach der Auslese-Vorlage seiner Dokumentart von Claude lesen lassen; das Ergebnis ist ein Vorschlag, der erst nach Bestätigung gilt. Gegenstück: einlesen (exakt, ohne Claude, ohne Bestätigung) (Code: `Extractor`).
 _Avoid_: importieren, extrahieren, parsen
 
+**Abgebrochene Auslesung**:
+Ein festgehaltener Abbruch des Claude-Aufrufs beim Auslesen eines Dokuments, weil Claude Werkzeuge oder MCP-Server gemeldet hat; daraus entsteht ein Fehler-Befund am Dokument, bis eine spätere Auslesung desselben Dokuments gelingt (Code: `AbortedExtraction`).
+_Avoid_: Fehlversuch, Absturz
+
 **Vorschlag**:
 Das Ergebnis einer Auslesung an einem Dokument: Felder mit Inhalt und Stelle im Dokument (Seite/Zeile), die erst nach Bestätigung durch den Nutzer (je Feld, ggf. korrigiert) in Daten eines Moduls übergehen; bleibt danach samt Korrekturen erhalten (Code: `Proposal`).
 _Avoid_: Entwurf, Vorschlagswert, unbestätigter Einzelposten

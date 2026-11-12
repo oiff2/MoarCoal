@@ -31,7 +31,7 @@ TEMPLATE_EXCEPTIONS = {
 
 # `Code:`-Namen aus CONTEXT.md, die noch nicht im App-Code gebaut sind. Gebaute Namen müssen hier
 # raus (der Test schlägt sonst fehl), ebenso Namen, die nicht mehr in CONTEXT.md stehen.
-NOT_YET_BUILT: set[str] = set()
+NOT_YET_BUILT: set[str] = {"AbortedExtraction"}
 
 COINED_LIMIT = 30
 
