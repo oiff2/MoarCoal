@@ -7,6 +7,7 @@ je nach Einheit und Richtung des Felds; der Rundungsschritt steht im Rechenweg, 
 Arbeit bleiben genau (docs/recherche-runden-anlage-n.md).
 """
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from enum import StrEnum
@@ -124,11 +125,19 @@ FIELDS_2025: tuple[FormField, ...] = (
     ),
 )
 
-FORMS: dict[int, tuple[FormField, ...]] = {2025: FIELDS_2025}
+type Forms = Mapping[int, tuple[FormField, ...]]
+"""Felder der Anlage N je Steuerjahr."""
+
+FORMS: Forms = {2025: FIELDS_2025}
 
 
-def _field(key: ValueKey) -> FormField:
-    return next(f for f in FIELDS_2025 if f.key == key)
+def _field(calculation: Calculation, forms: Forms, key: ValueKey) -> FormField:
+    """Das Feld im Katalog des Steuerjahrs; ohne Katalog ist es noch nicht berechenbar."""
+    year = calculation.year
+    field = next((f for f in forms.get(year, ()) if f.key == key), None)
+    if field is None:
+        calculation.not_yet(f"Anlage N {year} deckt MoarCoal noch nicht ab")
+    return field
 
 
 def _work_value(calculation: Calculation, field: FormField, source: ValueKey, label: str) -> Amount:
@@ -149,40 +158,45 @@ def _work_value(calculation: Calculation, field: FormField, source: ValueKey, la
     return round_for_field(calculation, field, amount)
 
 
-def compute_workplace_days(calculation: Calculation) -> Amount:
-    field = _field(N_WORKPLACE_DAYS)
+def compute_workplace_days(calculation: Calculation, field: FormField) -> Amount:
     return _work_value(calculation, field, WORK_WORKDAYS, "Arbeitstage")
 
 
-def compute_workplace_distance(calculation: Calculation) -> Amount:
-    field = _field(N_WORKPLACE_DISTANCE)
+def compute_workplace_distance(calculation: Calculation, field: FormField) -> Amount:
     return _work_value(calculation, field, WORK_DISTANCE_KM, "Einfache Entfernung")
 
 
-def compute_equipment(calculation: Calculation) -> Amount:
-    _ = calculation.year  # bricht bei einem Zeitraum ohne Kalenderjahr ab
+def compute_equipment(calculation: Calculation, field: FormField) -> Amount:
     item = calculation.use(WORK_EQUIPMENT, label="Summe der Arbeitsmittel")
     if item is None:
         calculation.not_applicable("Arbeitsmittel entfallen")
     amount = calculation.step("Summe der Arbeitsmittel übernommen", item.amount)
-    return round_for_field(calculation, _field(N_EQUIPMENT), amount)
+    return round_for_field(calculation, field, amount)
 
 
-_COMPUTE = {
+_COMPUTE: dict[ValueKey, Callable[[Calculation, FormField], Amount]] = {
     N_WORKPLACE_DAYS: compute_workplace_days,
     N_WORKPLACE_DISTANCE: compute_workplace_distance,
     N_EQUIPMENT: compute_equipment,
 }
 
-VALUES: tuple[ValueDefinition, ...] = tuple(
-    ValueDefinition(
-        CatalogEntry(
-            field.key,
-            f"Anlage N 2025, {field.label}",
-            field.unit,
-            TimeKind.PERIOD,
-        ),
-        _COMPUTE[field.key],
+
+def _compute(forms: Forms, key: ValueKey) -> Callable[[Calculation], Amount]:
+    def compute(calculation: Calculation) -> Amount:
+        return _COMPUTE[key](calculation, _field(calculation, forms, key))
+
+    return compute
+
+
+def values_for(forms: Forms) -> tuple[ValueDefinition, ...]:
+    """Ein Wert je Feld, das in einem der Jahre vorkommt; die Bezeichnung aus dem jüngsten Jahr."""
+    latest: dict[ValueKey, FormField] = {}
+    for year in sorted(forms):
+        latest.update((field.key, field) for field in forms[year])
+    return tuple(
+        ValueDefinition(
+            CatalogEntry(field.key, f"Anlage N, {field.label}", field.unit, TimeKind.PERIOD),
+            _compute(forms, field.key),
+        )
+        for field in latest.values()
     )
-    for field in FIELDS_2025
-)

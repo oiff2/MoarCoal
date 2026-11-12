@@ -10,7 +10,7 @@ import re
 from collections.abc import Iterator
 from decimal import Decimal, InvalidOperation
 
-from moarcoal.modules.tax_year.anlage_n import FORMS, Direction, FormField, show
+from moarcoal.modules.tax_year.anlage_n import FORMS, Direction, FormField, Forms, show
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolLine, ProtocolReading
 from moarcoal.registration import ModuleState
 from moarcoal.values.calculation import ValueSource
@@ -129,9 +129,11 @@ def _field_findings(
     yield Finding(DEVIATION, Severity.WARNING, ref, f"{name}: {text}", href=first)
 
 
-def protocol_findings(state: ModuleState, values: ValueSource, year: int) -> list[Finding]:
+def protocol_findings(
+    state: ModuleState, values: ValueSource, year: int, forms: Forms = FORMS
+) -> list[Finding]:
     """Befunde des Abgleichs für das Jahr; ohne aufgenommenes Protokoll gibt es keinen Abgleich."""
-    fields = FORMS.get(year)
+    fields = forms.get(year)
     reading = latest_reading(state, year)
     if fields is None or reading is None:
         return []
