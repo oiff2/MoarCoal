@@ -6,7 +6,7 @@ Schnappschuss mit dem aktuellen Stand je Stufe der Kette (`Deviation`).
 """
 
 import datetime
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING
@@ -175,15 +175,27 @@ class Deviation:
     frozen: str
     current: str
     item: str = ""
+    frozen_amount: FrozenAmount | None = None
+    current_amount: FrozenAmount | None = None
 
     @property
     def text(self) -> str:
+        return self.text_with(lambda amount: amount.text)
+
+    def text_with(self, show: Callable[[FrozenAmount], str]) -> str:
+        """Der Text mit den Beträgen, wie `show` sie darstellt (z. B. nach dem Feld)."""
+
+        def side(text: str, amount: FrozenAmount | None) -> str:
+            return text if amount is None else text.replace(amount.text, show(amount), 1)
+
+        frozen = side(self.frozen, self.frozen_amount)
+        current = side(self.current, self.current_amount)
         what = f"{self.kind.value} {self.item}" if self.item else self.kind.value
-        if not self.frozen:
-            return f"{what}: jetzt {self.current}"
-        if not self.current:
-            return f"{what}: eingefroren {self.frozen}"
-        return f"{what}: eingefroren {self.frozen}, jetzt {self.current}"
+        if not frozen:
+            return f"{what}: jetzt {current}"
+        if not current:
+            return f"{what}: eingefroren {frozen}"
+        return f"{what}: eingefroren {frozen}, jetzt {current}"
 
 
 def outcome_text(value: FrozenValue) -> str:
@@ -208,7 +220,14 @@ def _item_deviations(frozen: FrozenValue, current: FrozenValue) -> Iterable[Devi
             (n for n in unmatched if (n.label, n.locator) == (old.label, old.locator)), None
         )
         if match is None:
-            yield Deviation(frozen.ref, DeviationKind.ITEM_REMOVED, old.amount.text, "", old.label)
+            yield Deviation(
+                frozen.ref,
+                DeviationKind.ITEM_REMOVED,
+                old.amount.text,
+                "",
+                old.label,
+                frozen_amount=old.amount,
+            )
             continue
         unmatched.remove(match)
         if not _same_amount(old.amount, match.amount) or old.backing != match.backing:
@@ -218,21 +237,42 @@ def _item_deviations(frozen: FrozenValue, current: FrozenValue) -> Iterable[Devi
                 f"{old.amount.text}, {old.backing}",
                 f"{match.amount.text}, {match.backing}",
                 old.label,
+                frozen_amount=old.amount,
+                current_amount=match.amount,
             )
     for new in unmatched:
-        yield Deviation(frozen.ref, DeviationKind.ITEM_ADDED, "", new.amount.text, new.label)
+        yield Deviation(
+            frozen.ref,
+            DeviationKind.ITEM_ADDED,
+            "",
+            new.amount.text,
+            new.label,
+            current_amount=new.amount,
+        )
 
 
 def _stage_deviations(frozen: FrozenValue, current: FrozenValue) -> Iterable[Deviation]:
     if frozen.outcome != current.outcome:
         yield Deviation(
-            frozen.ref, DeviationKind.OUTCOME, outcome_text(frozen), outcome_text(current)
+            frozen.ref,
+            DeviationKind.OUTCOME,
+            outcome_text(frozen),
+            outcome_text(current),
+            frozen_amount=frozen.amount,
+            current_amount=current.amount,
         )
         return
     if frozen.amount is None or current.amount is None:
         return  # gleiche Ergebnisart ohne Betrag: nichts zu vergleichen
     if not _same_amount(frozen.amount, current.amount):
-        yield Deviation(frozen.ref, DeviationKind.AMOUNT, frozen.amount.text, current.amount.text)
+        yield Deviation(
+            frozen.ref,
+            DeviationKind.AMOUNT,
+            frozen.amount.text,
+            current.amount.text,
+            frozen_amount=frozen.amount,
+            current_amount=current.amount,
+        )
     yield from _item_deviations(frozen, current)
 
 

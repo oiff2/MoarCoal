@@ -181,7 +181,7 @@ def snapshot_findings(
             continue
         name = f"Anlage N Nr. {field.form_line}, {field.label}"
         taken = snapshot.taken_at.strftime("%d.%m.%Y")
-        texts = [d.text for d in mine]
+        texts = [d.text_with(lambda amount, f=field: f.show(amount.value)) for d in mine]
         found.append(
             Finding(
                 SNAPSHOT_DEVIATION,

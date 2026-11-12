@@ -277,7 +277,7 @@ def test_added_input_deviates_on_the_amount_and_the_item(store: Store) -> None:
 
     (finding,) = deviations(store)
     assert "Arbeitsmittel" in finding.message
-    assert "Betrag: eingefroren 87,00 €, jetzt 97,00 €" in finding.message
+    assert "Betrag: eingefroren 87 €, jetzt 97 €" in finding.message
 
 
 def test_second_protocol_adds_a_second_snapshot_and_the_newest_is_compared(store: Store) -> None:
@@ -443,6 +443,8 @@ def test_whole_flow_page_shows_frozen_next_to_current_and_finding_list_the_devia
     http.post("/arbeit/erste-taetigkeitsstaette", data=form, headers=ORIGIN)
     assert "Bei Abgabe" not in http.get("/steuerjahr/anlage-n/2025").text
 
+    store: Store = app.state.store
+    put(store, equipment(8640))
     taken = http.post(
         "/eingang/aufnehmen",
         data={
@@ -459,7 +461,6 @@ def test_whole_flow_page_shows_frozen_next_to_current_and_finding_list_the_devia
     assert "219 Tage" in page
     assert "Abweichung zum Schnappschuss" not in http.get("/befunde?year=2025").text
 
-    store: Store = app.state.store
     original = next(iter(store.state().of_kind(FirstWorkplace)))
     store.apply(
         [
@@ -470,4 +471,13 @@ def test_whole_flow_page_shows_frozen_next_to_current_and_finding_list_the_devia
         ]
     )
     assert "Abweichung zum Schnappschuss" in http.get("/befunde?year=2025").text
-    assert "Abweichung zum Schnappschuss" in http.get("/steuerjahr/anlage-n/2025").text
+    page = http.get("/steuerjahr/anlage-n/2025").text
+    assert "Abweichung zum Schnappschuss" in page
+    # Befundtext und Spalte „Bei Abgabe“ zeigen den eingefrorenen Betrag gleich
+    assert "eingefroren 219 Tage" in page
+    assert "<td>219 Tage</td>" in page
+    assert "<td>87 €</td>" in page
+    store.apply([Put(equipment(1000))])
+    page = http.get("/steuerjahr/anlage-n/2025").text
+    assert "eingefroren 87 €, jetzt 97 €" in page
+    assert "<td>87 €</td>" in page  # dieselbe Schreibweise in der Spalte „Bei Abgabe“
