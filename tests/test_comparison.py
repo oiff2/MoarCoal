@@ -1,4 +1,8 @@
-"""Tests: Abgleich mit dem Übertragungsprotokoll und Befundliste (erfundene Werte, tmp_path)."""
+"""Tests: Abgleich mit dem Übertragungsprotokoll und Befundliste (erfundene Werte, tmp_path).
+
+Die Werte von Arbeit sind fest vorgegeben (`foreign`); nur die Tests am Ende laufen mit dem
+echten Modul Arbeit.
+"""
 
 import datetime
 import json
@@ -13,8 +17,14 @@ from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
-from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading
-from moarcoal.modules.tax_year.anlage_n import FORMS, N_EQUIPMENT
+from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registration
+from moarcoal.modules.tax_year.anlage_n import (
+    FORMS,
+    N_EQUIPMENT,
+    WORK_DISTANCE_KM,
+    WORK_EQUIPMENT,
+    WORK_WORKDAYS,
+)
 from moarcoal.modules.tax_year.comparison import (
     AMBIGUOUS,
     DEVIATION,
@@ -22,17 +32,20 @@ from moarcoal.modules.tax_year.comparison import (
     UNKNOWN_ELSTER_ID,
     parse_german_number,
 )
-from moarcoal.modules.work import REGISTRATION as WORK
-from moarcoal.modules.work import FirstWorkplace, UserInput, WorkEquipment
-from moarcoal.storage import Document, Entry
+from moarcoal.registration import ModuleRegistration
+from moarcoal.storage import Document, Entry, EntryAddress
+from moarcoal.values.engine import Foreign
 from moarcoal.values.findings import Finding, Severity
-from moarcoal.values.testing import evaluate
+from moarcoal.values.model import Amount, Period, Subject, Unit
+from moarcoal.values.testing import evaluate, fixed, not_yet
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
+YEAR = Period.year(2025)
 DAYS, KM = "E0203503", "E0203504"
 EQUIPMENT = "E0204403"
+PLACE = Subject(EntryAddress(kind="FirstWorkplace", id="AAAAAAAAAA"))
 
 
 def line(elster_id: str, content: str, index: str = "1_1-1-1") -> ProtocolLine:
@@ -47,10 +60,8 @@ def line(elster_id: str, content: str, index: str = "1_1-1-1") -> ProtocolLine:
     )
 
 
-def entries(
-    lines: list[ProtocolLine], workdays: int = 220, km: int = 12, taken: int = 1, cents: int = 0
-) -> list[Entry]:
-    """Ohne `cents` sind keine Arbeitsmittel erfasst (Wert 0)."""
+def protocol(lines: list[ProtocolLine], taken: int = 1) -> list[Entry]:
+    """Ein aufgenommenes Übertragungsprotokoll 2025: Dokument und eingelesene Zeilen."""
     document = Document(
         owner="anna",
         site="Belege",
@@ -64,30 +75,22 @@ def entries(
     reading = ProtocolReading(
         owner="anna", document=document.address, year=2025, reader_version=2, lines=tuple(lines)
     )
-    return [
-        FirstWorkplace(
-            owner="anna", year=2025, workdays=workdays, distance_km=km, description="Büro"
-        ),
-        *(
-            [
-                WorkEquipment(
-                    owner="anna",
-                    year=2025,
-                    input=UserInput(
-                        amount_cents=cents, date=datetime.date(2025, 3, 14), description="x"
-                    ),
-                )
-            ]
-            if cents
-            else []
-        ),
-        document,
-        reading,
-    ]
+    return [document, reading]
 
 
-def findings(items: list[Entry]) -> list[Finding]:
-    values = evaluate([WORK, TAX_YEAR], items)
+def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
+    """Werte von Arbeit 2025, eine erste Tätigkeitsstätte; ohne `cents` 0 € Arbeitsmittel."""
+    return {
+        (WORK_WORKDAYS, PLACE, YEAR): fixed(Amount.of(workdays, Unit.DAYS)),
+        (WORK_DISTANCE_KM, PLACE, YEAR): fixed(Amount.of(km, Unit.KM)),
+        (WORK_EQUIPMENT, None, YEAR): fixed(Amount.eur_cents(cents)),
+    }
+
+
+def findings(
+    items: list[Entry], foreign: Foreign | None = None, tax_year: ModuleRegistration = TAX_YEAR
+) -> list[Finding]:
+    values = evaluate([tax_year], items, work() if foreign is None else foreign)
     return values.finding_list("anna", 2025)
 
 
@@ -96,21 +99,22 @@ def kinds(found: list[Finding]) -> list[str]:
 
 
 def test_matching_protocol_gives_no_finding() -> None:
-    assert findings(entries([line(DAYS, "220"), line(KM, "12")])) == []
+    assert findings(protocol([line(DAYS, "220"), line(KM, "12")])) == []
 
 
-def test_field_without_elster_id_gets_a_note(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_field_without_elster_id_gets_a_note() -> None:
     fields = tuple(replace(f, elster_id=None) if f.key == N_EQUIPMENT else f for f in FORMS[2025])
-    monkeypatch.setitem(FORMS, 2025, fields)
 
-    found = findings(entries([line(DAYS, "220"), line(KM, "12")]))
+    found = findings(
+        protocol([line(DAYS, "220"), line(KM, "12")]), tax_year=registration({2025: fields})
+    )
 
     assert kinds(found) == [UNKNOWN_ELSTER_ID]
     assert found[0].severity is Severity.NOTE
 
 
 def test_deviation_is_a_warning_with_link_to_the_line() -> None:
-    items = entries([line(DAYS, "219"), line(KM, "12")])
+    items = protocol([line(DAYS, "219"), line(KM, "12")])
     found = [f for f in findings(items) if f.kind == DEVIATION]
 
     assert len(found) == 1
@@ -123,7 +127,7 @@ def test_deviation_is_a_warning_with_link_to_the_line() -> None:
 
 
 def test_missing_line_is_a_warning() -> None:
-    found = [f for f in findings(entries([line(DAYS, "220")])) if f.kind == MISSING]
+    found = [f for f in findings(protocol([line(DAYS, "220")])) if f.kind == MISSING]
 
     assert len(found) == 1
     assert found[0].severity is Severity.WARNING
@@ -131,7 +135,7 @@ def test_missing_line_is_a_warning() -> None:
 
 
 def deviations(lines: list[ProtocolLine], cents: int = 0, km: int = 12) -> list[Finding]:
-    return [f for f in findings(entries(lines, km=km, cents=cents)) if f.kind == DEVIATION]
+    return [f for f in findings(protocol(lines), work(km=km, cents=cents)) if f.kind == DEVIATION]
 
 
 def test_rounded_whole_euro_value_matches_without_finding() -> None:
@@ -140,7 +144,7 @@ def test_rounded_whole_euro_value_matches_without_finding() -> None:
 
 def test_zero_value_matches_a_field_missing_from_the_protocol() -> None:
     assert (
-        findings(entries([line(DAYS, "220"), line(KM, "12")])) == []
+        findings(protocol([line(DAYS, "220"), line(KM, "12")])) == []
     )  # ELSTER überträgt leere Felder nicht
 
 
@@ -162,31 +166,32 @@ def test_protocol_12_matches_12_4_km_but_12_4_does_not() -> None:
 
 
 def test_not_yet_computable_value_gets_no_comparison_finding() -> None:
-    items = [i for i in entries([line(DAYS, "1")]) if not isinstance(i, FirstWorkplace)]
-    found = findings(items)
+    foreign = {**work(), (WORK_WORKDAYS, PLACE, YEAR): not_yet("keine Eingabe")}
+
+    found = findings(protocol([line(DAYS, "1"), line(KM, "12")]), foreign)
 
     assert found == []  # der Fehler "noch nicht berechenbar" ist kein Befund
 
 
 def test_repeated_days_or_km_are_ambiguous_not_compared() -> None:
-    found = findings(entries([line(DAYS, "100", "1_1"), line(DAYS, "120", "2_1"), line(KM, "12")]))
+    found = findings(protocol([line(DAYS, "100", "1_1"), line(DAYS, "120", "2_1"), line(KM, "12")]))
 
     assert kinds(found) == [AMBIGUOUS]
     assert next(f for f in found if f.kind == AMBIGUOUS).severity is Severity.WARNING
 
 
 def test_lines_without_field_in_the_catalog_are_ignored() -> None:
-    found = findings(entries([line(DAYS, "220"), line(KM, "12"), line("E0100004", "Musterstadt")]))
+    found = findings(protocol([line(DAYS, "220"), line(KM, "12"), line("E0100004", "Musterstadt")]))
 
     assert found == []
 
 
 def test_latest_taken_in_protocol_counts() -> None:
-    old = entries([line(DAYS, "1"), line(KM, "1")], taken=1)
-    new = entries([line(DAYS, "220"), line(KM, "12")], taken=2)
+    old = protocol([line(DAYS, "1"), line(KM, "1")], taken=1)
+    new = protocol([line(DAYS, "220"), line(KM, "12")], taken=2)
 
-    assert findings(old + new[1:]) == []
-    assert findings(new + old[1:]) == []
+    assert findings(old + new) == []
+    assert findings(new + old) == []
 
 
 def test_equal_taken_in_moment_is_decided_by_reading_id_not_by_storage_order() -> None:
@@ -196,22 +201,18 @@ def test_equal_taken_in_moment_is_decided_by_reading_id_not_by_storage_order() -
             i.model_copy(update={"taken_in_at": moment})
             if isinstance(i, Document)
             else i.model_copy(update={"id": reading_id})
-            if isinstance(i, ProtocolReading)
-            else i
             for i in items
         ]
 
-    low = same_moment(entries([line(DAYS, "1"), line(KM, "1")], taken=1), "AAAAAAAAAA")
-    high = same_moment(entries([line(DAYS, "220"), line(KM, "12")], taken=2), "BBBBBBBBBB")
+    low = same_moment(protocol([line(DAYS, "1"), line(KM, "1")], taken=1), "AAAAAAAAAA")
+    high = same_moment(protocol([line(DAYS, "220"), line(KM, "12")], taken=2), "BBBBBBBBBB")
 
-    assert findings(low + high[1:]) == []
-    assert findings(high + low[1:]) == []
+    assert findings(low + high) == []
+    assert findings(high + low) == []
 
 
 def test_without_protocol_there_is_no_comparison() -> None:
-    items: list[Entry] = [i for i in entries([line(DAYS, "1")]) if isinstance(i, FirstWorkplace)]
-
-    assert findings(items) == []
+    assert findings([], work(workdays=1)) == []
 
 
 def test_german_numbers() -> None:
@@ -220,6 +221,27 @@ def test_german_numbers() -> None:
     assert parse_german_number("49,90 €") == Decimal("49.90")
     assert parse_german_number("abc") is None
     assert parse_german_number("1,2,3") is None
+
+
+# --- Mit dem echten Modul Arbeit ----------------------------------------------------------------
+
+
+def test_no_equipment_after_previous_year_matches_a_missing_field_and_keeps_the_note() -> None:
+    from moarcoal.modules.work import REGISTRATION as WORK
+    from moarcoal.modules.work import FirstWorkplace, UserInput, WorkEquipment
+    from moarcoal.modules.work.values import EQUIPMENT_GAP
+
+    place = FirstWorkplace(owner="anna", year=2025, workdays=220, distance_km=12, description="x")
+    bought_2024 = WorkEquipment(
+        owner="anna",
+        year=2024,
+        input=UserInput(amount_cents=4990, date=datetime.date(2024, 3, 14), description="Lampe"),
+    )
+    items = [place, bought_2024, *protocol([line(DAYS, "220"), line(KM, "12")])]
+
+    found = evaluate([WORK, TAX_YEAR], items).finding_list("anna", 2025)
+
+    assert kinds(found) == [EQUIPMENT_GAP]  # Hinweis von Arbeit, kein Befund des Abgleichs
 
 
 # --- Befundliste und Klick zur Stelle im Protokoll ----------------------------------------------
