@@ -283,3 +283,25 @@ def test_hiding_pending_2025_leaves_2026_a_separate_finding(tmp_path: Path) -> N
     (visible,) = [f for f in list_2026.visible if f.kind == PENDING]
     assert visible.identity[1] == f"{entry.address}@2026"
     assert visible.identity not in list_2026.earlier
+
+
+def test_changing_the_description_brings_a_hidden_pending_finding_back(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    client.post("/erwartete-belege", data=FORM, headers=ORIGIN)
+    (entry,) = stored(tmp_path)
+    found = findings([entry], 2025)[0]
+    form = {
+        "year": "2025",
+        "kind": found.kind,
+        "target": found.identity[1],
+        "fingerprint": found.fingerprint,
+        "note": "Kommt später.",
+    }
+    client.post("/befunde/ausblenden", data=form, headers=ORIGIN)
+    store = open_store(tmp_path, [])
+    renamed = entry.model_copy(update={"description": "Anderes Beispiel"})
+    store.apply([Put(renamed, expected=store.state().checksum(entry.address))])
+
+    state = open_store(tmp_path, []).state()
+    listed = evaluate([WORK, TAX_YEAR], list(state.entries.values())).finding_list("anna", 2025)
+    assert [f.kind for f in listed.visible if f.kind == PENDING] == [PENDING]

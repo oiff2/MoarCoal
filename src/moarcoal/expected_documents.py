@@ -65,7 +65,9 @@ def expected_document_findings(
     """Hinweise für `year`: Beleg ausstehend; mehrere passende Dokumente (mögliche Dublette).
 
     Das Ziel ist die Adresse mit dem Jahr (`<Adresse>@<Jahr>`), je Jahr ein eigener Befund. Der
-    Fingerabdruck der Dublette nennt die Dokumente, sodass ein weiteres den Hinweis zurückbringt.
+    Fingerabdruck von „ausstehend“ nennt Dokumentart und Beschreibung, sodass eine Änderung daran
+    den Hinweis zurückbringt; der der Dublette nennt die Dokumente, sodass ein weiteres ihn
+    zurückbringt.
     """
     documents = [d for d in state.of_kind(Document) if d.owner == user]
     found: list[Finding] = []
@@ -77,7 +79,7 @@ def expected_document_findings(
         target = f"{expected.address}@{year}"  # je Jahr ein eigener Befund
         if not matching:
             text = f"Erwarteter Beleg für {year} ausstehend: {name}"
-            stand = fingerprint("ausstehend")
+            stand = fingerprint("ausstehend", expected.document_kind, expected.description)
             found.append(
                 Finding(PENDING, Severity.NOTE, target, text, href=HREF, fingerprint=stand)
             )
