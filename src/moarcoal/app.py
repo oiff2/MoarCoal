@@ -15,7 +15,8 @@ from moarcoal.modules import MODULES
 from moarcoal.registration import ModuleRegistration
 from moarcoal.security import SecurityMiddleware
 from moarcoal.storage import open_store
-from moarcoal.web import entry_url, format_amount, format_eur, render, user_of, values_of
+from moarcoal.values.model import format_amount
+from moarcoal.web import entry_url, format_eur, render, user_of, values_of
 
 PACKAGE_DIR = Path(__file__).parent
 TEMPLATES_DIR = PACKAGE_DIR / "templates"

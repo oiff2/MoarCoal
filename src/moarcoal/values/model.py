@@ -36,6 +36,26 @@ class Amount:
         return cls(Decimal(value), unit)
 
 
+def _german(value: Decimal, places: int) -> str:
+    """Zahl mit Tausenderpunkt und Dezimalkomma: 1234.5, 2 -> '1.234,50'."""
+    return f"{value:,.{places}f}".replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def format_amount(amount: Amount, *, whole_euros: bool = False) -> str:
+    """Betrag mit Einheit, deutsch: '1.234,56 €', '180 Tage', '12,4 km'.
+
+    Euro stehen mit Cent; mit `whole_euros` ein ganzzahliger Betrag ohne Cent ('87 €'), ein
+    ungerundeter weiter mit Cent, damit nichts abgeschnitten wird.
+    """
+    value = amount.value
+    if amount.unit is Unit.EUR:
+        whole = whole_euros and value == value.to_integral_value()
+        return f"{_german(value, 0 if whole else 2)} €"
+    exponent = value.normalize().as_tuple().exponent
+    places = -exponent if isinstance(exponent, int) and exponent < 0 else 0
+    return f"{_german(value, places)} {amount.unit.value}"
+
+
 @dataclass(frozen=True)
 class Period:
     """Zeitraum von `start` bis `end` einschließlich, meist ein Kalenderjahr."""
