@@ -350,6 +350,7 @@ Quellen: [Claude als Baustein](https://github.com/oiff2/MoarCoal/issues/7), [ADR
 - Ein einziger Aufrufbaustein hinter der Auslese-Schnittstelle der Datenebene; in Tests ein Fake.
 - `claude -p --tools "" --strict-mcp-config --setting-sources "" --no-session-persistence --input-format stream-json --output-format stream-json` in einem leeren Wegwerfverzeichnis; Abbruch mit Fehler-Befund, wenn `init` Werkzeuge oder MCP-Server meldet. Ein Test prüft die Argumentliste.
 - Dokument als base64-`document`- bzw. `image`-Block; Antwort gegen das JSON-Schema aus der Auslese-Vorlage, dann Pydantic; fremde Felder verworfen. Ergebnis ist immer ein Vorschlag.
+- Gebaut in `extraction.py`: `Extractor`-Protokoll, `ClaudeExtractor` (echt) und `FakeExtractor`; Fehler (Abbruch, Zeitüberschreitung, ungültige Antwort, nicht unterstütztes Format) kommen als `ExtractionFailed` zurück, nicht als Ausnahme. Die Antwort ist ein JSON-Objekt, dessen Schlüssel die Felder der Vorlage sind, je Feld `value` und `location`.
 
 ## 8. Datenschutz
 

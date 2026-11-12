@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from jinja2 import Environment, FileSystemLoader
 
 from moarcoal.defaults import DEFAULT_YEAR
+from moarcoal.extraction import ClaudeExtractor, Extractor
 from moarcoal.modules import MODULES
 from moarcoal.registration import ModuleRegistration
 from moarcoal.security import SecurityMiddleware
@@ -32,6 +33,7 @@ def create_app(
     modules: Sequence[ModuleRegistration] = MODULES,
     user: str = DEFAULT_USER,
     user_name: str = DEFAULT_USER_NAME,
+    extractor: Extractor | None = None,
 ) -> FastAPI:
     """`data_dir` wird immer übergeben; `default_data_dir()` gilt nur beim Start der App."""
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -46,6 +48,8 @@ def create_app(
     app.state.modules = tuple(modules)
     app.state.user = user
     app.state.user_name = user_name
+    # Die App bekommt den echten Baustein, Tests einen Fake; aufgerufen wird nur auf Wunsch.
+    app.state.extractor = extractor if extractor is not None else ClaudeExtractor()
     app.state.store = open_store(data_dir, [kind for module in modules for kind in module.kinds])
     for module in modules:
         app.include_router(module.router)
