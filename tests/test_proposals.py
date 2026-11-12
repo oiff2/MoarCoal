@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +23,7 @@ from moarcoal.extraction import (
 from moarcoal.extraction_template import ExtractionTemplate, TemplateField
 from moarcoal.proposals import UNCONFIRMED
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import AbortedExtraction, Document, Proposal, Store
+from moarcoal.storage import AbortedExtraction, Change, Document, Proposal, Rejected, Store
 from moarcoal.values.model import Backing, DocumentLocator, Source
 
 PORT = 4711
@@ -466,3 +467,30 @@ def test_second_abort_replaces_the_entry_and_brings_back_a_dismissed_finding(
     assert len(setup.store.state().of_kind(AbortedExtraction)) == 1
     [back] = aborted_findings(setup)
     assert back.fingerprint != finding.fingerprint
+
+
+def test_aborted_extraction_finding_shows_in_every_year(tmp_path: Path) -> None:
+    from moarcoal.values.engine import Values
+
+    setup = make(tmp_path, TOOLS)
+    setup.post(f"{setup.take_in()}/auslesen")
+    values = Values([REGISTRATION], setup.store.state())
+    for year in (2019, 2025, 2031):
+        visible = values.finding_list("anna", year).visible
+        assert [f.kind for f in visible if f.kind == "claude_tools"] == ["claude_tools"]
+
+
+def test_failed_recording_of_the_abort_is_said_on_the_page(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    setup = make(tmp_path, TOOLS)
+    location = setup.take_in()
+
+    def reject(changes: Sequence[Change]) -> Rejected:
+        return Rejected({})
+
+    monkeypatch.setattr(setup.store, "apply", reject)
+    response = setup.post(f"{location}/auslesen")
+    assert response.status_code == 409
+    assert "Claude meldet Werkzeuge." in response.text
+    assert "nicht festgehalten" in response.text

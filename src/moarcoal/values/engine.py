@@ -191,7 +191,7 @@ class Values:
         titles = {k.key: k.title for m in self._modules.values() for k in m.document_kinds}
         found.extend(expected_document_findings(self._state, user, year, titles))
         found.extend(proposal_findings(self._state, user, year, titles))
-        found.extend(aborted_extraction_findings(self._state, user, year))
+        found.extend(aborted_extraction_findings(self._state, user))
         found.extend(snapshot_findings(self._state.of_kind(Snapshot), user, year))
         for module in self._modules.values():
             if module.findings is not None:

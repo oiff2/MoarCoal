@@ -38,6 +38,8 @@ from moarcoal.values.findings import Finding, Severity, fingerprint
 UNCONFIRMED = "unconfirmed_proposal"
 """Befundart „Unbestätigter Vorschlag“ (Hinweis)."""
 
+NOT_RECORDED = "Der Abbruch konnte nicht festgehalten werden; es gibt dazu keinen Fehler-Befund."
+
 DEFAULT_MEDIA_TYPE = "application/octet-stream"
 
 
@@ -89,8 +91,9 @@ def read_out(
     state = store.state()
     aborted = aborted_of(state, document)
     if isinstance(answer, ExtractionFailed):
-        if answer.reason is FailureReason.TOOLS_REPORTED:
-            _record_abort(store, state, user, document, aborted)
+        tools = answer.reason is FailureReason.TOOLS_REPORTED
+        if tools and not _record_abort(store, state, user, document, aborted):
+            return ReadOutRejected(f"{answer.message} {NOT_RECORDED}")
         return ReadOutRejected(answer.message)
     proposal = _proposal(user, document, template.version, [f.key for f in template.fields], answer)
     changes: list[Put | Delete] = [Put(proposal)]
@@ -116,18 +119,19 @@ def aborted_of(state: State, document: Document) -> AbortedExtraction | None:
 
 def _record_abort(
     store: Store, state: State, user: str, document: Document, old: AbortedExtraction | None
-) -> None:
+) -> bool:
     """Hält den Abbruch fest; ein früherer Eintrag desselben Dokuments wird ersetzt."""
     now = datetime.datetime.now(datetime.UTC)
     if old is None:
-        store.apply([Put(AbortedExtraction(owner=user, document=document.address, aborted_at=now))])
+        change = Put(AbortedExtraction(owner=user, document=document.address, aborted_at=now))
     else:
         replaced = old.model_copy(update={"aborted_at": now})
-        store.apply([Put(replaced, expected=state.checksum(old.address))])
+        change = Put(replaced, expected=state.checksum(old.address))
+    return isinstance(store.apply([change]), Applied)
 
 
-def aborted_extraction_findings(state: State, user: str, year: int) -> list[Finding]:
-    """Fehler je Abgebrochener Auslesung, für Dokumente des Jahrs oder ohne Bezugszeitraum.
+def aborted_extraction_findings(state: State, user: str) -> list[Finding]:
+    """Fehler je Abgebrochener Auslesung, in jedem Jahr (ein Sicherheitsfehler darf nicht fehlen).
 
     Ziel ist das Dokument; der Fingerabdruck nennt den Zeitpunkt des Abbruchs, ein neuer Abbruch
     bringt also einen ausgeblendeten Befund zurück.
@@ -137,12 +141,6 @@ def aborted_extraction_findings(state: State, user: str, year: int) -> list[Find
     for aborted in sorted(state.of_kind(AbortedExtraction), key=lambda a: str(a.document)):
         document = documents.get(aborted.document)
         if aborted.owner != user or document is None:
-            continue
-        if (
-            document.period_start is not None
-            and document.period_end is not None
-            and not document.period_start.year <= year <= document.period_end.year
-        ):
             continue
         text = (
             f"Claude-Aufruf meldet Werkzeuge oder MCP-Server; die Auslesung von {document.path} "
