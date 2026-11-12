@@ -48,20 +48,34 @@ class NotANumber:
 class FormField:
     """Ein Feld einer Anlage: Bezeichnung, E-Kennung (leer, solange unbekannt), Nr. im Vordruck.
 
-    `key` ist der Schlüssel des Ausgewiesenen Werts, den das Steuerjahr dem Feld zuordnet.
+    `key` ist der Schlüssel des Ausgewiesenen Werts, den das Steuerjahr dem Feld zuordnet. Der
+    Katalog nimmt alle bekannten Felder des Jahrs auf, auch solche, die MoarCoal noch nicht
+    berechnet (`computed` ist falsch: kein Wert, kein Schnappschuss) und solche ohne Betrag
+    (`unit` ist leer: Text, Ja/Nein).
+
+    `assessment` nennt die Positionen der Auslese-Vorlage des Einkommensteuerbescheids, deren Summe
+    dem Feld entspricht (leer: der Bescheid druckt das Feld nicht). `printed_rounded` heißt: der
+    Bescheid druckt die Position in ganzen Euro, auch wo das Feld Cent hat.
     """
 
     key: ValueKey
     elster_id: ElsterId | None
     form_line: str
     label: str
-    unit: Unit
+    unit: Unit | None
     rounding: Rounding
     direction: Direction | None = None  # nur bei ganzen Euro
+    computed: bool = True
+    assessment: tuple[str, ...] = ()
+    printed_rounded: bool = False
 
     def __post_init__(self) -> None:
         if (self.rounding is Rounding.WHOLE_EUROS) != (self.direction is not None):
             raise ValueError(f"{self.label}: Richtung gehört genau zu Feldern mit ganzen Euro")
+        if self.computed and self.unit is None:
+            raise ValueError(f"{self.label}: ein berechnetes Feld braucht eine Einheit")
+        if self.assessment and self.unit is None:
+            raise ValueError(f"{self.label}: ein Feld ohne Betrag hat keine Position im Bescheid")
 
     @property
     def whole_euros(self) -> bool:
@@ -98,6 +112,8 @@ class FormField:
 
     def show(self, value: Decimal) -> str:
         """Wert deutsch mit Einheit, ganze Euro ohne Cent: '87 €', '86,40 €', '12 km'."""
+        if self.unit is None:
+            raise ValueError(f"{self.label}: ein Feld ohne Betrag hat keinen Wert zum Anzeigen")
         return format_amount(Amount(value, self.unit), whole_euros=self.whole_euros)
 
     def read_protocol(self, contents: Sequence[str]) -> Decimal | AmbiguousLines | NotANumber:
@@ -112,6 +128,24 @@ class FormField:
                 return NotANumber(content)
             total += number
         return total
+
+    def matches_assessment(self, frozen: Decimal, printed: Decimal) -> bool:
+        """Ob der Betrag im Bescheid zum eingefrorenen Wert des Felds passt.
+
+        Euro-Felder mit ganzen Euro und Positionen, die der Bescheid gerundet druckt, passen mit
+        einer Spanne: jeder ganze Euro zwischen abgerundetem und aufgerundetem Wert; sonst exakt
+        (ADR 0011 des Vorgängers). Das gedruckte Vorzeichen zählt nicht (Abzüge stehen mit Minus);
+        Positionen mit Vorzeichen sind noch nicht zugeordnet.
+        """
+        frozen, printed = abs(frozen), abs(printed)
+        if self.unit is not Unit.EUR or not (self.whole_euros or self.printed_rounded):
+            return frozen == printed
+        whole = printed == printed.to_integral_value()
+        return whole and (
+            frozen.to_integral_value(ROUND_FLOOR)
+            <= printed
+            <= frozen.to_integral_value(ROUND_CEILING)
+        )
 
     def explain_deviation(self, expected: Decimal, transferred: Decimal) -> str:
         """Text der Abweichung; liegt sie nur an der Rundung, mit Differenz und Richtung."""

@@ -1,23 +1,30 @@
-"""Abgleich der Felder der Anlage N mit dem Übertragungsprotokoll (Befunde des Steuerjahrs).
+"""Abgleich der Felder der Anlage N mit Übertragungsprotokoll und Bescheid (Befunde).
 
 Verglichen wird exakt und ohne Toleranz gegen den gerundeten Wert des Felds (das Steuerjahr rundet
 nach Einheit und Richtung, siehe `fields`). Weicht das Protokoll nur durch Rundung ab, nennt der
 Text Differenz und Richtung. Mehrere Zeilen derselben E-Kennung werden bei EUR-Feldern summiert;
 bei Tagen und km sind sie mehrdeutig.
+
+Der Einkommensteuerbescheid wird gegen den Schnappschuss der Abgabe verglichen, nicht gegen den
+aktuellen Wert: Er zeigt, wo das Finanzamt anders angesetzt hat als abgegeben. Nur bestätigte
+Positionen gehen ein; berechnete Felder ohne Gegenstück im Schnappschuss bleiben ohne Abgleich.
 """
 
 import datetime
 from collections.abc import Iterator, Sequence
+from decimal import Decimal
 
 from moarcoal.modules.tax_year.anlage_n import FORMS, Forms
+from moarcoal.modules.tax_year.assessment import ASSESSMENT_KEY
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
 from moarcoal.modules.tax_year.fields import AmbiguousLines, FormField, NotANumber
+from moarcoal.proposals import document_url
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Change, Document, Entry, FrozenValue, Occasion, Put, Snapshot
 from moarcoal.values.calculation import ValueSource
 from moarcoal.values.engine import Values
 from moarcoal.values.findings import Finding, FindingKind, Severity, fingerprint
-from moarcoal.values.model import ExposedValue, Period, ValueRef
+from moarcoal.values.model import ExposedValue, Period, ValueKey, ValueRef
 from moarcoal.values.snapshots import (
     compare,
     freeze,
@@ -31,6 +38,8 @@ MISSING = "tax_year.protocol_missing"
 AMBIGUOUS = "tax_year.protocol_ambiguous"
 UNKNOWN_ELSTER_ID = "tax_year.protocol_unknown_elster_id"
 SNAPSHOT_DEVIATION = "tax_year.snapshot_deviation"
+ASSESSMENT_DEVIATION = "tax_year.assessment_deviation"
+ASSESSMENT_NO_SNAPSHOT = "tax_year.assessment_no_snapshot"
 MODULE_KEY = "tax_year"
 
 FINDING_KINDS = (
@@ -39,6 +48,8 @@ FINDING_KINDS = (
     FindingKind(AMBIGUOUS, "Feld kommt im Übertragungsprotokoll mehrfach vor"),
     FindingKind(UNKNOWN_ELSTER_ID, "E-Kennung unbekannt, nicht abgleichbar"),
     FindingKind(SNAPSHOT_DEVIATION, "Abweichung zum Schnappschuss"),
+    FindingKind(ASSESSMENT_DEVIATION, "Bescheid weicht vom Schnappschuss der Abgabe ab"),
+    FindingKind(ASSESSMENT_NO_SNAPSHOT, "Kein Schnappschuss zum Abgleich mit dem Bescheid"),
 )
 
 
@@ -124,6 +135,8 @@ def protocol_findings(
         return []
     found: list[Finding] = []
     for field in fields:
+        if not field.computed:
+            continue  # kein Wert, also nichts zu vergleichen
         period = Period.year(year)
         result = values.get(field.key, state.user, period)
         ref = ValueRef(field.key, state.user, period, None)
@@ -195,13 +208,107 @@ def snapshot_findings(
     return found
 
 
+def latest_assessment(state: ModuleState, year: int) -> Document | None:
+    """Der zuletzt aufgenommene Einkommensteuerbescheid des Jahrs (bei Gleichstand die `id`)."""
+    found = [
+        d
+        for d in state.documents(ASSESSMENT_KEY)
+        if d.period_start is not None and d.period_start.year == year
+    ]
+
+    def order(document: Document) -> tuple[bool, str, str]:
+        moment = document.taken_in_at
+        return (moment is not None, moment.isoformat() if moment else "", document.id)
+
+    return max(found, key=order, default=None)
+
+
+def assessment_amounts(
+    state: ModuleState, document: Document, fields: Sequence[FormField]
+) -> dict[ValueKey, Decimal]:
+    """Der Betrag laut Bescheid je Feld, dessen Positionen alle bestätigt sind.
+
+    Ein Feld mit mehreren Positionen bekommt ihre Summe; eine bestätigte leere Position zählt 0,
+    ein gedrucktes Minus nicht. Unbestätigte Positionen gehen nicht ein.
+    """
+    confirmed = state.confirmed_fields(document)
+    amounts: dict[ValueKey, Decimal] = {}
+    for field in fields:
+        if field.assessment and all(key in confirmed for key in field.assessment):
+            contents = [confirmed[key][0] for key in field.assessment]
+            amounts[field.key] = sum(
+                (abs(c) for c in contents if isinstance(c, Decimal)), start=Decimal(0)
+            )
+    return amounts
+
+
+def _frozen_amount(snapshot: Snapshot, field: FormField, year: int) -> Decimal | None:
+    """Der eingefrorene Betrag des Felds; entfällt er, gilt 0, ist er unberechenbar, fehlt er."""
+    time = frozen_time(Period.year(year))
+    for value in snapshot.values:
+        if value.requested and value.ref.key == field.key and value.ref.time == time:
+            if value.outcome == "amount" and value.amount is not None:
+                return value.amount.value
+            return Decimal(0) if value.outcome == "not_applicable" else None
+    return None
+
+
+def assessment_findings(state: ModuleState, year: int, forms: Forms = FORMS) -> list[Finding]:
+    """Befunde des Bescheid-Abgleichs: je Feld, das der Bescheid anders ansetzt als der
+    Schnappschuss der Abgabe. Ohne Schnappschuss gibt es keinen Abgleich, nur einen Hinweis."""
+    fields = forms.get(year)
+    document = latest_assessment(state, year)
+    if fields is None or document is None:
+        return []
+    amounts = assessment_amounts(state, document, fields)
+    if not amounts:
+        return []
+    snapshot = latest_snapshot(state, year)
+    if snapshot is None:
+        return [
+            Finding(
+                ASSESSMENT_NO_SNAPSHOT,
+                Severity.NOTE,
+                document.address,
+                f"Zum Einkommensteuerbescheid {year} gibt es keinen Schnappschuss der Abgabe; "
+                "ein Abgleich ist nicht möglich.",
+                href=document_url(document),
+                fingerprint=fingerprint(document.id),
+            )
+        ]
+    period = Period.year(year)
+    found: list[Finding] = []
+    for field in fields:
+        if field.key not in amounts:
+            continue
+        printed = amounts[field.key]
+        frozen = _frozen_amount(snapshot, field, year)
+        if frozen is None or field.matches_assessment(frozen, printed):
+            continue
+        taken = snapshot.taken_at.strftime("%d.%m.%Y")
+        found.append(
+            Finding(
+                ASSESSMENT_DEVIATION,
+                Severity.WARNING,
+                ValueRef(field.key, state.user, period, None),
+                f"Anlage N Nr. {field.form_line}, {field.label}: Laut Bescheid "
+                f"{field.show(printed)}, bei Abgabe am {taken} {field.show(frozen)}.",
+                href=document_url(document),
+                fingerprint=fingerprint(document.id, field.key, printed, frozen),
+            )
+        )
+    return found
+
+
 def module_findings(
     state: ModuleState, values: ValueSource, year: int, forms: Forms = FORMS
 ) -> list[Finding]:
-    """Alle Befunde des Steuerjahrs: Abgleich mit dem Protokoll und Abweichung zum Schnappschuss."""
+    """Alle Befunde des Steuerjahrs: Abgleich mit dem Protokoll, Abweichung zum Schnappschuss und
+    Abgleich des Bescheids mit dem Schnappschuss."""
     return [
         *protocol_findings(state, values, year, forms),
         *snapshot_findings(state, values, year, forms),
+        *assessment_findings(state, year, forms),
     ]
 
 
@@ -222,6 +329,6 @@ def snapshot_on_filing(
         module=MODULE_KEY,
         document=document.address,
         time=frozen_time(period),
-        values=freeze(values, document.owner, [f.key for f in fields], period),
+        values=freeze(values, document.owner, [f.key for f in fields if f.computed], period),
     )
     return [Put(snapshot)]

@@ -151,12 +151,31 @@ def test_not_yet_computable_input_passes_on_with_chain() -> None:
     assert [link.key for link in result.chain] == ["demo.base"]
 
 
-def test_catalog_has_only_the_fields_of_the_durchstich() -> None:
+def test_catalog_has_every_known_field_but_values_only_for_the_computed_ones() -> None:
     values = evaluate([TAX_YEAR])
     tax_keys = {e.key for e in values.catalog.entries()}
 
-    assert tax_keys == {f.key for f in FIELDS_2025}
-    assert {f.elster_id for f in FIELDS_2025} == {"E0203503", "E0203504", "E0204403"}
+    assert tax_keys == {f.key for f in FIELDS_2025 if f.computed}
+    assert {f.elster_id for f in FIELDS_2025 if f.computed} == {"E0203503", "E0203504", "E0204403"}
+    assert len(FIELDS_2025) == len({f.key for f in FIELDS_2025}) == 23
+    assert len({f.elster_id for f in FIELDS_2025}) == 23
+    assert {"E0200201", "E0205518", "E0204901"} <= {f.elster_id for f in FIELDS_2025}
+
+
+def test_fields_without_amount_or_computation_are_marked_and_consistent() -> None:
+    uncomputed = [f for f in FIELDS_2025 if not f.computed]
+    no_amount = [f for f in FIELDS_2025 if f.unit is None]
+
+    assert len(uncomputed) == 20
+    assert {f.elster_id for f in no_amount} == {
+        "E0200002",
+        "E0203003",
+        "E0203501",
+        "E0203101",
+        "E0204901",
+        "E0205003",
+    }
+    assert all(not f.computed and not f.assessment for f in no_amount)
 
 
 def test_equipment_that_does_not_apply_makes_the_field_not_apply_too() -> None:

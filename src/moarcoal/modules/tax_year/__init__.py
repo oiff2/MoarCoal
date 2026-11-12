@@ -1,9 +1,11 @@
-"""Modul Steuerjahr: Übertragungsprotokoll einlesen, Werte Feldern der Anlage N zuordnen."""
+"""Modul Steuerjahr: Übertragungsprotokoll einlesen, Werte Feldern der Anlage N zuordnen,
+Einkommensteuerbescheid auslesen und mit dem Schnappschuss der Abgabe abgleichen."""
 
 from functools import partial
 
 from moarcoal.documents import DocumentKind
 from moarcoal.modules.tax_year.anlage_n import FORMS, Forms, values_for
+from moarcoal.modules.tax_year.assessment import ASSESSMENT
 from moarcoal.modules.tax_year.comparison import (
     FINDING_KINDS,
     module_findings,
@@ -46,7 +48,7 @@ def registration(forms: Forms = FORMS) -> ModuleRegistration:
         entry_url=entry_url,
         kinds=KINDS,
         values=values_for(forms),
-        document_kinds=(transfer_protocol(forms),),
+        document_kinds=(transfer_protocol(forms), ASSESSMENT),
         finding_kinds=FINDING_KINDS,
         findings=partial(module_findings, forms=forms),
     )
@@ -54,4 +56,11 @@ def registration(forms: Forms = FORMS) -> ModuleRegistration:
 
 REGISTRATION = registration()
 
-__all__ = ["REGISTRATION", "registration", "TRANSFER_PROTOCOL", "ProtocolLine", "ProtocolReading"]
+__all__ = [
+    "ASSESSMENT",
+    "REGISTRATION",
+    "registration",
+    "TRANSFER_PROTOCOL",
+    "ProtocolLine",
+    "ProtocolReading",
+]

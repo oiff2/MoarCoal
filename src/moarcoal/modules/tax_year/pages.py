@@ -4,7 +4,12 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from moarcoal.modules.tax_year.anlage_n import FORMS
-from moarcoal.modules.tax_year.comparison import describe_frozen, latest_snapshot
+from moarcoal.modules.tax_year.comparison import (
+    assessment_amounts,
+    describe_frozen,
+    latest_assessment,
+    latest_snapshot,
+)
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Document, EntryAddress
@@ -61,8 +66,14 @@ def anlage_n(request: Request, year: int) -> HTMLResponse:
         raise HTTPException(404)
     values = values_of(request)
     user = user_of(request)
-    rows = [(field, values.get(field.key, user, Period.year(year))) for field in fields]
-    snapshot = latest_snapshot(_own_state(request), year)
+    state = _own_state(request)
+    rows = [
+        (field, values.get(field.key, user, Period.year(year)) if field.computed else None)
+        for field in fields
+    ]
+    snapshot = latest_snapshot(state, year)
+    assessment = latest_assessment(state, year)
+    printed = {} if assessment is None else assessment_amounts(state, assessment, fields)
     frozen = {}
     if snapshot is not None:
         frozen = {
@@ -78,6 +89,7 @@ def anlage_n(request: Request, year: int) -> HTMLResponse:
         rows=rows,
         snapshot=snapshot,
         frozen=frozen,
+        printed=printed,
         findings=values.finding_list(user, year),  # Vorlage zeigt die sichtbaren Befunde
     )
 
