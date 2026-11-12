@@ -11,7 +11,6 @@ from typing import Any
 import pytest
 
 from moarcoal.extraction import (
-    CLAUDE_TOOLS,
     ClaudeExtractor,
     Extracted,
     ExtractionFailed,
@@ -19,9 +18,7 @@ from moarcoal.extraction import (
     FakeExtractor,
     check_answer,
     claude_command,
-    tools_reported_finding,
 )
-from moarcoal.values.findings import Severity
 
 SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -124,15 +121,12 @@ def test_other_formats_are_rejected_without_a_call(tmp_path: Path) -> None:
     assert not (tmp_path / "record.json").exists()
 
 
-def test_tools_in_init_abort_with_error_finding(tmp_path: Path) -> None:
+def test_tools_in_init_abort_the_call(tmp_path: Path) -> None:
     script = fake_claude(tmp_path, tools=["Read"], body=answering(json.dumps(GOOD)))
     result = run(script)
     assert isinstance(result, ExtractionFailed)
     assert result.reason is FailureReason.TOOLS_REPORTED
-    finding = tools_reported_finding("ich", 2025)
-    assert finding.kind == CLAUDE_TOOLS
-    assert finding.severity is Severity.ERROR
-    assert "Werkzeuge" in finding.message
+    assert "Werkzeuge" in result.message
 
 
 def test_foreign_fields_are_dropped() -> None:

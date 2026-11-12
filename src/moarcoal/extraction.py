@@ -19,9 +19,6 @@ from typing import Any, Protocol, cast
 import jsonschema
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from moarcoal.values.findings import Finding, Severity
-from moarcoal.values.model import Period, ValueKey, ValueRef
-
 CLAUDE_TOOLS = "claude_tools"
 """Befundart „Claude-Aufruf meldet Werkzeuge oder MCP-Server“ (Fehler)."""
 
@@ -71,13 +68,6 @@ class Extractor(Protocol):
     def extract(
         self, document_bytes: bytes, media_type: str, schema: Mapping[str, Any], hint: str
     ) -> Extracted | ExtractionFailed: ...
-
-
-def tools_reported_finding(user: str, year: int) -> Finding:
-    """Fehler-Befund, wenn `init` Werkzeuge oder MCP-Server meldet (ein CLI-Update?)."""
-    ref = ValueRef(ValueKey("data.claude_call"), user, Period.year(year), None)
-    text = "Claude-Aufruf meldet Werkzeuge oder MCP-Server; der Aufruf wurde abgebrochen."
-    return Finding(CLAUDE_TOOLS, Severity.ERROR, ref, text)
 
 
 def claude_command(executable: str = "claude") -> list[str]:

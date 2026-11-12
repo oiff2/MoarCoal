@@ -20,6 +20,7 @@ from types import MappingProxyType
 
 from pydantic import ValidationError
 
+from moarcoal.storage.aborted_extractions import ABORTED_EXTRACTION_KIND
 from moarcoal.storage.dismissals import DISMISSAL_KIND
 from moarcoal.storage.documents import DATA_LAYER_KINDS
 from moarcoal.storage.entries import (
@@ -492,6 +493,7 @@ def open_store(
         HIDDEN_FILE_KIND,
         EXPECTED_DOCUMENT_KIND,
         PROPOSAL_KIND,
+        ABORTED_EXTRACTION_KIND,
         SNAPSHOT_KIND,
         *kinds,
     )

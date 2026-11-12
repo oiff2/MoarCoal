@@ -1,5 +1,6 @@
 """Datenebene: Einträge, Adressen, Stand und Schreibweg. Nur hier werden Dateien gelesen."""
 
+from moarcoal.storage.aborted_extractions import ABORTED_EXTRACTION_KIND, AbortedExtraction
 from moarcoal.storage.dismissals import Dismissal
 from moarcoal.storage.documents import Document
 from moarcoal.storage.entries import (
@@ -41,8 +42,10 @@ from moarcoal.storage.store import (
 )
 
 __all__ = [
+    "ABORTED_EXTRACTION_KIND",
     "COMMON_OWNER",
     "PROPOSAL_KIND",
+    "AbortedExtraction",
     "Applied",
     "Change",
     "Content",

@@ -12,9 +12,18 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from moarcoal.documents import DocumentKind
-from moarcoal.extraction import Extracted, ExtractedField, ExtractionFailed, Extractor
+from moarcoal.extraction import (
+    CLAUDE_TOOLS,
+    Extracted,
+    ExtractedField,
+    ExtractionFailed,
+    Extractor,
+    FailureReason,
+)
 from moarcoal.storage import (
+    AbortedExtraction,
     Applied,
+    Delete,
     Document,
     EntryAddress,
     Proposal,
@@ -77,13 +86,79 @@ def read_out(
         return ReadOutRejected("Die Datei hat sich seit dem Aufnehmen geändert.")
     media_type = mimetypes.guess_type(document.path)[0] or DEFAULT_MEDIA_TYPE
     answer = extractor.extract(content, media_type, template.json_schema(), template.hint())
+    state = store.state()
+    aborted = aborted_of(state, document)
     if isinstance(answer, ExtractionFailed):
+        if answer.reason is FailureReason.TOOLS_REPORTED:
+            _record_abort(store, state, user, document, aborted)
         return ReadOutRejected(answer.message)
     proposal = _proposal(user, document, template.version, [f.key for f in template.fields], answer)
-    result = store.apply([Put(proposal)])
+    changes: list[Put | Delete] = [Put(proposal)]
+    if aborted is not None:  # gelungen: die Abgebrochene Auslesung ist geklärt
+        changes.append(Delete(aborted.address, expected=state.checksum(aborted.address) or ""))
+    result = store.apply(changes)
     if not isinstance(result, Applied):
         return ReadOutRejected(" ".join(result.reasons.values()))
     return proposal
+
+
+def aborted_of(state: State, document: Document) -> AbortedExtraction | None:
+    """Die Abgebrochene Auslesung des Dokuments, falls festgehalten (höchstens eine)."""
+    return next(
+        (
+            a
+            for a in state.of_kind(AbortedExtraction)
+            if a.owner == document.owner and a.document == document.address
+        ),
+        None,
+    )
+
+
+def _record_abort(
+    store: Store, state: State, user: str, document: Document, old: AbortedExtraction | None
+) -> None:
+    """Hält den Abbruch fest; ein früherer Eintrag desselben Dokuments wird ersetzt."""
+    now = datetime.datetime.now(datetime.UTC)
+    if old is None:
+        store.apply([Put(AbortedExtraction(owner=user, document=document.address, aborted_at=now))])
+    else:
+        replaced = old.model_copy(update={"aborted_at": now})
+        store.apply([Put(replaced, expected=state.checksum(old.address))])
+
+
+def aborted_extraction_findings(state: State, user: str, year: int) -> list[Finding]:
+    """Fehler je Abgebrochener Auslesung, für Dokumente des Jahrs oder ohne Bezugszeitraum.
+
+    Ziel ist das Dokument; der Fingerabdruck nennt den Zeitpunkt des Abbruchs, ein neuer Abbruch
+    bringt also einen ausgeblendeten Befund zurück.
+    """
+    documents = {d.address: d for d in state.of_kind(Document) if d.owner == user}
+    found: list[Finding] = []
+    for aborted in sorted(state.of_kind(AbortedExtraction), key=lambda a: str(a.document)):
+        document = documents.get(aborted.document)
+        if aborted.owner != user or document is None:
+            continue
+        if (
+            document.period_start is not None
+            and document.period_end is not None
+            and not document.period_start.year <= year <= document.period_end.year
+        ):
+            continue
+        text = (
+            f"Claude-Aufruf meldet Werkzeuge oder MCP-Server; die Auslesung von {document.path} "
+            "wurde abgebrochen."
+        )
+        found.append(
+            Finding(
+                CLAUDE_TOOLS,
+                Severity.ERROR,
+                document.address,
+                text,
+                href=document_url(document),
+                fingerprint=fingerprint(aborted.aborted_at.isoformat()),
+            )
+        )
+    return found
 
 
 def _proposal(

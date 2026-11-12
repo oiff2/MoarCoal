@@ -22,7 +22,7 @@ from moarcoal.extraction import (
 from moarcoal.extraction_template import ExtractionTemplate, TemplateField
 from moarcoal.proposals import UNCONFIRMED
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import Document, Proposal, Store
+from moarcoal.storage import AbortedExtraction, Document, Proposal, Store
 from moarcoal.values.model import Backing, DocumentLocator, Source
 
 PORT = 4711
@@ -383,3 +383,86 @@ def test_document_locator_label_names_the_source_and_the_place() -> None:
         EntryAddress(kind="Document", id="AAAAAAAAAA"), Source.DOCUMENT_EXTRACTION, "k", "Seite 2"
     )
     assert locator.label == "Dokumentauslesung: Seite 2"
+
+
+# --- Abgebrochene Auslesung --------------------------------------------------------------------
+
+TOOLS = ExtractionFailed(FailureReason.TOOLS_REPORTED, "Claude meldet Werkzeuge.")
+
+
+def aborted_findings(setup: Setup) -> list[Any]:
+    from moarcoal.values.engine import Values
+
+    values = Values([REGISTRATION], setup.store.state())
+    return [f for f in values.finding_list("anna", 2025).visible if f.kind == "claude_tools"]
+
+
+def test_tools_abort_is_recorded_with_an_error_finding_linking_the_document(
+    tmp_path: Path,
+) -> None:
+    setup = make(tmp_path, TOOLS)
+    location = setup.take_in()
+    assert setup.post(f"{location}/auslesen").status_code == 409
+    [aborted] = setup.store.state().of_kind(AbortedExtraction)
+    assert aborted.document == setup.document().address
+    assert aborted.reason == "tools_reported"
+    assert setup.store.state().of_kind(Proposal) == []
+    [finding] = aborted_findings(setup)
+    assert finding.severity.value == "Fehler"
+    assert finding.target == setup.document().address
+    assert finding.href == location
+    assert f'href="{location}"' in setup.client.get("/befunde?year=2025").text
+    before = setup.store.state().entries
+    setup.client.get(location)
+    setup.client.get("/befunde?year=2025")
+    assert setup.store.state().entries == before
+
+
+def test_later_success_removes_the_entry_and_the_finding(tmp_path: Path) -> None:
+    setup = make(tmp_path, TOOLS, answer())
+    location = setup.take_in()
+    setup.post(f"{location}/auslesen")
+    assert setup.post(f"{location}/auslesen").status_code == 303
+    assert setup.store.state().of_kind(AbortedExtraction) == []
+    assert len(setup.store.state().of_kind(Proposal)) == 1
+    assert aborted_findings(setup) == []
+
+
+def test_other_failures_are_not_recorded(tmp_path: Path) -> None:
+    invalid = ExtractionFailed(FailureReason.INVALID_ANSWER, "ungültig")
+    setup = make(tmp_path, invalid)
+    setup.post(f"{setup.take_in()}/auslesen")
+    assert setup.store.state().of_kind(AbortedExtraction) == []
+    assert aborted_findings(setup) == []
+
+
+def test_other_failure_keeps_an_earlier_abort(tmp_path: Path) -> None:
+    timeout = ExtractionFailed(FailureReason.TIMEOUT, "zu spät")
+    setup = make(tmp_path, TOOLS, timeout)
+    location = setup.take_in()
+    setup.post(f"{location}/auslesen")
+    setup.post(f"{location}/auslesen")
+    assert len(setup.store.state().of_kind(AbortedExtraction)) == 1
+
+
+def test_second_abort_replaces_the_entry_and_brings_back_a_dismissed_finding(
+    tmp_path: Path,
+) -> None:
+    setup = make(tmp_path, TOOLS, TOOLS)
+    location = setup.take_in()
+    setup.post(f"{location}/auslesen")
+    [finding] = aborted_findings(setup)
+    data = {
+        "year": "2025",
+        "kind": finding.kind,
+        "target": finding.identity[1],
+        "fingerprint": finding.fingerprint,
+        "note": "bekannt",
+    }
+    response = setup.client.post("/befunde/ausblenden", data=data, headers=ORIGIN)
+    assert response.status_code < 400
+    assert aborted_findings(setup) == []
+    setup.post(f"{location}/auslesen")
+    assert len(setup.store.state().of_kind(AbortedExtraction)) == 1
+    [back] = aborted_findings(setup)
+    assert back.fingerprint != finding.fingerprint
