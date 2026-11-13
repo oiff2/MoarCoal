@@ -1,12 +1,8 @@
-{% from "proto/_bits.html" import year_select, user_box, theme_btn, counts, findings_panel %}
+{% from "proto/_bits.html" import head_left, user_menu, nav_items, summary_bar %}
 <div class="shell">
-  <aside class="rail">
-    <a class="logo" href="/">MC</a>
-    {% for url, label, icon, n in nav[1:] %}<a href="{{ url }}" data-key="{{ loop.index }}" title="{{ label }} ({{ loop.index }})"><i>{{ icon }}</i><small>{{ label }}</small>{% if n %}<b>{{ n }}</b>{% endif %}</a>{% endfor %}
-    <div class="foot">{{ theme_btn() }}<span class="nutzer" title="{{ user_name }}">●</span></div>
-  </aside>
+  <aside class="side resizable"><a class="logo" href="/">MoarCoal</a>{{ nav_items(nav) }}<button class="collapse" title="Ein-/Ausklappen ([)">«</button><div class="grip" title="Breite ziehen"></div></aside>
   <div class="col">
-    <div class="top"><span class="crumb">Jahr 2025</span>{{ year_select() }}<span class="grow"></span>{{ counts() }}<button class="bpanel-btn" title="Befunde (b)">Befunde ▸</button></div>
-    <div class="body"><main>{{ content }}</main><aside class="bpanel">{{ findings_panel() }}</aside></div>
+    <header class="top">{{ head_left(false) }}<span class="grow"></span>{{ summary_bar() }}{{ user_menu() }}</header>
+    <main>{{ content }}</main>
   </div>
 </div>

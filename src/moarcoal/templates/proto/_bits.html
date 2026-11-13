@@ -1,14 +1,7 @@
-{% macro year_select() %}<label class="jahrwahl">Jahr <select><option>2025</option><option>2024</option></select></label>{% endmacro %}
-{% macro user_box() %}<span class="nutzer">● {{ user_name }}<select class="wechsel"><option>wechseln …</option><option>Partner</option></select></span>{% endmacro %}
-{% macro theme_btn() %}<button class="theme" title="Hell/Dunkel (t)">◐</button>{% endmacro %}
-{% macro counts() %}<span class="sev sev-error" title="Fehler">✖ 1</span><span class="sev sev-warning" title="Warnungen">▲ 2</span><span class="sev sev-info" title="Hinweise">● 2</span>{% endmacro %}
-{% macro findings_panel() %}
-<h3>Befunde 2025</h3>
-<ul class="pf">
-  <li class="sev-error"><strong>Fehler</strong> Anlage N: Bruttolohn noch nicht berechenbar (Lohnsteuerbescheinigung fehlt)</li>
-  <li class="sev-warning"><strong>Warnung</strong> Beleg ausstehend: Fahrkarte Beispiel-Verkehrsbetriebe</li>
-  <li class="sev-warning"><strong>Warnung</strong> Abweichung zum Protokoll: Zeile 31</li>
-  <li class="sev-info"><strong>Hinweis</strong> 4 neue Dateien im Eingang</li>
-  <li class="sev-info"><strong>Hinweis</strong> Vertrag Beispiel-Strom läuft aus</li>
-</ul>
-{% endmacro %}
+{% macro head_left(logo=true) %}{% if logo %}<a class="logo" href="/">MoarCoal</a>{% endif %}<label class="jahrwahl">Jahr <select><option>2025</option><option>2024</option></select></label>{% endmacro %}
+{% macro user_menu() %}<details class="usermenu"><summary title="{{ user_name }}">👤</summary><div class="menu"><div>{{ user_name }}</div><button class="theme">Hell/Dunkel (t)</button><div>Nutzer wechseln …</div><div>Module ein-/ausschalten …</div></div></details>{% endmacro %}
+{% macro nav_items(nav, labels=true) %}{% for url, label, icon, n in nav %}<a href="{{ url }}" data-key="{{ loop.index }}" title="{{ label }} ({{ loop.index }})"><i>{{ icon }}</i><span class="lbl">{{ label }}</span>{% if n %}<b>{{ n }}</b>{% endif %}</a>{% endfor %}{% endmacro %}
+{# Befundkurzübersicht für das gewählte Jahr: Form je Variante #}
+{% macro summary_pills() %}<a class="sum" href="/befunde" title="Befunde 2025"><span class="sev sev-error">✖ 1</span><span class="sev sev-warning">▲ 2</span><span class="sev sev-info">● 2</span></a>{% endmacro %}
+{% macro summary_text() %}<a class="sum" href="/befunde" title="Befunde 2025"><span class="sev sev-error">✖ 1 Fehler</span><span class="sev sev-warning">▲ 2 Warnungen</span><span class="sev sev-info">● 2 Hinweise</span><span class="top1">Wichtigster: Anlage N, Bruttolohn noch nicht berechenbar</span></a>{% endmacro %}
+{% macro summary_bar() %}<a class="sum bar" href="/befunde" title="1 Fehler · 2 Warnungen · 2 Hinweise"><span class="seg e">1</span><span class="seg w">2</span><span class="seg i">2</span><span class="ok">von 24 Zeilen mit Befund</span></a>{% endmacro %}
