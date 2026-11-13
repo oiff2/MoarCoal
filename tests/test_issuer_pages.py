@@ -118,8 +118,26 @@ def test_change_to_a_taken_name_is_rejected_with_the_reason(tmp_path: Path) -> N
         headers=ORIGIN,
     )
 
-    assert response.status_code == 409 and "Name gibt es schon." in response.text
+    assert response.status_code == 409
+    assert f'Der Name gehört schon zu <a href="/aussteller/{bank.id}">{bank.name}</a>' in (
+        response.text
+    )
     assert sorted(i.name for i in stored(tmp_path)) == sorted([bank.name, werke.name])
+
+
+def test_change_to_a_taken_name_names_the_other_issuer(tmp_path: Path) -> None:
+    bank, werke = issuer(), issuer("Stadtwerke Beispielstadt")
+    put(tmp_path, bank, werke)
+    client = make_client(tmp_path)
+    page = client.get(f"/aussteller/{werke.id}").text
+
+    response = client.post(
+        f"/aussteller/{werke.id}",
+        data={"name": bank.name.upper(), "checksum": checksum_of(page)},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 409 and f"/aussteller/{bank.id}" in response.text
 
 
 def test_delete_only_without_references(tmp_path: Path) -> None:

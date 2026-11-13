@@ -25,6 +25,7 @@ from moarcoal.storage import (
     name_key,
 )
 from moarcoal.storage.entries import referenced_addresses
+from moarcoal.storage.issuers import issuer_with_name
 from moarcoal.web import form_fields, render, store_of, user_of
 
 router = APIRouter(prefix="/aussteller")
@@ -92,6 +93,7 @@ def _detail(
     fields: Fields | None = None,
     errors: list[str] | None = None,
     status_code: int = 200,
+    holder: Issuer | None = None,
 ) -> HTMLResponse:
     state = store_of(request).state()
     documents, expected = _references(state, issuer, user_of(request))
@@ -114,6 +116,7 @@ def _detail(
         documents=documents,
         expected=expected,
         errors=errors or [],
+        holder=holder,
     )
 
 
@@ -224,7 +227,13 @@ def update(
         return _detail(request, issuer, fields, errors, 422)
     result = store_of(request).apply([Put(changed, expected=fields.get("checksum", ""))])
     if not isinstance(result, Applied):
-        return _detail(request, issuer, fields, _reasons(result), 409)
+        others = [i for i in store_of(request).state().of_kind(Issuer) if i.id != issuer.id]
+        holder = next(
+            (h for n in (changed.name, *changed.aliases) if (h := issuer_with_name(others, n))),
+            None,
+        )
+        reasons = [] if holder else _reasons(result)
+        return _detail(request, issuer, fields, reasons, 409, holder)
     return RedirectResponse(f"/aussteller/{issuer.id}", status_code=303)
 
 
