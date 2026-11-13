@@ -157,7 +157,7 @@ Der Unterschied zwischen dem eingefrorenen Stand eines Schnappschusses und dem a
 _Avoid_: Differenz, Diff, Änderung (das ist ein Teil eines Vorgangs)
 
 **Aussteller**:
-Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Informationen je Aussteller, auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ein Aussteller ist ein Unternehmen oder eine Behörde, außer er ist als **Privatperson** gekennzeichnet (z. B. privater Vermieter); nur dann sind Name und Anschrift sensibel.
+Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Name und weiteren Namen (Aliasse), auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ob Unternehmen oder Behörde, spielt keine Rolle; nur wer als **Privatperson** gekennzeichnet ist (z. B. privater Vermieter), hat sensiblen Namen und sensible Anschrift. Ein anderer Name desselben Ausstellers wird als Alias hinzugefügt; Zusammenführen zweier Aussteller ist die bewusste Ausnahme.
 _Avoid_: Absender, Firma (im HGB der Handelsname), Gegenpartei
 
 **Eintrag**:
@@ -205,7 +205,7 @@ Ein benannter, für alle Nutzer gemeinsamer Ordner außerhalb des Datenverzeichn
 _Avoid_: externer Ordner, Quellordner, Mount
 
 **Eingang** _(geprägt)_:
-Die Liste der Dateien in den Ablageorten, die weder aufgenommen noch ausgeblendet sind; daraus wird nichts von selbst übernommen.
+Die Liste der Dateien in den Ablageorten, die weder aufgenommen noch ausgeblendet sind (in der Oberfläche der Filter „offen“ der Ablage); daraus wird nichts von selbst übernommen.
 _Avoid_: Inbox, Import, Vorschlag
 
 **aufnehmen**:
@@ -241,7 +241,7 @@ Ein Beleg, der regelmäßig oder einmalig kommen soll, z. B. jährlich die Zinsb
 _Avoid_: Checkliste, Erwartung (allein), offener Beleg, Platzhalter
 
 **Dokumentart**:
-Was für ein Dokument es ist (z. B. Zinsbescheinigung, Grundsteuerbescheid, Darlehensvertrag); Module melden ihre Dokumentarten an, die Datenebene einige allgemeine. Jedes Dokument hat höchstens eine. Die Dokumentart legt fest, ob ihre Dokumente einen **Bezugszeitraum** haben, den Zeitraum, für den das Dokument gilt (z. B. Zinsbescheinigung 2025, ausgestellt 2026); andere gelten ohne zeitliche Grenze (z. B. Darlehensvertrag). Hat die Dokumentart eine Einlese-Regel, wird das Dokument beim Aufnehmen eingelesen (Code: `DocumentKind`).
+Was für ein Dokument es ist (z. B. Zinsbescheinigung, Grundsteuerbescheid, Darlehensvertrag); Module melden ihre Dokumentarten an, aber nur, wo sie etwas damit tun (einlesen, auslesen, Bezugszeitraum, Erwarteter Beleg); die Datenebene führt keine konkrete. Ein Dokument ohne Dokumentart ist ein normaler Beleg. Jedes Dokument hat höchstens eine. Die Dokumentart legt fest, ob ihre Dokumente einen **Bezugszeitraum** haben, den Zeitraum, für den das Dokument gilt (z. B. Zinsbescheinigung 2025, ausgestellt 2026); andere gelten ohne zeitliche Grenze (z. B. Darlehensvertrag). Hat die Dokumentart eine Einlese-Regel, wird das Dokument beim Aufnehmen eingelesen (Code: `DocumentKind`).
 _Avoid_: Belegtyp, Dokumenttyp, Kategorie
 
 **Beschaffungsweg**:
