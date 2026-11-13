@@ -5,7 +5,7 @@ nach Einheit und Richtung, siehe `fields`). Weicht das Protokoll nur durch Rundu
 Text Differenz und Richtung. Mehrere Zeilen derselben E-Kennung werden bei EUR-Feldern summiert;
 bei Tagen und km sind sie mehrdeutig.
 
-Der Einkommensteuerbescheid wird gegen den Schnappschuss der Abgabe verglichen, nicht gegen den
+Der EStB wird gegen den Schnappschuss der Abgabe verglichen, nicht gegen den
 aktuellen Wert: Er zeigt, wo das Finanzamt anders angesetzt hat als abgegeben. Nur bestätigte
 Positionen gehen ein; berechnete Felder ohne Gegenstück im Schnappschuss bleiben ohne Abgleich.
 """
@@ -234,7 +234,7 @@ def assessment_amounts(
 def current_assessment(
     state: ModuleState, year: int, fields: Sequence[FormField]
 ) -> tuple[Document, dict[ValueKey, Decimal]] | None:
-    """Der neueste Einkommensteuerbescheid des Jahrs, zu dem schon Positionen bestätigt sind, mit
+    """Der neueste EStB des Jahrs, zu dem schon Positionen bestätigt sind, mit
     den Beträgen je Feld. Ein neu aufgenommener, noch unbestätigter Bescheid verdrängt den
     bestätigten nicht."""
     found = [
@@ -276,7 +276,7 @@ def assessment_findings(state: ModuleState, year: int, forms: Forms = FORMS) -> 
                 ASSESSMENT_NO_SNAPSHOT,
                 Severity.NOTE,
                 document.address,
-                f"Zum Einkommensteuerbescheid {year} gibt es keinen Schnappschuss der Abgabe; "
+                f"Zum EStB {year} gibt es keinen Schnappschuss der Abgabe; "
                 "ein Abgleich ist nicht möglich.",
                 href=document_url(document),
                 fingerprint=fingerprint(document.id),

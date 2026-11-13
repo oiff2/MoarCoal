@@ -1,4 +1,4 @@
-"""Tests: Einkommensteuerbescheid auslesen und mit dem Schnappschuss der Abgabe abgleichen.
+"""Tests: EStB auslesen und mit dem Schnappschuss der Abgabe abgleichen.
 
 Alle Beträge sind erfunden. Die Werte von Arbeit sind fest vorgegeben; der Schnappschuss entsteht
 wie im Betrieb beim Aufnehmen eines Protokolls (`snapshot_on_filing`).

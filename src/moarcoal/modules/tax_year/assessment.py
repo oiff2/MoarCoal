@@ -1,4 +1,4 @@
-"""Dokumentart Einkommensteuerbescheid: die Auslese-Vorlage mit den gedruckten Positionen.
+"""Dokumentart Einkommensteuerbescheid (EStB): die Auslese-Vorlage mit den gedruckten Positionen.
 
 Der Bescheid wird nicht eingelesen, sondern von Claude ausgelesen und vom Nutzer bestätigt
 (`proposals`). Die Vorlage nennt die gedruckten Positionen mit ihrer Bezeichnung im Bescheid; welche
@@ -105,7 +105,7 @@ def _no_read_in(document: Document, content: bytes) -> list[Entry]:
 
 ASSESSMENT = DocumentKind(
     key=ASSESSMENT_KEY,
-    title="Einkommensteuerbescheid",
+    title="Einkommensteuerbescheid (EStB)",
     has_period=True,
     read_in=_no_read_in,
     extraction_template=TEMPLATE,

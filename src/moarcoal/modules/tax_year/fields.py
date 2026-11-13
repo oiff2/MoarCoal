@@ -53,7 +53,7 @@ class FormField:
     berechnet (`computed` ist falsch: kein Wert, kein Schnappschuss) und solche ohne Betrag
     (`unit` ist leer: Text, Ja/Nein).
 
-    `assessment` nennt die Positionen der Auslese-Vorlage des Einkommensteuerbescheids, deren Summe
+    `assessment` nennt die Positionen der Auslese-Vorlage des EStB, deren Summe
     dem Feld entspricht (leer: der Bescheid druckt das Feld nicht). `printed_rounded` heißt: der
     Bescheid druckt die Position in ganzen Euro, auch wo das Feld Cent hat.
     """

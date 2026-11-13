@@ -1,5 +1,5 @@
 """Modul Steuerjahr: Übertragungsprotokoll einlesen, Werte Feldern der Anlage N zuordnen,
-Einkommensteuerbescheid auslesen und mit dem Schnappschuss der Abgabe abgleichen."""
+EStB auslesen und mit dem Schnappschuss der Abgabe abgleichen."""
 
 from functools import partial
 
