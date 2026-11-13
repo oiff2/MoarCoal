@@ -85,6 +85,7 @@ def test_argument_list_is_literal() -> None:
         "stream-json",
         "--output-format",
         "stream-json",
+        "--verbose",
     ]
 
 

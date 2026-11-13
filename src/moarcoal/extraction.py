@@ -85,6 +85,7 @@ def claude_command(executable: str = "claude") -> list[str]:
         "stream-json",
         "--output-format",
         "stream-json",
+        "--verbose",
     ]
 
 
