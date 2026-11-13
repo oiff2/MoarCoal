@@ -33,3 +33,8 @@ main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
 
 /* Belege: das Jahr nur bei Dokumentarten mit Bezugszeitraum */
 form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
+
+/* Aussteller-Feld */
+.aussteller-feld { border: 0; padding: 0; margin: 0; }
+.aussteller-feld legend { padding: 0; }
+.aussteller-feld .einrueckung { margin-left: 1.5rem; }

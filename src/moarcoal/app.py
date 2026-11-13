@@ -18,6 +18,7 @@ from moarcoal.dismissals import NoteMissing, dismiss, undismiss
 from moarcoal.document_pages import router as document_router
 from moarcoal.expected_documents_pages import router as expected_documents_router
 from moarcoal.extraction import ClaudeExtractor, Extractor
+from moarcoal.issuer_field import router as issuer_field_router
 from moarcoal.issuer_pages import router as issuer_router
 from moarcoal.modules import MODULES
 from moarcoal.registration import ModuleRegistration
@@ -80,6 +81,7 @@ def create_app(
     app.include_router(document_router)
     app.include_router(expected_documents_router)
     app.include_router(issuer_router)
+    app.include_router(issuer_field_router)
 
     @app.get("/", response_class=HTMLResponse)
     def start(request: Request) -> HTMLResponse:  # pyright: ignore[reportUnusedFunction]

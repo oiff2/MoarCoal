@@ -1,0 +1,12 @@
+{# Aussteller-Feld mit Suche (htmx), wiederverwendbar. Einbinden:
+   {% from "_issuer_field.html" import issuer_field %} und im <form> {{ issuer_field() }}.
+   `default` ist die Kennung der Vorbelegung; ohne sie gilt der zuletzt für die Dokumentart
+   (Feld `kind` des Formulars) verwendete. `text` stellt den Suchtext einer abgewiesenen Eingabe
+   wieder her. #}
+{% macro issuer_field(default="", text="") %}
+<fieldset class="aussteller-feld" hx-get="/aussteller-suche" hx-trigger="intersect once, change[target.tagName=='SELECT'] from:closest form, input from:find .suche delay:200ms" hx-include="closest form" hx-target="find .auswahl" hx-vals='{"default": "{{ default }}"}'>
+  <legend>Aussteller</legend>
+  <input class="suche" type="search" name="issuer_text" value="{{ text }}" placeholder="Name suchen oder neu eingeben" autocomplete="off">
+  <div class="auswahl"></div>
+</fieldset>
+{% endmacro %}

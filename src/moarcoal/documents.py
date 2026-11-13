@@ -18,6 +18,7 @@ from moarcoal.storage import (
     Change,
     Document,
     Entry,
+    EntryAddress,
     Put,
     SiteFileError,
     State,
@@ -78,10 +79,14 @@ def take_in(
     year: int,
     *,
     values_on: Callable[[State], "Values"] | None = None,
+    issuer: EntryAddress | None = None,
+    issuer_changes: Sequence[Change] = (),
 ) -> TakenIn | IntakeRejected:
     """Datei am Ablageort aufnehmen. `year` gilt als Bezugszeitraum, wenn die Art einen hat.
 
     `values_on` bildet `Values` auf einem Stand; die Ergänzung der Dokumentart braucht es.
+    `issuer` ist der freiwillige Aussteller; `issuer_changes` (neuer Aussteller, neuer Alias)
+    werden im selben Vorgang geschrieben, bei Abweisung bleibt nichts davon stehen.
     """
     kind = kinds[kind_key]  # unbekannte Art ist ein Programmfehler
     if not MIN_YEAR <= year <= MAX_YEAR:
@@ -100,6 +105,7 @@ def take_in(
             path=path,
             sha256=sha256,
             document_kind=kind.key,
+            issuer=issuer,
             period_start=datetime.date(year, 1, 1) if kind.has_period else None,
             period_end=datetime.date(year, 12, 31) if kind.has_period else None,
             taken_in_at=datetime.datetime.now(datetime.UTC),
@@ -111,7 +117,7 @@ def take_in(
     except ReadInError as error:
         return IntakeRejected((str(error),))
     taken = [document, *entries]
-    changes: list[Change] = [Put(entry) for entry in taken]
+    changes: list[Change] = [*issuer_changes, *(Put(entry) for entry in taken)]
     if kind.after_take_in is not None:
         if values_on is None:
             raise ValueError(f"{kind.key}: die Ergänzung beim Aufnehmen braucht `values_on`")

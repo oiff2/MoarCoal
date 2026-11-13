@@ -18,7 +18,8 @@ from moarcoal.incoming import (
     incoming_files,
     show_file,
 )
-from moarcoal.storage import Applied, HiddenFile, SiteFile, entry_checksum
+from moarcoal.issuer_field import resolve_issuer
+from moarcoal.storage import Applied, HiddenFile, Issuer, SiteFile, entry_checksum
 from moarcoal.web import (
     document_kinds,
     entry_url,
@@ -62,6 +63,7 @@ def _page(
         kinds=list(document_kinds(request).values()),
         hidden=[(h, entry_checksum(h)) for h in hidden_section(hidden_files(state), rows)],
         sites=store.site_names(),
+        issuer_names={i.id: i.name for i in state.of_kind(Issuer)},
         default_year=DEFAULT_YEAR,
         notice=notice,
         errors=errors or {},
@@ -100,6 +102,9 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
             year = int(fields.get("year", "").strip())
         except ValueError:
             return rejected("Steuerjahr: ganze Zahl, z. B. 2025")
+    chosen = resolve_issuer(store_of(request).state(), fields)
+    if isinstance(chosen, str):
+        return rejected(chosen)
     result = take_in(
         store_of(request),
         kinds,
@@ -109,6 +114,8 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
         kind.key,
         year,
         values_on=lambda state: values_on(request, state),
+        issuer=chosen.address,
+        issuer_changes=chosen.changes,
     )
     if isinstance(result, IntakeRejected):
         return rejected(*result.reasons)

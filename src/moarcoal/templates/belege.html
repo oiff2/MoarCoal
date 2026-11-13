@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_issuer_field.html" import issuer_field %}
 {% block title %}Belege – MoarCoal{% endblock %}
 {% macro size(file) %}{{ (file.size / 1024) | round(1) | string | replace(".", ",") }} KB{% endmacro %}
 {% macro folder_node(folder, depth) %}
@@ -17,6 +18,7 @@
   <span class="groesse">{{ size(file) }}</span>
   {% if doc %}
   <span class="stand">aufgenommen</span>
+  <span class="aussteller">{% if doc.issuer %}{{ issuer_names[doc.issuer.id] }}{% endif %}</span>
   <span class="art">{% for kind in kinds if kind.key == doc.document_kind %}{{ kind.title }}{% endfor %}{% if doc.period_start %}, {{ doc.period_start.year }}{% endif %}</span>
   <a href="/dokumente/{{ doc.id }}">Dokument</a>
   {% else %}
@@ -24,6 +26,7 @@
   {% for message in errors.get(file.sha256, []) %}<span class="fehler">{{ message }}</span>{% endfor %}
   <form method="post" action="/belege/aufnehmen">
     <input type="hidden" name="sha256" value="{{ file.sha256 }}">
+    {{ issuer_field(text=form.get("issuer_text", "")) }}
     <label>Dokumentart
       <select name="kind">
         {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if form.get("kind") == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}

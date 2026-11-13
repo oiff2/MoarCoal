@@ -1,0 +1,141 @@
+"""Das Aussteller-Feld: Suche über Name und Aliasse, Auswahl, Neu anlegen, Alias hinzufügen.
+
+Wiederverwendbar (Vorlage `_issuer_field.html`): beim Aufnehmen und am Dokument. Die Auswahl
+kommt als `issuer_choice` an (leer = kein Aussteller, `id:<Kennung>`, `new`, `alias:<Kennung>`),
+der Text als `issuer_text`, das Häkchen als `issuer_private`. Anlegen und Alias sind Änderungen,
+die der Aufrufer im selben Vorgang wie das Dokument schreibt.
+"""
+
+import datetime
+from collections.abc import Mapping
+from dataclasses import dataclass
+
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
+
+from moarcoal.storage import (
+    COMMON_OWNER,
+    Change,
+    Document,
+    EntryAddress,
+    Issuer,
+    Put,
+    State,
+    entry_checksum,
+)
+from moarcoal.web import render, store_of, user_of
+
+router = APIRouter()
+
+MAX_HITS = 8
+
+
+@dataclass(frozen=True)
+class IssuerChoice:
+    """Gewählter Aussteller (oder keiner) und was dafür geschrieben werden muss."""
+
+    address: EntryAddress | None = None
+    changes: tuple[Change, ...] = ()
+
+
+def _names(issuer: Issuer) -> list[str]:
+    return [issuer.name, *issuer.aliases]
+
+
+def search_issuers(state: State, text: str) -> list[Issuer]:
+    """Aussteller, deren Name oder Alias den Text enthält oder darin vorkommt; ohne Groß-/
+    Kleinschreibung, nach Name sortiert."""
+    needle = text.strip().casefold()
+    if not needle:
+        return []
+    found = [
+        i
+        for i in state.of_kind(Issuer)
+        if any(n.casefold() in needle or needle in n.casefold() for n in _names(i))
+    ]
+    return sorted(found, key=lambda i: i.name.casefold())
+
+
+def has_exact_name(state: State, text: str) -> bool:
+    needle = text.strip().casefold()
+    return any(needle == n.casefold() for i in state.of_kind(Issuer) for n in _names(i))
+
+
+def _issuer_at(state: State, issuer_id: str) -> Issuer | None:
+    found = state.get(EntryAddress(kind="Issuer", id=issuer_id)) if issuer_id.isalnum() else None
+    return found if isinstance(found, Issuer) else None
+
+
+def last_issuer(state: State, user: str, kind_key: str | None) -> Issuer | None:
+    """Der zuletzt für die Dokumentart verwendete Aussteller (nur Oberfläche, nichts gespeichert)"""
+    used = [
+        d
+        for d in state.of_kind(Document)
+        if d.owner == user and d.document_kind == kind_key and d.issuer is not None
+    ]
+    if not used:
+        return None
+    newest = max(
+        used,
+        key=lambda d: (d.taken_in_at or datetime.datetime.min.replace(tzinfo=datetime.UTC), d.id),
+    )
+    return _issuer_at(state, newest.issuer.id) if newest.issuer else None
+
+
+def resolve_issuer(state: State, fields: Mapping[str, str]) -> IssuerChoice | str:
+    """Aus den Formularfeldern den Aussteller; bei einem Fehler die Meldung für den Nutzer."""
+    choice = fields.get("issuer_choice", "")
+    text = fields.get("issuer_text", "").strip()
+    if choice == "":
+        return IssuerChoice() if not text else "Bitte einen Aussteller aus der Suche wählen."
+    if choice == "new":
+        if not text:
+            return "Bitte einen Namen für den neuen Aussteller eingeben."
+        if has_exact_name(state, text):
+            return f"Aussteller „{text}“ gibt es schon; bitte aus der Suche wählen."
+        private = bool(fields.get("issuer_private"))
+        issuer = Issuer(owner=COMMON_OWNER, name=text, private_person=private)
+        return IssuerChoice(issuer.address, (Put(issuer),))
+    mode, _, issuer_id = choice.partition(":")
+    existing = _issuer_at(state, issuer_id)
+    if existing is None or mode not in ("id", "alias"):
+        return "Der gewählte Aussteller ist nicht mehr da."
+    if mode == "id":
+        return IssuerChoice(existing.address)
+    if not text:
+        return "Bitte den weiteren Namen eingeben."
+    if has_exact_name(state, text):
+        return IssuerChoice(existing.address)
+    renamed = existing.model_copy(update={"aliases": (*existing.aliases, text)})
+    return IssuerChoice(existing.address, (Put(renamed, entry_checksum(existing)),))
+
+
+@router.get("/aussteller-suche", response_class=HTMLResponse)
+def search(
+    request: Request,
+    issuer_text: str = "",
+    issuer_choice: str = "",
+    kind: str = "",
+    default: str = "",
+    issuer_private: str = "",
+) -> HTMLResponse:
+    """Ergebnisse der Suche als Auswahlliste (Vorlage `_issuer_choices.html`); schreibt nie.
+
+    Ohne Text und ohne Auswahl gilt `default` (Kennung), sonst der zuletzt für `kind` verwendete.
+    """
+    state = store_of(request).state()
+    text = issuer_text.strip()
+    selected = issuer_choice
+    if not text and not selected:
+        preset = _issuer_at(state, default) or last_issuer(state, user_of(request), kind or None)
+        selected = f"id:{preset.id}" if preset is not None else ""
+    return render(
+        request,
+        "_issuer_choices.html",
+        text=text,
+        hits=search_issuers(state, text)[:MAX_HITS],
+        exact=has_exact_name(state, text),
+        selected=selected,
+        private=bool(issuer_private),
+        preset=_issuer_at(state, selected.partition(":")[2]),
+    )

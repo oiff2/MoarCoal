@@ -1,0 +1,15 @@
+{# Auswahlliste des Aussteller-Felds, geliefert von /aussteller-suche; `selected` ist die Vorwahl. #}
+<label><input type="radio" name="issuer_choice" value=""{% if not selected %} checked{% endif %}> kein Aussteller</label>
+{% if preset and preset not in hits %}
+<label><input type="radio" name="issuer_choice" value="id:{{ preset.id }}" checked> {{ preset.name }}</label>
+{% endif %}
+{% for hit in hits %}
+<label><input type="radio" name="issuer_choice" value="id:{{ hit.id }}"{% if selected == "id:" ~ hit.id %} checked{% endif %}> {{ hit.name }}{% if hit.aliases %} <small>({{ hit.aliases | join(", ") }})</small>{% endif %}</label>
+{% endfor %}
+{% if text and not exact %}
+<label><input type="radio" name="issuer_choice" value="new"{% if selected == "new" %} checked{% endif %}> Neu anlegen: „{{ text }}“</label>
+<label class="einrueckung"><input type="checkbox" name="issuer_private" value="1"{% if private %} checked{% endif %}> Privatperson</label>
+{% for hit in hits %}
+<label><input type="radio" name="issuer_choice" value="alias:{{ hit.id }}"{% if selected == "alias:" ~ hit.id %} checked{% endif %}> Als weiteren Namen zu {{ hit.name }} hinzufügen</label>
+{% endfor %}
+{% endif %}
