@@ -108,5 +108,6 @@ ASSESSMENT = DocumentKind(
     title="Einkommensteuerbescheid (EStB)",
     has_period=True,
     read_in=_no_read_in,
+    name_patterns=(r"\bestb\b", r"\beinkommensteuerbescheid\b"),
     extraction_template=TEMPLATE,
 )

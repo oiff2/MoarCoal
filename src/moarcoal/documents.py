@@ -43,6 +43,8 @@ class DocumentKind:
     `read_in` ist die Einlese-Regel: eine reine Funktion aus Dokument und Dateiinhalt, die die
     Einträge des Moduls liefert (oder `ReadInError` wirft). Sie fasst keine Datei an.
     `extraction_template` ist die Auslese-Vorlage; ohne sie lässt sich die Art nicht auslesen.
+    `name_patterns` sind optionale reguläre Ausdrücke (ohne Groß-/Kleinschreibung, gegen Datei- und
+    Ordnernamen), mit denen das Aufnehmen-Formular die Art vorbelegt; ohne Muster nie.
 
     `after_take_in` ist die optionale Ergänzung beim Aufnehmen (Spec 3.6 Punkt 8): aus Dokument,
     eingelesenen Einträgen und `Values` auf einem vorläufigen Stand, der beide schon enthält,
@@ -55,6 +57,7 @@ class DocumentKind:
     has_period: bool
     read_in: Callable[[Document, bytes], Sequence[Entry]]
     extraction_template: ExtractionTemplate | None = None
+    name_patterns: tuple[str, ...] = ()
     after_take_in: Callable[[Document, Sequence[Entry], "Values"], Sequence[Change]] | None = None
 
 

@@ -20,6 +20,7 @@ from moarcoal.incoming import (
     show_file,
 )
 from moarcoal.issuer_field import resolve_issuer
+from moarcoal.prefill import Prefill, prefill_from_name
 from moarcoal.previews import file_response, preview_kind
 from moarcoal.storage import Applied, HiddenFile, Issuer, SiteFile, entry_checksum
 from moarcoal.web import (
@@ -58,6 +59,13 @@ def _page(
     state = store.state()
     rows = ablage_rows(all_site_files(store), state, user_of(request))
     chosen = next((r for r in rows if r.file.sha256 == selected), None)
+    kinds = document_kinds(request)
+    # Vorbelegen nur für eine offene Datei und nur, solange keine abgewiesene Eingabe dasteht
+    suggestion = (
+        prefill_from_name(state, kinds.values(), chosen.file.path)
+        if chosen and chosen.document is None and not values
+        else Prefill()
+    )
     return render(
         request,
         "belege.html",
@@ -71,9 +79,10 @@ def _page(
             if chosen.document
             else f"/belege/datei/{chosen.file.sha256}"
         ),
+        suggestion=suggestion,
         stand=stand,
         stands=STANDS,
-        kinds=list(document_kinds(request).values()),
+        kinds=list(kinds.values()),
         hidden=[(h, entry_checksum(h)) for h in hidden_section(hidden_files(state), rows)],
         sites=store.site_names(),
         issuer_names={i.id: i.name for i in state.of_kind(Issuer)},

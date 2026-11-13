@@ -38,13 +38,13 @@
   {% for message in errors.get(file.sha256, []) %}<p class="fehler">{{ message }}</p>{% endfor %}
   <form method="post" action="/belege/aufnehmen">
     <input type="hidden" name="sha256" value="{{ file.sha256 }}">
-    {{ issuer_field(text=form.get("issuer_text", "")) }}
-    <label>Dokumentart
+    {{ issuer_field(default=suggestion.issuer.id if suggestion.issuer else "", text=form.get("issuer_text", ""), from_name=suggestion.issuer is not none) }}
+    <label>Dokumentart{% if suggestion.kind %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %}
       <select name="kind">
-        {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if form.get("kind") == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
+        {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if form.get("kind", suggestion.kind) == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
       </select>
     </label>
-    <label class="jahr">Jahr <input name="year" value="{{ form.get('year', default_year) }}" size="6"></label>
+    <label class="jahr">Jahr{% if suggestion.year %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %} <input name="year" value="{{ form.get('year', suggestion.year or default_year) }}" size="6"></label>
     <button type="submit">Aufnehmen</button>
   </form>
   <form method="post" action="/belege/ausblenden">

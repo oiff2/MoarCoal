@@ -22,3 +22,10 @@ document.addEventListener("keydown", (event) => {
   }
 });
 document.querySelector(".baum a[aria-current]")?.scrollIntoView({ block: "nearest" });
+// „aus Name“ verschwindet, sobald der Nutzer das Feld ändert.
+for (const mark of document.querySelectorAll("[data-aus-name]")) {
+  const owner = mark.closest("label, fieldset");
+  const clear = () => mark.remove();
+  owner?.addEventListener("input", clear, { once: true });
+  owner?.addEventListener("change", clear, { once: true });
+}
