@@ -82,7 +82,7 @@ Gespeichertes mit eigener Adresse ist ein **Eintrag**; seine **Adresse** lautet 
 |---|---|---|---|
 | Dokument | Nutzer | Aussteller, Datum, höchstens eine Dokumentart, ggf. Bezugszeitraum, Zuordnungen (Liste von Adressen), Datei am Ablageort (Ablageort + relativer Pfad + SHA-256) oder übernommen | [Bausteine](https://github.com/oiff2/MoarCoal/issues/4), [Dateistruktur](https://github.com/oiff2/MoarCoal/issues/10), [Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21) |
 | Dokumentart | Code | angemeldet von Modulen, einige allgemeine von der Datenebene; legt fest, ob es einen Bezugszeitraum gibt | [Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21) |
-| Aussteller | gemeinsam | Anzeigename, weitere Namen, Art, Anschrift, Nummern (z. B. Steuernummer), Merkmal Privatperson; Zusammenführen mit Alias | [Bausteine](https://github.com/oiff2/MoarCoal/issues/4), [Sensible Werte](https://github.com/oiff2/MoarCoal/issues/14) |
+| Aussteller | gemeinsam | Name, weitere Namen (Aliasse), Merkmal Privatperson; Anschrift und Nummern erst, wenn ein Modul sie braucht; Zusammenführen als bewusster Ausnahmeweg (siehe Zuschnitt unten) | [Bausteine](https://github.com/oiff2/MoarCoal/issues/4), [Sensible Werte](https://github.com/oiff2/MoarCoal/issues/14), [Zuschnitt](https://github.com/oiff2/MoarCoal/issues/67) |
 | Vertrag | Nutzer | Aussteller, Vertragsnummer, Art, Laufzeit, Anzeigename; Bedeutung weiß das Modul | [Bausteine](https://github.com/oiff2/MoarCoal/issues/4) |
 | Notiz | Nutzer | Text + Datum an einem Eintrag, einer Ausblendung oder einer Ausnahme, nie an Berechnetem | [Kennungen](https://github.com/oiff2/MoarCoal/issues/20) |
 | Erwarteter Beleg | Nutzer | Aussteller, Dokumentart, Zuordnung, Rhythmus mit Beginn/Ende, Beschaffungsweg, Beschaffungshinweis (sensibel), Ausnahmen je Zeitraum mit Notiz | [Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21) |
@@ -98,6 +98,15 @@ Grundtypen:
 - **Zeitbezug**: Zeitraum (`Period`, meist Kalenderjahr) oder Stichtag (`KeyDate`). Stichtagswerte werden nicht über Zeiträume summiert.
 
 Was **nicht** zur Datenebene gehört: Konten und Buchungen, Immobilie, Darlehen, Fahrten, Steuerzeilen. Altjahre (2017–2024) sind normale Dokumente (Übertragungsprotokoll, EStB), aus denen das Steuerjahr belegte Werte macht.
+
+**Zuschnitt des Ausstellers** ([#67](https://github.com/oiff2/MoarCoal/issues/67)):
+
+- **Felder:** Name, Aliasse (weitere Namen, auch der volle Firmenname) und das Merkmal Privatperson. Keine Art (Unternehmen und Behörde unterscheiden sich in MoarCoal nicht), kein juristischer Name; Anschrift und Nummern erst bei Bedarf. Gemeinsam für alle Nutzer.
+- **Am Dokument freiwillig.** Der Hinweis-Befund „Dokument ohne Aussteller“ meldet die Lücke; keine Migration, bestehende Dokumente bekommen ihn nachträglich über die Dokumentseite. Der Erwartete Beleg bleibt in der einfachen Form ohne Aussteller.
+- **Aufnehmen kompakt:** ein Feld mit Suche über Name und Aliasse. Treffer wählen; kein Treffer: „Neu anlegen: ‹Text›“ mit Häkchen Privatperson daneben; ähnlicher Name: „Als weiteren Namen zu ‹X› hinzufügen“. Vorbelegt ist der zuletzt für die Dokumentart verwendete Aussteller (nur Oberfläche, nichts gespeichert).
+- **Zusammenführen ist die Ausnahme:** Normalfall ist ein neuer Alias. Zusammenführen nur auf der Seite des Ausstellers, mit Folgenseite (betroffene Dokumente und Erwartete Belege) und ausdrücklicher Bestätigung; Name und Aliasse der Quelle werden Aliasse des Ziels, die Kennung der Quelle verweist danach auf das Ziel. Keine Vorschläge der App, nie von selbst.
+- **Seite** `/aussteller`: Katalog (Name, Aliasse, Zahl der Dokumente und Erwarteten Belege, Suche), Detail (ändern, Dokumente, Erwartete Belege), Löschen nur ohne Verweise. Ihr Platz in der Navigation folgt aus der Belege-Seite ([#63](https://github.com/oiff2/MoarCoal/issues/63)).
+- **Slices:** (1) Datenebene: Eintragsart, Feld am Dokument, `display_name`/`url`, Befund; (2) Aufnehmen-Formular und Ändern an der Dokumentseite; (3) Seite mit Katalog, Detail, Aliasse, Löschen; (4) Zusammenführen; später: Auslese schlägt den Aussteller vor, Erwarteter Beleg bekommt den Aussteller.
 
 ### 3.3 Contract des Ausgewiesenen Werts
 

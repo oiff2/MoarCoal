@@ -157,7 +157,7 @@ Der Unterschied zwischen dem eingefrorenen Stand eines Schnappschusses und dem a
 _Avoid_: Differenz, Diff, Änderung (das ist ein Teil eines Vorgangs)
 
 **Aussteller**:
-Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Informationen je Aussteller, auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ein Aussteller ist ein Unternehmen oder eine Behörde, außer er ist als **Privatperson** gekennzeichnet (z. B. privater Vermieter); nur dann sind Name und Anschrift sensibel.
+Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Name und weiteren Namen (Aliasse), auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ob Unternehmen oder Behörde, spielt keine Rolle; nur wer als **Privatperson** gekennzeichnet ist (z. B. privater Vermieter), hat sensiblen Namen und sensible Anschrift. Ein anderer Name desselben Ausstellers wird als Alias hinzugefügt; Zusammenführen zweier Aussteller ist die bewusste Ausnahme.
 _Avoid_: Absender, Firma (im HGB der Handelsname), Gegenpartei
 
 **Eintrag**:
