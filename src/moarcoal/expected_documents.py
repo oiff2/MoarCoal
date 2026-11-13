@@ -8,7 +8,7 @@ bestätigt ist, spielt keine Rolle (3.6, Punkt 7).
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from moarcoal.storage import Document, ExpectedDocument, State
+from moarcoal.storage import Document, EntryAddress, ExpectedDocument, State
 from moarcoal.values.findings import Finding, Severity, fingerprint
 
 PENDING = "expected_document_pending"
@@ -52,6 +52,21 @@ def statuses(
         YearDocuments(year, tuple(matching_documents(documents, expected, year)))
         for year in range(expected.start_year, last + 1)
     ]
+
+
+def previous_year_issuer(
+    documents: list[Document], expected: ExpectedDocument, year: int
+) -> EntryAddress | None:
+    """Vorschlag: Aussteller des Dokuments, das den Beleg im Vorjahr erfüllt (gleiche Regel).
+
+    Berechnet, nicht gespeichert, und ohne Einfluss auf die Erfüllung. Kein Vorschlag, wenn das
+    Vorjahr vor dem Beginn liegt, offen ist oder kein erfüllendes Dokument einen Aussteller trägt.
+    """
+    if year - 1 < expected.start_year:
+        return None
+    return next(
+        (d.issuer for d in matching_documents(documents, expected, year - 1) if d.issuer), None
+    )
 
 
 def _name(expected: ExpectedDocument, titles: Mapping[str, str]) -> str:

@@ -10,12 +10,21 @@ from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
 from moarcoal.documents import DocumentKind
-from moarcoal.expected_documents import DUPLICATE, PENDING
+from moarcoal.expected_documents import DUPLICATE, PENDING, matching_documents, previous_year_issuer
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import TRANSFER_PROTOCOL
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.registration import ModuleRegistration
-from moarcoal.storage import Document, EntryAddress, ExpectedDocument, Put, open_store
+from moarcoal.storage import (
+    COMMON_OWNER,
+    Document,
+    EntryAddress,
+    ExpectedDocument,
+    Issuer,
+    Merge,
+    Put,
+    open_store,
+)
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
 from moarcoal.values.model import (
@@ -305,3 +314,63 @@ def test_changing_the_description_brings_a_hidden_pending_finding_back(tmp_path:
     state = open_store(tmp_path, []).state()
     listed = evaluate([WORK, TAX_YEAR], list(state.entries.values())).finding_list("anna", 2025)
     assert [f.kind for f in listed.visible if f.kind == PENDING] == [PENDING]
+
+
+# --- Aussteller des Vorjahres als Vorschlag ---------------------------------------------------
+
+
+def issued_by(at: Issuer, year: int = 2024, sha: str = SHA) -> Document:
+    return document(year, sha=sha).model_copy(update={"issuer": at.address})
+
+
+def test_suggestion_is_issuer_of_the_document_fulfilling_the_previous_year() -> None:
+    bank = Issuer(owner=COMMON_OWNER, name="Beispielbank")
+    entry = expected(start=2024)
+
+    assert previous_year_issuer([issued_by(bank)], entry, 2025) == bank.address
+    assert previous_year_issuer([issued_by(bank)], entry, 2024) is None  # Vorjahr vor Beginn
+    assert previous_year_issuer([issued_by(bank)], entry, 2026) is None  # Vorjahr nicht erfüllt
+    assert previous_year_issuer([document(2024)], entry, 2025) is None  # ohne Aussteller
+
+
+def test_a_document_with_another_issuer_still_fulfils() -> None:
+    bank = Issuer(owner=COMMON_OWNER, name="Beispielbank")
+    other = Issuer(owner=COMMON_OWNER, name="Andere Bank")
+    documents = [issued_by(bank), issued_by(other, 2025, "b" * 64)]
+    entry = expected(start=2024)
+
+    assert len(matching_documents(documents, entry, 2025)) == 1
+    assert findings([entry, *documents]) == []
+
+
+def test_pages_show_the_suggestion_and_follow_a_merge(tmp_path: Path) -> None:
+    source = Issuer(owner=COMMON_OWNER, name="Beispielbank")
+    target = Issuer(owner=COMMON_OWNER, name="Beispielbank AG")
+    entry = expected(start=2024)
+    store = open_store(tmp_path, [])
+    store.apply([Put(source), Put(target), Put(entry), Put(issued_by(source))])
+    client = make_client(tmp_path)
+
+    for url in ("/erwartete-belege", f"/erwartete-belege/{entry.id}"):
+        page = client.get(url).text
+        assert f'Aussteller im Vorjahr: <a href="{source.url}">Beispielbank</a>' in page
+
+    state = store.state()
+    store.apply(
+        [
+            Merge(
+                source.address,
+                target.address,
+                expected=state.checksum(source.address) or "",
+                expected_into=state.checksum(target.address) or "",
+            )
+        ]
+    )
+    page = make_client(tmp_path).get("/erwartete-belege").text
+    assert f'<a href="{target.url}">Beispielbank AG</a>' in page
+
+
+def test_pages_show_no_suggestion_without_issuer(tmp_path: Path) -> None:
+    open_store(tmp_path, []).apply([Put(expected(start=2024)), Put(document(2024))])
+
+    assert "Aussteller im Vorjahr" not in make_client(tmp_path).get("/erwartete-belege").text

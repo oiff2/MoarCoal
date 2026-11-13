@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.documents import DocumentKind
-from moarcoal.expected_documents import statuses
+from moarcoal.expected_documents import previous_year_issuer, statuses
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import (
     Applied,
@@ -16,6 +16,7 @@ from moarcoal.storage import (
     Document,
     EntryAddress,
     ExpectedDocument,
+    Issuer,
     Put,
     Rejected,
     entry_checksum,
@@ -92,6 +93,17 @@ def _own(request: Request, entry_id: str) -> ExpectedDocument:
     return entry
 
 
+def _suggestion(request: Request, entry: ExpectedDocument) -> Issuer | None:
+    """Aussteller des Vorjahres für das letzte angezeigte Jahr (bei offenem Ende `DEFAULT_YEAR`)."""
+    state = store_of(request).state()
+    user = user_of(request)
+    documents = [d for d in state.of_kind(Document) if d.owner == user]
+    year = entry.end_year if entry.end_year is not None else max(DEFAULT_YEAR, entry.start_year)
+    address = previous_year_issuer(documents, entry, year)
+    found = None if address is None else state.resolve(address)
+    return found if isinstance(found, Issuer) else None
+
+
 def _overview(
     request: Request, errors: list[str], values: Fields, status_code: int = 200
 ) -> HTMLResponse:
@@ -102,7 +114,7 @@ def _overview(
         (e for e in state.of_kind(ExpectedDocument) if e.owner == user),
         key=lambda e: (e.start_year, e.id),
     )
-    rows = [(e, statuses(documents, e, DEFAULT_YEAR)) for e in expected]
+    rows = [(e, statuses(documents, e, DEFAULT_YEAR), _suggestion(request, e)) for e in expected]
     return render(
         request,
         "expected_documents/index.html",
@@ -128,6 +140,7 @@ def _edit(
         "expected_documents/edit.html",
         status_code,
         entry_id=entry_id,
+        suggestion=_suggestion(request, _own(request, entry_id)),
         kinds=_kinds(request),
         values=fields,
         checksum=checksum,

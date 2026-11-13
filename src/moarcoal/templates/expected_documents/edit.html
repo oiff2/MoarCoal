@@ -3,6 +3,7 @@
 {% block main %}
 <h1>Erwarteten Beleg ändern</h1>
 <p><a href="/erwartete-belege">Zurück zu Erwartete Belege</a></p>
+{% include "expected_documents/_suggestion.html" %}
 {% include "work/_errors.html" %}
 <form method="post" action="/erwartete-belege/{{ entry_id }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">

@@ -5,13 +5,14 @@
 <p>Welches Dokument für welches Jahr noch fehlt. Ein Dokument mit passender Dokumentart und Bezugszeitraum im Jahr erfüllt den Erwarteten Beleg.</p>
 
 {% if rows %}
-{% for entry, years in rows %}
+{% for entry, years, suggestion in rows %}
 <section>
   <h2>{{ titles.get(entry.document_kind, entry.document_kind) }}{% if entry.description %} ({{ entry.description }}){% endif %}</h2>
   <p>
     Erwartet ab {{ entry.start_year }}{% if entry.end_year %} bis {{ entry.end_year }}{% else %}, ohne Ende{% endif %}.
     <a href="/erwartete-belege/{{ entry.id }}">Ändern</a>
   </p>
+  {% include "expected_documents/_suggestion.html" %}
   <table>
     <tr><th>Jahr</th><th>Stand</th></tr>
     {% for status in years %}
