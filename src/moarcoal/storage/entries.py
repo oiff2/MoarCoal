@@ -3,7 +3,7 @@
 import hashlib
 import json
 import secrets
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Self, cast
 
@@ -66,6 +66,27 @@ class EntryKind:
 
 def entry_kind[E: Entry](model: type[E], schema: str, path: Callable[[E], str]) -> EntryKind:
     return EntryKind(model, schema, cast(Callable[[Entry], str], path))
+
+
+def referenced_addresses(entry: Entry) -> set[EntryAddress]:
+    """Alle Adressen, auf die Felder des Eintrags verweisen (auch in Listen und Teilmodellen)."""
+    found: set[EntryAddress] = set()
+
+    def walk(value: object) -> None:
+        if isinstance(value, EntryAddress):
+            found.add(value)
+        elif isinstance(value, BaseModel):
+            for name in type(value).model_fields:
+                walk(getattr(value, name))
+        elif isinstance(value, list | tuple | set | frozenset):
+            for item in cast(Iterable[object], value):
+                walk(item)
+        elif isinstance(value, dict):
+            for item in cast(dict[object, object], value).values():
+                walk(item)
+
+    walk(entry)
+    return found
 
 
 def entry_checksum(entry: Entry) -> str:

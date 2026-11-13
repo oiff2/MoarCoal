@@ -5,7 +5,7 @@ from typing import Self
 
 from pydantic import Field, model_validator
 
-from moarcoal.storage.entries import Entry, EntryKind, entry_kind
+from moarcoal.storage.entries import Entry, EntryAddress, EntryKind, entry_kind
 
 DOCUMENT_SCHEMA = "datenebene/1"
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
@@ -16,16 +16,23 @@ class Document(Entry):
 
     Die Datei bleibt am Ablageort und wird nur gelesen (ADR 0003). Hat die Dokumentart einen
     Bezugszeitraum, stehen Beginn und Ende hier. `taken_in_at` ist der Zeitpunkt des Aufnehmens
-    (UTC; bei älteren Dokumenten leer).
+    (UTC; bei älteren Dokumenten leer). `issuer` verweist freiwillig auf einen Aussteller.
     """
 
     site: str = Field(min_length=1)
     path: str = Field(min_length=1)
     sha256: str = Field(pattern=SHA256_PATTERN)
     document_kind: str | None = None
+    issuer: EntryAddress | None = None
     period_start: datetime.date | None = None
     period_end: datetime.date | None = None
     taken_in_at: datetime.datetime | None = None
+
+    @model_validator(mode="after")
+    def _issuer_is_an_issuer(self) -> Self:
+        if self.issuer is not None and self.issuer.kind != "Issuer":
+            raise ValueError("Aussteller verweist nicht auf einen Aussteller")
+        return self
 
     @model_validator(mode="after")
     def _period_is_complete(self) -> Self:

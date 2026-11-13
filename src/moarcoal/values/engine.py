@@ -4,6 +4,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 
 from moarcoal.expected_documents import expected_document_findings
 from moarcoal.incoming import incoming_files
+from moarcoal.issuers import issuer_findings
 from moarcoal.proposals import aborted_extraction_findings, proposal_findings
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import Dismissal, SiteFile, Snapshot, State
@@ -190,6 +191,7 @@ class Values:
         found = list(self.findings)
         titles = {k.key: k.title for m in self._modules.values() for k in m.document_kinds}
         found.extend(expected_document_findings(self._state, user, year, titles))
+        found.extend(issuer_findings(self._state, user))
         found.extend(proposal_findings(self._state, user, year, titles))
         found.extend(aborted_extraction_findings(self._state, user))
         found.extend(snapshot_findings(self._state.of_kind(Snapshot), user, year))

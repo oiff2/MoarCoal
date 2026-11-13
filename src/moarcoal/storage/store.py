@@ -22,16 +22,18 @@ from pydantic import ValidationError
 
 from moarcoal.storage.aborted_extractions import ABORTED_EXTRACTION_KIND
 from moarcoal.storage.dismissals import DISMISSAL_KIND
-from moarcoal.storage.documents import DATA_LAYER_KINDS
+from moarcoal.storage.documents import DATA_LAYER_KINDS, Document
 from moarcoal.storage.entries import (
     Entry,
     EntryAddress,
     EntryKind,
     entry_checksum,
     kind_collisions,
+    referenced_addresses,
 )
 from moarcoal.storage.expected_documents import EXPECTED_DOCUMENT_KIND
 from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND
+from moarcoal.storage.issuers import ISSUER_KIND
 from moarcoal.storage.proposals import PROPOSAL_KIND
 from moarcoal.storage.snapshots import SNAPSHOT_KIND
 
@@ -144,6 +146,26 @@ def _render(schema: str, entries: Sequence[Entry]) -> bytes:
 
 def _sort_key(entry: Entry) -> str:
     return str(entry.address)
+
+
+def _reference_problems(
+    changes: Sequence[Change], new_entries: Mapping[EntryAddress, Entry]
+) -> dict[EntryAddress, str]:
+    """Verweise nach dem Vorgang: Gelöschtes wird nicht mehr verwendet, der Aussteller am
+    geschriebenen Dokument existiert."""
+    problems: dict[EntryAddress, str] = {}
+    deleted: set[EntryAddress] = set()
+    deleted.update(c.address for c in changes if isinstance(c, Delete))
+    if deleted:
+        for entry in new_entries.values():
+            for address in referenced_addresses(entry) & deleted:
+                problems[address] = "Wird noch verwendet."
+    for change in changes:
+        if isinstance(change, Put) and isinstance(change.entry, Document):
+            issuer = change.entry.issuer
+            if issuer is not None and issuer not in new_entries:
+                problems[change.address] = "Aussteller existiert nicht."
+    return problems
 
 
 def _safe_path(relative: str) -> bool:
@@ -389,6 +411,8 @@ class Store:
                     del new_entries[address]
             if current is not None:
                 touch(self._path_of(current), address)
+        if not reasons:
+            reasons.update(_reference_problems(changes, new_entries))
         if reasons:
             return Rejected(reasons)
 
@@ -483,14 +507,15 @@ def open_store(
 ) -> Store:
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
 
-    Die Arten der Datenebene (Dokument, Ausblendungen, Erwarteter Beleg, Schnappschuss) kommen
-    immer dazu.
+    Die Arten der Datenebene (Dokument, Aussteller, Ausblendungen, Erwarteter Beleg,
+    Schnappschuss) kommen immer dazu.
     `sites` nennt die Ablageorte (Name -> Ordner); ohne Angabe gilt `common/sites.json`.
     """
     all_kinds = (
         *DATA_LAYER_KINDS,
         DISMISSAL_KIND,
         HIDDEN_FILE_KIND,
+        ISSUER_KIND,
         EXPECTED_DOCUMENT_KIND,
         PROPOSAL_KIND,
         ABORTED_EXTRACTION_KIND,
