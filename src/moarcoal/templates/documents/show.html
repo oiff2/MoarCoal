@@ -4,7 +4,7 @@
 {% block main %}
 <h1>Dokument</h1>
 <p>{{ kind.title if kind else document.document_kind }}{% if document.period_start %}, {{ document.period_start.year }}{% endif %}: {{ document.site }}, {{ document.path }}</p>
-{% if notice %}<p class="fehler">{{ notice }}</p>{% endif %}
+{% if notice %}<p class="fehler">{{ notice }}{% if existing %} (<a href="/dokumente/{{ existing.id }}">vorhandenes Dokument</a>){% endif %}</p>{% endif %}
 
 <h2>Aussteller</h2>
 <p>{% if issuer %}{{ issuer.name }}{% else %}Kein Aussteller angegeben.{% endif %}</p>

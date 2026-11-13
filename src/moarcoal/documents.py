@@ -26,10 +26,12 @@ from moarcoal.storage import (
     entry_checksum,
 )
 from moarcoal.storage.entries import referenced_addresses
+from moarcoal.values.findings import Finding, Severity
 
 if TYPE_CHECKING:
     from moarcoal.values.engine import Values
 
+DUPLICATE_DOCUMENT = "document_duplicate"
 MIN_YEAR = 2000
 MAX_YEAR = 2100
 
@@ -52,6 +54,10 @@ class DocumentKind:
     eingelesenen Einträgen und `Values` auf einem vorläufigen Stand, der beide schon enthält,
     liefert sie Änderungen, die im selben Vorgang geschrieben werden. Sie kann das Aufnehmen nicht
     ablehnen; beim Neu-Einlesen läuft sie nicht erneut.
+
+    `unique_per_period` (nur mit Bezugszeitraum): je Nutzer und Jahr höchstens ein Dokument dieser
+    Art; Aufnehmen und Ändern von Art oder Jahr weisen ein zweites ab, vorhandene Dubletten
+    bleiben und ergeben einen Hinweis.
     """
 
     key: str
@@ -61,6 +67,7 @@ class DocumentKind:
     extraction_template: ExtractionTemplate | None = None
     name_patterns: tuple[str, ...] = ()
     after_take_in: Callable[[Document, Sequence[Entry], "Values"], Sequence[Change]] | None = None
+    unique_per_period: bool = False
 
 
 @dataclass(frozen=True)
@@ -71,7 +78,10 @@ class TakenIn:
 
 @dataclass(frozen=True)
 class IntakeRejected:
+    """`existing`: bei „Existiert bereits“ das vorhandene Dokument, auf das die Seite verweist."""
+
     reasons: tuple[str, ...]
+    existing: Document | None = None
 
 
 def _year_problem(year: int) -> str | None:
@@ -87,6 +97,48 @@ def _period(
     if kind is None or not kind.has_period:
         return None, None
     return datetime.date(year, 1, 1), datetime.date(year, 12, 31)
+
+
+def _existing(state: State, kind: DocumentKind | None, document: Document) -> Document | None:
+    """Das andere Dokument desselben Nutzers mit derselben Art und demselben Jahr, wenn die Art
+    je Bezugszeitraum nur eines erlaubt."""
+    if kind is None or not kind.unique_per_period or document.period_start is None:
+        return None
+    return next(
+        (
+            d
+            for d in state.of_kind(Document)
+            if d.address != document.address
+            and (d.owner, d.document_kind, d.period_start)
+            == (document.owner, kind.key, document.period_start)
+        ),
+        None,
+    )
+
+
+def _exists_already(kind: DocumentKind, existing: Document) -> IntakeRejected:
+    year = existing.period_start.year if existing.period_start else ""
+    return IntakeRejected((f"Existiert bereits: {kind.title} {year}",), existing)
+
+
+def duplicate_findings(state: State, user: str, kinds: Mapping[str, DocumentKind]) -> list[Finding]:
+    """Hinweis je Dokument des Nutzers, das eine Dokumentart mit `unique_per_period` mit einem
+    anderen im selben Jahr teilt (vorhandene Dubletten bleiben bestehen)."""
+    found: list[Finding] = []
+    for d in sorted(state.of_kind(Document), key=lambda d: str(d.address)):
+        kind = kinds.get(d.document_kind or "")
+        if d.owner == user and kind is not None and _existing(state, kind, d) is not None:
+            year = d.period_start.year if d.period_start else ""
+            found.append(
+                Finding(
+                    DUPLICATE_DOCUMENT,
+                    Severity.NOTE,
+                    d.address,
+                    f"Existiert mehrfach: {kind.title} {year}: {d.path}",
+                    href=f"/dokumente/{d.id}",
+                )
+            )
+    return found
 
 
 def take_in(
@@ -134,6 +186,8 @@ def take_in(
         )
     except ValidationError:
         return IntakeRejected(("Ablageort und Pfad müssen angegeben werden.",))
+    if kind is not None and (existing := _existing(store.state(), kind, document)) is not None:
+        return _exists_already(kind, existing)
     try:
         entries = tuple(kind.read_in(document, content)) if kind else ()
     except ReadInError as error:
@@ -196,6 +250,8 @@ def change_document(
         updated = updated.model_copy(
             update={"document_kind": kind_key or None, "period_start": start, "period_end": end}
         )
+        if kind is not None and (existing := _existing(state, kind, updated)) is not None:
+            return _exists_already(kind, existing)
         if kind is not None and kind_key != document.document_kind:
             try:
                 content = store.read_site_file(document.site, document.path)

@@ -98,8 +98,10 @@ def values_on(state: State) -> Values:
     return Values(MODULES, state)
 
 
-def take(store: Store, path: str = "protokoll.html", year: int = 2025) -> TakenIn:
-    kinds = {k.key: k for r in MODULES for k in r.document_kinds}
+def take(
+    store: Store, path: str = "protokoll.html", year: int = 2025, *, unique: bool = True
+) -> TakenIn:
+    kinds = {k.key: replace(k, unique_per_period=unique) for r in MODULES for k in r.document_kinds}
     result = take_in(
         store, kinds, USER, "Belege", path, "transfer_protocol", year, values_on=values_on
     )
@@ -286,7 +288,8 @@ def test_second_protocol_adds_a_second_snapshot_and_the_newest_is_compared(store
     put(store, equipment(1000))
     assert len(deviations(store)) == 1  # gegen die Abgabe von vorhin
 
-    take(store, "berichtigt.html")  # Berichtigung mit dem neuen Stand
+    # Berichtigung mit dem neuen Stand; die Sperre je Jahr (#87) ist hier ausgeschaltet
+    take(store, "berichtigt.html", unique=False)
 
     first, second = snapshots(store)
     assert first.taken_at <= second.taken_at

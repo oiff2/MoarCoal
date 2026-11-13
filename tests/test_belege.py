@@ -455,3 +455,20 @@ def test_tree_scrolls_inside_not_the_page() -> None:
     css = Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
     assert "main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }" in css
     assert ".baum { flex: 1; min-height: 0; overflow: auto; }" in css
+
+
+def test_second_protocol_for_the_same_year_is_rejected_with_a_link_to_the_existing_one(
+    root: Path, site: Path
+) -> None:
+    other = FIXTURE.read_text(encoding="utf-8") + "\n<!-- zweite Datei -->\n"
+    (site / "2025" / "zweites.html").write_text(other, encoding="utf-8")
+    other_sha = hashlib.sha256(other.encode()).hexdigest()
+    client = make_client(root, site)
+    assert take(client).status_code == 303
+
+    response = take(client, other_sha)
+
+    assert response.status_code == 422
+    assert "Existiert bereits: Übertragungsprotokoll 2025" in response.text
+    existing = next(iter(open_store(root, [*REGISTRATION.kinds]).state().of_kind(Document)))
+    assert f'href="/dokumente/{existing.id}"' in response.text

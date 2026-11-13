@@ -16,6 +16,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
+from moarcoal.documents import DUPLICATE_DOCUMENT
 from moarcoal.issuers import DOCUMENT_WITHOUT_ISSUER
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registration
@@ -95,8 +96,9 @@ def findings(
 
 
 def without_issuer_notes(found: list[Finding]) -> list[Finding]:
-    """Die Testdokumente haben keinen Aussteller; dieser Hinweis gehört nicht zum Abgleich."""
-    return [f for f in found if f.kind != DOCUMENT_WITHOUT_ISSUER]
+    """Die Testdokumente haben keinen Aussteller und teils dieselbe Art im selben Jahr; diese
+    Hinweise gehören nicht zum Abgleich."""
+    return [f for f in found if f.kind not in (DOCUMENT_WITHOUT_ISSUER, DUPLICATE_DOCUMENT)]
 
 
 def kinds(found: list[Finding]) -> list[str]:

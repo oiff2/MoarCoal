@@ -51,6 +51,7 @@ def _page(
     notice: str = "",
     issuer_text: str = "",
     year: str = "",
+    existing: Document | None = None,
 ) -> HTMLResponse:
     kind = _kind(request, document)
     template = None if kind is None else kind.extraction_template
@@ -75,6 +76,7 @@ def _page(
         template=template,
         proposal=proposal,
         notice=notice,
+        existing=existing,
     )
 
 
@@ -108,7 +110,7 @@ def change(
     kinds = document_kinds(request)
     chosen = resolve_issuer(store.state(), fields)
 
-    def rejected(*reasons: str) -> Response:
+    def rejected(*reasons: str, existing: Document | None = None) -> Response:
         return _page(
             request,
             document,
@@ -116,6 +118,7 @@ def change(
             " ".join(reasons),
             fields.get("issuer_text", ""),
             fields.get("year", ""),
+            existing,
         )
 
     if isinstance(chosen, str):
@@ -129,7 +132,7 @@ def change(
             return rejected("Steuerjahr: ganze Zahl, z. B. 2025")
     result = change_document(store, kinds, document, chosen.address, chosen.changes, kind_key, year)
     if isinstance(result, IntakeRejected):
-        return rejected(*result.reasons)
+        return rejected(*result.reasons, existing=result.existing)
     return RedirectResponse(_back(document.id, fields), status_code=303)
 
 

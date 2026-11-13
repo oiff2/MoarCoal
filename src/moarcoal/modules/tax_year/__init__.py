@@ -31,6 +31,7 @@ def transfer_protocol(forms: Forms = FORMS) -> DocumentKind:
         has_period=True,
         read_in=read_in_protocol,
         after_take_in=partial(snapshot_on_filing, forms=forms),
+        unique_per_period=True,
     )
 
 

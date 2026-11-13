@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 
+from moarcoal.documents import duplicate_findings
 from moarcoal.expected_documents import expected_document_findings
 from moarcoal.incoming import incoming_files
 from moarcoal.issuers import issuer_findings
@@ -192,6 +193,8 @@ class Values:
         titles = {k.key: k.title for m in self._modules.values() for k in m.document_kinds}
         found.extend(expected_document_findings(self._state, user, year, titles))
         found.extend(issuer_findings(self._state, user))
+        kinds = {k.key: k for m in self._modules.values() for k in m.document_kinds}
+        found.extend(duplicate_findings(self._state, user, kinds))
         found.extend(proposal_findings(self._state, user, year, titles))
         found.extend(aborted_extraction_findings(self._state, user))
         found.extend(snapshot_findings(self._state.of_kind(Snapshot), user, year))

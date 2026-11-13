@@ -36,7 +36,7 @@
   {% if doc %}
   <p>Aufgenommen: <a href="/dokumente/{{ doc.id }}">Dokument</a></p>
   {% else %}
-  {% for message in errors.get(file.sha256, []) %}<p class="fehler">{{ message }}</p>{% endfor %}
+  {% for message in errors.get(file.sha256, []) %}<p class="fehler">{{ message }}{% if existing %} (<a href="/dokumente/{{ existing.id }}">vorhandenes Dokument</a>){% endif %}</p>{% endfor %}
   {% for id, name in would_fulfil %}<p class="hinweis">Würde erfüllen: <a href="/belege/erwartet#e-{{ id }}">{{ name }}</a> (Art und Jahr aus dem Namen)</p>{% endfor %}
   <form method="post" action="/belege/aufnehmen">
     <input type="hidden" name="sha256" value="{{ file.sha256 }}">

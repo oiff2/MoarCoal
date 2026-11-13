@@ -61,6 +61,7 @@ def _page(
     values: Fields | None = None,
     stand: str = "offen",
     selected: str = "",
+    existing: Document | None = None,
 ) -> HTMLResponse:
     """`selected` ist die SHA-256 der gewählten Datei; `errors` und `values` gehören zu ihr
     (Formular rechts) und bleiben dort stehen."""
@@ -114,6 +115,7 @@ def _page(
         notice=notice,
         errors=errors or {},
         values=values or {},
+        existing=existing,
     )
 
 
@@ -154,11 +156,12 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
 
     following = _after(request, sha256)
 
-    def rejected(*reasons: str) -> Response:
+    def rejected(*reasons: str, existing: Document | None = None) -> Response:
         return _page(
             request,
             422,
             errors={sha256: list(reasons)},
+            existing=existing,
             values={"sha256": sha256, **fields},
             selected=sha256,
         )
@@ -190,7 +193,7 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
         issuer_changes=chosen.changes,
     )
     if isinstance(result, IntakeRejected):
-        return rejected(*result.reasons)
+        return rejected(*result.reasons, existing=result.existing)
     modules = request.app.state.modules
     target = next((url for e in result.entries if (url := entry_url(modules, e.address))), None)
     if kind is not None and kind.extraction_template is not None:
