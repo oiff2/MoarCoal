@@ -6,7 +6,8 @@ Modes:
   claude-hook    read a Claude Code PreToolUse event from stdin and block
                  `gh` commands whose text (or --body-file) contains findings
 
-Checks: local denylist (outside the repo), IBAN with mod-97 checksum,
+Checks: local denylist (outside the repo, plus the one the app derives into its data
+directory), IBAN with mod-97 checksum,
 Steuer-ID with ISO 7064 check digit, Steuernummer in slash format, e-mail
 addresses outside example domains. Values in the repo allowlist pass.
 """
@@ -30,6 +31,14 @@ DENYLIST_PATH = Path(
         Path.home() / ".config" / "moarcoal" / "sperrliste.txt",
     )
 )
+
+
+def derived_denylist_path() -> Path:
+    """`common/derived-denylist.txt` im Datenverzeichnis (`MOARCOAL_DATA_DIR` oder `~/MoarCoal`).
+    Die Datei schreibt die App aus den sensiblen Feldern; fehlt sie, zählt nur die handgepflegte."""
+    root = os.environ.get("MOARCOAL_DATA_DIR")
+    return (Path(root) if root else Path.home() / "MoarCoal") / "common" / "derived-denylist.txt"
+
 
 IBAN_RE = re.compile(r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){3,7}(?: ?[A-Z0-9]{1,4})?\b")
 STEUER_ID_RE = re.compile(r"(?<!\d)\d{2} ?\d{3} ?\d{3} ?\d{3}(?!\d)")
@@ -163,7 +172,7 @@ def report(findings: list[Finding]) -> None:
 
 def main(argv: list[str]) -> int:
     allow = load_values(ALLOWLIST_PATH)
-    deny = load_values(DENYLIST_PATH)
+    deny = load_values(DENYLIST_PATH) + load_values(derived_denylist_path())
     mode = argv[1] if len(argv) > 1 else ""
     findings: list[Finding] = []
 

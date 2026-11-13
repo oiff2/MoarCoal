@@ -9,6 +9,7 @@ ein Absturz mitten im Umbenennen ist damit nicht abgedeckt.
 
 import hashlib
 import json
+import logging
 import os
 import re
 import threading
@@ -33,7 +34,7 @@ from moarcoal.storage.entries import (
 )
 from moarcoal.storage.expected_documents import EXPECTED_DOCUMENT_KIND
 from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND
-from moarcoal.storage.issuers import ISSUER_KIND, Issuer, name_clashes, name_key
+from moarcoal.storage.issuers import ISSUER_KIND, Issuer, denylist_lines, name_clashes, name_key
 from moarcoal.storage.proposals import PROPOSAL_KIND
 from moarcoal.storage.snapshots import SNAPSHOT_KIND
 
@@ -44,6 +45,7 @@ BACKUP_KEEP = 20
 TEMP_SUFFIX = ".tmp"
 SITES_FILE = "common/sites.json"  # keine Einträge, sondern die benannten Ablageorte
 SITES_SCHEMA = "ablageorte/1"
+DERIVED_DENYLIST_FILE = "common/derived-denylist.txt"  # abgeleitet, nie von Hand
 MAX_SITE_FILE_BYTES = 50_000_000
 
 
@@ -298,6 +300,7 @@ class Store:
         self._site_hashes: dict[tuple[str, int, int], str] = {}  # (Datei, Größe, mtime) -> SHA-256
         self._state = State(MappingProxyType({}))
         self._load()
+        self._write_denylist()
 
     @property
     def root(self) -> Path:
@@ -469,6 +472,7 @@ class Store:
 
         self._write(plan)
         self._state = State(MappingProxyType(new_entries))
+        self._write_denylist()
         return Applied(changes)
 
     def _merge(
@@ -576,6 +580,18 @@ class Store:
                 self._file_checksums.pop(path, None)
             else:
                 self._file_checksums[path] = _sha256(data)
+
+    def _write_denylist(self) -> None:
+        """Schreibt die Sperrliste aus den sensiblen Feldern neu (Spec 8). Scheitert das, gilt
+        der Vorgang trotzdem; die Warnung geht ins Protokoll."""
+        lines = denylist_lines(self._state.of_kind(Issuer))
+        data = "".join(f"{line}\n" for line in lines).encode()
+        target = self._root / DERIVED_DENYLIST_FILE
+        try:
+            if (_read_if_exists(target) or b"") != data:  # leer und fehlend ist dasselbe
+                _write_file(target, data)
+        except OSError:
+            logging.getLogger(__name__).warning("Abgeleitete Sperrliste nicht geschrieben")
 
     def _backup(self, path: str, data: bytes) -> None:
         directory = self._root / BACKUP_DIR / path
