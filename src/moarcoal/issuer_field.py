@@ -1,9 +1,10 @@
 """Das Aussteller-Feld: Suche über Name und Aliasse, Auswahl, Neu anlegen, Alias hinzufügen.
 
 Wiederverwendbar (Vorlage `_issuer_field.html`): beim Aufnehmen und am Dokument. Die Auswahl
-kommt als `issuer_choice` an (leer = kein Aussteller, `id:<Kennung>`, `new`, `alias:<Kennung>`),
-der Text als `issuer_text`, das Häkchen als `issuer_private`. Anlegen und Alias sind Änderungen,
-die der Aufrufer im selben Vorgang wie das Dokument schreibt.
+kommt als `issuer_choice` an (leer: ohne Text kein Aussteller, mit Text neu anlegen;
+`id:<Kennung>`, `alias:<Kennung>`), der Text als `issuer_text`, das Häkchen als
+`issuer_private`. Anlegen und Alias sind Änderungen, die der Aufrufer
+im selben Vorgang wie das Dokument schreibt.
 """
 
 import datetime
@@ -92,11 +93,13 @@ def resolve_issuer(state: State, fields: Mapping[str, str]) -> IssuerChoice | st
     """Aus den Formularfeldern den Aussteller; bei einem Fehler die Meldung für den Nutzer."""
     choice = fields.get("issuer_choice", "")
     text = fields.get("issuer_text", "").strip()
-    if choice == "":
-        return IssuerChoice() if not text else "Bitte einen Aussteller aus der Suche wählen."
-    if choice == "new":
+    if choice in ("", "new"):  # ohne Wahl gilt: Text heißt neu anlegen, kein Text kein Aussteller
         if not text:
-            return "Bitte einen Namen für den neuen Aussteller eingeben."
+            return (
+                IssuerChoice()
+                if choice == ""
+                else "Bitte einen Namen für den neuen Aussteller eingeben."
+            )
         holder = holder_of_name(state, text)
         if holder is not None:
             return _taken(holder)
@@ -125,16 +128,17 @@ def search(
     issuer_choice: str = "",
     kind: str = "",
     default: str = "",
-    issuer_private: str = "",
+    clear: str = "",
 ) -> HTMLResponse:
     """Ergebnisse der Suche als Auswahlliste (Vorlage `_issuer_choices.html`); schreibt nie.
 
-    Ohne Text und ohne Auswahl gilt `default` (Kennung), sonst der zuletzt für `kind` verwendete.
+    Ohne Text und ohne Auswahl gilt `default` (Kennung), sonst der zuletzt für `kind` verwendete;
+    das entfällt mit `clear` (der Nutzer hat „ändern“ gedrückt).
     """
     state = store_of(request).state()
     text = issuer_text.strip()
     selected = issuer_choice
-    if not text and not selected:
+    if not text and not selected and not clear:
         preset = _issuer_at(state, default) or last_issuer(state, user_of(request), kind or None)
         selected = f"id:{preset.id}" if preset is not None else ""
     return render(
@@ -144,6 +148,5 @@ def search(
         hits=search_issuers(state, text)[:MAX_HITS],
         exact=holder_of_name(state, text) is not None,
         selected=selected,
-        private=bool(issuer_private),
-        preset=_issuer_at(state, selected.partition(":")[2]),
+        chosen=_issuer_at(state, selected.partition(":")[2]),
     )

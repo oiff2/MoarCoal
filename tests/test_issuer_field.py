@@ -69,36 +69,61 @@ def test_search_finds_by_name_and_alias_ignoring_case(client: httpx.Client) -> N
     assert search_issuers(state, "Gibtsnicht") == []
 
 
-def test_search_endpoint_offers_hit_new_and_alias_and_writes_nothing(client: httpx.Client) -> None:
-    add_issuer(client, "Beispielbank AG")
+def test_search_endpoint_offers_hit_and_alias_and_writes_nothing(client: httpx.Client) -> None:
+    bank = add_issuer(client, "Beispielbank AG")
     before = state_of(client)
     html = client.get("/aussteller-suche", params={"issuer_text": "beispielbank ag filiale"}).text
+    assert f'"issuer_choice": "id:{bank.id}"' in html
     assert "Beispielbank AG" in html
-    assert "Neu anlegen: „beispielbank ag filiale“" in html
-    assert "Privatperson" in html
-    assert "Als weiteren Namen zu Beispielbank AG hinzufügen" in html
+    assert "Neuer Alias: „beispielbank ag filiale“ zu Beispielbank AG" in html
+    assert 'name="issuer_choice"' not in html  # nichts gewählt
+    assert "Neu anlegen" not in html and 'type="radio"' not in html
     assert state_of(client) == before
 
 
-def test_search_endpoint_without_hit_offers_only_new(client: httpx.Client) -> None:
+def test_search_endpoint_without_hit_offers_nothing(client: httpx.Client) -> None:
     html = client.get("/aussteller-suche", params={"issuer_text": "Neue Firma"}).text
-    assert "Neu anlegen: „Neue Firma“" in html
-    assert "Als weiteren Namen" not in html
+    assert "<button" not in html
 
 
-def test_search_endpoint_exact_name_offers_no_new(client: httpx.Client) -> None:
+def test_search_endpoint_shows_the_choice_with_change_button(client: httpx.Client) -> None:
+    bank = add_issuer(client)
+    html = client.get(
+        "/aussteller-suche",
+        params={"issuer_text": "Beispielbank", "issuer_choice": f"id:{bank.id}"},
+    ).text
+    assert f'name="issuer_choice" value="id:{bank.id}"' in html
+    assert "Beispielbank AG" in html and "ändern" in html and "treffer" not in html
+    alias = client.get(
+        "/aussteller-suche",
+        params={"issuer_text": "Beispielbank Filiale", "issuer_choice": f"alias:{bank.id}"},
+    ).text
+    assert "Neuer Alias: „Beispielbank Filiale“ zu Beispielbank AG" in alias
+    assert f'value="alias:{bank.id}"' in alias
+
+
+def test_field_has_private_checkbox_in_the_line_of_the_input(client: httpx.Client) -> None:
+    document = taken_in(client)
+    html = client.get(f"/dokumente/{document.id}").text
+    line = html.split('class="zeile"')[1].split("</div>")[0]
+    assert 'name="issuer_text"' in line and 'name="issuer_private"' in line
+
+
+def test_search_endpoint_exact_name_offers_no_alias(client: httpx.Client) -> None:
     add_issuer(client, "Beispielbank AG")
     html = client.get("/aussteller-suche", params={"issuer_text": "beispielbank ag"}).text
-    assert "Neu anlegen" not in html
+    assert "Neuer Alias" not in html
 
 
 def test_search_prefills_last_issuer_for_the_kind(client: httpx.Client) -> None:
     bank = add_issuer(client)
     assert take(client, issuer_choice=f"id:{bank.id}").status_code == 303
     html = client.get("/aussteller-suche", params={"kind": "transfer_protocol"}).text
-    assert f'value="id:{bank.id}" checked' in html
+    assert f'name="issuer_choice" value="id:{bank.id}"' in html
     other = client.get("/aussteller-suche", params={"kind": "andere_art"}).text
-    assert "checked" in other and "id:" not in other
+    assert "issuer_choice" not in other
+    cleared = client.get("/aussteller-suche", params={"kind": "transfer_protocol", "clear": "1"})
+    assert 'name="issuer_choice"' not in cleared.text
     assert last_issuer(state_of(client), "anna", "transfer_protocol") == bank
     assert last_issuer(state_of(client), "anna", "andere_art") is None
 
@@ -156,11 +181,20 @@ def test_take_in_adds_alias_to_existing_issuer(client: httpx.Client) -> None:
     assert only_document(client).issuer == bank.address
 
 
-def test_unclear_issuer_input_is_rejected_and_keeps_text(client: httpx.Client) -> None:
-    response = take(client, issuer_text="Irgendwer")  # Text, aber keine Auswahl
+def test_text_without_choice_creates_new_issuer(client: httpx.Client) -> None:
+    assert take(client, issuer_text=" Irgendwer ", issuer_private="1").status_code == 303
+    [created] = issuers(client)
+    assert (created.name, created.private_person) == ("Irgendwer", True)
+    assert only_document(client).issuer == created.address
+
+
+def test_text_without_choice_naming_existing_issuer_is_duplicate(client: httpx.Client) -> None:
+    add_issuer(client, aliases=("Muster-Sparkasse",))
+    response = take(client, issuer_text="muster-SPARKASSE")
     assert response.status_code == 422
-    assert "Bitte einen Aussteller aus der Suche wählen." in response.text
-    assert 'value="Irgendwer"' in response.text
+    assert "Duplikat zu: Beispielbank AG" in response.text
+    assert 'value="muster-SPARKASSE"' in response.text
+    assert len(issuers(client)) == 1
     assert state_of(client).of_kind(Document) == []
 
 
@@ -184,6 +218,16 @@ def test_take_in_post_needs_origin(client: httpx.Client) -> None:
 
 def test_resolve_issuer_without_input_is_no_issuer() -> None:
     assert resolve_issuer(State({}), {}) == IssuerChoice()
+    assert resolve_issuer(State({}), {"issuer_text": "  "}) == IssuerChoice()
+
+
+def test_resolve_issuer_empty_choice_with_text_creates_new() -> None:
+    result = resolve_issuer(State({}), {"issuer_text": " Beispiel GmbH ", "issuer_private": "1"})
+    assert isinstance(result, IssuerChoice)
+    [put] = result.changes
+    assert isinstance(put, Put) and isinstance(put.entry, Issuer)
+    assert (put.entry.name, put.entry.private_person) == ("Beispiel GmbH", True)
+    assert result.address == put.entry.address
 
 
 # --- Ablage zeigt den Aussteller ---------------------------------------------------------------
@@ -248,8 +292,9 @@ def test_change_issuer_adds_alias(client: httpx.Client) -> None:
 
 def test_change_issuer_rejection_keeps_state(client: httpx.Client) -> None:
     document = taken_in(client)
+    add_issuer(client)
     before = state_of(client)
-    response = change(client, document, issuer_text="Irgendwer")
+    response = change(client, document, issuer_text="beispielbank AG")
     assert response.status_code == 422
     assert state_of(client) == before
 

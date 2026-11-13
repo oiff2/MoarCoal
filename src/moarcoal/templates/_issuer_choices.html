@@ -1,15 +1,20 @@
-{# Auswahlliste des Aussteller-Felds, geliefert von /aussteller-suche; `selected` ist die Vorwahl. #}
-<label><input type="radio" name="issuer_choice" value=""{% if not selected %} checked{% endif %}> kein Aussteller</label>
-{% if preset and preset not in hits %}
-<label><input type="radio" name="issuer_choice" value="id:{{ preset.id }}" checked> {{ preset.name }}</label>
-{% endif %}
+{# Trefferliste des Aussteller-Felds, geliefert von /aussteller-suche. Ist ein Aussteller gewählt
+   (`chosen`, mit `selected` = `id:…` oder `alias:…`), zeigt sie nur die Wahl und „ändern“. #}
+{% if chosen %}
+<div class="gewaehlt">
+  <input type="hidden" name="issuer_choice" value="{{ selected }}">
+  <span>{% if selected.startswith("alias:") %}Neuer Alias: „{{ text }}“ zu {% endif %}{{ chosen.name }}</span>
+  <button type="button" class="aendern" hx-get="/aussteller-suche" hx-target="closest .auswahl" hx-vals='{"issuer_choice": "", "clear": "1"}'>ändern</button>
+</div>
+{% else %}
+<ul class="treffer">
 {% for hit in hits %}
-<label><input type="radio" name="issuer_choice" value="id:{{ hit.id }}"{% if selected == "id:" ~ hit.id %} checked{% endif %}> {{ hit.name }}{% if hit.aliases %} <small>({{ hit.aliases | join(", ") }})</small>{% endif %}</label>
+  <li><button type="button" hx-get="/aussteller-suche" hx-target="closest .auswahl" hx-vals='{"issuer_choice": "id:{{ hit.id }}"}'>{{ hit.name }}{% if hit.aliases %} <small>({{ hit.aliases | join(", ") }})</small>{% endif %}</button></li>
 {% endfor %}
 {% if text and not exact %}
-<label><input type="radio" name="issuer_choice" value="new"{% if selected == "new" %} checked{% endif %}> Neu anlegen: „{{ text }}“</label>
-<label class="einrueckung"><input type="checkbox" name="issuer_private" value="1"{% if private %} checked{% endif %}> Privatperson</label>
 {% for hit in hits %}
-<label><input type="radio" name="issuer_choice" value="alias:{{ hit.id }}"{% if selected == "alias:" ~ hit.id %} checked{% endif %}> Als weiteren Namen zu {{ hit.name }} hinzufügen</label>
+  <li><button type="button" hx-get="/aussteller-suche" hx-target="closest .auswahl" hx-vals='{"issuer_choice": "alias:{{ hit.id }}"}'>Neuer Alias: „{{ text }}“ zu {{ hit.name }}</button></li>
 {% endfor %}
+{% endif %}
+</ul>
 {% endif %}

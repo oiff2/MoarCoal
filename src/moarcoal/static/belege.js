@@ -28,4 +28,5 @@ for (const mark of document.querySelectorAll("[data-aus-name]")) {
   const clear = () => mark.remove();
   owner?.addEventListener("input", clear, { once: true });
   owner?.addEventListener("change", clear, { once: true });
+  owner?.addEventListener("click", (e) => e.target instanceof Element && e.target.closest("button") && clear());
 }

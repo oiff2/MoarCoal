@@ -45,4 +45,12 @@ form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
 /* Aussteller-Feld */
 .aussteller-feld { border: 0; padding: 0; margin: 0; }
 .aussteller-feld legend { padding: 0; }
-.aussteller-feld .einrueckung { margin-left: 1.5rem; }
+.aussteller-feld .zeile { display: flex; gap: 1rem; align-items: center; }
+.aussteller-feld .suche { flex: 1; }
+.aussteller-feld .privat { display: none; white-space: nowrap; }
+.aussteller-feld:has(.suche:not(:placeholder-shown)):not(:has(.gewaehlt)) .privat { display: inline; }
+.aussteller-feld:has(.gewaehlt) .suche { display: none; }
+.aussteller-feld .treffer { list-style: none; margin: 0.25rem 0 0; padding: 0; }
+.aussteller-feld .treffer button, .aussteller-feld .aendern { font: inherit; }
+.aussteller-feld .treffer button { display: block; width: 100%; text-align: left; }
+.aussteller-feld .gewaehlt { display: flex; gap: 1rem; align-items: center; }
