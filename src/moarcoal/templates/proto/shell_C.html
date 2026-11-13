@@ -1,8 +1,12 @@
-{% from "proto/_bits.html" import year, user_menu, sidebar, summary_bar %}
+{% from "proto/_bits.html" import year, user_menu, summary_text, subnav %}
 <div class="shell">
-  {{ sidebar(nav, "steps") }}
+  <aside class="rail">
+    <a class="logo" href="/">M</a>
+    {% for group, items in nav %}{% if not loop.first %}<hr>{% endif %}{% for url, label, icon, n in items %}<a href="{{ url }}" data-key="{{ loop.index + (2 if group == 'Allgemein' else 0) }}" data-path="{{ url }}" title="{{ label }}"><i>{{ icon }}</i><small>{{ label }}</small>{% if n %}<b>{{ n }}</b>{% endif %}</a>{% endfor %}{% endfor %}
+  </aside>
+  <aside class="subpanel">{{ subnav() }}<div class="grip" title="Breite ziehen"></div></aside>
   <div class="col">
-    <header class="top">{{ year() }}{{ summary_bar() }}<span class="grow"></span>{{ user_menu() }}</header>
+    <header class="top">{{ year() }}{{ summary_text() }}<span class="grow"></span>{{ user_menu() }}</header>
     <main>{{ content }}</main>
   </div>
 </div>

@@ -37,3 +37,24 @@ select,button{background:var(--bg);color:var(--fg);border:1px solid var(--line);
 /* Schalter */
 .proto-switch{position:fixed;bottom:.6rem;left:50%;transform:translateX(-50%);background:#fff;color:#000;border-radius:99px;box-shadow:0 2px 12px #0008;display:flex;gap:.6rem;align-items:center;padding:.25rem .6rem;z-index:9}
 .proto-switch button{background:#eee;color:#000;border-radius:99px}
+/* Runde 4 */
+.side i{font-size:1.4rem;width:1.8rem}.side .logo i{font-size:1.2rem}
+.compact a{padding:.4rem 0}
+/* B: Karte */
+.shell.flat{background:var(--bg)}.shell.flat .side{background:var(--bg);border-right:0}
+.shell.flat .col.card{margin:.5rem .5rem .5rem 0;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.shell.flat .top{background:transparent}
+.cmdk{color:var(--mute);display:flex;gap:.5rem;align-items:center;padding:.2rem .6rem;border-radius:6px}.cmdk kbd{font-size:.75em;border:1px solid var(--line);border-radius:3px;padding:0 .3rem}
+.palette{position:fixed;inset:0;background:#0007;z-index:20;display:flex;justify-content:center;padding-top:12vh}.palette[hidden]{display:none}
+.pbox{background:var(--panel);border:1px solid var(--line);border-radius:10px;width:34rem;height:fit-content;padding:.5rem;box-shadow:0 8px 32px #000a}
+.pbox input{width:100%;box-sizing:border-box;padding:.5rem;font-size:1rem;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px}
+.pbox ul{list-style:none;padding:0;margin:.5rem 0 0}.pbox li a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:5px;color:var(--fg);text-decoration:none}.pbox li a:hover{background:var(--bg)}.pbox small{margin-left:auto;color:var(--mute)}
+/* C: Schiene + Unterleiste */
+.rail{width:4.6rem;flex:none;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:stretch;padding:.4rem .3rem;gap:.15rem}
+.rail a{position:relative;display:flex;flex-direction:column;align-items:center;padding:.4rem 0;border-radius:7px;color:var(--fg);text-decoration:none}.rail a:hover{background:var(--bg)}
+.rail i{font-style:normal;font-size:1.5rem;color:var(--mute)}.rail small{font-size:.68rem;color:var(--mute)}.rail hr{width:60%;border:0;border-top:1px solid var(--line);margin:.4rem auto}
+.rail .logo{font-weight:700;font-size:1.3rem;color:var(--acc);margin-bottom:.3rem}.rail b{position:absolute;top:.1rem;right:.4rem;background:var(--acc);color:#fff;border-radius:9px;padding:0 .4rem;font-size:.7rem}
+.rail a.on{background:var(--bg)}.rail a.on i{color:var(--acc)}
+.subpanel{position:relative;width:var(--side);flex:none;background:var(--panel);border-right:1px solid var(--line);padding:.7rem .5rem}
+.subs>div{display:none}.subs>div.show{display:block}.subs h4{margin:.1rem .6rem .5rem;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+.subs a{display:block;padding:.35rem .6rem;border-radius:5px;color:var(--fg);text-decoration:none}.subs a:hover{background:var(--bg)}

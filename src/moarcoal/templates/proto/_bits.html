@@ -14,3 +14,11 @@
 {% macro summary_text() %}<a class="sum" href="/befunde" title="Befunde 2025"><span class="sev sev-error">✖ 1 Fehler</span><span class="sev sev-warning">▲ 2 Warnungen</span><span class="sev sev-info">● 2 Hinweise</span><span class="top1">Anlage N: Bruttolohn noch nicht berechenbar</span></a>{% endmacro %}
 {% macro summary_bar() %}<span class="pop"><a class="sum bar" href="/befunde"><span class="seg e">1</span><span class="seg w">2</span><span class="seg i">2</span></a>
 <div class="popbox"><ul class="pf"><li class="sev-error"><strong>Fehler</strong> Anlage N: Bruttolohn noch nicht berechenbar</li><li class="sev-warning"><strong>Warnung</strong> Beleg ausstehend: Fahrkarte Beispiel-Verkehrsbetriebe</li><li class="sev-warning"><strong>Warnung</strong> Abweichung zum Protokoll: Zeile 31</li><li class="sev-info"><strong>Hinweis</strong> 4 neue Dateien im Eingang</li><li class="sev-info"><strong>Hinweis</strong> Vertrag Beispiel-Strom läuft aus</li></ul><a href="/befunde">Alle Befunde 2025 …</a></div></span>{% endmacro %}
+{% macro subnav() %}
+<div class="subs">
+  <div data-path="/steuerjahr"><h4>Steuerjahr</h4><a href="/steuerjahr">Übersicht</a><a href="/steuerjahr/anlage-n/2025">Anlage N 2025</a><a href="/steuerjahr">Übertragungsprotokolle</a></div>
+  <div data-path="/arbeit"><h4>Arbeit</h4><a href="/arbeit">Einträge</a><a href="/arbeit">Neuer Eintrag</a></div>
+  <div data-path="/eingang"><h4>Eingang</h4><a href="/eingang">Neue Dateien</a><a href="/eingang">Ausgeblendet</a></div>
+  <div data-path="/erwartete-belege"><h4>Belege</h4><a href="/erwartete-belege">Ausstehend</a><a href="/erwartete-belege">Alle</a></div>
+</div>
+{% endmacro %}

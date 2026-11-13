@@ -1,8 +1,12 @@
 {% from "proto/_bits.html" import year, user_menu, sidebar, summary_text %}
-<div class="shell">
-  {{ sidebar(nav, "fold") }}
-  <div class="col">
-    <header class="top">{{ year() }}{{ summary_text() }}<span class="grow"></span>{{ user_menu() }}</header>
+<div class="shell flat">
+  {{ sidebar(nav, "free") }}
+  <div class="col card">
+    <header class="top">{{ year() }}{{ summary_text() }}<span class="grow"></span><button class="cmdk" title="Befehlsleiste (Strg+K)">⌕ Suchen oder springen … <kbd>Strg K</kbd></button>{{ user_menu() }}</header>
     <main>{{ content }}</main>
   </div>
 </div>
+<div class="palette" hidden><div class="pbox"><input placeholder="Seite oder Befund suchen …"><ul>
+  {% for group, items in nav %}{% for url, label, icon, n in items %}<li><a href="{{ url }}"><i>{{ icon }}</i> {{ label }} <small>{{ group }}</small></a></li>{% endfor %}{% endfor %}
+  <li><a href="/befunde"><i>!</i> Alle Befunde 2025 <small>Seite</small></a></li><li><a href="/steuerjahr/anlage-n/2025"><i>§</i> Anlage N 2025 <small>Steuerjahr</small></a></li>
+</ul></div></div>
