@@ -28,11 +28,13 @@ main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
 .zaehler { padding: 0 0.4rem; border: 1px solid gray; border-radius: 0.25rem; font-size: 0.85em; }
 .datei { display: flex; flex-wrap: wrap; gap: 0 0.75rem; align-items: baseline; padding: 0.15rem 0; }
 form.direkt { display: inline; margin-left: auto; }
+button.auge { padding: 0 0.25rem; line-height: 1; vertical-align: middle; }
+button.auge svg { display: block; }
 .datei a[aria-current] { font-weight: bold; }
 .arbeit { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(18rem, 2fr) 3fr; grid-template-rows: minmax(0, 1fr); gap: 1rem; }
-/* Rechts: der Kopf hat feste Höhe und scrollt in sich, darunter scrollt die Vorschau in sich */
+/* Rechts: der Kopf ist so hoch wie sein Inhalt, höchstens 45 % und scrollt darüber in sich; darunter scrollt die Vorschau in sich */
 .rechts { display: flex; flex-direction: column; gap: 0.5rem; min-height: 0; }
-.formular { flex: 0 0 45%; overflow: auto; }
+.formular { flex: 0 1 auto; max-height: 45%; overflow: auto; }
 .formular h2 { font-size: 1rem; margin: 0.75rem 0 0.25rem; }
 .aussteller-feld { max-width: 32rem; }
 /* Vorschlag: je Feld eine Zeile */

@@ -8,7 +8,7 @@
 <form class="direkt" method="post" action="/belege/ausblenden-direkt">
   <input type="hidden" name="stand" value="{{ stand }}">
   {% if sha256 %}<input type="hidden" name="sha256" value="{{ sha256 }}">{% else %}<input type="hidden" name="site" value="{{ site }}"><input type="hidden" name="path" value="{{ path }}">{% endif %}
-  <button type="submit">Ausblenden</button>
+  <button type="submit" class="auge" title="Ausblenden" aria-label="Ausblenden"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
 </form>
 {% endmacro %}
 {% macro folder_node(folder) %}

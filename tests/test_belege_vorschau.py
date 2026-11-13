@@ -175,7 +175,8 @@ def test_page_without_choice_has_no_form_and_taken_file_links_its_document(
 
 def test_head_and_preview_scroll_on_their_own() -> None:
     css = Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
-    assert ".formular { flex: 0 0 45%; overflow: auto; }" in css
+    assert ".formular { flex: 0 1 auto; max-height: 45%; overflow: auto; }" in css
+    assert "flex: 0 0 45%" not in css
     assert ".vorschau { flex: 1; min-height: 0; overflow: auto; }" in css
     assert "flex-direction: column; gap: 0.5rem; min-height: 0; }" in css
 

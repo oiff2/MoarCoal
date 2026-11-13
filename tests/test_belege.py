@@ -528,6 +528,8 @@ def test_one_click_hides_a_file_in_its_row(root: Path, site: Path) -> None:
     client = make_client(root, site)
     page = main_of(client, "/belege")
     assert page.count('action="/belege/ausblenden-direkt"') == 3  # Ordner 2025 + zwei Dateien
+    assert page.count('class="auge" title="Ausblenden" aria-label="Ausblenden"><svg') == 3
+    assert ">Ausblenden</button>" not in page
     response = hide_directly(client, sha256=SHA, stand="alle")
     assert response.status_code == 303 and response.headers["location"] == "/belege?stand=alle"
     assert "Ausgeblendet (1)" in main_of(client, "/belege?stand=alle")
