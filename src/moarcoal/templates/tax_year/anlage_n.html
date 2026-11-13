@@ -13,7 +13,7 @@
 {% endif %}
 
 {% if printed %}
-<p>In der Spalte „Laut Bescheid“ steht, was der bestätigte EStB je Feld druckt; ein gedrucktes Minus ist weggelassen.</p>
+<p>In der Spalte „Laut EStB“ steht, was der bestätigte EStB je Feld druckt; ein gedrucktes Minus ist weggelassen.</p>
 {% endif %}
 
 {% if snapshot %}
@@ -21,7 +21,7 @@
 {% endif %}
 
 <table class="felder">
-  <tr><th>Nr. im Vordruck</th><th>E-Kennung</th><th>Bezeichnung</th><th>Betrag und Rechenweg</th>{% if snapshot %}<th>Bei Abgabe</th>{% endif %}{% if printed %}<th>Laut Bescheid</th>{% endif %}</tr>
+  <tr><th>Nr. im Vordruck</th><th>E-Kennung</th><th>Bezeichnung</th><th>Betrag und Rechenweg</th>{% if snapshot %}<th>Bei Abgabe</th>{% endif %}{% if printed %}<th>Laut EStB</th>{% endif %}</tr>
   {% for field, result in rows %}
   <tr>
     <td>{{ field.form_line or "–" }}</td>

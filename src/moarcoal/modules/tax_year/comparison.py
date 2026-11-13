@@ -297,7 +297,7 @@ def assessment_findings(state: ModuleState, year: int, forms: Forms = FORMS) -> 
                 ASSESSMENT_DEVIATION,
                 Severity.WARNING,
                 ValueRef(field.key, state.user, period, None),
-                f"Anlage N Nr. {field.form_line}, {field.label}: Laut Bescheid "
+                f"Anlage N Nr. {field.form_line}, {field.label}: Laut EStB "
                 f"{field.show(printed)}, bei Abgabe am {taken} {field.show(frozen)}.",
                 href=document_url(document),
                 fingerprint=fingerprint(document.id, field.key, printed, frozen),

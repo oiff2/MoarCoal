@@ -206,7 +206,7 @@ def test_deviation_is_a_warning_with_both_amounts_and_a_link_to_the_proposal() -
     finding = only(found, ASSESSMENT_DEVIATION)
     assert kinds(found) == [ASSESSMENT_DEVIATION]
     assert finding.severity is Severity.WARNING
-    assert "Laut Bescheid 219 Tage" in finding.message
+    assert "Laut EStB 219 Tage" in finding.message
     assert "bei Abgabe am 01.03.2026 220 Tage" in finding.message
     assert "aufgesucht an Tagen" in finding.message
     assert finding.href == f"/dokumente/{document.id}"
@@ -489,7 +489,7 @@ def test_whole_flow_the_page_and_the_finding_list_show_the_assessment(
     )
 
     page = http.get("/steuerjahr/anlage-n/2025").text
-    assert "Laut Bescheid" in page
+    assert "Laut EStB" in page
     assert "<td>218 Tage</td>" in page and "<td>97.292 €</td>" in page
     assert "wird noch nicht berechnet" in page
     note = http.get("/befunde?year=2025").text
@@ -499,6 +499,6 @@ def test_whole_flow_the_page_and_the_finding_list_show_the_assessment(
 
     listing = http.get("/befunde?year=2025").text
     assert "keinen Schnappschuss" not in listing
-    assert "Laut Bescheid 218 Tage, bei Abgabe am" in listing
+    assert "Laut EStB 218 Tage, bei Abgabe am" in listing
     assert f"/dokumente/{document.id}" in listing
-    assert "Laut Bescheid 12 km" not in listing
+    assert "Laut EStB 12 km" not in listing
