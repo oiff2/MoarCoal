@@ -22,6 +22,8 @@ from moarcoal.storage import (
     Put,
     State,
     entry_checksum,
+    issuer_with_name,
+    name_key,
 )
 from moarcoal.web import render, store_of, user_of
 
@@ -45,20 +47,24 @@ def _names(issuer: Issuer) -> list[str]:
 def search_issuers(state: State, text: str) -> list[Issuer]:
     """Aussteller, deren Name oder Alias den Text enthält oder darin vorkommt; ohne Groß-/
     Kleinschreibung, nach Name sortiert."""
-    needle = text.strip().casefold()
+    needle = name_key(text)
     if not needle:
         return []
     found = [
         i
         for i in state.of_kind(Issuer)
-        if any(n.casefold() in needle or needle in n.casefold() for n in _names(i))
+        if any(name_key(n) in needle or needle in name_key(n) for n in _names(i))
     ]
-    return sorted(found, key=lambda i: i.name.casefold())
+    return sorted(found, key=lambda i: name_key(i.name))
 
 
-def has_exact_name(state: State, text: str) -> bool:
-    needle = text.strip().casefold()
-    return any(needle == n.casefold() for i in state.of_kind(Issuer) for n in _names(i))
+def holder_of_name(state: State, text: str) -> Issuer | None:
+    """Der Aussteller, der den Namen schon als Name oder Alias trägt."""
+    return issuer_with_name(state.of_kind(Issuer), text)
+
+
+def _taken(holder: Issuer) -> str:
+    return f"Der Name gehört schon zu „{holder.name}“; bitte aus der Suche wählen."
 
 
 def _issuer_at(state: State, issuer_id: str) -> Issuer | None:
@@ -91,8 +97,9 @@ def resolve_issuer(state: State, fields: Mapping[str, str]) -> IssuerChoice | st
     if choice == "new":
         if not text:
             return "Bitte einen Namen für den neuen Aussteller eingeben."
-        if has_exact_name(state, text):
-            return f"Aussteller „{text}“ gibt es schon; bitte aus der Suche wählen."
+        holder = holder_of_name(state, text)
+        if holder is not None:
+            return _taken(holder)
         private = bool(fields.get("issuer_private"))
         issuer = Issuer(owner=COMMON_OWNER, name=text, private_person=private)
         return IssuerChoice(issuer.address, (Put(issuer),))
@@ -104,8 +111,9 @@ def resolve_issuer(state: State, fields: Mapping[str, str]) -> IssuerChoice | st
         return IssuerChoice(existing.address)
     if not text:
         return "Bitte den weiteren Namen eingeben."
-    if has_exact_name(state, text):
-        return IssuerChoice(existing.address)
+    holder = holder_of_name(state, text)
+    if holder is not None:
+        return IssuerChoice(existing.address) if holder.id == existing.id else _taken(holder)
     renamed = existing.model_copy(update={"aliases": (*existing.aliases, text)})
     return IssuerChoice(existing.address, (Put(renamed, entry_checksum(existing)),))
 
@@ -134,7 +142,7 @@ def search(
         "_issuer_choices.html",
         text=text,
         hits=search_issuers(state, text)[:MAX_HITS],
-        exact=has_exact_name(state, text),
+        exact=holder_of_name(state, text) is not None,
         selected=selected,
         private=bool(issuer_private),
         preset=_issuer_at(state, selected.partition(":")[2]),

@@ -22,6 +22,7 @@ from moarcoal.storage import (
     Rejected,
     State,
     entry_checksum,
+    name_key,
 )
 from moarcoal.storage.entries import referenced_addresses
 from moarcoal.web import form_fields, render, store_of, user_of
@@ -53,8 +54,8 @@ def _references(
 
 
 def _matches(issuer: Issuer, query: str) -> bool:
-    needle = query.casefold()
-    return any(needle in name.casefold() for name in (issuer.name, *issuer.aliases))
+    needle = name_key(query)
+    return any(needle in name_key(name) for name in (issuer.name, *issuer.aliases))
 
 
 def _build(fields: Fields, issuer: Issuer) -> tuple[Issuer | None, list[str]]:
@@ -101,7 +102,7 @@ def _detail(
         issuer=issuer,
         others=sorted(
             (i for i in state.of_kind(Issuer) if i.id != issuer.id),
-            key=lambda i: (i.name.casefold(), i.id),
+            key=lambda i: (name_key(i.name), i.id),
         ),
         checksum=entry_checksum(issuer),
         values=fields
@@ -127,7 +128,7 @@ def index(request: Request, q: str = "") -> HTMLResponse:
     user = user_of(request)
     rows = [
         (issuer, *(len(refs) for refs in _references(state, issuer, user)))
-        for issuer in sorted(state.of_kind(Issuer), key=lambda i: (i.name.casefold(), i.id))
+        for issuer in sorted(state.of_kind(Issuer), key=lambda i: (name_key(i.name), i.id))
         if _matches(issuer, query)
     ]
     return render(request, "issuers/index.html", rows=rows, query=query)

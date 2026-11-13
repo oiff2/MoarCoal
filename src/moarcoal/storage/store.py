@@ -33,7 +33,7 @@ from moarcoal.storage.entries import (
 )
 from moarcoal.storage.expected_documents import EXPECTED_DOCUMENT_KIND
 from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND
-from moarcoal.storage.issuers import ISSUER_KIND, Issuer
+from moarcoal.storage.issuers import ISSUER_KIND, Issuer, name_clashes, name_key
 from moarcoal.storage.proposals import PROPOSAL_KIND
 from moarcoal.storage.snapshots import SNAPSHOT_KIND
 
@@ -192,6 +192,20 @@ def _reference_problems(
             if issuer is not None and issuer not in new_entries:
                 problems[change.address] = "Aussteller existiert nicht."
     return problems
+
+
+def _name_problems(
+    changes: Sequence[Change], new_entries: Mapping[EntryAddress, Entry]
+) -> dict[EntryAddress, str]:
+    """Namen nach dem Vorgang: kein Name oder Alias kommt zweimal vor; abgewiesen werden die
+    in diesem Vorgang geschriebenen Aussteller."""
+    written = [c.into if isinstance(c, Merge) else c.address for c in changes]
+    clashing = name_clashes(e for e in new_entries.values() if isinstance(e, Issuer))
+    return {
+        a: "Name gibt es schon."
+        for a in written
+        if isinstance(new_entries.get(a), Issuer) and a.id in clashing
+    }
 
 
 def _safe_path(relative: str) -> bool:
@@ -445,6 +459,7 @@ class Store:
                 touch(self._path_of(current), address)
         if not reasons:
             reasons.update(_reference_problems(changes, new_entries))
+            reasons.update(_name_problems(changes, new_entries))
         if reasons:
             return Rejected(reasons)
 
@@ -473,8 +488,8 @@ class Store:
             or entry_checksum(target) != change.expected_into
         ):
             return "Inzwischen geändert."
-        known = {n.casefold() for n in (target.name, *target.aliases)}
-        added = [n for n in (source.name, *source.aliases) if n.casefold() not in known]
+        known = {name_key(n) for n in (target.name, *target.aliases)}
+        added = [n for n in (source.name, *source.aliases) if name_key(n) not in known]
         merged = target.model_copy(
             update={
                 "aliases": (*target.aliases, *dict.fromkeys(added)),

@@ -155,3 +155,50 @@ def test_only_private_persons_feed_the_denylist() -> None:
         "Frau Mustermann",
         "Mustermann",
     ]
+
+
+# --- Namen sind eindeutig ----------------------------------------------------------------------
+
+
+def reasons_of(result: Applied | Rejected) -> dict[str, str]:
+    assert isinstance(result, Rejected)
+    return {str(address): reason for address, reason in result.reasons.items()}
+
+
+def test_second_issuer_with_same_name_or_alias_is_rejected_whatever_the_spelling(
+    tmp_path: Path,
+) -> None:
+    store = open_empty(tmp_path)
+    bank = issuer(aliases=("Muster-Sparkasse",))
+    assert isinstance(store.apply([Put(bank)]), Applied)
+    for name in ("beispielbank ag", "  BEISPIELBANK AG ", "MUSTER-SPARKASSE"):
+        twin = issuer(name)
+        result = store.apply([Put(twin)])
+        assert reasons_of(result) == {str(twin.address): "Name gibt es schon."}
+    assert store.state().of_kind(Issuer) == [bank]
+
+
+def test_alias_of_another_issuer_or_of_itself_is_rejected(tmp_path: Path) -> None:
+    store = open_empty(tmp_path)
+    bank, werke = issuer(), issuer("Stadtwerke Beispielstadt")
+    assert isinstance(store.apply([Put(bank), Put(werke)]), Applied)
+    stolen = werke.model_copy(update={"aliases": ("beispielbank ag",)})
+    assert reasons_of(store.apply([Put(stolen, entry_checksum(werke))])) == {
+        str(werke.address): "Name gibt es schon."
+    }
+    same = werke.model_copy(update={"aliases": ("Werke", " werke ")})
+    assert isinstance(store.apply([Put(same, entry_checksum(werke))]), Rejected)
+    as_name = werke.model_copy(update={"aliases": ("STADTWERKE beispielstadt",)})
+    assert isinstance(store.apply([Put(as_name, entry_checksum(werke))]), Rejected)
+
+
+def test_names_may_move_between_issuers_in_one_operation(tmp_path: Path) -> None:
+    store = open_empty(tmp_path)
+    bank, werke = issuer(), issuer("Stadtwerke Beispielstadt")
+    assert isinstance(store.apply([Put(bank), Put(werke)]), Applied)
+    moved = bank.model_copy(update={"aliases": (werke.name,)})
+    result = store.apply(
+        [Delete(werke.address, entry_checksum(werke)), Put(moved, entry_checksum(bank))]
+    )
+    assert isinstance(result, Applied)
+    assert store.state().get(bank.address) == moved

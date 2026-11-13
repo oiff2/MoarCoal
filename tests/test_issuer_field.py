@@ -254,6 +254,22 @@ def test_change_issuer_rejection_keeps_state(client: httpx.Client) -> None:
     assert state_of(client) == before
 
 
+def test_new_and_alias_name_the_issuer_that_already_has_the_name(client: httpx.Client) -> None:
+    bank = add_issuer(client, aliases=("Muster-Sparkasse",))
+    werke = add_issuer(client, "Stadtwerke Beispielstadt")
+    state = state_of(client)
+    new = resolve_issuer(state, {"issuer_choice": "new", "issuer_text": " muster-sparkasse "})
+    assert new == "Der Name gehört schon zu „Beispielbank AG“; bitte aus der Suche wählen."
+    alias = resolve_issuer(
+        state, {"issuer_choice": f"alias:{werke.id}", "issuer_text": "BEISPIELBANK ag"}
+    )
+    assert isinstance(alias, str) and "„Beispielbank AG“" in alias
+    own = resolve_issuer(
+        state, {"issuer_choice": f"alias:{bank.id}", "issuer_text": "beispielbank ag"}
+    )
+    assert own == IssuerChoice(bank.address)
+
+
 def test_change_issuer_needs_origin_and_known_document(client: httpx.Client) -> None:
     document = taken_in(client)
     assert client.post(f"/dokumente/{document.id}/aussteller", data={}).status_code == 403

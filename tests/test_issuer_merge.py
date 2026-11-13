@@ -52,7 +52,7 @@ def stored(root: Path) -> list[Issuer]:
 
 def test_merge_moves_names_references_and_old_address_resolves(tmp_path: Path) -> None:
     source = issuer("Beispielbank", aliases=("BB",), private_person=True)
-    target = issuer("Beispielbank AG", aliases=("beispielbank",))
+    target = issuer("Beispielbank AG", aliases=("Bank Filiale",))
     store = open_store(tmp_path, [])
     store.apply(
         [
@@ -70,7 +70,7 @@ def test_merge_moves_names_references_and_old_address_resolves(tmp_path: Path) -
     assert state.get(source.address) is None
     merged = state.get(target.address)
     assert isinstance(merged, Issuer)
-    assert merged.aliases == ("beispielbank", "BB")  # "Beispielbank" ist schon Alias (Groß/klein)
+    assert merged.aliases == ("Bank Filiale", "Beispielbank", "BB")
     assert merged.private_person
     assert state.resolve(source.address) == merged
     assert [d.issuer for d in state.of_kind(Document)] == [target.address] * 2

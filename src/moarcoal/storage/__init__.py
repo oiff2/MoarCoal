@@ -15,7 +15,13 @@ from moarcoal.storage.entries import (
 )
 from moarcoal.storage.expected_documents import ExpectedDocument
 from moarcoal.storage.hidden_files import COMMON_OWNER, HiddenFile
-from moarcoal.storage.issuers import Issuer, denylist_lines, issuer_url
+from moarcoal.storage.issuers import (
+    Issuer,
+    denylist_lines,
+    issuer_url,
+    issuer_with_name,
+    name_key,
+)
 from moarcoal.storage.proposals import PROPOSAL_KIND, Content, Proposal, ProposalField
 from moarcoal.storage.snapshots import (
     FrozenAmount,
@@ -84,7 +90,9 @@ __all__ = [
     "entry_checksum",
     "entry_kind",
     "issuer_url",
+    "issuer_with_name",
     "kind_collisions",
+    "name_key",
     "new_id",
     "open_store",
 ]

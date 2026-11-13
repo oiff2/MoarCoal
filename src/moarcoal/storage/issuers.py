@@ -1,5 +1,6 @@
 """Baustein Aussteller: wer ein Dokument ausgestellt hat (docs/grundgeruest.md, 3.2)."""
 
+from collections.abc import Iterable
 from typing import Self
 
 from pydantic import Field, field_validator, model_validator
@@ -9,6 +10,11 @@ from moarcoal.storage.hidden_files import COMMON_OWNER
 
 ISSUER_SCHEMA = "datenebene/1"
 MIN_DENYLIST_LENGTH = 6  # kürzere Werte und Teile fängt die Sperrliste nicht ab (Spec 8)
+
+
+def name_key(text: str) -> str:
+    """Vergleichsform von Namen und Aliassen: ohne Groß-/Kleinschreibung und Randleerzeichen."""
+    return text.strip().casefold()
 
 
 def issuer_url(issuer_id: str) -> str:
@@ -58,6 +64,29 @@ class Issuer(Entry):
     def sensitive_values(self) -> list[str]:
         """Die Werte für die Sperrliste: Name und Aliasse, nur bei einer Privatperson."""
         return [self.name, *self.aliases] if self.private_person else []
+
+
+def issuer_with_name(issuers: Iterable[Issuer], text: str) -> Issuer | None:
+    """Der Aussteller, dessen Name oder Alias dem Text gleicht (nach `name_key`)."""
+    key = name_key(text)
+    return next((i for i in issuers if key in {name_key(n) for n in (i.name, *i.aliases)}), None)
+
+
+def name_clashes(issuers: Iterable[Issuer]) -> set[str]:
+    """Kennungen der Aussteller, deren Name oder Alias bei einem anderen Aussteller oder im
+    eigenen Namen und Aliassen noch einmal vorkommt."""
+    owners: dict[str, set[str]] = {}
+    clashing: set[str] = set()
+    for issuer in issuers:
+        keys = [name_key(n) for n in (issuer.name, *issuer.aliases)]
+        if len(set(keys)) < len(keys):
+            clashing.add(issuer.id)
+        for key in set(keys):
+            owners.setdefault(key, set()).add(issuer.id)
+    for ids in owners.values():
+        if len(ids) > 1:
+            clashing |= ids
+    return clashing
 
 
 def denylist_lines(issuers: list[Issuer]) -> list[str]:
