@@ -1,13 +1,13 @@
 # MoarCoal
 
-Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is done; the Durchstich (#27) is built, Abschnitt 2 (#46) is in progress. Docs and app text in German; code and identifiers in English.
+Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is done; the Durchstich (#27) and Abschnitt 2 (#46) are built and merged. Content planning is under way on a Wayfinder map (#61). Docs and app text in German; code and identifiers in English.
 
 ## Where things are
 
 - `CONTEXT.md`: glossary. Use its terms in code and docs; add each new term there as soon as it's settled.
 - `docs/adr/`: architecture decisions. Read the ones that touch your area before you change anything.
 - `docs/grundgeruest.md`: architecture spec of the scaffold (Datenebene, Module, contract, storage), merged from the map. Start here before building.
-- [Abschnitt 2 #46](https://github.com/oiff2/MoarCoal/issues/46): the current work, second build stage per `docs/grundgeruest.md` (section „Bauabschnitte“), one sub-issue per slice. Build only what it needs. The first stage was the [Durchstich #27](https://github.com/oiff2/MoarCoal/issues/27).
+- [Wayfinder-Karte: Inhalte nach dem Durchstich #61](https://github.com/oiff2/MoarCoal/issues/61): the current work. Plans global UI (prototype #62), the Belege page (#63), then Steuerjahr Anlage N as far as the Übertragungsprotokoll shows it, ELSTER-like (#64); Abschnitt 3 follows from its decisions. Read its Notes first: no duplicate functionality, keep the glossary and code small, reuse existing building blocks. Abschnitt 2 ([#46](https://github.com/oiff2/MoarCoal/issues/46)) and the Durchstich ([#27](https://github.com/oiff2/MoarCoal/issues/27)) are done.
 - [Wayfinder-Karte: Grundgerüst MoarCoal](https://github.com/oiff2/MoarCoal/issues/1) (closed): decisions behind the spec, one sub-issue per design question.
 - `erkenntnisse.md`: lessons from the predecessor project Kohlebau. Use it for orientation; it is not a spec.
 
