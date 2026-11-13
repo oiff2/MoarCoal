@@ -309,7 +309,7 @@ def test_year_input_is_hidden_for_kinds_without_period(root: Path, site: Path) -
     client = TestClient(app, base_url=f"http://127.0.0.1:{PORT}")
     page = main_of(client, f"/belege?datei={SHA}")
     assert '<option value="demo.contract" data-ohne-zeitraum>' in page
-    assert '<option value="transfer_protocol" selected>' in page  # aus dem Namen protokoll.html
+    assert '<option value="transfer_protocol" selected>' not in page  # echte Arten: kein Muster
     assert '<label class="jahr">' in page
     css = Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
     assert "form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }" in css

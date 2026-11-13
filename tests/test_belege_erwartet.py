@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import httpx
@@ -10,7 +11,8 @@ from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
 from moarcoal.expected_documents import pending_for
-from moarcoal.modules.tax_year import TRANSFER_PROTOCOL
+from moarcoal.modules import MODULES
+from moarcoal.modules.tax_year import REGISTRATION, TRANSFER_PROTOCOL
 from moarcoal.storage import Document, ExpectedDocument, Put, Store
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
@@ -20,7 +22,7 @@ ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
 KIND = TRANSFER_PROTOCOL.key
 
 
-def make_client(tmp_path: Path, filename: str) -> httpx.Client:
+def make_client(tmp_path: Path, filename: str, pattern: str | None = None) -> httpx.Client:
     site = tmp_path / "ablage"
     site.mkdir()
     (site / filename).write_bytes(FIXTURE.read_bytes())
@@ -29,7 +31,12 @@ def make_client(tmp_path: Path, filename: str) -> httpx.Client:
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = create_app(PORT, tmp_path / "daten", user="anna")
+    modules = MODULES
+    if pattern:  # echte Arten tragen kein Namensmuster; eine Test-Art mit gleichem Schlüssel schon
+        kind = replace(TRANSFER_PROTOCOL, name_patterns=(pattern,))
+        patterned = replace(REGISTRATION, document_kinds=(kind,))
+        modules = [patterned if m is REGISTRATION else m for m in MODULES]
+    app = create_app(PORT, tmp_path / "daten", modules, user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -51,7 +58,7 @@ def form(client: httpx.Client) -> str:
 
 @pytest.fixture
 def client(tmp_path: Path) -> httpx.Client:
-    return make_client(tmp_path, "Protokoll_2025.html")
+    return make_client(tmp_path, "Protokoll_2025.html", "protokoll")
 
 
 def test_tab_is_part_of_the_belege_page(client: httpx.Client) -> None:

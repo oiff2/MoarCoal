@@ -129,8 +129,8 @@ def test_form_is_prefilled_and_marked_from_name(client: httpx.Client) -> None:
     (bank,) = add(client, "Beispielbank AG")
     html = form(client)
     assert f'"default": "{bank.id}"' in html
-    assert html.count("aus Name") == 3
-    assert '<option value="transfer_protocol" selected>' in html
+    assert html.count("aus Name") == 2  # Aussteller und Jahr; echte Arten tragen kein Muster
+    assert '<option value="transfer_protocol" selected>' not in html
     assert 'name="year" value="2025"' in html
 
 
@@ -147,4 +147,4 @@ def test_name_match_beats_last_issuer_preset_only_when_unambiguous(client: httpx
     add(client, "Protokoll")  # zweiter Treffer im Pfad: mehrdeutig, kein Name-Vorschlag
     html = form(client)
     assert '"default": ""' in html
-    assert html.count("aus Name") == 2
+    assert html.count("aus Name") == 1

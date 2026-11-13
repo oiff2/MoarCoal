@@ -30,7 +30,6 @@ def transfer_protocol(forms: Forms = FORMS) -> DocumentKind:
         title="Übertragungsprotokoll",
         has_period=True,
         read_in=read_in_protocol,
-        name_patterns=(r"protokoll",),
         after_take_in=partial(snapshot_on_filing, forms=forms),
     )
 
