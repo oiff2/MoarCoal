@@ -5,7 +5,7 @@
 <p><a href="/aussteller">Zurück zu Aussteller</a></p>
 {% include "work/_errors.html" %}
 {% if holder %}
-<ul class="fehler"><li>Der Name gehört schon zu <a href="/aussteller/{{ holder.id }}">{{ holder.name }}</a>.</li></ul>
+<ul class="fehler"><li>Duplikat zu: <a href="/aussteller/{{ holder.id }}">{{ holder.name }}</a></li></ul>
 {% endif %}
 <form method="post" action="/aussteller/{{ issuer.id }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">

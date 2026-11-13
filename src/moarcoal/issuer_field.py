@@ -64,7 +64,7 @@ def holder_of_name(state: State, text: str) -> Issuer | None:
 
 
 def _taken(holder: Issuer) -> str:
-    return f"Der Name gehört schon zu „{holder.name}“; bitte aus der Suche wählen."
+    return f"Duplikat zu: {holder.name}. Bitte aus der Suche wählen."
 
 
 def _issuer_at(state: State, issuer_id: str) -> Issuer | None:

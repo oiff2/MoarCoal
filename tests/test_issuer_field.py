@@ -259,11 +259,11 @@ def test_new_and_alias_name_the_issuer_that_already_has_the_name(client: httpx.C
     werke = add_issuer(client, "Stadtwerke Beispielstadt")
     state = state_of(client)
     new = resolve_issuer(state, {"issuer_choice": "new", "issuer_text": " muster-sparkasse "})
-    assert new == "Der Name gehört schon zu „Beispielbank AG“; bitte aus der Suche wählen."
+    assert new == "Duplikat zu: Beispielbank AG. Bitte aus der Suche wählen."
     alias = resolve_issuer(
         state, {"issuer_choice": f"alias:{werke.id}", "issuer_text": "BEISPIELBANK ag"}
     )
-    assert isinstance(alias, str) and "„Beispielbank AG“" in alias
+    assert isinstance(alias, str) and "Duplikat zu: Beispielbank AG" in alias
     own = resolve_issuer(
         state, {"issuer_choice": f"alias:{bank.id}", "issuer_text": "beispielbank ag"}
     )

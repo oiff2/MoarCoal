@@ -119,9 +119,7 @@ def test_change_to_a_taken_name_is_rejected_with_the_reason(tmp_path: Path) -> N
     )
 
     assert response.status_code == 409
-    assert f'Der Name gehört schon zu <a href="/aussteller/{bank.id}">{bank.name}</a>' in (
-        response.text
-    )
+    assert f'Duplikat zu: <a href="/aussteller/{bank.id}">{bank.name}</a>' in (response.text)
     assert sorted(i.name for i in stored(tmp_path)) == sorted([bank.name, werke.name])
 
 
