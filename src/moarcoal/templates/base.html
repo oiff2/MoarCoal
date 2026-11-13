@@ -13,8 +13,8 @@
 </head>
 <body class="v-{{ variant }}">
 {% set content %}{% block main %}{% endblock %}{% endset %}
-{% set nav = [("/steuerjahr", "Steuerjahr", "§", ""), ("/arbeit", "Arbeit", "⚒", ""), ("/eingang", "Eingang", "⇩", "4"), ("/erwartete-belege", "Belege", "▤", "7")] %}
+{% set nav = [("Bereiche", [("/steuerjahr", "Steuerjahr", "§", ""), ("/arbeit", "Arbeit", "⚒", "")]), ("Allgemein", [("/eingang", "Eingang", "⇩", "4"), ("/erwartete-belege", "Belege", "▤", "7")])] %}
 {% include "proto/shell_" ~ variant ~ ".html" %}
-<nav class="proto-switch"><button data-dir="-1">←</button><span>{{ {"A": "A · nur Icons", "B": "B · ausgeschrieben", "C": "C · beides, Breite wählbar"}[variant] }}</span><button data-dir="1">→</button></nav>
+<nav class="proto-switch"><button data-dir="-1">←</button><span>{{ {"A": "A · Zähler, frei ziehbar", "B": "B · Text, Gruppen einklappbar", "C": "C · Balken + Popover, 3 Stufen"}[variant] }}</span><button data-dir="1">→</button></nav>
 </body>
 </html>

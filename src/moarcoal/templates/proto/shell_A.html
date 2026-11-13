@@ -1,8 +1,8 @@
-{% from "proto/_bits.html" import head_left, user_menu, nav_items, summary_pills %}
+{% from "proto/_bits.html" import year, user_menu, sidebar, summary_pills %}
 <div class="shell">
-  <aside class="side icons"><a class="logo" href="/">MC</a>{{ nav_items(nav) }}</aside>
+  {{ sidebar(nav, "free") }}
   <div class="col">
-    <header class="top">{{ head_left(false) }}<span class="grow"></span>{{ summary_pills() }}{{ user_menu() }}</header>
+    <header class="top">{{ year() }}{{ summary_pills() }}<span class="grow"></span>{{ user_menu() }}</header>
     <main>{{ content }}</main>
   </div>
 </div>

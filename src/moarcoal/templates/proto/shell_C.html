@@ -1,8 +1,8 @@
-{% from "proto/_bits.html" import head_left, user_menu, nav_items, summary_bar %}
+{% from "proto/_bits.html" import year, user_menu, sidebar, summary_bar %}
 <div class="shell">
-  <aside class="side resizable"><a class="logo" href="/">MoarCoal</a>{{ nav_items(nav) }}<button class="collapse" title="Ein-/Ausklappen ([)">«</button><div class="grip" title="Breite ziehen"></div></aside>
+  {{ sidebar(nav, "steps") }}
   <div class="col">
-    <header class="top">{{ head_left(false) }}<span class="grow"></span>{{ summary_bar() }}{{ user_menu() }}</header>
+    <header class="top">{{ year() }}{{ summary_bar() }}<span class="grow"></span>{{ user_menu() }}</header>
     <main>{{ content }}</main>
   </div>
 </div>

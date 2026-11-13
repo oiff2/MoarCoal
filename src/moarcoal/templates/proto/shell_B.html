@@ -1,8 +1,8 @@
-{% from "proto/_bits.html" import head_left, user_menu, nav_items, summary_text %}
+{% from "proto/_bits.html" import year, user_menu, sidebar, summary_text %}
 <div class="shell">
-  <aside class="side wide">{{ nav_items(nav) }}</aside>
+  {{ sidebar(nav, "fold") }}
   <div class="col">
-    <header class="top">{{ head_left() }}<span class="grow"></span>{{ summary_text() }}{{ user_menu() }}</header>
+    <header class="top">{{ year() }}{{ summary_text() }}<span class="grow"></span>{{ user_menu() }}</header>
     <main>{{ content }}</main>
   </div>
 </div>
