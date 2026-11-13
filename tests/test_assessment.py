@@ -129,7 +129,7 @@ def findings(
 ) -> list[Finding]:
     values = evaluate([tax_year], items, work() if foreign is None else foreign)
     visible = values.finding_list("anna", 2025).visible
-    return [f for f in visible if f.kind.startswith("tax_year.assessment_")]  # nur der Bescheid
+    return [f for f in visible if f.kind.startswith("tax_year.assessment_")]  # nur der EStB
 
 
 def only(found: list[Finding], kind: str) -> Finding:
@@ -213,7 +213,7 @@ def test_deviation_is_a_warning_with_both_amounts_and_a_link_to_the_proposal() -
 
 
 def test_the_snapshot_is_compared_not_the_current_value() -> None:
-    # nach der Abgabe ändert sich Arbeit; der Bescheid gilt gegen den Stand der Abgabe
+    # nach der Abgabe ändert sich Arbeit; der EStB gilt gegen den Stand der Abgabe
     document = assessment()
     items = [*filing(work(workdays=220)), document, proposal(document, {COMMUTE_DAYS: "220"})]
 
@@ -277,7 +277,7 @@ def test_a_value_not_yet_computable_at_filing_is_not_compared() -> None:
 
 
 def printed_rounded_forms() -> dict[int, tuple[FormField, ...]]:
-    """Arbeitsmittel als Feld mit Cent, das der Bescheid als Bruttoarbeitslohn gerundet druckt."""
+    """Arbeitsmittel als Feld mit Cent, das der EStB als Bruttoarbeitslohn gerundet druckt."""
     fields = tuple(
         replace(
             f,

@@ -1,13 +1,13 @@
 """Dokumentart Einkommensteuerbescheid (EStB): die Auslese-Vorlage mit den gedruckten Positionen.
 
-Der Bescheid wird nicht eingelesen, sondern von Claude ausgelesen und vom Nutzer bestätigt
-(`proposals`). Die Vorlage nennt die gedruckten Positionen mit ihrer Bezeichnung im Bescheid; welche
+Der EStB wird nicht eingelesen, sondern von Claude ausgelesen und vom Nutzer bestätigt
+(`proposals`). Die Vorlage nennt die gedruckten Positionen mit ihrer Bezeichnung im EStB; welche
 Position welchem Feld der Anlage N entspricht, steht am Feld (`FormField.assessment`). Positionen
-ohne Feld (Arbeitnehmer-Pauschbetrag, Einkünfte, Entfernungspauschale) kommen mit, weil der Bescheid
+ohne Feld (Arbeitnehmer-Pauschbetrag, Einkünfte, Entfernungspauschale) kommen mit, weil der EStB
 sie druckt; sie haben kein Gegenstück im Schnappschuss.
 
 Doppelt gedruckte Bezeichnungen tragen ihren Block in Klammern (`erkenntnisse.md`): „Einkünfte“
-steht im Bescheid für Arbeit und für Vermietung und Verpachtung.
+steht im EStB für Arbeit und für Vermietung und Verpachtung.
 """
 
 from moarcoal.documents import DocumentKind
@@ -100,7 +100,7 @@ TEMPLATE = ExtractionTemplate(
 
 
 def _no_read_in(document: Document, content: bytes) -> list[Entry]:
-    return []  # der Bescheid wird nur ausgelesen, nicht eingelesen
+    return []  # der EStB wird nur ausgelesen, nicht eingelesen
 
 
 ASSESSMENT = DocumentKind(

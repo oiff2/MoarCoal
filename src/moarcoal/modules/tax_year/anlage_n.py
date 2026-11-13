@@ -50,8 +50,8 @@ def _rounded(calculation: Calculation, field: FormField, amount: Amount) -> Amou
 # (E-Kennung, Zeile, Bezeichnung; keine Beträge), für Arbeitsmittel die Seite „10 - Aufwendungen
 # für Arbeitsmittel“ in Mein ELSTER (Summe, tools/elster_page_fields.py). Der Katalog nimmt alle
 # bekannten Felder mit; berechnet werden bisher nur die drei mit Quelle im Modul Arbeit
-# (`computed`). Die Positionen des Bescheids (`assessment`) und welche er gerundet druckt, hat der
-# Mensch an einem echten Bescheid zugeordnet (#54).
+# (`computed`). Die Positionen des EStB (`assessment`) und welche er gerundet druckt, hat der
+# Mensch an einem echten EStB zugeordnet (#54).
 def _known(
     name: str,
     elster_id: str,

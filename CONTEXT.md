@@ -68,7 +68,7 @@ Worauf sich ein Einzelposten stützt: eine Stelle in einem Dokument (Seite/Zeile
 _Avoid_: Referenz, Quelle (die Fundstelle ist die genaue Stelle, die Quelle der Kanal)
 
 **Quelle**:
-Der Kanal, über den Daten von außen in MoarCoal gelangen: eDaten-Abruf aus Mein ELSTER, Dokumentauslesung (von Claude ausgelesen und bestätigt, z. B. Bank-PDF, Bescheid), Einlesung (exakt, ohne Claude, z. B. Übertragungsprotokoll) oder Nutzereingabe; alles, was von außen kommt, hat genau eine Quelle. Sie steht an der Fundstelle, nicht am Dokument (Code: `Source`).
+Der Kanal, über den Daten von außen in MoarCoal gelangen: eDaten-Abruf aus Mein ELSTER, Dokumentauslesung (von Claude ausgelesen und bestätigt, z. B. Bank-PDF, EStB), Einlesung (exakt, ohne Claude, z. B. Übertragungsprotokoll) oder Nutzereingabe; alles, was von außen kommt, hat genau eine Quelle. Sie steht an der Fundstelle, nicht am Dokument (Code: `Source`).
 _Avoid_: Herkunft, Import, Datenquelle
 
 **Nutzereingabe**:
@@ -96,11 +96,11 @@ Ein ausgefülltes Feld des Übertragungsprotokolls, roh wie gedruckt: E-Kennung,
 _Avoid_: Protokollzeile, Zeile
 
 **Einkommensteuerbescheid** (Abkürzung: EStB):
-Der Bescheid des Finanzamts über die Einkommensteuer (in ELSTER als „Berechnung des Finanzamts“ abrufbar). Dokumentart des Moduls Steuerjahr mit Bezugszeitraum; er wird nicht eingelesen, sondern von Claude nach der Auslese-Vorlage ausgelesen und vom Nutzer bestätigt. Er druckt viele Beträge in ganzen Euro, auch wo das Feld der Anlage Cent hat, und Abzüge mit Minus. Ein Bescheid erzeugt keinen Schnappschuss.
+Der Bescheid des Finanzamts über die Einkommensteuer (in ELSTER als „Berechnung des Finanzamts“ abrufbar). Dokumentart des Moduls Steuerjahr mit Bezugszeitraum; er wird nicht eingelesen, sondern von Claude nach der Auslese-Vorlage ausgelesen und vom Nutzer bestätigt. Er druckt viele Beträge in ganzen Euro, auch wo das Feld der Anlage Cent hat, und Abzüge mit Minus. Ein EStB erzeugt keinen Schnappschuss.
 _Avoid_: Steuerbescheid, EStBescheid
 
 **Bescheid-Abgleich** _(geprägt)_:
-Der Vergleich der bestätigten Positionen des EStB mit dem eingefrorenen Wert des Schnappschusses der Abgabe, je Feld der Anlage; zeigt, wo das Finanzamt anders angesetzt hat als abgegeben. Verglichen wird mit einer Spanne: bei ganzen Euro und bei Positionen, die der Bescheid gerundet druckt, passt jeder ganze Euro zwischen abgerundetem und aufgerundetem Wert (bei einem Feld mit ganzen Euro einen Euro darunter bis einen darüber), sonst exakt; das gedruckte Vorzeichen zählt nicht. Abweichung ergibt einen Befund (Warnung); ohne Schnappschuss gibt es nur einen Hinweis. Felder, die MoarCoal noch nicht berechnet, haben keinen Schnappschuss-Wert und bleiben ohne Abgleich. Nicht zu verwechseln mit dem Abgleich mit dem Übertragungsprotokoll.
+Der Vergleich der bestätigten Positionen des EStB mit dem eingefrorenen Wert des Schnappschusses der Abgabe, je Feld der Anlage; zeigt, wo das Finanzamt anders angesetzt hat als abgegeben. Verglichen wird mit einer Spanne: bei ganzen Euro und bei Positionen, die der EStB gerundet druckt, passt jeder ganze Euro zwischen abgerundetem und aufgerundetem Wert (bei einem Feld mit ganzen Euro einen Euro darunter bis einen darüber), sonst exakt; das gedruckte Vorzeichen zählt nicht. Abweichung ergibt einen Befund (Warnung); ohne Schnappschuss gibt es nur einen Hinweis. Felder, die MoarCoal noch nicht berechnet, haben keinen Schnappschuss-Wert und bleiben ohne Abgleich. Nicht zu verwechseln mit dem Abgleich mit dem Übertragungsprotokoll.
 
 **Feld**:
 Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im Vordruck und E-Kennung (solange unbekannt, leer); das Steuerjahr ordnet jedem Feld, das MoarCoal berechnet, einen Ausgewiesenen Wert zu (Code: `FormField`, dessen Rundung `Rounding`). Das Steuerjahr führt die Felder je Steuerjahr und nimmt alle bekannten mit (Anlage N 2025: 23, auch solche ohne Betrag wie Text und Ja/Nein); berechnet werden bisher drei. Ein Euro-Feld nimmt entweder ganze Euro (gerundet nach seiner Richtung) oder Euro mit Cent (exakt, z. B. Steuerbeträge laut Bescheinigung); km werden auf volle Kilometer abgerundet.

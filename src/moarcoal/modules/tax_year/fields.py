@@ -54,8 +54,8 @@ class FormField:
     (`unit` ist leer: Text, Ja/Nein).
 
     `assessment` nennt die Positionen der Auslese-Vorlage des EStB, deren Summe
-    dem Feld entspricht (leer: der Bescheid druckt das Feld nicht). `printed_rounded` heißt: der
-    Bescheid druckt die Position in ganzen Euro, auch wo das Feld Cent hat.
+    dem Feld entspricht (leer: der EStB druckt das Feld nicht). `printed_rounded` heißt: der
+    EStB druckt die Position in ganzen Euro, auch wo das Feld Cent hat.
     """
 
     key: ValueKey
@@ -75,7 +75,7 @@ class FormField:
         if self.computed and self.unit is None:
             raise ValueError(f"{self.label}: ein berechnetes Feld braucht eine Einheit")
         if self.assessment and self.unit is None:
-            raise ValueError(f"{self.label}: ein Feld ohne Betrag hat keine Position im Bescheid")
+            raise ValueError(f"{self.label}: ein Feld ohne Betrag hat keine Position im EStB")
 
     @property
     def whole_euros(self) -> bool:
@@ -130,9 +130,9 @@ class FormField:
         return total
 
     def matches_assessment(self, frozen: Decimal, printed: Decimal) -> bool:
-        """Ob der Betrag im Bescheid zum eingefrorenen Wert des Felds passt.
+        """Ob der Betrag im EStB zum eingefrorenen Wert des Felds passt.
 
-        Euro-Felder mit ganzen Euro und Positionen, die der Bescheid gerundet druckt, passen mit
+        Euro-Felder mit ganzen Euro und Positionen, die der EStB gerundet druckt, passen mit
         einer Spanne (ADR 0011 des Vorgängers): jeder ganze Euro zwischen abgerundetem und
         aufgerundetem Wert. Ein Feld mit ganzen Euro friert den schon nach seiner Richtung
         gerundeten Wert ein; der ungerundete liegt höchstens einen Euro daneben, die Spanne reicht

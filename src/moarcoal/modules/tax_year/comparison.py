@@ -1,4 +1,4 @@
-"""Abgleich der Felder der Anlage N mit Übertragungsprotokoll und Bescheid (Befunde).
+"""Abgleich der Felder der Anlage N mit Übertragungsprotokoll und EStB (Befunde).
 
 Verglichen wird exakt und ohne Toleranz gegen den gerundeten Wert des Felds (das Steuerjahr rundet
 nach Einheit und Richtung, siehe `fields`). Weicht das Protokoll nur durch Rundung ab, nennt der
@@ -48,8 +48,8 @@ FINDING_KINDS = (
     FindingKind(AMBIGUOUS, "Feld kommt im Übertragungsprotokoll mehrfach vor"),
     FindingKind(UNKNOWN_ELSTER_ID, "E-Kennung unbekannt, nicht abgleichbar"),
     FindingKind(SNAPSHOT_DEVIATION, "Abweichung zum Schnappschuss"),
-    FindingKind(ASSESSMENT_DEVIATION, "Bescheid weicht vom Schnappschuss der Abgabe ab"),
-    FindingKind(ASSESSMENT_NO_SNAPSHOT, "Kein Schnappschuss zum Abgleich mit dem Bescheid"),
+    FindingKind(ASSESSMENT_DEVIATION, "EStB weicht vom Schnappschuss der Abgabe ab"),
+    FindingKind(ASSESSMENT_NO_SNAPSHOT, "Kein Schnappschuss zum Abgleich mit dem EStB"),
 )
 
 
@@ -212,7 +212,7 @@ def snapshot_findings(
 def assessment_amounts(
     state: ModuleState, document: Document, fields: Sequence[FormField]
 ) -> dict[ValueKey, Decimal]:
-    """Der Betrag laut Bescheid je Feld, dessen Positionen alle bestätigt sind.
+    """Der Betrag laut EStB je Feld, dessen Positionen alle bestätigt sind.
 
     Ein Feld mit mehreren Positionen bekommt ihre Summe; eine bestätigte leere Position zählt 0,
     ein gedrucktes Minus nicht (Abzüge stehen mit Minus; Positionen mit Vorzeichen sind noch nicht
@@ -235,7 +235,7 @@ def current_assessment(
     state: ModuleState, year: int, fields: Sequence[FormField]
 ) -> tuple[Document, dict[ValueKey, Decimal]] | None:
     """Der neueste EStB des Jahrs, zu dem schon Positionen bestätigt sind, mit
-    den Beträgen je Feld. Ein neu aufgenommener, noch unbestätigter Bescheid verdrängt den
+    den Beträgen je Feld. Ein neu aufgenommener, noch unbestätigter EStB verdrängt den
     bestätigten nicht."""
     found = [
         d
@@ -260,7 +260,7 @@ def _frozen_amount(snapshot: Snapshot, field: FormField, year: int) -> Decimal |
 
 
 def assessment_findings(state: ModuleState, year: int, forms: Forms = FORMS) -> list[Finding]:
-    """Befunde des Bescheid-Abgleichs: je Feld, das der Bescheid anders ansetzt als der
+    """Befunde des EStB-Abgleichs: je Feld, das der EStB anders ansetzt als der
     Schnappschuss der Abgabe. Ohne Schnappschuss gibt es keinen Abgleich, nur einen Hinweis."""
     fields = forms.get(year)
     current = None if fields is None else current_assessment(state, year, fields)
@@ -310,7 +310,7 @@ def module_findings(
     state: ModuleState, values: ValueSource, year: int, forms: Forms = FORMS
 ) -> list[Finding]:
     """Alle Befunde des Steuerjahrs: Abgleich mit dem Protokoll, Abweichung zum Schnappschuss und
-    Abgleich des Bescheids mit dem Schnappschuss."""
+    Abgleich des EStB mit dem Schnappschuss."""
     return [
         *protocol_findings(state, values, year, forms),
         *snapshot_findings(state, values, year, forms),
