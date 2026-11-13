@@ -12,7 +12,7 @@ MIN_DENYLIST_LENGTH = 6  # kürzere Werte und Teile fängt die Sperrliste nicht 
 
 
 def issuer_url(issuer_id: str) -> str:
-    return f"/aussteller/{issuer_id}"  # die Seite folgt mit #67, Slice 3
+    return f"/aussteller/{issuer_id}"
 
 
 class Issuer(Entry):
