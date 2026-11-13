@@ -13,7 +13,7 @@
     <label>Art
       <select name="art">
         <option value="">alle</option>
-        <option value="{{ none }}"{% if filters.art == none %} selected{% endif %}>ohne Art</option>
+        <option value="{{ none }}"{% if filters.art == none %} selected{% endif %}>Beleg</option>
         {% for kind in kinds %}<option value="{{ kind.key }}"{% if filters.art == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
       </select>
     </label>

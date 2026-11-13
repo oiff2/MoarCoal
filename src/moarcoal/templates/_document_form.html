@@ -9,7 +9,7 @@
   {{ issuer_field(default=document.issuer.id if document.issuer else "", text=issuer_text) }}
   <label>Dokumentart
     <select name="kind"{% if locked %} disabled{% endif %}>
-      <option value="" data-ohne-zeitraum{% if not document.document_kind %} selected{% endif %}>ohne Art</option>
+      <option value="" data-ohne-zeitraum{% if not document.document_kind %} selected{% endif %}>Beleg</option>
       {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if document.document_kind == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
     </select>
   </label>

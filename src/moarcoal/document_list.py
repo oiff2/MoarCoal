@@ -20,7 +20,7 @@ from moarcoal.web import document_kinds, render, store_of, user_of
 router = APIRouter(prefix="/belege/dokumente")
 
 NONE = "none"
-"""Filterwert für „ohne Art“ und „ohne Aussteller“."""
+"""Filterwert für „Beleg“ (ohne Art) und „ohne Aussteller“."""
 
 REFERENCE_LABELS = {
     "Proposal": "Vorschlag",
@@ -33,9 +33,9 @@ REFERENCE_LABELS = {
 
 def document_state(state: State, document: Document) -> str:
     """„zu bestätigen“ (der neueste Vorschlag hat offene Felder), „fertig“ oder, ohne Art,
-    „ohne Art“ (neutral)."""
+    „Beleg“ (neutral)."""
     if not document.document_kind:
-        return "ohne Art"
+        return "Beleg"
     proposals = proposals_of(state, document)
     return "zu bestätigen" if proposals and proposals[-1].open_keys else "fertig"
 

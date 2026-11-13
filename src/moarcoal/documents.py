@@ -103,12 +103,13 @@ def take_in(
     issuer_changes: Sequence[Change] = (),
 ) -> TakenIn | IntakeRejected:
     """Datei am Ablageort aufnehmen. `year` gilt als Bezugszeitraum, wenn die Art einen hat.
+    Eine leere `kind_key` nimmt ein Dokument ohne Dokumentart auf (Beleg, ohne Bezugszeitraum).
 
     `values_on` bildet `Values` auf einem Stand; die Ergänzung der Dokumentart braucht es.
     `issuer` ist der freiwillige Aussteller; `issuer_changes` (neuer Aussteller, neuer Alias)
     werden im selben Vorgang geschrieben, bei Abweisung bleibt nichts davon stehen.
     """
-    kind = kinds[kind_key]  # unbekannte Art ist ein Programmfehler
+    kind = kinds[kind_key] if kind_key else None  # leer = Beleg; unbekannte Art: Programmfehler
     if (problem := _year_problem(year)) is not None:
         return IntakeRejected((problem,))
     try:
@@ -125,7 +126,7 @@ def take_in(
             site=site,
             path=path,
             sha256=sha256,
-            document_kind=kind.key,
+            document_kind=kind.key if kind else None,
             issuer=issuer,
             period_start=start,
             period_end=end,
@@ -134,12 +135,12 @@ def take_in(
     except ValidationError:
         return IntakeRejected(("Ablageort und Pfad müssen angegeben werden.",))
     try:
-        entries = tuple(kind.read_in(document, content))
+        entries = tuple(kind.read_in(document, content)) if kind else ()
     except ReadInError as error:
         return IntakeRejected((str(error),))
     taken = [document, *entries]
     changes: list[Change] = [*issuer_changes, *(Put(entry) for entry in taken)]
-    if kind.after_take_in is not None:
+    if kind is not None and kind.after_take_in is not None:
         if values_on is None:
             raise ValueError(f"{kind.key}: die Ergänzung beim Aufnehmen braucht `values_on`")
         provisional = State({**store.state().entries, **{e.address: e for e in taken}})
@@ -176,7 +177,7 @@ def change_document(
 ) -> Applied | IntakeRejected:
     """Ändert das Dokument: der Aussteller immer, Art und Jahr nur, solange nichts daran hängt.
 
-    `kind_key` (leer = ohne Art) und `year` sind nur beim Ändern von Art oder Jahr angegeben;
+    `kind_key` (leer = Beleg) und `year` sind nur beim Ändern von Art oder Jahr angegeben;
     hängt etwas am Dokument, sind sie ein Fehler. Wechselt die Art, wird das Dokument nach ihrer
     Einlese-Regel neu eingelesen (die Ergänzung beim Aufnehmen läuft nicht).
     """

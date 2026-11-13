@@ -164,11 +164,12 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
         )
 
     kinds = document_kinds(request)
-    kind = kinds.get(fields.get("kind", ""))
-    if kind is None:
+    kind_key = fields.get("kind", "")
+    kind = kinds.get(kind_key)
+    if kind_key and kind is None:
         return rejected("Bitte eine Dokumentart wählen.")
     year = DEFAULT_YEAR
-    if kind.has_period:
+    if kind is not None and kind.has_period:
         try:
             year = int(fields.get("year", "").strip())
         except ValueError:
@@ -182,7 +183,7 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
         user_of(request),
         file.site,
         file.path,
-        kind.key,
+        kind_key,
         year,
         values_on=lambda state: values_on(request, state),
         issuer=chosen.address,
@@ -192,7 +193,7 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
         return rejected(*result.reasons)
     modules = request.app.state.modules
     target = next((url for e in result.entries if (url := entry_url(modules, e.address))), None)
-    if kind.extraction_template is not None:
+    if kind is not None and kind.extraction_template is not None:
         target = f"/dokumente/{result.document.id}"  # dort liest der Nutzer das Dokument aus
     elif following is not None:
         return following

@@ -43,6 +43,7 @@
     {{ issuer_field(default=suggestion.issuer.id if suggestion.issuer else "", text=form.get("issuer_text", ""), from_name=suggestion.issuer is not none) }}
     <label>Dokumentart{% if suggestion.kind %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %}
       <select name="kind">
+        <option value="" data-ohne-zeitraum{% if not form.get("kind", suggestion.kind) %} selected{% endif %}>Beleg</option>
         {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if form.get("kind", suggestion.kind) == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
       </select>
     </label>

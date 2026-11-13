@@ -10,11 +10,11 @@ from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
-from moarcoal.documents import DocumentKind
+from moarcoal.documents import DocumentKind, IntakeRejected, take_in
 from moarcoal.incoming import ablage_rows, ablage_tree, all_site_files, hide_file, incoming_files
 from moarcoal.modules.tax_year import REGISTRATION
 from moarcoal.registration import ModuleRegistration
-from moarcoal.storage import Applied, HiddenFile, SiteFileError, open_store
+from moarcoal.storage import Applied, Document, HiddenFile, SiteFileError, Store, open_store
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PORT = 4711
@@ -231,11 +231,47 @@ def test_rejection_stays_in_the_row_with_422(root: Path, site: Path) -> None:
     assert 'value="2024"' in response.text
     assert not (root / "users").exists()
     assert take(client, year="abc").status_code == 422
-    no_kind = client.post(
-        "/belege/aufnehmen", data={"sha256": SHA, "kind": "", "year": "2025"}, headers=ORIGIN
+    unknown = client.post(
+        "/belege/aufnehmen", data={"sha256": SHA, "kind": "gibt.es.nicht"}, headers=ORIGIN
     )
-    assert no_kind.status_code == 422
+    assert unknown.status_code == 422
     assert take(client, sha="0" * 64).status_code == 409
+
+
+def store_of(client: httpx.Client) -> Store:
+    return client.app.state.store  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType, reportUnknownVariableType]
+
+
+def documents_of(client: httpx.Client) -> list[Document]:
+    return list(store_of(client).state().of_kind(Document))
+
+
+def test_beleg_is_preselected_without_a_name_match_and_hides_the_year(
+    root: Path, site: Path
+) -> None:
+    (site / "quittung.txt").write_text("quittung", encoding="utf-8")
+    client = make_client(root, site)
+    sha = hashlib.sha256(b"quittung").hexdigest()
+    page = main_of(client, f"/belege?datei={sha}")
+    assert '<option value="" data-ohne-zeitraum selected>Beleg</option>' in page
+    assert "ohne Art" not in page
+
+
+def test_taking_in_as_beleg_has_no_kind_and_no_period_and_checksum_still_counts(
+    root: Path, site: Path
+) -> None:
+    client = make_client(root, site)
+    data = {"sha256": SHA, "kind": "", "year": "2025"}
+    taken = client.post("/belege/aufnehmen", data=data, headers=ORIGIN)
+    assert taken.status_code == 303
+    (document,) = documents_of(client)
+    assert document.document_kind is None
+    assert (document.period_start, document.period_end) == (None, None)
+    (site / "kopie.html").write_bytes(FIXTURE.read_bytes())
+    again = take_in(store_of(client), {}, "anna", "Belege", "kopie.html", "", 2025)
+    assert isinstance(again, IntakeRejected)
+    assert again.reasons == ("Diese Datei ist schon aufgenommen.",)
+    assert len(documents_of(client)) == 1
 
 
 def test_get_never_writes_and_post_needs_origin(root: Path, site: Path) -> None:

@@ -233,7 +233,7 @@ Was ein Modul für eine Dokumentart auslesen lassen will: Liste der Felder mit E
 _Avoid_: Prompt, Schema, Formular, Vorlage (allein, das sind die Jinja-Vorlagen der Oberfläche)
 
 **Beleg**:
-Ein Dokument, sofern es einen Betrag nachweist, auf den sich ein Einzelposten stützt oder (als Erwarteter Beleg) stützen soll; Beleg ist eine Rolle, kein Merkmal am Dokument, und nicht jedes Dokument ist einer.
+Ein Dokument, sofern es einen Betrag nachweist, auf den sich ein Einzelposten stützt oder (als Erwarteter Beleg) stützen soll; Beleg ist eine Rolle, kein Merkmal am Dokument, und nicht jedes Dokument ist einer. Auf der Belege-Seite nimmt man Belege auf: alles, was dort aufgenommen wird, ist ein Beleg, und die Auswahl „Beleg“ meint ein Dokument ohne besondere Dokumentart (Übertragungsprotokoll und EStB sind Spezialfälle davon).
 _Avoid_: Quittung, Nachweis
 
 **Erwarteter Beleg**:
@@ -241,7 +241,7 @@ Ein Beleg, der regelmäßig oder einmalig kommen soll, z. B. jährlich die Zinsb
 _Avoid_: Checkliste, Erwartung (allein), offener Beleg, Platzhalter
 
 **Dokumentart**:
-Was für ein Dokument es ist (z. B. Zinsbescheinigung, Grundsteuerbescheid, Darlehensvertrag); Module melden ihre Dokumentarten an, aber nur, wo sie etwas damit tun (einlesen, auslesen, Bezugszeitraum, Erwarteter Beleg); die Datenebene führt keine konkrete. Ein Dokument ohne Dokumentart ist ein normaler Beleg. Jedes Dokument hat höchstens eine. Die Dokumentart legt fest, ob ihre Dokumente einen **Bezugszeitraum** haben, den Zeitraum, für den das Dokument gilt (z. B. Zinsbescheinigung 2025, ausgestellt 2026); andere gelten ohne zeitliche Grenze (z. B. Darlehensvertrag). Hat die Dokumentart eine Einlese-Regel, wird das Dokument beim Aufnehmen eingelesen (Code: `DocumentKind`).
+Was für ein Dokument es ist (z. B. Zinsbescheinigung, Grundsteuerbescheid, Darlehensvertrag); Module melden ihre Dokumentarten an, aber nur, wo sie etwas damit tun (einlesen, auslesen, Bezugszeitraum, Erwarteter Beleg); die Datenebene führt keine konkrete. Ein Dokument ohne Dokumentart heißt in der Oberfläche „Beleg“; es hat keinen Bezugszeitraum und wird nicht eingelesen oder ausgelesen. Jedes Dokument hat höchstens eine. Die Dokumentart legt fest, ob ihre Dokumente einen **Bezugszeitraum** haben, den Zeitraum, für den das Dokument gilt (z. B. Zinsbescheinigung 2025, ausgestellt 2026); andere gelten ohne zeitliche Grenze (z. B. Darlehensvertrag). Hat die Dokumentart eine Einlese-Regel, wird das Dokument beim Aufnehmen eingelesen (Code: `DocumentKind`).
 _Avoid_: Belegtyp, Dokumenttyp, Kategorie
 
 **Beschaffungsweg**:

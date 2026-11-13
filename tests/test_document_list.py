@@ -155,7 +155,7 @@ def test_document_without_kind_is_neutral(two: httpx.Client) -> None:
     bescheid = doc(two, "bescheid.txt")
     assert change(two, bescheid, kind="", issuer_choice="").status_code == 303
     page = main_of(two, "/belege/dokumente")
-    assert '<span class="stand">ohne Art</span>' in page
+    assert '<span class="stand">Beleg</span>' in page
     after = doc(two, "bescheid.txt")
     assert after.document_kind is None and after.period_start is None
     assert "bescheid.txt" in main_of(two, "/belege/dokumente?art=none")
