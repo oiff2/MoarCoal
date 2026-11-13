@@ -1,0 +1,15 @@
+{% from "proto/_bits.html" import year_select, user_box, theme_btn, counts %}
+<div class="shell">
+  <aside class="side">
+    <a class="logo" href="/">MoarCoal</a>
+    <div class="grp">Bereiche</div>
+    {% for url, label, icon, n in nav[1:3] %}<a href="{{ url }}" data-key="{{ loop.index }}"><i>{{ icon }}</i>{{ label }}</a>{% endfor %}
+    <div class="grp">Allgemein</div>
+    {% for url, label, icon, n in nav[3:] %}<a href="{{ url }}" data-key="{{ loop.index + 2 }}"><i>{{ icon }}</i>{{ label }}{% if n %}<b>{{ n }}</b>{% endif %}</a>{% endfor %}
+    <div class="foot">{{ user_box() }}{{ theme_btn() }}</div>
+  </aside>
+  <div class="col">
+    <div class="top">{{ year_select() }}<span class="grow"></span>{{ counts() }}</div>
+    <main>{{ content }}</main>
+  </div>
+</div>

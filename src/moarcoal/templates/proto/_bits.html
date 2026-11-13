@@ -1,0 +1,14 @@
+{% macro year_select() %}<label class="jahrwahl">Jahr <select><option>2025</option><option>2024</option></select></label>{% endmacro %}
+{% macro user_box() %}<span class="nutzer">● {{ user_name }}<select class="wechsel"><option>wechseln …</option><option>Partner</option></select></span>{% endmacro %}
+{% macro theme_btn() %}<button class="theme" title="Hell/Dunkel (t)">◐</button>{% endmacro %}
+{% macro counts() %}<span class="sev sev-error" title="Fehler">✖ 1</span><span class="sev sev-warning" title="Warnungen">▲ 2</span><span class="sev sev-info" title="Hinweise">● 2</span>{% endmacro %}
+{% macro findings_panel() %}
+<h3>Befunde 2025</h3>
+<ul class="pf">
+  <li class="sev-error"><strong>Fehler</strong> Anlage N: Bruttolohn noch nicht berechenbar (Lohnsteuerbescheinigung fehlt)</li>
+  <li class="sev-warning"><strong>Warnung</strong> Beleg ausstehend: Fahrkarte Beispiel-Verkehrsbetriebe</li>
+  <li class="sev-warning"><strong>Warnung</strong> Abweichung zum Protokoll: Zeile 31</li>
+  <li class="sev-info"><strong>Hinweis</strong> 4 neue Dateien im Eingang</li>
+  <li class="sev-info"><strong>Hinweis</strong> Vertrag Beispiel-Strom läuft aus</li>
+</ul>
+{% endmacro %}

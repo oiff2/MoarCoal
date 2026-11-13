@@ -1,28 +1,20 @@
+{#- PROTOTYP globale Aufteilung (#62): drei Rahmen, per ?variant=A|B|C. Wegwerf, nicht nach main. -#}
 <!doctype html>
-<html lang="de">
+<html lang="de" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="htmx-config" content='{"includeIndicatorStyles": false}'>
   <title>{% block title %}MoarCoal{% endblock %}</title>
   <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/proto.css">
   <script src="/static/htmx.min.js"></script>
+  <script src="/static/proto.js" defer></script>
 </head>
-<body>
-  <header>
-    <nav>
-      <a href="/">MoarCoal</a>
-      {% for module in modules %}
-      <a href="{{ module.nav_url }}">{{ module.nav_label }}</a>
-      {% endfor %}
-      <a href="/eingang">Eingang</a>
-      <a href="/erwartete-belege">Erwartete Belege</a>
-      <a href="/befunde">Befunde</a>
-      <span>{{ user_name }}</span>
-    </nav>
-  </header>
-  <main>
-    {% block main %}{% endblock %}
-  </main>
+<body class="v-{{ variant }}">
+{% set content %}{% block main %}{% endblock %}{% endset %}
+{% set nav = [("/", "Start", "⌂", ""), ("/steuerjahr", "Steuerjahr", "§", "2"), ("/arbeit", "Arbeit", "⚒", ""), ("/eingang", "Eingang", "⇩", "4"), ("/erwartete-belege", "Belege", "▤", "7"), ("/befunde", "Befunde", "!", "5")] %}
+{% include "proto/shell_" ~ variant ~ ".html" %}
+<nav class="proto-switch"><button data-dir="-1">←</button><span>{{ {"A": "A · Seitenleiste", "B": "B · Kopfleiste + Statuszeile", "C": "C · Schiene + Befundspalte"}[variant] }}</span><button data-dir="1">→</button></nav>
 </body>
 </html>

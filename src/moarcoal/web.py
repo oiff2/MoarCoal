@@ -72,6 +72,7 @@ def render(request: Request, name: str, status_code: int = 200, **context: Any) 
     return templates.TemplateResponse(
         request,
         name,
-        {"modules": registrations, "user_name": request.app.state.user_name, **context},
+        {"modules": registrations, "user_name": request.app.state.user_name,
+         "variant": request.query_params.get("variant", "A"), **context},
         status_code=status_code,
     )

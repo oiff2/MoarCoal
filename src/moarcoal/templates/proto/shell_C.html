@@ -1,0 +1,12 @@
+{% from "proto/_bits.html" import year_select, user_box, theme_btn, counts, findings_panel %}
+<div class="shell">
+  <aside class="rail">
+    <a class="logo" href="/">MC</a>
+    {% for url, label, icon, n in nav[1:] %}<a href="{{ url }}" data-key="{{ loop.index }}" title="{{ label }} ({{ loop.index }})"><i>{{ icon }}</i><small>{{ label }}</small>{% if n %}<b>{{ n }}</b>{% endif %}</a>{% endfor %}
+    <div class="foot">{{ theme_btn() }}<span class="nutzer" title="{{ user_name }}">●</span></div>
+  </aside>
+  <div class="col">
+    <div class="top"><span class="crumb">Jahr 2025</span>{{ year_select() }}<span class="grow"></span>{{ counts() }}<button class="bpanel-btn" title="Befunde (b)">Befunde ▸</button></div>
+    <div class="body"><main>{{ content }}</main><aside class="bpanel">{{ findings_panel() }}</aside></div>
+  </div>
+</div>

@@ -1,0 +1,48 @@
+/* PROTOTYP #62, Wegwerf */
+:root{--bg:#14171c;--panel:#1b1f26;--line:#2e343d;--fg:#d9dde3;--mute:#8b94a1;--acc:#5aa2ff;--err:#ff6b6b;--warn:#f2a93b;--info:#6bb8ff}
+html[data-theme=light]{--bg:#f6f7f9;--panel:#fff;--line:#d5d9df;--fg:#1d2127;--mute:#667080;--acc:#1f6fe0;--err:#c92a2a;--warn:#b86e00;--info:#1c6fb8}
+html{color-scheme:dark}html[data-theme=light]{color-scheme:light}
+body{background:var(--bg);color:var(--fg);height:100vh;overflow:hidden;font-size:15px}
+a{color:var(--acc)}
+.shell{height:100vh;display:flex}
+main{padding:1rem 1.5rem;overflow:auto;flex:1;min-height:0}
+th,td,header nav{border-color:var(--line)}
+.grow{flex:1}
+.sev{margin-left:.75rem;font-size:.9em}.sev-error{color:var(--err)}.sev-warning{color:var(--warn)}.sev-info{color:var(--info)}
+.col{flex:1;display:flex;flex-direction:column;min-width:0}
+.top{display:flex;align-items:center;gap:.75rem;padding:.4rem 1rem;border-bottom:1px solid var(--line);background:var(--panel)}
+select,button{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:.15rem .4rem}
+.logo{font-weight:700;color:var(--fg);text-decoration:none}
+.foot{margin-top:auto;display:flex;gap:.5rem;align-items:center}
+.nutzer{display:inline-flex;gap:.4rem;align-items:center;color:var(--mute)}
+/* A */
+.side{width:13rem;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:.75rem .5rem;gap:.15rem}
+.side a:not(.logo){display:flex;align-items:center;gap:.6rem;padding:.4rem .6rem;border-radius:5px;color:var(--fg);text-decoration:none}
+.side a:not(.logo):hover{background:var(--bg)}
+.side i{width:1.2rem;text-align:center;color:var(--mute);font-style:normal}
+.side b,.rail b{margin-left:auto;background:var(--acc);color:#fff;border-radius:9px;padding:0 .45rem;font-size:.75em}
+.grp{margin:.9rem .6rem .2rem;color:var(--mute);font-size:.75em;text-transform:uppercase;letter-spacing:.06em}
+.side .logo{padding:.2rem .6rem .5rem;font-size:1.1em}
+/* B */
+.v-B .shell{flex-direction:column}
+.tabs{display:flex;align-items:center;gap:.25rem;padding:.35rem 1rem;background:var(--panel);border-bottom:1px solid var(--line)}
+.tabs a:not(.logo){padding:.3rem .8rem;border-radius:5px;color:var(--fg);text-decoration:none}
+.tabs a:not(.logo):hover{background:var(--bg)}.tabs .logo{margin-right:1rem}.tabs>*+.jahrwahl{margin-left:.5rem}
+.status{display:flex;gap:1.25rem;align-items:center;padding:.3rem 1rem;background:var(--panel);border-top:1px solid var(--line);font-size:.85em;color:var(--mute)}
+.status a{color:var(--fg);text-decoration:none}
+/* C */
+.rail{width:4.5rem;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:stretch;padding:.5rem .25rem;gap:.2rem;text-align:center}
+.rail a:not(.logo){position:relative;display:flex;flex-direction:column;align-items:center;padding:.4rem 0;border-radius:6px;color:var(--fg);text-decoration:none}
+.rail a:hover{background:var(--bg)}.rail i{font-style:normal;font-size:1.25rem}.rail small{font-size:.65rem;color:var(--mute)}
+.rail b{position:absolute;top:.1rem;right:.3rem;margin:0}.rail .logo{padding:.3rem 0 .6rem}
+.rail .foot{flex-direction:column}
+.body{flex:1;display:flex;min-height:0}
+.bpanel{width:21rem;border-left:1px solid var(--line);background:var(--panel);padding:.75rem 1rem;overflow:auto}
+.v-C.nopanel .bpanel{display:none}
+.pf{list-style:none;padding:0;margin:0}.pf li{padding:.5rem 0;border-bottom:1px solid var(--line);font-size:.9em}
+.pf strong{display:block;font-size:.75em;text-transform:uppercase}.pf .sev-error strong{color:var(--err)}.pf .sev-warning strong{color:var(--warn)}.pf .sev-info strong{color:var(--info)}
+.v-A .bpanel-btn,.v-B .bpanel-btn{display:none}
+/* Schalter */
+.proto-switch{position:fixed;bottom:.6rem;left:50%;transform:translateX(-50%);background:#fff;color:#000;border-radius:99px;box-shadow:0 2px 12px #0008;display:flex;gap:.6rem;align-items:center;padding:.25rem .6rem;z-index:9}
+.proto-switch button{background:#eee;color:#000;border-radius:99px}
+.on{background:var(--bg)!important;font-weight:600}
