@@ -41,6 +41,19 @@
 <p>Keine Erwarteten Belege.</p>
 {% endif %}
 
+{% if others %}
+<h2>Zusammenführen</h2>
+<p>Ein anderer Name desselben Ausstellers gehört normalerweise als weiterer Name dazu (siehe oben). Zusammenführen ist die Ausnahme, wenn derselbe Aussteller zweimal angelegt wurde.</p>
+<form method="get" action="/aussteller/{{ issuer.id }}/zusammenfuehren">
+  <label>Zusammenführen mit
+    <select name="into" required>
+      {% for other in others %}<option value="{{ other.id }}">{{ other.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit">Folgen ansehen</button>
+</form>
+{% endif %}
+
 <h2>Löschen</h2>
 {% if documents or expected %}
 <p>Der Aussteller wird noch verwendet (siehe oben) und lässt sich erst löschen, wenn nichts mehr auf ihn verweist.</p>

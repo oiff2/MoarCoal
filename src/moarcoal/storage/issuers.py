@@ -25,6 +25,7 @@ class Issuer(Entry):
     name: str = Field(min_length=1)
     aliases: tuple[str, ...] = ()
     private_person: bool = False
+    merged_ids: tuple[str, ...] = ()  # Kennungen zusammengeführter Aussteller, lösen auf diesen auf
 
     @field_validator("name")
     @classmethod

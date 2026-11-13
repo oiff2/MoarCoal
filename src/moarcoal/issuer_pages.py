@@ -1,6 +1,7 @@
-"""Seite „Aussteller“: Katalog mit Suche, Detail mit Ändern und Löschen (docs/grundgeruest.md, 3.2).
+"""Seite „Aussteller“: Katalog mit Suche, Detail mit Ändern, Zusammenführen, Löschen (Spec 3.2).
 
-Gelöscht wird nur ohne Verweise; sonst zeigt die Seite die Verweise des Nutzers.
+Gelöscht wird nur ohne Verweise; sonst zeigt die Seite die Verweise des Nutzers. Zusammenführen
+läuft über eine Folgenseite und eine ausdrückliche Bestätigung; die App schlägt es nie vor.
 """
 
 from typing import Annotated
@@ -16,6 +17,7 @@ from moarcoal.storage import (
     EntryAddress,
     ExpectedDocument,
     Issuer,
+    Merge,
     Put,
     Rejected,
     State,
@@ -90,12 +92,17 @@ def _detail(
     errors: list[str] | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
-    documents, expected = _references(store_of(request).state(), issuer, user_of(request))
+    state = store_of(request).state()
+    documents, expected = _references(state, issuer, user_of(request))
     return render(
         request,
         "issuers/show.html",
         status_code,
         issuer=issuer,
+        others=sorted(
+            (i for i in state.of_kind(Issuer) if i.id != issuer.id),
+            key=lambda i: (i.name.casefold(), i.id),
+        ),
         checksum=entry_checksum(issuer),
         values=fields
         or {
@@ -126,9 +133,84 @@ def index(request: Request, q: str = "") -> HTMLResponse:
     return render(request, "issuers/index.html", rows=rows, query=query)
 
 
-@router.get("/{issuer_id}", response_class=HTMLResponse)
-def show(request: Request, issuer_id: str) -> HTMLResponse:
+@router.get("/{issuer_id}", response_class=Response)
+def show(request: Request, issuer_id: str) -> Response:
+    try:
+        address = EntryAddress(kind=Issuer.__name__, id=issuer_id)
+    except ValueError as error:
+        raise HTTPException(404) from error
+    found = store_of(request).state().resolve(address)
+    if isinstance(found, Issuer) and found.id != issuer_id:  # zusammengeführt: alte Adresse
+        return RedirectResponse(found.url, status_code=308)
     return _detail(request, _issuer(request, issuer_id))
+
+
+def _merge_page(
+    request: Request,
+    source: Issuer,
+    target: Issuer | None,
+    errors: list[str] | None = None,
+    status_code: int = 200,
+) -> HTMLResponse:
+    state = store_of(request).state()
+    user = user_of(request)
+    documents, expected = _references(state, source, user)
+    return render(
+        request,
+        "issuers/merge.html",
+        status_code,
+        source=source,
+        target=target,
+        checksum=entry_checksum(source),
+        target_checksum=entry_checksum(target) if target else "",
+        documents=documents,
+        expected=expected,
+        errors=errors or [],
+    )
+
+
+def _target(request: Request, source: Issuer, issuer_id: str) -> Issuer | None:
+    try:
+        address = EntryAddress(kind=Issuer.__name__, id=issuer_id)
+    except ValueError:
+        return None
+    target = store_of(request).state().get(address)
+    return target if isinstance(target, Issuer) and target.id != source.id else None
+
+
+@router.get("/{issuer_id}/zusammenfuehren", response_class=HTMLResponse)
+def merge_preview(request: Request, issuer_id: str, into: str = "") -> HTMLResponse:
+    """Folgenseite: ändert nichts, zeigt nur, was das Zusammenführen bewirkt."""
+    source = _issuer(request, issuer_id)
+    target = _target(request, source, into)
+    if target is None:
+        raise HTTPException(404)
+    return _merge_page(request, source, target)
+
+
+@router.post("/{issuer_id}/zusammenfuehren")
+def merge(
+    request: Request, issuer_id: str, fields: Annotated[Fields, Depends(form_fields)]
+) -> Response:
+    source = _issuer(request, issuer_id)
+    target = _target(request, source, fields.get("into", ""))
+    if target is None:
+        raise HTTPException(404)
+    if fields.get("confirm") != "on":
+        return _merge_page(request, source, target, ["Bitte das Zusammenführen bestätigen."], 422)
+    result = store_of(request).apply(
+        [
+            Merge(
+                source.address,
+                target.address,
+                expected=fields.get("checksum", ""),
+                expected_into=fields.get("target_checksum", ""),
+            )
+        ]
+    )
+    if not isinstance(result, Applied):
+        return _merge_page(request, source, target, _reasons(result), 409)
+    return RedirectResponse(target.url, status_code=303)
 
 
 @router.post("/{issuer_id}")

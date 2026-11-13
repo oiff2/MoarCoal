@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Zusammenführen – MoarCoal{% endblock %}
+{% block main %}
+<h1>{{ source.name }} zusammenführen mit {{ target.name }}</h1>
+<p><a href="/aussteller/{{ source.id }}">Zurück zu {{ source.name }}</a></p>
+{% include "work/_errors.html" %}
+<h2>Folgen</h2>
+<ul>
+  <li>„{{ source.name }}“{% for alias in source.aliases %}, „{{ alias }}“{% endfor %} werden weitere Namen von „{{ target.name }}“.</li>
+  <li>Der Aussteller „{{ source.name }}“ entfällt; seine Adresse führt danach zu „{{ target.name }}“.</li>
+  {% if source.private_person and not target.private_person %}
+  <li>„{{ target.name }}“ gilt danach als Privatperson (Name und Anschrift sind sensibel).</li>
+  {% endif %}
+  <li>Alles, was auf „{{ source.name }}“ verweist, verweist danach auf „{{ target.name }}“.</li>
+</ul>
+
+<h2>Betroffene Dokumente ({{ documents | length }})</h2>
+{% if documents %}
+<ul>
+  {% for document in documents %}
+  <li><a href="/dokumente/{{ document.id }}">{{ document.site }}: {{ document.path }}</a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>Keine Dokumente.</p>
+{% endif %}
+
+<h2>Betroffene Erwartete Belege ({{ expected | length }})</h2>
+{% if expected %}
+<ul>
+  {% for entry in expected %}
+  <li><a href="/erwartete-belege/{{ entry.id }}">{{ entry.document_kind }}, ab {{ entry.start_year }}{% if entry.description %}: {{ entry.description }}{% endif %}</a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>Keine Erwarteten Belege.</p>
+{% endif %}
+
+<form method="post" action="/aussteller/{{ source.id }}/zusammenfuehren">
+  <input type="hidden" name="into" value="{{ target.id }}">
+  <input type="hidden" name="checksum" value="{{ checksum }}">
+  <input type="hidden" name="target_checksum" value="{{ target_checksum }}">
+  <label>
+    <input type="checkbox" name="confirm">
+    Ja, „{{ source.name }}“ mit „{{ target.name }}“ zusammenführen
+  </label>
+  <button type="submit">Zusammenführen</button>
+</form>
+{% endblock %}

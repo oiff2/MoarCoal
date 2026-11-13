@@ -13,7 +13,7 @@ import os
 import re
 import threading
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
@@ -33,7 +33,7 @@ from moarcoal.storage.entries import (
 )
 from moarcoal.storage.expected_documents import EXPECTED_DOCUMENT_KIND
 from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND
-from moarcoal.storage.issuers import ISSUER_KIND
+from moarcoal.storage.issuers import ISSUER_KIND, Issuer
 from moarcoal.storage.proposals import PROPOSAL_KIND
 from moarcoal.storage.snapshots import SNAPSHOT_KIND
 
@@ -89,7 +89,26 @@ class Delete:
         return self.target
 
 
-type Change = Put | Delete
+@dataclass(frozen=True)
+class Merge:
+    """Aussteller `source` in Aussteller `into` zusammenführen (bewusste Ausnahme).
+
+    Name und Aliasse der Quelle werden Aliasse des Ziels, die Kennung der Quelle verweist
+    danach auf das Ziel (`State.resolve`), Dokumente der Quelle verweisen auf das Ziel.
+    `expected` und `expected_into` sind die Prüfsummen der bekannten Fassungen.
+    """
+
+    source: EntryAddress
+    into: EntryAddress
+    expected: str
+    expected_into: str
+
+    @property
+    def address(self) -> EntryAddress:
+        return self.source
+
+
+type Change = Put | Delete | Merge
 
 
 @dataclass(frozen=True)
@@ -110,6 +129,13 @@ class State:
 
     def get(self, address: EntryAddress) -> Entry | None:
         return self.entries.get(address)
+
+    def resolve(self, address: EntryAddress) -> Entry | None:
+        """Wie `get`; die Adresse eines zusammengeführten Ausstellers liefert das Ziel."""
+        found = self.entries.get(address)
+        if found is not None or address.kind != Issuer.__name__:
+            return found
+        return next((i for i in self.of_kind(Issuer) if address.id in i.merged_ids), None)
 
     def of_kind[E: Entry](self, kind: type[E]) -> list[E]:
         return [e for e in self.entries.values() if type(e) is kind]
@@ -155,7 +181,7 @@ def _reference_problems(
     geschriebenen Dokument existiert."""
     problems: dict[EntryAddress, str] = {}
     deleted: set[EntryAddress] = set()
-    deleted.update(c.address for c in changes if isinstance(c, Delete))
+    deleted.update(c.address for c in changes if isinstance(c, Delete | Merge))
     if deleted:
         for entry in new_entries.values():
             for address in referenced_addresses(entry) & deleted:
@@ -409,6 +435,12 @@ class Store:
                         reasons[address] = "Inzwischen geändert."
                         continue
                     del new_entries[address]
+                case Merge(into=into):
+                    reason = self._merge(change, state, new_entries, touch)
+                    if reason is not None:
+                        reasons[address] = reason
+                        continue
+                    seen.add(into)
             if current is not None:
                 touch(self._path_of(current), address)
         if not reasons:
@@ -423,6 +455,41 @@ class Store:
         self._write(plan)
         self._state = State(MappingProxyType(new_entries))
         return Applied(changes)
+
+    def _merge(
+        self,
+        change: Merge,
+        state: State,
+        new_entries: dict[EntryAddress, Entry],
+        touch: Callable[[str, EntryAddress], None],
+    ) -> str | None:
+        source, target = state.get(change.source), state.get(change.into)
+        if not isinstance(source, Issuer) or not isinstance(target, Issuer):
+            return "Zusammenführen geht nur zwischen zwei Ausstellern."
+        if source.address == target.address:
+            return "Ein Aussteller lässt sich nicht mit sich selbst zusammenführen."
+        if (
+            entry_checksum(source) != change.expected
+            or entry_checksum(target) != change.expected_into
+        ):
+            return "Inzwischen geändert."
+        known = {n.casefold() for n in (target.name, *target.aliases)}
+        added = [n for n in (source.name, *source.aliases) if n.casefold() not in known]
+        merged = target.model_copy(
+            update={
+                "aliases": (*target.aliases, *dict.fromkeys(added)),
+                "merged_ids": (*target.merged_ids, source.id, *source.merged_ids),
+                "private_person": target.private_person or source.private_person,
+            }
+        )
+        new_entries[merged.address] = merged
+        touch(self._path_of(merged), merged.address)
+        del new_entries[source.address]
+        for address, entry in list(new_entries.items()):
+            if isinstance(entry, Document) and entry.issuer == source.address:
+                new_entries[address] = entry.model_copy(update={"issuer": target.address})
+                touch(self._path_of(entry), address)
+        return None
 
     def _check_put(self, entry: Entry, expected: str | None, current: Entry | None) -> str | None:
         cls = type(entry)
