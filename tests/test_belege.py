@@ -165,7 +165,8 @@ def hide(client: httpx.Client, note: str = "") -> None:
 
 
 def checksum_in(client: httpx.Client) -> str:
-    return client.get("/belege").text.split('name="checksum" value="')[1].split('"')[0]
+    page = client.get(f"/belege?datei={SHA}").text
+    return page.split('name="checksum" value="')[1].split('"')[0]
 
 
 def test_hidden_section_shows_and_showing_brings_the_file_back_for_all(
@@ -175,7 +176,9 @@ def test_hidden_section_shows_and_showing_brings_the_file_back_for_all(
     assert "Ausgeblendet" not in anna.get("/belege").text
     hide(anna, "Muster <b>")
     page = anna.get("/belege").text
-    assert "Ausgeblendet" in page and "Muster &lt;b&gt;" in page and "Muster <b>" not in page
+    assert "Ausgeblendet" in page and "Muster &lt;b&gt;" not in page  # Notiz erst bei Auswahl
+    chosen = anna.get(f"/belege?datei={SHA}").text
+    assert "Muster &lt;b&gt;" in chosen and "Muster <b>" not in chosen
     ben = make_client(root, site, "ben")
     take(ben)  # Ben hat sie aufgenommen
     data = {"sha256": SHA, "checksum": checksum_in(anna)}
@@ -472,3 +475,32 @@ def test_second_protocol_for_the_same_year_is_rejected_with_a_link_to_the_existi
     assert "Existiert bereits: Übertragungsprotokoll 2025" in response.text
     existing = next(iter(open_store(root, [*REGISTRATION.kinds]).state().of_kind(Document)))
     assert f'href="/dokumente/{existing.id}"' in response.text
+
+
+def test_hidden_files_are_flat_clickable_rows_with_a_preview_and_the_note_in_the_head(
+    root: Path, site: Path
+) -> None:
+    client = make_client(root, site)
+    hide(client, "Muster-Notiz")
+    page = main_of(client, "/belege")
+    assert f'<a class="name" href="/belege?stand=offen&datei={SHA}">protokoll.html</a>' in page
+    assert "<table" not in page and 'stand">ausgeblendet<' in page
+    assert "Wieder einblenden" not in page  # erst nach Auswahl
+    chosen = main_of(client, f"/belege?datei={SHA}")
+    assert '<details class="ausgeblendet" open>' in chosen and 'aria-current="true"' in chosen
+    assert "Muster-Notiz" in chosen and "Wieder einblenden" in chosen
+    assert "Aufnehmen" not in chosen and "Ausblenden</button>" not in chosen
+    assert f'<iframe src="/belege/datei/{SHA}"' in chosen
+    assert 'class="zaehler"' not in chosen.split("Ausgeblendet (")[1].split("</details>")[0]
+
+
+def test_hidden_file_missing_in_the_site_has_no_preview_but_can_be_shown(
+    root: Path, site: Path
+) -> None:
+    client = make_client(root, site)
+    hide(client)
+    (site / "2025" / "protokoll.html").unlink()
+    chosen = main_of(client, f"/belege?datei={SHA}")
+    assert "Keine Vorschau." in chosen and "<iframe" not in chosen
+    assert "KB</span>" not in chosen.split("Ausgeblendet (")[1].split("</details>")[0]
+    assert "Wieder einblenden" in chosen

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_belege.html" import tabs, preview %}
-{% from "_document_form.html" import document_form %}
+{% from "documents/_detail.html" import document_detail %}
 {% block title %}Belege – Dokumente – MoarCoal{% endblock %}
 {% block main %}
 <h1>Belege</h1>
@@ -34,7 +34,6 @@
     <span class="stand">{{ states[doc.id] }}</span>
     <span class="art">{{ kind_titles.get(doc.document_kind, doc.document_kind or "") }}{% if doc.period_start %}, {{ doc.period_start.year }}{% endif %}</span>
     <span class="aussteller">{% if doc.issuer %}{{ issuer_names[doc.issuer.id] }}{% endif %}</span>
-    <a href="/dokumente/{{ doc.id }}">Dokument</a>
   </div>
   {% else %}
   <p>Keine Dokumente.</p>
@@ -44,7 +43,7 @@
   {% if selected %}
   <div class="formular">
     <p class="dateiname">{{ selected.site }}/{{ selected.path }}</p>
-    {{ document_form(selected, kinds, references, checksum, labels, default_year, "liste") }}
+    {{ document_detail(detail) }}
   </div>
   {{ preview(preview_kind, preview_url, selected.path) }}
   {% else %}<p>Dokument wählen (Pfeiltasten, Enter).</p>{% endif %}

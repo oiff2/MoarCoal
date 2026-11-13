@@ -83,10 +83,15 @@ class Setup:
         return self.app.state.store
 
     def take_in(self, kind: str = "notice") -> str:
+        """Nimmt auf; gibt bei Art mit Vorlage die Adresse des Dokuments (`/dokumente/{id}`) zurück,
+        sonst den Ort der Weiterleitung."""
         data = {"sha256": SHA, "kind": kind, "year": "2025"}
         response = self.client.post("/belege/aufnehmen", data=data, headers=ORIGIN)
         assert response.status_code == 303
-        return response.headers["location"]
+        location = response.headers["location"]
+        if location.startswith("/belege/dokumente?dokument="):
+            return f"/dokumente/{location.removeprefix('/belege/dokumente?dokument=')}"
+        return location
 
     def post(self, url: str, **data: str) -> httpx.Response:
         return self.client.post(url, data=data, headers=ORIGIN)
@@ -134,14 +139,21 @@ def test_template_rejects_duplicate_keys() -> None:
 # --- Auslesen ----------------------------------------------------------------------------------
 
 
-def test_take_in_leads_to_the_document_page_and_get_writes_nothing(tmp_path: Path) -> None:
+def test_take_in_leads_to_the_documents_tab_and_get_writes_nothing(tmp_path: Path) -> None:
     setup = make(tmp_path)
-    location = setup.take_in()
-    assert location == f"/dokumente/{setup.document().id}"
+    data = {"sha256": SHA, "kind": "notice", "year": "2025"}
+    response = setup.client.post("/belege/aufnehmen", data=data, headers=ORIGIN)
+    tab = f"/belege/dokumente?dokument={setup.document().id}"
+    assert response.headers["location"] == tab
+    location = tab
     before = setup.store.state().entries
     page = setup.client.get(location)
     assert page.status_code == 200
     assert "Auslesen" in page.text
+    assert (
+        f"/dokumente/{setup.document().id}/auslesen" in page.text
+    )  # Kopf rechts, Vorschau darunter
+    assert "Dokument</a>" not in page.text
     assert setup.store.state().entries == before
     assert setup.fake.calls == []
 
@@ -534,3 +546,25 @@ def test_failed_recording_of_the_abort_is_said_on_the_page(
     assert response.status_code == 409
     assert "Claude meldet Werkzeuge." in response.text
     assert "nicht festgehalten" in response.text
+
+
+def test_extract_and_confirm_redirect_into_the_documents_tab(tmp_path: Path) -> None:
+    setup = make(tmp_path, answer())
+    location = setup.take_in()
+    tab = f"/belege/dokumente?dokument={setup.document().id}"
+    assert setup.post(f"{location}/auslesen").headers["location"] == tab
+    assert setup.post(f"{location}/bestaetigen", all="1").headers["location"] == tab
+    page = setup.client.get(tab).text  # Kopf und Vorschau im selben Reiter, ohne Link „Dokument“
+    assert "Alle Felder sind bestätigt." in page and "Seite 1, Zeile 4" in page
+    assert '<ul class="vorschlag">' in page and 'class="vorschau"' in page
+    assert "<table" not in page
+
+
+def test_taken_in_file_shows_the_document_head_in_the_ablage_tab(tmp_path: Path) -> None:
+    setup = make(tmp_path, answer())
+    setup.take_in()
+    page = setup.client.get(f"/belege?stand=alle&datei={SHA}").text
+    assert f"/dokumente/{setup.document().id}/auslesen" in page
+    assert f"/dokumente/{setup.document().id}/aendern" in page
+    assert 'class="vorschau"' in page
+    assert f'href="/dokumente/{setup.document().id}">Dokument</a>' not in page

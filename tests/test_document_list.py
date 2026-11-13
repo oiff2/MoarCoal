@@ -169,6 +169,8 @@ def test_detail_shows_form_with_preview_and_locks_when_something_hangs(
     assert "gesperrt" in locked and "Einlesung" in locked
     assert 'name="kind" disabled' in locked and "Dokument löschen" not in locked
     assert f"/dokumente/{protocol.id}/datei" in locked
+    assert f'href="/dokumente/{protocol.id}">Dokument</a>' not in locked  # kein Link je Zeile
+    assert "<h2>Aussteller</h2>" in locked  # der Kopf von /dokumente/{id}, im Reiter
     free = main_of(two, f"/belege/dokumente?dokument={bescheid.id}")
     assert "gesperrt" not in free and "disabled" not in free and "Dokument löschen" in free
 
@@ -179,7 +181,7 @@ def test_detail_shows_form_with_preview_and_locks_when_something_hangs(
 def test_issuer_changes_even_while_locked_and_keeps_kind_and_year(two: httpx.Client) -> None:
     protocol = doc(two, "protokoll.html")
     werke = add_issuer(two, "Stadtwerke Beispielstadt")
-    response = change(two, protocol, issuer_choice=f"id:{werke.id}", **{"from": "liste"})
+    response = change(two, protocol, issuer_choice=f"id:{werke.id}")
     assert response.status_code == 303
     assert response.headers["location"] == f"/belege/dokumente?dokument={protocol.id}"
     after = doc(two, "protokoll.html")

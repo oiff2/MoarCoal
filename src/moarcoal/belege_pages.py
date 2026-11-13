@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import DEFAULT_YEAR
+from moarcoal.document_list import document_detail
 from moarcoal.documents import IntakeRejected, take_in
 from moarcoal.expected_documents import expected_name, pending_for
 from moarcoal.incoming import (
@@ -63,12 +64,18 @@ def _page(
     selected: str = "",
     existing: Document | None = None,
 ) -> HTMLResponse:
-    """`selected` ist die SHA-256 der gewählten Datei; `errors` und `values` gehören zu ihr
-    (Formular rechts) und bleiben dort stehen."""
+    """`selected` ist die SHA-256 der gewählten Datei (der Ablage oder der Ausgeblendeten);
+    `errors` und `values` gehören zu ihr (Formular rechts) und bleiben dort stehen."""
     store = store_of(request)
     state = store.state()
     rows = ablage_rows(all_site_files(store), state, user_of(request))
     chosen = next((r for r in rows if r.file.sha256 == selected), None)
+    files = {f.sha256: f for f in all_site_files(store)}
+    hidden = [
+        (h, entry_checksum(h), files.get(h.sha256))
+        for h in hidden_section(hidden_files(state), rows)
+    ]
+    hidden_chosen = next((h for h in hidden if h[0].sha256 == selected), None)
     kinds = document_kinds(request)
     # Vorbelegen nur für eine offene Datei und nur, solange keine abgewiesene Eingabe dasteht
     suggestion = (
@@ -90,25 +97,32 @@ def _page(
                 suggestion.year,
             )
         ]
+    shown = chosen.file if chosen else hidden_chosen[0] if hidden_chosen else None
+    preview_url = ""
+    if chosen:
+        preview_url = (
+            f"/dokumente/{chosen.document.id}/datei"
+            if chosen.document
+            else f"/belege/datei/{chosen.file.sha256}"
+        )
+    elif hidden_chosen and hidden_chosen[2]:  # ohne Datei im Ablageort keine Vorschau
+        preview_url = f"/belege/datei/{hidden_chosen[0].sha256}"
     return render(
         request,
         "belege.html",
         status_code,
         tree=ablage_tree(rows, store.site_names(), stand),
         selected=chosen,
-        preview_kind=chosen and preview_kind(chosen.file.path),
-        preview_url=chosen
-        and (
-            f"/dokumente/{chosen.document.id}/datei"
-            if chosen.document
-            else f"/belege/datei/{chosen.file.sha256}"
-        ),
+        detail=document_detail(request, chosen.document) if chosen and chosen.document else None,
+        selected_hidden=hidden_chosen,
+        preview_kind=preview_kind(shown.path) if shown and preview_url else None,
+        preview_url=preview_url,
         suggestion=suggestion,
         would_fulfil=would_fulfil,
         stand=stand,
         stands=STANDS,
         kinds=list(kinds.values()),
-        hidden=[(h, entry_checksum(h)) for h in hidden_section(hidden_files(state), rows)],
+        hidden=hidden,
         sites=store.site_names(),
         issuer_names={i.id: i.name for i in state.of_kind(Issuer)},
         default_year=DEFAULT_YEAR,
@@ -197,7 +211,8 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
     modules = request.app.state.modules
     target = next((url for e in result.entries if (url := entry_url(modules, e.address))), None)
     if kind is not None and kind.extraction_template is not None:
-        target = f"/dokumente/{result.document.id}"  # dort liest der Nutzer das Dokument aus
+        # im Reiter Dokumente liest der Nutzer das Dokument aus
+        target = f"/belege/dokumente?dokument={result.document.id}"
     elif following is not None:
         return following
     return RedirectResponse(target or "/belege", status_code=303)

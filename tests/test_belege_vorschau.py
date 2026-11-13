@@ -173,11 +173,11 @@ def test_page_without_choice_has_no_form_and_taken_file_links_its_document(
     assert "Aufnehmen</button>" not in page
 
 
-def test_only_the_preview_scrolls() -> None:
+def test_head_and_preview_scroll_on_their_own() -> None:
     css = Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
-    assert ".formular { flex: none;" in css
+    assert ".formular { flex: 0 0 45%; overflow: auto; }" in css
     assert ".vorschau { flex: 1; min-height: 0; overflow: auto; }" in css
-    assert ".rechts { display: flex; flex-direction: column; min-height: 0; }" in css
+    assert "flex-direction: column; gap: 0.5rem; min-height: 0; }" in css
 
 
 def test_no_choice_is_unselected_without_multiple_selection(root: Path, site: Path) -> None:

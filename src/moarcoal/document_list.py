@@ -5,6 +5,7 @@ Löschen laufen über die Routen unter `/dokumente/{id}` (`document_pages.py`).
 """
 
 from collections.abc import Mapping
+from typing import Any
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Request
@@ -82,6 +83,32 @@ def filter_documents(
     return sorted(found, key=lambda d: (d.path, d.site, d.id))
 
 
+def document_detail(
+    request: Request, document: Document, issuer_text: str = "", year: str = ""
+) -> dict[str, Any]:
+    """Alles, was `documents/_detail.html` für den Kopf eines Dokuments braucht (Seite
+    `/dokumente/{id}`, Reiter Dokumente und Ablage). `issuer_text` und `year` stellen eine
+    abgewiesene Eingabe wieder her."""
+    state = store_of(request).state()
+    kinds = document_kinds(request)
+    kind = kinds.get(document.document_kind or "")
+    proposals = proposals_of(state, document)
+    return {
+        "document": document,
+        "issuer": state.get(document.issuer) if document.issuer else None,
+        "issuer_text": issuer_text,
+        "year": year,
+        "kinds": list(kinds.values()),
+        "references": references_to(state, document),
+        "checksum": entry_checksum(document),
+        "labels": REFERENCE_LABELS,
+        "default_year": DEFAULT_YEAR,
+        "kind": kind,
+        "template": None if kind is None else kind.extraction_template,
+        "proposal": proposals[-1] if proposals else None,
+    }
+
+
 def _year_of(text: str) -> int | None:
     try:
         return int(text.strip())
@@ -119,18 +146,13 @@ def index(
         documents=documents,
         states={d.id: document_state(state, d) for d in documents},
         selected=chosen,
-        references=references_to(state, chosen) if chosen else [],
-        checksum=entry_checksum(chosen) if chosen else "",
-        issuer=issuers.get(chosen.issuer.id) if chosen and chosen.issuer else None,
+        detail=document_detail(request, chosen) if chosen else None,
         issuer_names={i.id: i.name for i in issuers.values()},
         issuer_list=sorted(issuers.values(), key=lambda i: name_key(i.name)),
-        kinds=list(kinds.values()),
         kind_titles={k.key: k.title for k in kinds.values()},
         filters=filters,
         base=urlencode({k: v for k, v in filters.items() if v}),
         preview_kind=chosen and preview_kind(chosen.path),
         preview_url=chosen and f"/dokumente/{chosen.id}/datei",
-        default_year=DEFAULT_YEAR,
-        labels=REFERENCE_LABELS,
         none=NONE,
     )
