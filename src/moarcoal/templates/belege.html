@@ -2,19 +2,18 @@
 {% from "_issuer_field.html" import issuer_field %}
 {% block title %}Belege – MoarCoal{% endblock %}
 {% macro size(file) %}{{ (file.size / 1024) | round(1) | string | replace(".", ",") }} KB{% endmacro %}
-{% macro folder_node(folder, depth) %}
-<details class="ordner"{% if folder.waiting %} open{% endif %}>
+{% macro folder_node(folder) %}
+<details class="ordner"{% if folder.waiting or (selected and folder.contains(selected.file.sha256)) %} open{% endif %}>
   <summary>{{ folder.name }}{% if folder.waiting %} <span class="zaehler">{{ folder.waiting }}</span>{% endif %}</summary>
-  {% for sub in folder.folders.values() %}{{ folder_node(sub, depth + 1) }}{% endfor %}
+  {% for sub in folder.folders.values() %}{{ folder_node(sub) }}{% endfor %}
   {% for row in folder.rows %}{{ file_row(row) }}{% endfor %}
 </details>
 {% endmacro %}
 {% macro file_row(row) %}
 {% set file = row.file %}
 {% set doc = row.document %}
-{% set form = values if values.get("sha256") == file.sha256 else {} %}
 <div class="datei" title="{{ file.site }}/{{ file.path }}">
-  <span class="name">{{ row.name }}</span>
+  <a class="name" href="/belege?stand={{ stand }}&datei={{ file.sha256 }}"{% if selected and selected.file.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
   <span class="groesse">{{ size(file) }}</span>
   {% if doc %}
   <span class="stand">aufgenommen</span>
@@ -23,7 +22,20 @@
   <a href="/dokumente/{{ doc.id }}">Dokument</a>
   {% else %}
   <span class="stand">offen</span>
-  {% for message in errors.get(file.sha256, []) %}<span class="fehler">{{ message }}</span>{% endfor %}
+  {% endif %}
+</div>
+{% endmacro %}
+{% macro size(file) %}{{ (file.size / 1024) | round(1) | string | replace(".", ",") }} KB{% endmacro %}
+{% macro detail() %}
+{% set file = selected.file %}
+{% set doc = selected.document %}
+{% set form = values if values.get("sha256") == file.sha256 else {} %}
+<div class="formular">
+  <p class="dateiname">{{ file.site }}/{{ file.path }} ({{ size(file) }})</p>
+  {% if doc %}
+  <p>Aufgenommen: <a href="/dokumente/{{ doc.id }}">Dokument</a></p>
+  {% else %}
+  {% for message in errors.get(file.sha256, []) %}<p class="fehler">{{ message }}</p>{% endfor %}
   <form method="post" action="/belege/aufnehmen">
     <input type="hidden" name="sha256" value="{{ file.sha256 }}">
     {{ issuer_field(text=form.get("issuer_text", "")) }}
@@ -42,6 +54,11 @@
   </form>
   {% endif %}
 </div>
+<div class="vorschau">
+  {% if preview_kind == "image" %}<img src="{{ preview_url }}" alt="{{ file.path }}">
+  {% elif preview_kind %}<iframe src="{{ preview_url }}" title="Vorschau"{% if preview_kind == "html" %} sandbox=""{% endif %}></iframe>
+  {% else %}<p>Keine Vorschau.</p>{% endif %}
+</div>
 {% endmacro %}
 {% block main %}
 <h1>Belege</h1>
@@ -57,9 +74,10 @@
 <p class="filter">Anzeigen:
   {% for s in stands %}{% if s == stand %}<strong>{{ s }}</strong>{% else %}<a href="/belege?stand={{ s }}">{{ s }}</a>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}
 </p>
+<div class="arbeit">
 <div class="baum">
   {% for root in tree %}
-  {% if root.shown %}{{ folder_node(root, 0) }}{% else %}<p>{{ root.name }}: keine Dateien.</p>{% endif %}
+  {% if root.shown %}{{ folder_node(root) }}{% else %}<p>{{ root.name }}: keine Dateien.</p>{% endif %}
   {% endfor %}
   {% if hidden %}
   <details class="ausgeblendet">
@@ -85,5 +103,10 @@
   </details>
   {% endif %}
 </div>
+<div class="rechts">
+  {% if selected %}{{ detail() }}{% else %}<p>Datei wählen (Pfeiltasten, Enter).</p>{% endif %}
+</div>
+</div>
+<script src="/static/belege.js" defer></script>
 {% endif %}
 {% endblock %}

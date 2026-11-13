@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import DEFAULT_YEAR
@@ -16,9 +16,11 @@ from moarcoal.incoming import (
     hidden_section,
     hide_file,
     incoming_files,
+    next_open,
     show_file,
 )
 from moarcoal.issuer_field import resolve_issuer
+from moarcoal.previews import file_response, preview_kind
 from moarcoal.storage import Applied, HiddenFile, Issuer, SiteFile, entry_checksum
 from moarcoal.web import (
     document_kinds,
@@ -48,16 +50,27 @@ def _page(
     errors: dict[str, list[str]] | None = None,
     values: Fields | None = None,
     stand: str = "offen",
+    selected: str = "",
 ) -> HTMLResponse:
-    """`errors` und `values` gehören zur Zeile der Datei (SHA-256) und bleiben dort stehen."""
+    """`selected` ist die SHA-256 der gewählten Datei; `errors` und `values` gehören zu ihr
+    (Formular rechts) und bleiben dort stehen."""
     store = store_of(request)
     state = store.state()
     rows = ablage_rows(all_site_files(store), state, user_of(request))
+    chosen = next((r for r in rows if r.file.sha256 == selected), None)
     return render(
         request,
         "belege.html",
         status_code,
         tree=ablage_tree(rows, store.site_names(), stand),
+        selected=chosen,
+        preview_kind=chosen and preview_kind(chosen.file.path),
+        preview_url=chosen
+        and (
+            f"/dokumente/{chosen.document.id}/datei"
+            if chosen.document
+            else f"/belege/datei/{chosen.file.sha256}"
+        ),
         stand=stand,
         stands=STANDS,
         kinds=list(document_kinds(request).values()),
@@ -75,9 +88,28 @@ def _find(request: Request, sha256: str) -> SiteFile | None:
     return next((f for f in _waiting(request) if f.sha256 == sha256), None)
 
 
+def _after(request: Request, sha256: str) -> RedirectResponse | None:
+    """Weiter zur nächsten offenen Datei nach `sha256`; ohne weitere `None`."""
+    store = store_of(request)
+    rows = ablage_rows(all_site_files(store), store.state(), user_of(request))
+    following = next_open(ablage_tree(rows, store.site_names(), "offen"), sha256)
+    if following is None:
+        return None
+    return RedirectResponse(f"/belege?datei={following}", status_code=303)
+
+
 @router.get("", response_class=HTMLResponse)
-def index(request: Request, stand: str = "offen") -> HTMLResponse:
-    return _page(request, stand=stand if stand in STANDS else "offen")
+def index(request: Request, stand: str = "offen", datei: str = "") -> HTMLResponse:
+    return _page(request, stand=stand if stand in STANDS else "offen", selected=datei)
+
+
+@router.get("/datei/{sha256}")
+def file(request: Request, sha256: str) -> Response:
+    """Die Datei der Ablage mit diesem SHA-256 (Vorschau); unbekannter SHA-256: 404."""
+    found = next((f for f in all_site_files(store_of(request)) if f.sha256 == sha256), None)
+    if found is None:
+        raise HTTPException(404)
+    return file_response(store_of(request), found.site, found.path, found.sha256)
 
 
 @router.post("/aufnehmen")
@@ -87,9 +119,15 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
     if file is None:
         return _page(request, 409, "Die Datei ist nicht mehr im Eingang.")
 
+    following = _after(request, sha256)
+
     def rejected(*reasons: str) -> Response:
         return _page(
-            request, 422, errors={sha256: list(reasons)}, values={"sha256": sha256, **fields}
+            request,
+            422,
+            errors={sha256: list(reasons)},
+            values={"sha256": sha256, **fields},
+            selected=sha256,
         )
 
     kinds = document_kinds(request)
@@ -123,6 +161,8 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
     target = next((url for e in result.entries if (url := entry_url(modules, e.address))), None)
     if kind.extraction_template is not None:
         target = f"/dokumente/{result.document.id}"  # dort liest der Nutzer das Dokument aus
+    elif following is not None:
+        return following
     return RedirectResponse(target or "/belege", status_code=303)
 
 
@@ -131,10 +171,11 @@ def hide(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> R
     file = _find(request, fields.get("sha256", ""))
     if file is None:
         return _page(request, 409, "Die Datei ist nicht mehr im Eingang.")
+    following = _after(request, file.sha256)
     result = hide_file(store_of(request), file, fields.get("note", ""))
     if not isinstance(result, Applied):
-        return _page(request, 409, " ".join(result.reasons.values()))
-    return RedirectResponse("/belege", status_code=303)
+        return _page(request, 409, " ".join(result.reasons.values()), selected=file.sha256)
+    return following or RedirectResponse("/belege", status_code=303)
 
 
 @router.post("/einblenden")

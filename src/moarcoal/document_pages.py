@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from moarcoal.documents import DocumentKind
 from moarcoal.extraction import Extractor
 from moarcoal.issuer_field import resolve_issuer
+from moarcoal.previews import file_response
 from moarcoal.proposals import (
     ReadOutRejected,
     confirm,
@@ -71,6 +72,13 @@ def _page(
 @router.get("/{document_id}", response_class=HTMLResponse)
 def show(request: Request, document_id: str) -> HTMLResponse:
     return _page(request, _document(request, document_id))
+
+
+@router.get("/{document_id}/datei")
+def file(request: Request, document_id: str) -> Response:
+    """Die Datei des Dokuments (Vorschau); hat sie sich seit dem Aufnehmen geändert: 404."""
+    document = _document(request, document_id)
+    return file_response(store_of(request), document.site, document.path, document.sha256)
 
 
 @router.post("/{document_id}/aussteller")

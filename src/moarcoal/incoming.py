@@ -4,7 +4,7 @@ Erkannt wird eine Datei am SHA-256; eine umbenannte, schon aufgenommene Datei is
 Aufgenommen wird nur über `take_in` (`documents.py`); hier steht das Auflisten und Ausblenden.
 """
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 
 from moarcoal.storage import (
@@ -83,6 +83,24 @@ class Folder:
     rows: list[Row] = field(default_factory=list[Row])
     waiting: int = 0
     shown: int = 0
+
+    def walk(self) -> Iterator[Row]:
+        """Die sichtbaren Dateien in der Reihenfolge der Anzeige (erst Ordner, dann Dateien)."""
+        for folder in self.folders.values():
+            yield from folder.walk()
+        yield from self.rows
+
+    def contains(self, sha256: str) -> bool:
+        return any(row.file.sha256 == sha256 for row in self.walk())
+
+
+def next_open(tree: Sequence[Folder], sha256: str) -> str | None:
+    """SHA-256 der nächsten Datei nach `sha256` im Baum (des Filters „offen“), am Ende von vorn;
+    ohne weitere Datei `None`."""
+    shas = [row.file.sha256 for root in tree for row in root.walk()]
+    start = shas.index(sha256) + 1 if sha256 in shas else 0
+    others = [s for s in shas[start:] + shas[:start] if s != sha256]
+    return others[0] if others else None
 
 
 def ablage_rows(files: Sequence[SiteFile], state: State, user: str) -> list[Row]:

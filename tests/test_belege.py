@@ -105,7 +105,7 @@ def test_new_file_is_listed_and_gone_after_taking_in_even_when_renamed(
     root: Path, site: Path
 ) -> None:
     client = make_client(root, site)
-    page = client.get("/belege").text
+    page = client.get(f"/belege?datei={SHA}").text
     assert "2025/protokoll.html" in page
     assert "Übertragungsprotokoll" in page
     taken = take(client)
@@ -307,7 +307,7 @@ def test_year_input_is_hidden_for_kinds_without_period(root: Path, site: Path) -
     )
     app = create_app(PORT, root, [REGISTRATION, demo], user="anna")
     client = TestClient(app, base_url=f"http://127.0.0.1:{PORT}")
-    page = main_of(client, "/belege")
+    page = main_of(client, f"/belege?datei={SHA}")
     assert '<option value="demo.contract" data-ohne-zeitraum>' in page
     assert '<option value="transfer_protocol">' in page
     assert '<label class="jahr">' in page
@@ -363,7 +363,7 @@ def test_each_file_has_one_place_hidden_ones_are_not_in_the_tree_or_counters(
     (site / "lose.txt").write_text("lose", encoding="utf-8")
     client = make_client(root, site)
     page = main_of(client, "/belege?stand=alle")
-    assert page.count('class="name">protokoll.html') + page.count('class="name">kopie.html') == 1
+    assert page.count(">protokoll.html</a>") + page.count(">kopie.html</a>") == 1
     hide(client)
     page = main_of(client, "/belege?stand=alle")
     assert "Ausgeblendet (1)" in page
@@ -381,7 +381,7 @@ def test_taken_in_file_hidden_by_someone_else_stays_in_the_tree_only(
     take(anna)
     assert ben.post("/belege/ausblenden", data={"sha256": SHA}, headers=ORIGIN).status_code == 303
     page = main_of(anna, "/belege?stand=alle")
-    assert '<span class="name">protokoll.html' in page
+    assert ">protokoll.html</a>" in page
     assert "Ausgeblendet" not in page
 
 

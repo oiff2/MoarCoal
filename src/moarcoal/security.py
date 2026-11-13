@@ -19,7 +19,8 @@ def allowed_hosts(port: int) -> frozenset[str]:
 
 
 def add_security_headers(headers: MutableHeaders) -> None:
-    headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY
+    if "Content-Security-Policy" not in headers:  # Vorschau-Antworten bringen eine eigene mit
+        headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY
     headers["X-Content-Type-Options"] = "nosniff"
 
 
