@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Eingang – MoarCoal{% endblock %}
+{% block main %}
+<h1>Eingang</h1>
+<p>Dateien an den Ablageorten, die noch nicht aufgenommen und nicht ausgeblendet sind. Nichts wird von selbst übernommen; ausgeblendete Dateien erscheinen für keinen Nutzer.</p>
+{% if notice %}<p class="fehler">{{ notice }}</p>{% endif %}
+{% if not sites %}
+<p class="fehler">Es ist noch kein Ablageort eingerichtet (common/sites.json im Datenverzeichnis).</p>
+{% elif not files %}
+<p>Keine neuen Dateien.</p>
+{% else %}
+<table>
+  <tr><th>Ablageort</th><th>Datei</th><th>Größe</th><th>Aufnehmen</th><th>Ausblenden</th></tr>
+  {% for file in files %}
+  {% set row = values if values.get("sha256") == file.sha256 else {} %}
+  <tr>
+    <td>{{ file.site }}</td>
+    <td>{{ file.path }}</td>
+    <td>{{ (file.size / 1024) | round(1) | string | replace(".", ",") }} KB</td>
+    <td>
+      {% for message in errors.get(file.sha256, []) %}<p class="fehler">{{ message }}</p>{% endfor %}
+      <form method="post" action="/eingang/aufnehmen">
+        <input type="hidden" name="sha256" value="{{ file.sha256 }}">
+        <label>Dokumentart
+          <select name="kind">
+            {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if row.get("kind") == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="jahr">Jahr <input name="year" value="{{ row.get('year', default_year) }}" size="6"></label>
+        <button type="submit">Aufnehmen</button>
+      </form>
+    </td>
+    <td>
+      <form method="post" action="/eingang/ausblenden">
+        <input type="hidden" name="sha256" value="{{ file.sha256 }}">
+        <label>Notiz (freiwillig) <input type="text" name="note"></label>
+        <button type="submit">Ausblenden</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% if hidden %}
+<h2>Ausgeblendet</h2>
+<p>Für alle Nutzer ausgeblendet, bis jemand die Datei wieder einblendet.</p>
+<table>
+  <tr><th>Ablageort</th><th>Datei</th><th>Notiz</th><th>Einblenden</th></tr>
+  {% for entry, checksum in hidden %}
+  <tr>
+    <td>{{ entry.site }}</td>
+    <td>{{ entry.path }}</td>
+    <td>{{ entry.note }}</td>
+    <td>
+      <form method="post" action="/eingang/einblenden">
+        <input type="hidden" name="sha256" value="{{ entry.sha256 }}">
+        <input type="hidden" name="checksum" value="{{ checksum }}">
+        <button type="submit">Wieder einblenden</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}

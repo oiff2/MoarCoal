@@ -32,11 +32,11 @@ Die Sorte eines Befunds, angemeldet von der Datenebene oder einem Modul mit Schl
 Der Vergleich eines Felds der Anlage mit dem, was das Übertragungsprotokoll an ELSTER übertragen zeigt: exakt und ohne Toleranz gegen den Wert des Felds, so wie er einzutragen ist (also schon gerundet, wo das Feld es verlangt); weicht der Inhalt vom Ausgewiesenen Wert ab, fehlt das Feld im Protokoll oder ist es mehrdeutig, entsteht ein Befund (Warnung), mit Link zur Stelle im Protokoll. Gilt das zuletzt aufgenommene Protokoll des Jahrs.
 
 **Befundliste** _(geprägt)_:
-Die eine Stelle, an der alle nicht ausgeblendeten Befunde eines Nutzers zum gewählten Jahr über alle Module hinweg gesammelt werden; ausgeblendete Fehler zählt sie weiter mit.
+Die eine Stelle, an der alle nicht ausgeblendeten Befunde eines Nutzers zum gewählten Jahr über alle Module hinweg gesammelt werden; ausgeblendete Fehler zählt sie weiter mit (Code: `FindingList`).
 _Avoid_: Review, Inbox, To-do, Durchsicht
 
 **ausblenden**:
-Etwas aus einer Liste nehmen, ohne es zu löschen. Einen Befund blendet ein Nutzer mit Pflicht-Notiz für sich aus, bis sich der zugrunde liegende Stand ändert; eine Datei im Eingang wird für alle Nutzer dauerhaft ausgeblendet. Gespeichert wird das als **Ausblendung**.
+Etwas aus einer Liste nehmen, ohne es zu löschen. Einen Befund blendet ein Nutzer mit Pflicht-Notiz für sich aus, bis sich der zugrunde liegende Stand ändert; eine Datei im Eingang wird für alle Nutzer ausgeblendet, bis jemand sie wieder einblendet (gespeichert als Eintrag der Datenebene mit SHA-256, Ablageort, Pfad und freiwilliger Notiz; Code: `HiddenFile`). Die Ausblendung eines Befunds heißt **Ausblendung**, ein Eintrag der Datenebene mit Befundart, Ziel, Fingerabdruck des Befunds und der Notiz (Code: `Dismissal`).
 _Avoid_: quittieren, ignorieren, verwerfen
 
 **Nutzer**:
@@ -64,11 +64,11 @@ Die festgehaltene Folge der Schritte, mit der ein Modul einen Ausgewiesenen Wert
 _Avoid_: Formel, Herleitung, Trace
 
 **Fundstelle** _(geprägt)_:
-Worauf sich ein Einzelposten stützt: eine Stelle in einem Dokument (Seite/Zeile), ein eDaten-Satz aus Mein ELSTER, ein Erwarteter Beleg, eine Nutzereingabe (genannt über ihre Adresse) oder ein anderer Ausgewiesener Wert (dann erbt der Einzelposten dessen Betrag und schwächsten Belegstand und hat keine eigene Quelle). Aus der Art der Fundstelle ergibt sich der Belegstand. Eine Stelle in einem Dokument nennt auch die Quelle, denn dasselbe Dokument kann ausgelesen und eingelesen sein (Code: `Locator`).
+Worauf sich ein Einzelposten stützt: eine Stelle in einem Dokument (Seite/Zeile), ein eDaten-Satz aus Mein ELSTER, ein Erwarteter Beleg, eine Nutzereingabe (genannt über ihre Adresse) oder ein anderer Ausgewiesener Wert (dann erbt der Einzelposten dessen Betrag und schwächsten Belegstand und hat keine eigene Quelle). Aus der Art der Fundstelle ergibt sich der Belegstand. Eine Stelle in einem Dokument nennt auch die Quelle, denn dasselbe Dokument kann ausgelesen und eingelesen sein; sie nennt Dokument, Quelle, Feldschlüssel der Vorlage und die Stelle als Klartext, aber keinen bestimmten Vorschlag (Code: `Locator`, für das Dokument `DocumentLocator`).
 _Avoid_: Referenz, Quelle (die Fundstelle ist die genaue Stelle, die Quelle der Kanal)
 
 **Quelle**:
-Der Kanal, über den Daten von außen in MoarCoal gelangen: eDaten-Abruf aus Mein ELSTER, Dokumentauslesung (von Claude ausgelesen und bestätigt, z. B. Bank-PDF, Bescheid), Einlesung (exakt, ohne Claude, z. B. Übertragungsprotokoll) oder Nutzereingabe; alles, was von außen kommt, hat genau eine Quelle. Sie steht an der Fundstelle, nicht am Dokument (Code: `Source`).
+Der Kanal, über den Daten von außen in MoarCoal gelangen: eDaten-Abruf aus Mein ELSTER, Dokumentauslesung (von Claude ausgelesen und bestätigt, z. B. Bank-PDF, EStB), Einlesung (exakt, ohne Claude, z. B. Übertragungsprotokoll) oder Nutzereingabe; alles, was von außen kommt, hat genau eine Quelle. Sie steht an der Fundstelle, nicht am Dokument (Code: `Source`).
 _Avoid_: Herkunft, Import, Datenquelle
 
 **Nutzereingabe**:
@@ -95,8 +95,15 @@ _Avoid_: Sendeprotokoll, Eingabeprotokoll
 Ein ausgefülltes Feld des Übertragungsprotokolls, roh wie gedruckt: E-Kennung, Anlage, Nummer im Vordruck, Bezeichnung, Inhalt, Index einer Wiederholgruppe und als Fundstelle der volle Feldname im Dokument; dieselbe E-Kennung kann mehrfach vorkommen (Code: `ProtocolLine`).
 _Avoid_: Protokollzeile, Zeile
 
+**Einkommensteuerbescheid** (Abkürzung: EStB):
+Der Bescheid des Finanzamts über die Einkommensteuer (in ELSTER als „Berechnung des Finanzamts“ abrufbar). Dokumentart des Moduls Steuerjahr mit Bezugszeitraum; er wird nicht eingelesen, sondern von Claude nach der Auslese-Vorlage ausgelesen und vom Nutzer bestätigt. Er druckt viele Beträge in ganzen Euro, auch wo das Feld der Anlage Cent hat, und Abzüge mit Minus. Ein EStB erzeugt keinen Schnappschuss.
+_Avoid_: Steuerbescheid, EStBescheid
+
+**Bescheid-Abgleich** _(geprägt)_:
+Der Vergleich der bestätigten Positionen des EStB mit dem eingefrorenen Wert des Schnappschusses der Abgabe, je Feld der Anlage; zeigt, wo das Finanzamt anders angesetzt hat als abgegeben. Verglichen wird mit einer Spanne: bei ganzen Euro und bei Positionen, die der EStB gerundet druckt, passt jeder ganze Euro zwischen abgerundetem und aufgerundetem Wert (bei einem Feld mit ganzen Euro einen Euro darunter bis einen darüber), sonst exakt; das gedruckte Vorzeichen zählt nicht. Abweichung ergibt einen Befund (Warnung); ohne Schnappschuss gibt es nur einen Hinweis. Felder, die MoarCoal noch nicht berechnet, haben keinen Schnappschuss-Wert und bleiben ohne Abgleich. Nicht zu verwechseln mit dem Abgleich mit dem Übertragungsprotokoll.
+
 **Feld**:
-Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im Vordruck und E-Kennung (solange unbekannt, leer); das Steuerjahr ordnet jedem Feld, das MoarCoal abdeckt, einen Ausgewiesenen Wert zu (Code: `FormField`, dessen Rundung `Rounding`). Das Steuerjahr führt die Felder je Steuerjahr; bisher nur drei Felder der Anlage N 2025. Ein Euro-Feld nimmt entweder ganze Euro (gerundet nach seiner Richtung) oder Euro mit Cent (exakt, z. B. Steuerbeträge laut Bescheinigung); km werden auf volle Kilometer abgerundet.
+Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im Vordruck und E-Kennung (solange unbekannt, leer); das Steuerjahr ordnet jedem Feld, das MoarCoal berechnet, einen Ausgewiesenen Wert zu (Code: `FormField`, dessen Rundung `Rounding`). Das Steuerjahr führt die Felder je Steuerjahr und nimmt alle bekannten mit (Anlage N 2025: 23, auch solche ohne Betrag wie Text und Ja/Nein); berechnet werden bisher drei. Ein Euro-Feld nimmt entweder ganze Euro (gerundet nach seiner Richtung) oder Euro mit Cent (exakt, z. B. Steuerbeträge laut Bescheinigung); km werden auf volle Kilometer abgerundet.
 
 **Richtung**:
 Ob ein Euro-Feld als Einnahme oder als Ausgabe zählt; sie bestimmt, wie sein Wert auf ganze Euro gerundet wird: zugunsten des Steuerpflichtigen, Einnahmen ab, Ausgaben auf. Erstattungen, Zuschüsse und Arbeitgeberanteile, die einen Abzug mindern, zählen als Einnahme (Code: `Direction`).
@@ -138,15 +145,23 @@ Die Liste aller Schlüssel, die Module anmelden, mit Bedeutung, Einheit und Zeit
 _Avoid_: Registry, Verzeichnis, Katalog (allein)
 
 **Schnappschuss**:
-Die zu einem Anlass (z. B. Abgabe einer Steuererklärung) eingefrorenen Ausgewiesenen Werte samt Einzelposten, auch solche, die noch nicht berechenbar waren oder entfallen (mit Grund). Ein Schnappschuss ist unveränderlich und hängt nicht vom Ablageort ab, denn die Dokumente, auf die er verweist, werden beim Einfrieren ins Datenverzeichnis kopiert; spätere Abweichungen von den aktuellen Werten werden sichtbar statt verhindert (Code: `Snapshot`; das Anlegen heißt einfrieren).
+Die zu einem Anlass (z. B. Abgabe einer Steuererklärung) eingefrorenen Ausgewiesenen Werte samt Einzelposten, auch solche, die noch nicht berechenbar waren oder entfallen (mit Grund), und allen Werten, auf die sie sich stützen. Ein Schnappschuss ist unveränderlich und hängt nicht vom Ablageort ab, denn die Dokumente, auf die er verweist, werden beim Einfrieren ins Datenverzeichnis kopiert (gebaut ist das noch nicht: bisher steht nur Klartext im Schnappschuss); spätere Abweichungen von den aktuellen Werten werden sichtbar statt verhindert (Code: `Snapshot`; das Anlegen heißt einfrieren).
 _Avoid_: Sperre, Abgabestand, Festschreibung, Version
+
+**Anlass**:
+Das Ereignis, zu dem ein Schnappschuss eingefroren wird; gebaut ist nur die Abgabe, belegt durch das Übertragungsprotokoll (Code: `Occasion`).
+_Avoid_: Trigger, Grund, Ereignis (allein)
+
+**Abweichung**:
+Der Unterschied zwischen dem eingefrorenen Stand eines Schnappschusses und dem aktuellen Stand, je Stufe der Kette: Betrag, Ergebnisart oder Einzelposten (hinzugekommen, weggefallen, geändert). Aus ihr macht das Modul, das den Schnappschuss ausgelöst hat, einen Befund; nicht zu verwechseln mit dem Abgleich mit dem Übertragungsprotokoll (Code: `Deviation`).
+_Avoid_: Differenz, Diff, Änderung (das ist ein Teil eines Vorgangs)
 
 **Aussteller**:
 Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Informationen je Aussteller, auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ein Aussteller ist ein Unternehmen oder eine Behörde, außer er ist als **Privatperson** gekennzeichnet (z. B. privater Vermieter); nur dann sind Name und Anschrift sensibel.
 _Avoid_: Absender, Firma (im HGB der Handelsname), Gegenpartei
 
 **Eintrag**:
-Etwas Gespeichertes in MoarCoal mit eigener Adresse, z. B. Dokument, Aussteller, Vertrag, Immobilie, Darlehen, Dienstreise. Ausgewiesene Werte und ihre Einzelposten sind berechnet und keine Einträge; Ausblendungen, Vorschläge und die Ausnahmen eines Erwarteten Belegs sind gespeichert, hängen aber an einem Eintrag und haben keine eigene Adresse.
+Etwas Gespeichertes in MoarCoal mit eigener Adresse, z. B. Dokument, Aussteller, Vertrag, Immobilie, Darlehen, Dienstreise. Ausgewiesene Werte und ihre Einzelposten sind berechnet und keine Einträge. Was an einem anderen Eintrag hängt, ist trotzdem ein Eintrag mit eigener Adresse und verweist auf ihn, z. B. ein Vorschlag auf sein Dokument oder eine Ausblendung auf das Ziel ihres Befunds; es hat nur keine eigene Seite. Offen ist das noch für die Ausnahmen eines Erwarteten Belegs.
 _Avoid_: Datensatz, Objekt, Entität, Record
 
 **Eintragsart**:
@@ -202,11 +217,15 @@ Felder eines Dokuments mit festem Aufbau exakt und ohne Claude übernehmen (z. B
 _Avoid_: importieren, parsen
 
 **auslesen**:
-Felder eines Dokuments nach der Auslese-Vorlage seiner Dokumentart von Claude lesen lassen; das Ergebnis ist ein Vorschlag, der erst nach Bestätigung gilt. Gegenstück: einlesen (exakt, ohne Claude, ohne Bestätigung).
+Felder eines Dokuments nach der Auslese-Vorlage seiner Dokumentart von Claude lesen lassen; das Ergebnis ist ein Vorschlag, der erst nach Bestätigung gilt. Gegenstück: einlesen (exakt, ohne Claude, ohne Bestätigung) (Code: `Extractor`).
 _Avoid_: importieren, extrahieren, parsen
 
+**Abgebrochene Auslesung**:
+Ein festgehaltener Abbruch des Claude-Aufrufs beim Auslesen eines Dokuments, weil Claude Werkzeuge oder MCP-Server gemeldet hat; daraus entsteht ein Fehler-Befund am Dokument, bis eine spätere Auslesung desselben Dokuments gelingt (Code: `AbortedExtraction`).
+_Avoid_: Fehlversuch, Absturz
+
 **Vorschlag**:
-Das Ergebnis einer Auslesung an einem Dokument: Felder mit Inhalt und Stelle im Dokument (Seite/Zeile), die erst nach Bestätigung durch den Nutzer (je Feld, ggf. korrigiert) in Daten eines Moduls übergehen; bleibt danach samt Korrekturen erhalten (Code: `Proposal`).
+Das Ergebnis einer Auslesung an einem Dokument: Felder mit Inhalt und Stelle im Dokument (Seite/Zeile), die erst nach Bestätigung durch den Nutzer (je Feld, ggf. korrigiert) in Daten eines Moduls übergehen; ein Feld mit Einheit lässt sich nur mit einer Zahl bestätigen; bleibt danach samt Korrekturen erhalten (Code: `Proposal`).
 _Avoid_: Entwurf, Vorschlagswert, unbestätigter Einzelposten
 
 **Auslese-Vorlage** _(geprägt)_:
@@ -218,7 +237,7 @@ Ein Dokument, sofern es einen Betrag nachweist, auf den sich ein Einzelposten st
 _Avoid_: Quittung, Nachweis
 
 **Erwarteter Beleg**:
-Ein Beleg, der regelmäßig oder einmalig kommen soll, z. B. jährlich die Zinsbescheinigung zu einem Darlehen: Aussteller, Dokumentart, die Einträge, die er betrifft, Rhythmus mit Beginn und Ende sowie Beschaffungsweg und Beschaffungshinweis. Ein Eintrag, der von Beginn bis Ende gilt; für jeden Zeitraum seines Rhythmus ergibt sich daraus, welches Dokument fällig ist, ohne dass jährlich etwas neu angelegt wird. Er ist **erfüllt**, sobald ein passendes Dokument da ist; fällt er für einen Zeitraum aus, trägt er dafür eine Ausnahme mit Notiz.
+Ein Beleg, der regelmäßig oder einmalig kommen soll, z. B. jährlich die Zinsbescheinigung zu einem Darlehen: Aussteller, Dokumentart, die Einträge, die er betrifft, Rhythmus mit Beginn und Ende sowie Beschaffungsweg und Beschaffungshinweis. Ein Eintrag, der von Beginn bis Ende gilt; für jeden Zeitraum seines Rhythmus ergibt sich daraus, welches Dokument fällig ist, ohne dass jährlich etwas neu angelegt wird. Er ist **erfüllt**, sobald ein passendes Dokument da ist; fällt er für einen Zeitraum aus, trägt er dafür eine Ausnahme mit Notiz. Gebaut ist die **einfache Form**: Dokumentart, Beginn- und Endjahr (Ende offen erlaubt, jährlich) und Beschreibung (Code: `ExpectedDocument`); als Fundstelle ergibt er den Belegstand ausstehend (Code: `ExpectedDocumentLocator`).
 _Avoid_: Checkliste, Erwartung (allein), offener Beleg, Platzhalter
 
 **Dokumentart**:

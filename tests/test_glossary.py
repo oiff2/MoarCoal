@@ -18,16 +18,20 @@ SRC = ROOT / "src" / "moarcoal"
 TEMPLATES = SRC / "templates"
 
 # Wörter aus _Avoid_-Zeilen, die im sichtbaren Text der Vorlagen trotzdem stehen dürfen.
-TEMPLATE_EXCEPTIONS = {"warnung", "fehler", "e-kennung"}  # Schweregrade; Wendung „E-Kennung“
+# Schweregrade, Wendung „E-Kennung“, „ausblenden“ (Befunde; Avoid-Wort nur für Module),
+# „Vorschlag“ (Avoid-Wort nur für den Eingang) und der Begriff „Auslese-Vorlage“
+TEMPLATE_EXCEPTIONS = {
+    "warnung",
+    "fehler",
+    "e-kennung",
+    "ausblenden",
+    "vorschlag",
+    "auslese-vorlage",
+}
 
 # `Code:`-Namen aus CONTEXT.md, die noch nicht im App-Code gebaut sind. Gebaute Namen müssen hier
 # raus (der Test schlägt sonst fehl), ebenso Namen, die nicht mehr in CONTEXT.md stehen.
-NOT_YET_BUILT = {
-    "ExtractionTemplate",
-    "Proposal",
-    "Snapshot",
-    "Source",
-}
+NOT_YET_BUILT: set[str] = set()
 
 COINED_LIMIT = 30
 

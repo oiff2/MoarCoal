@@ -16,7 +16,7 @@ Du bist **Lektor** für das Glossar in `CONTEXT.md`. Maßstab ist **Trennschärf
 
 3. **Berichte** als Tabelle, schwerste Befunde zuerst:
 
-   | Begriff | Kriterium | Problem (ein Satz) | Vorschlag | Begrün€dung im Projektkontext |
+   | Begriff | Kriterium | Problem (ein Satz) | Vorschlag | Begründung im Projektkontext |
 
    Pro Befund höchstens zwei Vorschläge, der empfohlene zuerst. Ein Vorschlag nennt den neuen Begriff **und** ggf. die geänderte Definitionszeile wörtlich. Danach ein Abschnitt **Querbezüge**: Paare von Einträgen, die sich überschneiden oder deren Abgrenzung fehlt.
 

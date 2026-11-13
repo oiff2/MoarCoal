@@ -22,28 +22,7 @@
   {% endfor %}
 </table>
 {% else %}
-<p>Noch kein Übertragungsprotokoll aufgenommen.</p>
+<p>Noch kein Übertragungsprotokoll aufgenommen. Neue Dateien nimmt man im <a href="/eingang">Eingang</a> auf.</p>
 {% endif %}
 
-<h3>Übertragungsprotokoll aufnehmen</h3>
-<p>Das HTML-Dokument liegt an einem Ablageort und wird dort nur gelesen.</p>
-{% if errors %}
-<ul class="fehler">
-  {% for message in errors %}<li>{{ message }}</li>{% endfor %}
-</ul>
-{% endif %}
-{% if sites %}
-<form method="post" action="/steuerjahr/uebertragungsprotokolle">
-  <label>Ablageort
-    <select name="site">
-      {% for site in sites %}<option value="{{ site }}"{% if values.get("site") == site %} selected{% endif %}>{{ site }}</option>{% endfor %}
-    </select>
-  </label>
-  <label>Datei im Ablageort <input name="path" value="{{ values.get('path', '') }}" size="50"></label>
-  <label>Steuerjahr <input name="year" value="{{ values.get('year', '') }}" size="6"></label>
-  <button type="submit">Aufnehmen</button>
-</form>
-{% else %}
-<p class="fehler">Es ist noch kein Ablageort eingerichtet (common/sites.json im Datenverzeichnis).</p>
-{% endif %}
 {% endblock %}

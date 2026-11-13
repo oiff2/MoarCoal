@@ -5,14 +5,13 @@ Die Werte der Felder sind gesetzlich gerundet, je nach Einheit und Richtung des 
 das Feld aus derselben Angabe ab: bei Euro die Richtung, km zählen wie eine Ausgabe, Tage ohne.
 """
 
-import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal, InvalidOperation
+from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from enum import StrEnum
 
 from moarcoal.modules.tax_year.entries import ElsterId
-from moarcoal.values.model import Amount, Unit, ValueKey, format_amount
+from moarcoal.values.model import Amount, Unit, ValueKey, format_amount, parse_german_number
 
 
 class Direction(StrEnum):
@@ -29,20 +28,6 @@ class Rounding(StrEnum):
     EURO_CENTS = "Euro mit Cent"  # exakt
     WHOLE_KM = "volle km"  # abgerundet
     NONE = "ganzzahlig"  # Tage: schon ganzzahlig
-
-
-GERMAN_NUMBER = re.compile(r"-?\d{1,3}(\.\d{3})*(,\d+)?|-?\d+(,\d+)?")
-
-
-def parse_german_number(text: str) -> Decimal | None:
-    """'1.234,56' -> 1234.56; ein angehängtes € oder EUR ist erlaubt; sonst `None`."""
-    cleaned = text.strip().removesuffix("€").removesuffix("EUR").strip()
-    if not GERMAN_NUMBER.fullmatch(cleaned):
-        return None
-    try:
-        return Decimal(cleaned.replace(".", "").replace(",", "."))
-    except InvalidOperation:
-        return None
 
 
 @dataclass(frozen=True)
@@ -63,20 +48,34 @@ class NotANumber:
 class FormField:
     """Ein Feld einer Anlage: Bezeichnung, E-Kennung (leer, solange unbekannt), Nr. im Vordruck.
 
-    `key` ist der Schlüssel des Ausgewiesenen Werts, den das Steuerjahr dem Feld zuordnet.
+    `key` ist der Schlüssel des Ausgewiesenen Werts, den das Steuerjahr dem Feld zuordnet. Der
+    Katalog nimmt alle bekannten Felder des Jahrs auf, auch solche, die MoarCoal noch nicht
+    berechnet (`computed` ist falsch: kein Wert, kein Schnappschuss) und solche ohne Betrag
+    (`unit` ist leer: Text, Ja/Nein).
+
+    `assessment` nennt die Positionen der Auslese-Vorlage des EStB, deren Summe
+    dem Feld entspricht (leer: der EStB druckt das Feld nicht). `printed_rounded` heißt: der
+    EStB druckt die Position in ganzen Euro, auch wo das Feld Cent hat.
     """
 
     key: ValueKey
     elster_id: ElsterId | None
     form_line: str
     label: str
-    unit: Unit
+    unit: Unit | None
     rounding: Rounding
     direction: Direction | None = None  # nur bei ganzen Euro
+    computed: bool = True
+    assessment: tuple[str, ...] = ()
+    printed_rounded: bool = False
 
     def __post_init__(self) -> None:
         if (self.rounding is Rounding.WHOLE_EUROS) != (self.direction is not None):
             raise ValueError(f"{self.label}: Richtung gehört genau zu Feldern mit ganzen Euro")
+        if self.computed and self.unit is None:
+            raise ValueError(f"{self.label}: ein berechnetes Feld braucht eine Einheit")
+        if self.assessment and self.unit is None:
+            raise ValueError(f"{self.label}: ein Feld ohne Betrag hat keine Position im EStB")
 
     @property
     def whole_euros(self) -> bool:
@@ -113,6 +112,8 @@ class FormField:
 
     def show(self, value: Decimal) -> str:
         """Wert deutsch mit Einheit, ganze Euro ohne Cent: '87 €', '86,40 €', '12 km'."""
+        if self.unit is None:
+            raise ValueError(f"{self.label}: ein Feld ohne Betrag hat keinen Wert zum Anzeigen")
         return format_amount(Amount(value, self.unit), whole_euros=self.whole_euros)
 
     def read_protocol(self, contents: Sequence[str]) -> Decimal | AmbiguousLines | NotANumber:
@@ -127,6 +128,29 @@ class FormField:
                 return NotANumber(content)
             total += number
         return total
+
+    def matches_assessment(self, frozen: Decimal, printed: Decimal) -> bool:
+        """Ob der Betrag im EStB zum eingefrorenen Wert des Felds passt.
+
+        Euro-Felder mit ganzen Euro und Positionen, die der EStB gerundet druckt, passen mit
+        einer Spanne (ADR 0011 des Vorgängers): jeder ganze Euro zwischen abgerundetem und
+        aufgerundetem Wert. Ein Feld mit ganzen Euro friert den schon nach seiner Richtung
+        gerundeten Wert ein; der ungerundete liegt höchstens einen Euro daneben, die Spanne reicht
+        deshalb von einem Euro darunter bis einen darüber. Sonst exakt. Das gedruckte Vorzeichen
+        zählt nicht (Abzüge stehen mit Minus); Positionen mit Vorzeichen sind noch nicht zugeordnet.
+        """
+        frozen, printed = abs(frozen), abs(printed)
+        if self.unit is not Unit.EUR or not (self.whole_euros or self.printed_rounded):
+            return frozen == printed
+        if printed != printed.to_integral_value():
+            return False
+        if self.whole_euros:
+            return frozen - 1 <= printed <= frozen + 1
+        return (
+            frozen.to_integral_value(ROUND_FLOOR)
+            <= printed
+            <= frozen.to_integral_value(ROUND_CEILING)
+        )
 
     def explain_deviation(self, expected: Decimal, transferred: Decimal) -> str:
         """Text der Abweichung; liegt sie nur an der Rundung, mit Differenz und Richtung."""

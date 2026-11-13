@@ -3,7 +3,7 @@
 import datetime
 import re
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from enum import IntEnum, StrEnum
 from typing import ClassVar, Self
 
@@ -54,6 +54,20 @@ def format_amount(amount: Amount, *, whole_euros: bool = False) -> str:
     exponent = value.normalize().as_tuple().exponent
     places = -exponent if isinstance(exponent, int) and exponent < 0 else 0
     return f"{_german(value, places)} {amount.unit.value}"
+
+
+GERMAN_NUMBER = re.compile(r"-?\d{1,3}(\.\d{3})*(,\d+)?|-?\d+(,\d+)?")
+
+
+def parse_german_number(text: str) -> Decimal | None:
+    """'1.234,56' -> 1234.56; ein angehängtes € oder EUR ist erlaubt; sonst `None`."""
+    cleaned = text.strip().removesuffix("€").removesuffix("EUR").strip()
+    if not GERMAN_NUMBER.fullmatch(cleaned):
+        return None
+    try:
+        return Decimal(cleaned.replace(".", "").replace(",", "."))
+    except InvalidOperation:
+        return None
 
 
 @dataclass(frozen=True)
@@ -127,6 +141,12 @@ class Locator:
         raise NotImplementedError
 
 
+def describe_locator(locator: Locator) -> str:
+    """Die Fundstelle als Klartext: Art und, falls sie auf einen Eintrag zeigt, dessen Adresse."""
+    address = locator.entry_address
+    return f"{locator.label} {address}" if address is not None else locator.label
+
+
 @dataclass(frozen=True)
 class UserInputLocator(Locator):
     """Nutzereingabe, genannt über die Adresse ihres Eintrags: Belegstand angenommen."""
@@ -144,6 +164,58 @@ class UserInputLocator(Locator):
     @property
     def backing(self) -> Backing:
         return Backing.ASSUMED
+
+
+@dataclass(frozen=True)
+class ExpectedDocumentLocator(Locator):
+    """Erwarteter Beleg, genannt über die Adresse seines Eintrags: Belegstand ausstehend."""
+
+    address: EntryAddress
+
+    @property
+    def label(self) -> str:
+        return "Erwarteter Beleg"
+
+    @property
+    def entry_address(self) -> EntryAddress | None:
+        return self.address
+
+    @property
+    def backing(self) -> Backing:
+        return Backing.PENDING
+
+
+class Source(StrEnum):
+    """Der Kanal, über den Daten aus einem Dokument kommen; der Wert ist die Anzeige."""
+
+    DOCUMENT_EXTRACTION = "Dokumentauslesung"
+    READ_IN = "Einlesung"
+
+
+@dataclass(frozen=True)
+class DocumentLocator(Locator):
+    """Stelle in einem Dokument: Dokument, Quelle, Feldschlüssel der Vorlage, Stelle als Klartext.
+
+    Nennt keinen bestimmten Vorschlag und bleibt so über Neu auslesen gültig. Belegstand belegt,
+    auch wenn der Nutzer den Inhalt korrigiert hat.
+    """
+
+    document: EntryAddress
+    source: Source
+    field_key: str
+    place: str
+
+    @property
+    def label(self) -> str:
+        return f"{self.source.value}: {self.place}" if self.place else self.source.value
+
+    @property
+    def entry_address(self) -> EntryAddress | None:
+        return self.document
+
+    @property
+    def backing(self) -> Backing:
+        return Backing.PROVEN
 
 
 @dataclass(frozen=True)

@@ -2,11 +2,23 @@
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 
+from moarcoal.expected_documents import expected_document_findings
+from moarcoal.incoming import incoming_files
+from moarcoal.proposals import aborted_extraction_findings, proposal_findings
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import State
+from moarcoal.storage import Dismissal, SiteFile, Snapshot, State
 from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYetSignal
 from moarcoal.values.catalog import TimeKind, ValueCatalog
-from moarcoal.values.findings import CYCLE, DUPLICATE_LOCATOR, Finding, Severity
+from moarcoal.values.findings import (
+    CYCLE,
+    DUPLICATE_LOCATOR,
+    INCOMING_FILES,
+    Finding,
+    FindingList,
+    Severity,
+    fingerprint,
+    split_findings,
+)
 from moarcoal.values.model import (
     ExposedValue,
     LineItem,
@@ -20,7 +32,9 @@ from moarcoal.values.model import (
     ValueRef,
     ValueResult,
     Workings,
+    describe_locator,
 )
+from moarcoal.values.snapshots import snapshot_findings
 
 
 class ContractViolation(Exception):
@@ -44,18 +58,20 @@ def _leaf_locators(items: Iterable[LineItem]) -> Iterable[Locator]:
             yield from _leaf_locators(used.items)
 
 
-def _describe(locator: Locator) -> str:
-    address = locator.entry_address
-    return f"{locator.label} {address}" if address is not None else locator.label
-
-
 class Values:
     """Eine je Anfrage, auf dem festgehaltenen Stand. Rechnet jeden Wert höchstens einmal."""
 
     def __init__(
-        self, modules: Sequence[ModuleRegistration], state: State, foreign: Foreign | None = None
+        self,
+        modules: Sequence[ModuleRegistration],
+        state: State,
+        foreign: Foreign | None = None,
+        site_files: Callable[[], Sequence[SiteFile]] | None = None,
     ) -> None:
+        """`site_files` listet die Dateien der Ablageorte, erst wenn die Befunde sie brauchen;
+        ohne Angabe gibt es keinen Befund „Dateien im Eingang“."""
         self._modules = {m.key: m for m in modules}
+        self._site_files = site_files
         self._state = state
         self.catalog = ValueCatalog.of((m.key, m.values) for m in modules)
         self._foreign = dict(foreign or {})
@@ -138,8 +154,15 @@ class Values:
             else:
                 seen.append(locator)
         for locator in duplicates:
-            text = f"Fundstelle mehrfach im Wert {value.key}: {_describe(locator)}"
-            self.findings.append(Finding(DUPLICATE_LOCATOR, Severity.ERROR, value.ref, text))
+            text = f"Fundstelle mehrfach im Wert {value.key}: {describe_locator(locator)}"
+            found = Finding(
+                DUPLICATE_LOCATOR,
+                Severity.ERROR,
+                value.ref,
+                text,
+                fingerprint=fingerprint(value.key, describe_locator(locator)),
+            )
+            self.findings.append(found)
 
     def _cycle(self, ref: ValueRef) -> NotYetComputable:
         """Die Anfrage läuft schon: Zyklus, mit Fehler-Befund und Kette."""
@@ -147,12 +170,16 @@ class Values:
         text = "Zyklus: " + " → ".join(str(r.key) for r in chain)
         members = frozenset(chain)
         if not any(f.kind == CYCLE and frozenset(f.chain) == members for f in self.findings):
-            self.findings.append(Finding(CYCLE, Severity.ERROR, ref, text, chain))
+            keys = sorted({str(r.key) for r in chain})
+            self.findings.append(
+                Finding(CYCLE, Severity.ERROR, ref, text, chain, fingerprint(*keys))
+            )
         return NotYetComputable(ref.key, ref.user, ref.time, ref.subject, text)
 
-    def finding_list(self, user: str, year: int) -> list[Finding]:
+    def finding_list(self, user: str, year: int) -> FindingList:
         """Befundliste: rechnet alle Zeitraumwerte des Jahrs, sammelt die Befunde der Datenebene
-        und der Module. Berechnet auf Anfrage, nie gespeichert; Fehler zuerst."""
+        und der Module und teilt sie nach den Ausblendungen des Nutzers. Berechnet auf Anfrage,
+        nie gespeichert; Fehler zuerst."""
         period = Period.year(year)
         for entry in self.catalog.entries():
             if entry.time_kind is TimeKind.PERIOD:  # Stichtagswerte: noch nicht gebaut
@@ -161,11 +188,34 @@ class Values:
                 else:
                     self.get(entry.key, user, period)
         found = list(self.findings)
+        titles = {k.key: k.title for m in self._modules.values() for k in m.document_kinds}
+        found.extend(expected_document_findings(self._state, user, year, titles))
+        found.extend(proposal_findings(self._state, user, year, titles))
+        found.extend(aborted_extraction_findings(self._state, user))
+        found.extend(snapshot_findings(self._state.of_kind(Snapshot), user, year))
         for module in self._modules.values():
             if module.findings is not None:
                 found.extend(module.findings(self._module_state(module.key, user), self, year))
+        if self._site_files is not None:
+            waiting = incoming_files(self._site_files(), self._state, user)
+            if waiting:
+                count = len(waiting)
+                text = "1 Datei im Eingang" if count == 1 else f"{count} Dateien im Eingang"
+                fingerprint_ = fingerprint(*sorted(f.sha256 for f in waiting))
+                found.append(
+                    Finding(
+                        INCOMING_FILES,
+                        Severity.NOTE,
+                        "eingang",
+                        text,
+                        href="/eingang",
+                        fingerprint=fingerprint_,
+                    )
+                )
         order = {Severity.ERROR: 0, Severity.WARNING: 1, Severity.NOTE: 2}
-        return sorted(found, key=lambda f: order[f.severity])
+        found.sort(key=lambda f: order[f.severity])
+        dismissals = [d for d in self._state.of_kind(Dismissal) if d.owner == user]
+        return split_findings(found, dismissals)
 
     def subjects(self, key: str, user: str, time: TimeRef) -> list[Subject]:
         """Die Bezugsobjekte, die das Modul des Schlüssels zum Zeitbezug aufzählt."""

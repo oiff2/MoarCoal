@@ -6,10 +6,21 @@ from dataclasses import dataclass
 from fastapi import APIRouter
 
 from moarcoal.documents import DocumentKind
-from moarcoal.storage import Document, Entry, EntryAddress, EntryKind, State, entry_checksum
+from moarcoal.extraction_template import Confirmed
+from moarcoal.storage import (
+    Document,
+    Entry,
+    EntryAddress,
+    EntryKind,
+    Proposal,
+    Snapshot,
+    State,
+    entry_checksum,
+)
 from moarcoal.values.calculation import ValueSource
 from moarcoal.values.catalog import ValueDefinition
 from moarcoal.values.findings import Finding, FindingKind
+from moarcoal.values.model import DocumentLocator, Source
 
 type FindingSource = Callable[[ModuleState, ValueSource, int], Iterable[Finding]]
 """Befunde eines Moduls für ein Jahr: eigener Stand, Werte (auch fremde) und das Jahr."""
@@ -46,7 +57,9 @@ class ModuleState:
     def __init__(self, state: State, registration: ModuleRegistration, user: str) -> None:
         self._state = state
         self._kinds = {kind.model.__name__ for kind in registration.kinds}
+        self._document_kinds = {kind.key: kind for kind in registration.document_kinds}
         self._user = user
+        self._module = registration.key
 
     @property
     def user(self) -> str:
@@ -74,6 +87,51 @@ class ModuleState:
         if document_kind is not None:
             found = [d for d in found if d.document_kind == document_kind]
         return sorted(found, key=lambda d: str(d.address))
+
+    def confirmed_fields(self, document: Document) -> dict[str, tuple[Confirmed, DocumentLocator]]:
+        """Die bestätigten Felder des neuesten Vorschlags zum Dokument (Spec 3.6, Punkt 9).
+
+        Je Feldschlüssel der Inhalt (bei einer Korrektur der korrigierte) und die Fundstelle mit
+        Belegstand belegt; unbestätigte Felder fehlen. Dokumente anderer Nutzer: leer. Ausgelesen
+        oder korrigiert, der Inhalt hat dieselbe Form: ein Feld mit Einheit kommt als `Decimal`
+        (`TemplateField.read`); ein Feld, dessen Inhalt das nicht zulässt, fehlt (Bestätigen weist
+        es ab, das trifft nur Vorschläge von vorher).
+        """
+        if document.owner != self._user:
+            return {}
+        proposals = [
+            p
+            for p in self._state.of_kind(Proposal)
+            if p.owner == self._user and p.document == document.address
+        ]
+        if not proposals:
+            return {}
+        latest = max(proposals, key=lambda p: (p.created_at, p.id))
+        kind = self._document_kinds.get(document.document_kind or "")
+        template = None if kind is None else kind.extraction_template
+        found: dict[str, tuple[Confirmed, DocumentLocator]] = {}
+        for key, field in latest.fields.items():
+            if not field.confirmed:
+                continue
+            spec = None if template is None else template.field(key)
+            try:
+                content = field.content if spec is None else spec.read(field.content)
+            except ValueError:
+                continue
+            locator = DocumentLocator(
+                document.address, Source.DOCUMENT_EXTRACTION, key, field.location
+            )
+            found[key] = (content, locator)
+        return found
+
+    def snapshots(self) -> list[Snapshot]:
+        """Schnappschüsse des Nutzers, die dieses Modul ausgelöst hat (Baustein der Datenebene)."""
+        found = [
+            s
+            for s in self._state.of_kind(Snapshot)
+            if s.owner == self._user and s.module == self._module
+        ]
+        return sorted(found, key=lambda s: (s.taken_at, s.id))
 
     def checksum(self, address: EntryAddress) -> str | None:
         entry = self.get(address)

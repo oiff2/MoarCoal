@@ -5,21 +5,31 @@
 {% block main %}
 <h1>Anlage N {{ year }}</h1>
 <p><a href="/steuerjahr">Steuerjahr</a></p>
-<p>Die Angaben aus dem Modul Arbeit, geordnet nach den Feldern der Anlage N. Aufgeführt sind nur die Felder, die MoarCoal bisher abdeckt.</p>
+<p>Die Angaben aus dem Modul Arbeit, geordnet nach den Feldern der Anlage N. Aufgeführt sind alle Felder der Anlage N, die MoarCoal kennt; ein Betrag wird bisher nur für die Felder berechnet, die aus dem Modul Arbeit kommen.</p>
 
-{% if findings %}
+{% if findings.visible %}
 <h2>Befunde</h2>
-{{ finding_list(findings) }}
+{{ finding_list(findings.visible) }}
+{% endif %}
+
+{% if printed %}
+<p>In der Spalte „Laut EStB“ steht, was der bestätigte EStB je Feld druckt; ein gedrucktes Minus ist weggelassen.</p>
+{% endif %}
+
+{% if snapshot %}
+<p>Schnappschuss bei Abgabe am {{ snapshot.taken_at.strftime('%d.%m.%Y') }}: In der Spalte „Bei Abgabe“ steht, was damals eingefroren wurde.</p>
 {% endif %}
 
 <table class="felder">
-  <tr><th>Nr. im Vordruck</th><th>E-Kennung</th><th>Bezeichnung</th><th>Betrag und Rechenweg</th></tr>
+  <tr><th>Nr. im Vordruck</th><th>E-Kennung</th><th>Bezeichnung</th><th>Betrag und Rechenweg</th>{% if snapshot %}<th>Bei Abgabe</th>{% endif %}{% if printed %}<th>Laut EStB</th>{% endif %}</tr>
   {% for field, result in rows %}
   <tr>
     <td>{{ field.form_line or "–" }}</td>
     <td>{% if field.elster_id %}{{ field.elster_id }}{% else %}noch unbekannt{% endif %}</td>
     <td>{{ field.label }}</td>
-    <td>{{ value_view("Angabe", result, whole=field.whole_euros) }}</td>
+    <td>{% if field.computed %}{{ value_view("Angabe", result, whole=field.whole_euros) }}{% else %}wird noch nicht berechnet{% endif %}</td>
+    {% if snapshot %}<td>{{ frozen.get(field.key, "–") }}</td>{% endif %}
+    {% if printed %}<td>{% if field.key in printed %}{{ field.show(printed[field.key]) }}{% else %}–{% endif %}</td>{% endif %}
   </tr>
   {% endfor %}
 </table>

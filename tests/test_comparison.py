@@ -5,6 +5,7 @@ echten Modul Arbeit.
 """
 
 import datetime
+import hashlib
 import json
 import shutil
 from dataclasses import replace
@@ -89,7 +90,7 @@ def findings(
     items: list[Entry], foreign: Foreign | None = None, tax_year: ModuleRegistration = TAX_YEAR
 ) -> list[Finding]:
     values = evaluate([tax_year], items, work() if foreign is None else foreign)
-    return values.finding_list("anna", 2025)
+    return values.finding_list("anna", 2025).visible
 
 
 def kinds(found: list[Finding]) -> list[str]:
@@ -229,7 +230,7 @@ def test_no_equipment_after_previous_year_matches_a_missing_field_and_keeps_the_
     )
     items = [place, bought_2024, *protocol([line(DAYS, "220"), line(KM, "12")])]
 
-    found = evaluate([WORK, TAX_YEAR], items).finding_list("anna", 2025)
+    found = evaluate([WORK, TAX_YEAR], items).finding_list("anna", 2025).visible
 
     assert kinds(found) == [EQUIPMENT_GAP]  # Hinweis von Arbeit, kein Befund des Abgleichs
 
@@ -258,8 +259,12 @@ def test_whole_flow_finding_list_links_to_the_protocol(http: httpx.Client) -> No
         headers=ORIGIN,
     )
     taken = http.post(
-        "/steuerjahr/uebertragungsprotokolle",
-        data={"site": "Belege", "path": "protokoll.html", "year": "2025"},
+        "/eingang/aufnehmen",
+        data={
+            "sha256": hashlib.sha256(FIXTURE.read_bytes()).hexdigest(),
+            "kind": "transfer_protocol",
+            "year": "2025",
+        },
         headers=ORIGIN,
     )
     assert taken.status_code == 303
@@ -281,3 +286,58 @@ def test_whole_flow_finding_list_links_to_the_protocol(http: httpx.Client) -> No
     anlage = http.get("/steuerjahr/anlage-n/2025")
     assert "Wert 219 Tage, Protokoll 220 Tage" in anlage.text
     assert "Befunde" in http.get("/").text
+
+
+# --- Fingerabdruck: gleicher Stand gleich, geänderter Stand anders -------------------------------
+
+
+def only(found: list[Finding], kind: str) -> Finding:
+    (finding,) = [f for f in found if f.kind == kind]
+    return finding
+
+
+def test_deviation_fingerprint_follows_the_value_and_the_protocol_content() -> None:
+    base = only(findings(protocol([line(DAYS, "219"), line(KM, "12")])), DEVIATION)
+
+    same = only(findings(protocol([line(DAYS, "219"), line(KM, "12")], taken=2)), DEVIATION)
+    other_content = only(findings(protocol([line(DAYS, "218"), line(KM, "12")])), DEVIATION)
+    other_value = only(
+        findings(protocol([line(DAYS, "219"), line(KM, "12")]), work(workdays=221)), DEVIATION
+    )
+
+    assert same.fingerprint == base.fingerprint
+    assert other_content.fingerprint != base.fingerprint
+    assert other_value.fingerprint != base.fingerprint
+
+
+def test_missing_fingerprint_follows_the_value() -> None:
+    base = only(findings(protocol([line(DAYS, "220")])), MISSING)
+
+    same = only(findings(protocol([line(DAYS, "220")]), work()), MISSING)
+    other = only(findings(protocol([line(DAYS, "220")]), work(km=13)), MISSING)
+
+    assert same.fingerprint == base.fingerprint
+    assert other.fingerprint != base.fingerprint
+
+
+def test_ambiguous_fingerprint_follows_the_protocol_lines() -> None:
+    def ambiguous(second: str) -> Finding:
+        lines = [line(DAYS, "100", "1_1"), line(DAYS, second, "2_1"), line(KM, "12")]
+        return only(findings(protocol(lines)), AMBIGUOUS)
+
+    assert ambiguous("120").fingerprint == ambiguous("120").fingerprint
+    assert ambiguous("121").fingerprint != ambiguous("120").fingerprint
+
+
+def test_unknown_elster_id_fingerprint_follows_the_field() -> None:
+    def unknown(label: str) -> Finding:
+        fields = tuple(
+            replace(f, elster_id=None, label=label) if f.key == N_EQUIPMENT else f
+            for f in FORMS[2025]
+        )
+        found = findings(
+            protocol([line(DAYS, "220"), line(KM, "12")]), tax_year=registration({2025: fields})
+        )
+        return only(found, UNKNOWN_ELSTER_ID)
+
+    assert unknown("Arbeitsmittel").fingerprint == unknown("Arbeitsmittel").fingerprint

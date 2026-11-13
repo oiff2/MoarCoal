@@ -24,7 +24,7 @@ from moarcoal.values.catalog import (
     ValueDefinition,
 )
 from moarcoal.values.engine import ContractViolation, Values
-from moarcoal.values.findings import DUPLICATE_LOCATOR, Finding, Severity
+from moarcoal.values.findings import DUPLICATE_LOCATOR, Finding, Severity, target_text
 from moarcoal.values.model import (
     Amount,
     Backing,
@@ -363,7 +363,7 @@ def test_same_locator_via_a_chain_is_an_error_finding() -> None:
     values.get("demo.top", "anna", YEAR)
 
     (finding,) = duplicates(values)
-    assert finding.target.key == "demo.top"
+    assert target_text(finding.target).startswith("demo.top@")
     assert finding.severity is Severity.ERROR
 
 
@@ -386,7 +386,7 @@ def test_same_locator_in_two_chain_values_of_one_value_counts() -> None:
 
     values.get("demo.top", "anna", YEAR)
 
-    assert [f.target.key for f in duplicates(values)] == ["demo.top"]
+    assert [target_text(f.target).split("@")[0] for f in duplicates(values)] == ["demo.top"]
 
 
 def test_distinct_locators_give_no_finding() -> None:
@@ -420,7 +420,7 @@ def test_duplicate_locator_shows_up_in_the_finding_list() -> None:
 
     values = evaluate([custom(definition("demo.twice", compute))], [])
 
-    found = values.finding_list("anna", 2025)
+    found = values.finding_list("anna", 2025).visible
 
     assert [f.kind for f in found] == [DUPLICATE_LOCATOR]
 
@@ -521,3 +521,19 @@ def test_key_neither_registered_nor_given_stays_unknown() -> None:
 )
 def test_amounts_read_the_same_everywhere(amount: Amount, whole_euros: bool, text: str) -> None:
     assert format_amount(amount, whole_euros=whole_euros) == text
+
+
+def test_duplicate_locator_fingerprint_follows_the_locator() -> None:
+    def duplicate(locator: UserInputLocator) -> Finding:
+        def compute(calc: Calculation) -> Amount:
+            calc.item("a", Amount.eur_cents(100), locator)
+            calc.item("b", Amount.eur_cents(100), locator)
+            return Amount.eur_cents(200)
+
+        values = evaluate([custom(definition("demo.twice", compute))], [])
+        values.get("demo.twice", "anna", YEAR)
+        (finding,) = duplicates(values)
+        return finding
+
+    assert duplicate(INPUT).fingerprint == duplicate(INPUT).fingerprint
+    assert duplicate(OTHER_INPUT).fingerprint != duplicate(INPUT).fingerprint
