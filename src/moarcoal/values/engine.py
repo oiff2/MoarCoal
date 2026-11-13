@@ -210,7 +210,7 @@ class Values:
                         Severity.NOTE,
                         "eingang",
                         text,
-                        href="/eingang",
+                        href="/belege",
                         fingerprint=fingerprint_,
                     )
                 )

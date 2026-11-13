@@ -265,7 +265,7 @@ def test_whole_flow_finding_list_links_to_the_protocol(http: httpx.Client) -> No
         headers=ORIGIN,
     )
     taken = http.post(
-        "/eingang/aufnehmen",
+        "/belege/aufnehmen",
         data={
             "sha256": hashlib.sha256(FIXTURE.read_bytes()).hexdigest(),
             "kind": "transfer_protocol",

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Belege – MoarCoal{% endblock %}
+{% macro size(file) %}{{ (file.size / 1024) | round(1) | string | replace(".", ",") }} KB{% endmacro %}
+{% macro folder_node(folder, depth) %}
+<details class="ordner"{% if folder.waiting %} open{% endif %}>
+  <summary>{{ folder.name }}{% if folder.waiting %} <span class="zaehler">{{ folder.waiting }}</span>{% endif %}</summary>
+  {% for sub in folder.folders.values() %}{{ folder_node(sub, depth + 1) }}{% endfor %}
+  {% for row in folder.rows %}{{ file_row(row) }}{% endfor %}
+</details>
+{% endmacro %}
+{% macro file_row(row) %}
+{% set file = row.file %}
+{% set doc = row.document %}
+{% set form = values if values.get("sha256") == file.sha256 else {} %}
+<div class="datei" title="{{ file.site }}/{{ file.path }}">
+  <span class="name">{{ row.name }}</span>
+  <span class="groesse">{{ size(file) }}</span>
+  {% if doc %}
+  <span class="stand">aufgenommen</span>
+  <span class="art">{% for kind in kinds if kind.key == doc.document_kind %}{{ kind.title }}{% endfor %}{% if doc.period_start %}, {{ doc.period_start.year }}{% endif %}</span>
+  <a href="/dokumente/{{ doc.id }}">Dokument</a>
+  {% else %}
+  <span class="stand">offen</span>
+  {% for message in errors.get(file.sha256, []) %}<span class="fehler">{{ message }}</span>{% endfor %}
+  <form method="post" action="/belege/aufnehmen">
+    <input type="hidden" name="sha256" value="{{ file.sha256 }}">
+    <label>Dokumentart
+      <select name="kind">
+        {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if form.get("kind") == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="jahr">Jahr <input name="year" value="{{ form.get('year', default_year) }}" size="6"></label>
+    <button type="submit">Aufnehmen</button>
+  </form>
+  <form method="post" action="/belege/ausblenden">
+    <input type="hidden" name="sha256" value="{{ file.sha256 }}">
+    <label>Notiz (freiwillig) <input type="text" name="note"></label>
+    <button type="submit">Ausblenden</button>
+  </form>
+  {% endif %}
+</div>
+{% endmacro %}
+{% block main %}
+<h1>Belege</h1>
+<nav class="reiter">
+  <a href="/belege" aria-current="page">Ablage</a>
+  <a href="/belege?stand=aufgenommen">Dokumente</a>
+  <a href="/erwartete-belege">Erwartet</a>
+</nav>
+{% if notice %}<p class="fehler">{{ notice }}</p>{% endif %}
+{% if not sites %}
+<p class="fehler">Es ist noch kein Ablageort eingerichtet (common/sites.json im Datenverzeichnis).</p>
+{% else %}
+<p class="filter">Anzeigen:
+  {% for s in stands %}{% if s == stand %}<strong>{{ s }}</strong>{% else %}<a href="/belege?stand={{ s }}">{{ s }}</a>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}
+</p>
+<div class="baum">
+  {% for root in tree %}
+  {% if root.shown %}{{ folder_node(root, 0) }}{% else %}<p>{{ root.name }}: keine Dateien.</p>{% endif %}
+  {% endfor %}
+  {% if hidden %}
+  <details class="ausgeblendet">
+    <summary>Ausgeblendet ({{ hidden | length }})</summary>
+    <p>Für alle Nutzer ausgeblendet, bis jemand die Datei wieder einblendet. Sie zählen in keinem Zähler.</p>
+    <table>
+      <tr><th>Ablageort</th><th>Datei</th><th>Notiz</th><th>Einblenden</th></tr>
+      {% for entry, checksum in hidden %}
+      <tr>
+        <td>{{ entry.site }}</td>
+        <td>{{ entry.path }}</td>
+        <td>{{ entry.note }}</td>
+        <td>
+          <form method="post" action="/belege/einblenden">
+            <input type="hidden" name="sha256" value="{{ entry.sha256 }}">
+            <input type="hidden" name="checksum" value="{{ checksum }}">
+            <button type="submit">Wieder einblenden</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </details>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -357,7 +357,7 @@ def take_in_via_page(
     client: httpx.Client, year: str = "2025", kind: str = "transfer_protocol"
 ) -> httpx.Response:
     return client.post(
-        "/eingang/aufnehmen",
+        "/belege/aufnehmen",
         data={
             "sha256": hashlib.sha256(FIXTURE.read_bytes()).hexdigest(),
             "kind": kind,

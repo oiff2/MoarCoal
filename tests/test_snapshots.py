@@ -446,7 +446,7 @@ def test_whole_flow_page_shows_frozen_next_to_current_and_finding_list_the_devia
     store: Store = app.state.store
     put(store, equipment(8640))
     taken = http.post(
-        "/eingang/aufnehmen",
+        "/belege/aufnehmen",
         data={
             "sha256": hashlib.sha256(FIXTURE.read_bytes()).hexdigest(),
             "kind": "transfer_protocol",

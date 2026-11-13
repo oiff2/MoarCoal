@@ -205,7 +205,7 @@ Ein benannter, für alle Nutzer gemeinsamer Ordner außerhalb des Datenverzeichn
 _Avoid_: externer Ordner, Quellordner, Mount
 
 **Eingang** _(geprägt)_:
-Die Liste der Dateien in den Ablageorten, die weder aufgenommen noch ausgeblendet sind (in der Oberfläche der Filter „offen“ der Ablage); daraus wird nichts von selbst übernommen.
+Die Liste der Dateien in den Ablageorten, die weder aufgenommen noch ausgeblendet sind (in der Oberfläche der Filter „offen“ der **Ablage**, des Reiters der Belege-Seite, der die Ablageorte als Baum zeigt); daraus wird nichts von selbst übernommen.
 _Avoid_: Inbox, Import, Vorschlag
 
 **aufnehmen**:

@@ -464,7 +464,7 @@ def http(app: FastAPI) -> httpx.Client:
 
 def take(http: httpx.Client, path: Path, kind: str) -> None:
     taken = http.post(
-        "/eingang/aufnehmen",
+        "/belege/aufnehmen",
         data={
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             "kind": kind,

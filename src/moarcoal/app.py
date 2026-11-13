@@ -11,12 +11,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import Environment, FileSystemLoader
 
+from moarcoal.belege_pages import moved_router
+from moarcoal.belege_pages import router as belege_router
 from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.dismissals import NoteMissing, dismiss, undismiss
 from moarcoal.document_pages import router as document_router
 from moarcoal.expected_documents_pages import router as expected_documents_router
 from moarcoal.extraction import ClaudeExtractor, Extractor
-from moarcoal.incoming_pages import router as incoming_router
 from moarcoal.modules import MODULES
 from moarcoal.registration import ModuleRegistration
 from moarcoal.security import SecurityMiddleware
@@ -73,7 +74,8 @@ def create_app(
     app.state.store = open_store(data_dir, [kind for module in modules for kind in module.kinds])
     for module in modules:
         app.include_router(module.router)
-    app.include_router(incoming_router)
+    app.include_router(belege_router)
+    app.include_router(moved_router)
     app.include_router(document_router)
     app.include_router(expected_documents_router)
 

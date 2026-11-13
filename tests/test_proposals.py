@@ -84,7 +84,7 @@ class Setup:
 
     def take_in(self, kind: str = "notice") -> str:
         data = {"sha256": SHA, "kind": kind, "year": "2025"}
-        response = self.client.post("/eingang/aufnehmen", data=data, headers=ORIGIN)
+        response = self.client.post("/belege/aufnehmen", data=data, headers=ORIGIN)
         assert response.status_code == 303
         return response.headers["location"]
 
@@ -219,7 +219,7 @@ def test_failed_re_extraction_keeps_the_current_proposal(tmp_path: Path) -> None
 def test_kind_without_template_is_not_extracted(tmp_path: Path) -> None:
     setup = make(tmp_path, answer())
     location = setup.take_in("plain")
-    assert location == "/eingang"
+    assert location == "/belege"
     document_url = f"/dokumente/{setup.document().id}"
     assert "nicht ausgelesen" in setup.client.get(document_url).text
     assert setup.post(f"{document_url}/auslesen").status_code == 409

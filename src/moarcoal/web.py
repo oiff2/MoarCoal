@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from moarcoal.documents import DocumentKind
-from moarcoal.incoming import all_site_files
+from moarcoal.incoming import all_site_files, incoming_files
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import EntryAddress, ExpectedDocument, Issuer, State, Store, issuer_url
 from moarcoal.values.engine import Values
@@ -71,9 +71,16 @@ async def form_fields(request: Request) -> dict[str, str]:
 def render(request: Request, name: str, status_code: int = 200, **context: Any) -> HTMLResponse:
     templates: Jinja2Templates = request.app.state.templates
     registrations: tuple[ModuleRegistration, ...] = request.app.state.modules
+    store = store_of(request)
+    open_files = len(incoming_files(all_site_files(store), store.state(), user_of(request)))
     return templates.TemplateResponse(
         request,
         name,
-        {"modules": registrations, "user_name": request.app.state.user_name, **context},
+        {
+            "modules": registrations,
+            "user_name": request.app.state.user_name,
+            "open_files": open_files,
+            **context,
+        },
         status_code=status_code,
     )
