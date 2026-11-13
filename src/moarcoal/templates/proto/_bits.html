@@ -5,7 +5,7 @@
   <a class="logo" href="/"><i>M</i><span class="lbl">MoarCoal</span></a>
   {% for group, items in nav %}
   <div class="grp{% if mode == 'fold' %} foldable{% endif %}"><span class="lbl">{{ group }}</span><hr></div>
-  <div class="items">{% for url, label, icon, n in items %}<a href="{{ url }}" data-key="{{ items | length * loop.index0 + loop.index }}" title="{{ label }}"><i>{{ icon }}</i><span class="lbl">{{ label }}</span>{% if n %}<b>{{ n }}</b>{% endif %}</a>{% endfor %}</div>
+  <div class="items">{% for url, label, icon, n in items %}<a href="{{ url }}" data-key="{{ loop.index + (2 if group == 'Allgemein' else 0) }}" title="{{ label }}"><i>{{ icon }}</i><span class="lbl">{{ label }}</span>{% if n %}<b>{{ n }}</b>{% endif %}</a>{% endfor %}</div>
   {% endfor %}
   <div class="grip" title="Breite ziehen"></div>
 </aside>
