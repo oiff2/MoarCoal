@@ -69,6 +69,13 @@ def test_list_site_files_is_recursive_with_size_and_sha256(root: Path, site: Pat
         store.list_site_files("Anderswo")
 
 
+def test_list_site_files_skips_dot_folders(root: Path, site: Path) -> None:
+    (site / ".git" / "objects").mkdir(parents=True)
+    (site / ".git" / "objects" / "x.txt").write_text("x", encoding="utf-8")
+    store = open_store(root, REGISTRATION.kinds, {"Belege": site})
+    assert [f.path for f in store.list_site_files("Belege")] == ["2025/protokoll.html"]
+
+
 def test_list_site_files_skips_links_out_of_the_site(
     root: Path, site: Path, tmp_path: Path
 ) -> None:

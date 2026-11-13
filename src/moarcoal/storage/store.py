@@ -339,13 +339,15 @@ class Store:
 
         Es gelten die Regeln von `read_site_file`: Verzeichnis-Links werden nicht verfolgt, Dateien
         mit Ziel außerhalb des Ablageorts, zu große und unlesbare Dateien fehlen in der Liste.
+        Ordner mit Punkt am Anfang (etwa `.git`) werden samt Inhalt übergangen.
         """
         folder = self._sites.get(site)
         if folder is None:
             raise SiteFileError(f"Unbekannter Ablageort {site!r}.")
         base = folder.resolve()
         found: list[SiteFile] = []
-        for current, _, names in os.walk(base):
+        for current, dirs, names in os.walk(base):
+            dirs[:] = [d for d in dirs if not d.startswith(".")]
             for name in names:
                 file = Path(current) / name
                 try:
