@@ -39,6 +39,8 @@ def read_data_dir(env: Mapping[str, str] = os.environ) -> Path:
 def main() -> None:
     port = read_port()
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if sys.platform != "win32":  # unter Windows erlaubt die Option doppeltes Binden
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         sock.bind((HOST, port))
     except OSError as error:
