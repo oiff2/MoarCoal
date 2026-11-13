@@ -14,7 +14,7 @@ from moarcoal.storage.entries import (
     new_id,
 )
 from moarcoal.storage.expected_documents import ExpectedDocument
-from moarcoal.storage.hidden_files import COMMON_OWNER, HiddenFile
+from moarcoal.storage.hidden_files import COMMON_OWNER, HiddenFile, HiddenFolder
 from moarcoal.storage.issuers import (
     Issuer,
     denylist_lines,
@@ -70,6 +70,7 @@ __all__ = [
     "FrozenTime",
     "FrozenValue",
     "HiddenFile",
+    "HiddenFolder",
     "Issuer",
     "Merge",
     "Occasion",

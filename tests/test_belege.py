@@ -14,7 +14,15 @@ from moarcoal.documents import DocumentKind, IntakeRejected, take_in
 from moarcoal.incoming import ablage_rows, ablage_tree, all_site_files, hide_file, incoming_files
 from moarcoal.modules.tax_year import REGISTRATION
 from moarcoal.registration import ModuleRegistration
-from moarcoal.storage import Applied, Document, HiddenFile, SiteFileError, Store, open_store
+from moarcoal.storage import (
+    Applied,
+    Document,
+    HiddenFile,
+    HiddenFolder,
+    SiteFileError,
+    Store,
+    open_store,
+)
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PORT = 4711
@@ -504,3 +512,98 @@ def test_hidden_file_missing_in_the_site_has_no_preview_but_can_be_shown(
     assert "Keine Vorschau." in chosen and "<iframe" not in chosen
     assert "KB</span>" not in chosen.split("Ausgeblendet (")[1].split("</details>")[0]
     assert "Wieder einblenden" in chosen
+
+
+def hide_directly(client: httpx.Client, **fields: str) -> httpx.Response:
+    return client.post("/belege/ausblenden-direkt", data=fields, headers=ORIGIN)
+
+
+def hidden_folders_of(root: Path, site: Path) -> list[HiddenFolder]:
+    store = open_store(root, REGISTRATION.kinds, {"Belege": site})
+    return list(store.state().of_kind(HiddenFolder))
+
+
+def test_one_click_hides_a_file_in_its_row(root: Path, site: Path) -> None:
+    (site / "lose.txt").write_text("lose", encoding="utf-8")
+    client = make_client(root, site)
+    page = main_of(client, "/belege")
+    assert page.count('action="/belege/ausblenden-direkt"') == 3  # Ordner 2025 + zwei Dateien
+    response = hide_directly(client, sha256=SHA, stand="alle")
+    assert response.status_code == 303 and response.headers["location"] == "/belege?stand=alle"
+    assert "Ausgeblendet (1)" in main_of(client, "/belege?stand=alle")
+    assert hide_directly(client, sha256=SHA).status_code == 409  # nicht mehr im Eingang
+
+
+def test_hiding_a_folder_takes_its_content_with_it_also_later_files(root: Path, site: Path) -> None:
+    add_files(site)
+    client = make_client(root, site)
+    assert hide_directly(client, site="Belege", path="2024").status_code == 303
+    stored = json.loads((root / "common" / "hidden_folders.json").read_text(encoding="utf-8"))
+    (entry,) = stored["entries"].values()
+    assert (entry["owner"], entry["site"], entry["path"]) == ("common", "Belege", "2024")
+    (site / "2024" / "neu.txt").write_text("neu", encoding="utf-8")
+    store = open_store(root, REGISTRATION.kinds, {"Belege": site})
+    rows = ablage_rows(all_site_files(store), store.state(), "anna")
+    assert sorted(r.name for r in rows) == ["lose.txt", "protokoll.html"]
+    assert len(incoming_files(all_site_files(store), store.state(), "anna")) == 2
+    page = main_of(client, "/belege?stand=alle")
+    assert "auszug.txt" not in page and "neu.txt" not in page
+    assert "Ausgeblendet (1)" in page and "2024/</span>" in page
+    assert "3 Dateien" in page  # der Ordner ist eine Zeile mit Zahl
+    assert 'href="/belege">Belege (2)</a>' in client.get("/").text
+    assert hide_directly(client, site="Belege", path="2024").status_code == 303  # nochmal: nichts
+    assert len(hidden_folders_of(root, site)) == 1
+
+
+def test_showing_a_folder_brings_its_content_back(root: Path, site: Path) -> None:
+    add_files(site)
+    client = make_client(root, site)
+    hide_directly(client, site="Belege", path="2024")
+    fields = {"site": "Belege", "path": "2024"}
+    stale = client.post(
+        "/belege/einblenden-ordner", data={**fields, "checksum": "falsch"}, headers=ORIGIN
+    )
+    assert stale.status_code == 409
+    checksum = main_of(client, "/belege").split('name="checksum" value="')[1].split('"')[0]
+    shown = client.post(
+        "/belege/einblenden-ordner", data={**fields, "checksum": checksum}, headers=ORIGIN
+    )
+    assert shown.status_code == 303
+    page = main_of(client, "/belege")
+    assert "auszug.txt" in page and "Ausgeblendet" not in page
+    again = client.post(
+        "/belege/einblenden-ordner", data={**fields, "checksum": checksum}, headers=ORIGIN
+    )
+    assert again.status_code == 409
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["../x", "/etc", "2024/../2025", "2024//bank", "gibt-es-nicht", "", "2025/protokoll.html"],
+)
+def test_hiding_a_folder_rejects_bad_paths(root: Path, site: Path, path: str) -> None:
+    add_files(site)
+    client = make_client(root, site)
+    assert hide_directly(client, site="Belege", path=path).status_code == 409
+    assert hide_directly(client, site="Fremd", path="2024").status_code == 409
+    assert not (root / "common" / "hidden_folders.json").exists()
+
+
+def test_folder_hiding_is_by_path_and_keeps_taken_in_files(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    take(client)
+    hide_directly(client, site="Belege", path="2025")
+    assert ">protokoll.html</a>" in main_of(client, "/belege?stand=alle")  # aufgenommen bleibt
+    (site / "kopie").mkdir()
+    (site / "kopie" / "gleich.html").write_bytes(FIXTURE.read_bytes())
+    ben = make_client(root, site, "ben")
+    page = main_of(ben, "/belege")
+    assert ">protokoll.html</a>" not in page and ">gleich.html</a>" in page  # anderer Pfad
+
+
+def test_direct_hiding_needs_origin_and_get_never_writes(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    assert client.post("/belege/ausblenden-direkt", data={"sha256": SHA}).status_code == 403
+    assert client.post("/belege/einblenden-ordner", data={"site": "Belege"}).status_code == 403
+    assert client.get("/belege/ausblenden-direkt").status_code == 405
+    assert not (root / "common" / "hidden_files.json").exists()

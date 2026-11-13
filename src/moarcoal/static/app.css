@@ -27,6 +27,7 @@ main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
 .ordner > summary { cursor: pointer; }
 .zaehler { padding: 0 0.4rem; border: 1px solid gray; border-radius: 0.25rem; font-size: 0.85em; }
 .datei { display: flex; flex-wrap: wrap; gap: 0 0.75rem; align-items: baseline; padding: 0.15rem 0; }
+form.direkt { display: inline; margin-left: auto; }
 .datei a[aria-current] { font-weight: bold; }
 .arbeit { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(18rem, 2fr) 3fr; grid-template-rows: minmax(0, 1fr); gap: 1rem; }
 /* Rechts: der Kopf hat feste Höhe und scrollt in sich, darunter scrollt die Vorschau in sich */

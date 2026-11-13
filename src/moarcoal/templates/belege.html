@@ -4,9 +4,16 @@
 {% from "documents/_detail.html" import document_detail %}
 {% block title %}Belege – MoarCoal{% endblock %}
 {% macro size(file) %}{{ (file.size / 1024) | round(1) | string | replace(".", ",") }} KB{% endmacro %}
+{% macro hide_button(stand, sha256="", site="", path="") %}
+<form class="direkt" method="post" action="/belege/ausblenden-direkt">
+  <input type="hidden" name="stand" value="{{ stand }}">
+  {% if sha256 %}<input type="hidden" name="sha256" value="{{ sha256 }}">{% else %}<input type="hidden" name="site" value="{{ site }}"><input type="hidden" name="path" value="{{ path }}">{% endif %}
+  <button type="submit">Ausblenden</button>
+</form>
+{% endmacro %}
 {% macro folder_node(folder) %}
 <details class="ordner"{% if folder.waiting or (selected and folder.contains(selected.file.sha256)) %} open{% endif %}>
-  <summary>{{ folder.name }}{% if folder.waiting %} <span class="zaehler">{{ folder.waiting }}</span>{% endif %}</summary>
+  <summary>{{ folder.name }}{% if folder.waiting %} <span class="zaehler">{{ folder.waiting }}</span>{% endif %}{% if folder.path %} {{ hide_button(stand, site=folder.site, path=folder.path) }}{% endif %}</summary>
   {% for sub in folder.folders.values() %}{{ folder_node(sub) }}{% endfor %}
   {% for row in folder.rows %}{{ file_row(row) }}{% endfor %}
 </details>
@@ -23,6 +30,7 @@
   <span class="art">{% for kind in kinds if kind.key == doc.document_kind %}{{ kind.title }}{% endfor %}{% if doc.period_start %}, {{ doc.period_start.year }}{% endif %}</span>
   {% else %}
   <span class="stand">offen</span>
+  {{ hide_button(stand, sha256=file.sha256) }}
   {% endif %}
 </div>
 {% endmacro %}
@@ -87,9 +95,22 @@
   {% for root in tree %}
   {% if root.shown %}{{ folder_node(root) }}{% else %}<p>{{ root.name }}: keine Dateien.</p>{% endif %}
   {% endfor %}
-  {% if hidden %}
+  {% if hidden or hidden_dirs %}
   <details class="ausgeblendet"{% if selected_hidden %} open{% endif %}>
-    <summary>Ausgeblendet ({{ hidden | length }})</summary>
+    <summary>Ausgeblendet ({{ hidden | length + hidden_dirs | length }})</summary>
+    {% for entry, checksum, count in hidden_dirs %}
+    <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
+      <span class="name">{{ entry.path }}/</span>
+      <span class="groesse">{{ count }} {{ "Datei" if count == 1 else "Dateien" }}</span>
+      <span class="stand">ausgeblendet</span>
+      <form class="direkt" method="post" action="/belege/einblenden-ordner">
+        <input type="hidden" name="site" value="{{ entry.site }}">
+        <input type="hidden" name="path" value="{{ entry.path }}">
+        <input type="hidden" name="checksum" value="{{ checksum }}">
+        <button type="submit">Wieder einblenden</button>
+      </form>
+    </div>
+    {% endfor %}
     {% for entry, checksum, file in hidden %}
     <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
       <a class="name" href="/belege?stand={{ stand }}&datei={{ entry.sha256 }}"{% if selected_hidden and selected_hidden[0].sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a>

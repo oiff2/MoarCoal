@@ -14,12 +14,17 @@ from moarcoal.incoming import (
     ablage_rows,
     ablage_tree,
     all_site_files,
+    folder_path_error,
     hidden_files,
+    hidden_folders,
     hidden_section,
     hide_file,
+    hide_folder,
+    in_hidden_folder,
     incoming_files,
     next_open,
     show_file,
+    show_folder,
 )
 from moarcoal.issuer_field import resolve_issuer
 from moarcoal.prefill import Prefill, prefill_from_name
@@ -29,6 +34,7 @@ from moarcoal.storage import (
     Document,
     ExpectedDocument,
     HiddenFile,
+    HiddenFolder,
     Issuer,
     SiteFile,
     entry_checksum,
@@ -70,12 +76,17 @@ def _page(
     state = store.state()
     rows = ablage_rows(all_site_files(store), state, user_of(request))
     chosen = next((r for r in rows if r.file.sha256 == selected), None)
-    files = {f.sha256: f for f in all_site_files(store)}
+    site_files = all_site_files(store)
+    files = {f.sha256: f for f in site_files}
     hidden = [
         (h, entry_checksum(h), files.get(h.sha256))
         for h in hidden_section(hidden_files(state), rows)
     ]
     hidden_chosen = next((h for h in hidden if h[0].sha256 == selected), None)
+    hidden_dirs = [
+        (h, entry_checksum(h), sum(1 for f in site_files if in_hidden_folder(f, [h])))
+        for h in hidden_folders(state)
+    ]
     kinds = document_kinds(request)
     # Vorbelegen nur für eine offene Datei und nur, solange keine abgewiesene Eingabe dasteht
     suggestion = (
@@ -123,6 +134,7 @@ def _page(
         stands=STANDS,
         kinds=list(kinds.values()),
         hidden=hidden,
+        hidden_dirs=hidden_dirs,
         sites=store.site_names(),
         issuer_names={i.id: i.name for i in state.of_kind(Issuer)},
         default_year=DEFAULT_YEAR,
@@ -228,6 +240,45 @@ def hide(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> R
     if not isinstance(result, Applied):
         return _page(request, 409, " ".join(result.reasons.values()), selected=file.sha256)
     return following or RedirectResponse("/belege", status_code=303)
+
+
+@router.post("/ausblenden-direkt")
+def hide_directly(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
+    """Ein Klick in der Zeile: eine offene Datei (`sha256`) oder ein Ordner (`site` und `path`)."""
+    store = store_of(request)
+    stand = fields.get("stand", "offen")
+    back = RedirectResponse(f"/belege?stand={stand if stand in STANDS else 'offen'}", 303)
+    if "sha256" in fields:
+        file = _find(request, fields["sha256"])
+        if file is None:
+            return _page(request, 409, "Die Datei ist nicht mehr im Eingang.")
+        result = hide_file(store, file, "")
+    else:
+        site, path = fields.get("site", ""), fields.get("path", "")
+        if site not in store.site_names():
+            return _page(request, 409, f"Unbekannter Ablageort {site!r}.")
+        error = folder_path_error(all_site_files(store), site, path)
+        if error:
+            return _page(request, 409, error)
+        result = hide_folder(store, store.state(), site, path)
+    if result is not None and not isinstance(result, Applied):
+        return _page(request, 409, " ".join(result.reasons.values()))
+    return back
+
+
+@router.post("/einblenden-ordner")
+def show_dir(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
+    state = store_of(request).state()
+    site, path = fields.get("site", ""), fields.get("path", "")
+    hidden = next(
+        (h for h in state.of_kind(HiddenFolder) if (h.site, h.path) == (site, path)), None
+    )
+    if hidden is None:
+        return _page(request, 409, "Die Ausblendung gibt es nicht mehr.")
+    result = show_folder(store_of(request), hidden, fields.get("checksum", ""))
+    if not isinstance(result, Applied):
+        return _page(request, 409, "Die Ausblendung wurde inzwischen geändert. Bitte neu prüfen.")
+    return RedirectResponse("/belege", status_code=303)
 
 
 @router.post("/einblenden")

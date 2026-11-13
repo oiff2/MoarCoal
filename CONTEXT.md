@@ -36,7 +36,7 @@ Die eine Stelle, an der alle nicht ausgeblendeten Befunde eines Nutzers zum gew�
 _Avoid_: Review, Inbox, To-do, Durchsicht
 
 **ausblenden**:
-Etwas aus einer Liste nehmen, ohne es zu löschen. Einen Befund blendet ein Nutzer mit Pflicht-Notiz für sich aus, bis sich der zugrunde liegende Stand ändert; eine Datei im Eingang wird für alle Nutzer ausgeblendet, bis jemand sie wieder einblendet (gespeichert als Eintrag der Datenebene mit SHA-256, Ablageort, Pfad und freiwilliger Notiz; Code: `HiddenFile`). Die Ausblendung eines Befunds heißt **Ausblendung**, ein Eintrag der Datenebene mit Befundart, Ziel, Fingerabdruck des Befunds und der Notiz (Code: `Dismissal`).
+Etwas aus einer Liste nehmen, ohne es zu löschen. Einen Befund blendet ein Nutzer mit Pflicht-Notiz für sich aus, bis sich der zugrunde liegende Stand ändert; eine Datei im Eingang wird für alle Nutzer ausgeblendet, bis jemand sie wieder einblendet (gespeichert als Eintrag der Datenebene mit SHA-256, Ablageort, Pfad und freiwilliger Notiz; Code: `HiddenFile`); ein ganzer Ordner eines Ablageorts mit allem darunter wird über Ablageort und Pfad ausgeblendet (Code: `HiddenFolder`). Die Ausblendung eines Befunds heißt **Ausblendung**, ein Eintrag der Datenebene mit Befundart, Ziel, Fingerabdruck des Befunds und der Notiz (Code: `Dismissal`).
 _Avoid_: quittieren, ignorieren, verwerfen
 
 **Nutzer**:
