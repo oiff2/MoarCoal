@@ -204,7 +204,7 @@ def taken_in(client: httpx.Client) -> Document:
 
 
 def change(client: httpx.Client, document: Document, **fields: str) -> httpx.Response:
-    return client.post(f"/dokumente/{document.id}/aussteller", data=fields, headers=ORIGIN)
+    return client.post(f"/dokumente/{document.id}/aendern", data=fields, headers=ORIGIN)
 
 
 def test_document_page_shows_field_and_get_writes_nothing(client: httpx.Client) -> None:
@@ -272,5 +272,5 @@ def test_new_and_alias_name_the_issuer_that_already_has_the_name(client: httpx.C
 
 def test_change_issuer_needs_origin_and_known_document(client: httpx.Client) -> None:
     document = taken_in(client)
-    assert client.post(f"/dokumente/{document.id}/aussteller", data={}).status_code == 403
+    assert client.post(f"/dokumente/{document.id}/aendern", data={}).status_code == 403
     assert change(client, document.model_copy(update={"id": "ZZZZZZZZZZ"})).status_code == 404

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_issuer_field.html" import issuer_field %}
+{% from "_document_form.html" import document_form %}
 {% block title %}Dokument – MoarCoal{% endblock %}
 {% block main %}
 <h1>Dokument</h1>
@@ -8,10 +8,8 @@
 
 <h2>Aussteller</h2>
 <p>{% if issuer %}{{ issuer.name }}{% else %}Kein Aussteller angegeben.{% endif %}</p>
-<form method="post" action="/dokumente/{{ document.id }}/aussteller">
-  {{ issuer_field(default=document.issuer.id if document.issuer else "", text=issuer_text) }}
-  <button type="submit">Aussteller ändern</button>
-</form>
+<h2>Ändern</h2>
+{{ document_form(document, kinds, references, checksum, labels, default_year, "", issuer_text, year) }}
 
 {% if proposal %}
 <h2>Vorschlag bestätigen</h2>

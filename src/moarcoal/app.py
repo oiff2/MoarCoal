@@ -15,6 +15,7 @@ from moarcoal.belege_pages import moved_router
 from moarcoal.belege_pages import router as belege_router
 from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.dismissals import NoteMissing, dismiss, undismiss
+from moarcoal.document_list import router as document_list_router
 from moarcoal.document_pages import router as document_router
 from moarcoal.expected_documents_pages import router as expected_documents_router
 from moarcoal.extraction import ClaudeExtractor, Extractor
@@ -78,6 +79,7 @@ def create_app(
         app.include_router(module.router)
     app.include_router(belege_router)
     app.include_router(moved_router)
+    app.include_router(document_list_router)
     app.include_router(document_router)
     app.include_router(expected_documents_router)
     app.include_router(issuer_router)

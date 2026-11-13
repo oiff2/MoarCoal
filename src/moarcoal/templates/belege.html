@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_issuer_field.html" import issuer_field %}
+{% from "_belege.html" import tabs, preview %}
 {% block title %}Belege – MoarCoal{% endblock %}
 {% macro size(file) %}{{ (file.size / 1024) | round(1) | string | replace(".", ",") }} KB{% endmacro %}
 {% macro folder_node(folder) %}
@@ -54,19 +55,11 @@
   </form>
   {% endif %}
 </div>
-<div class="vorschau">
-  {% if preview_kind == "image" %}<img src="{{ preview_url }}" alt="{{ file.path }}">
-  {% elif preview_kind %}<iframe src="{{ preview_url }}" title="Vorschau"{% if preview_kind == "html" %} sandbox=""{% endif %}></iframe>
-  {% else %}<p>Keine Vorschau.</p>{% endif %}
-</div>
+{{ preview(preview_kind, preview_url, file.path) }}
 {% endmacro %}
 {% block main %}
 <h1>Belege</h1>
-<nav class="reiter">
-  <a href="/belege" aria-current="page">Ablage</a>
-  <a href="/belege?stand=aufgenommen">Dokumente</a>
-  <a href="/erwartete-belege">Erwartet</a>
-</nav>
+{{ tabs("ablage") }}
 {% if notice %}<p class="fehler">{{ notice }}</p>{% endif %}
 {% if not sites %}
 <p class="fehler">Es ist noch kein Ablageort eingerichtet (common/sites.json im Datenverzeichnis).</p>
