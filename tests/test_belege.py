@@ -396,7 +396,7 @@ def test_navigation_counter_counts_open_files_per_user(root: Path, site: Path) -
 
 def test_tabs_point_to_existing_pages(root: Path, site: Path) -> None:
     page = main_of(make_client(root, site), "/belege")
-    assert 'href="/erwartete-belege"' in page
+    assert 'href="/belege/erwartet"' in page
     assert 'href="/belege/dokumente"' in page
 
 

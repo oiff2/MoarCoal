@@ -23,7 +23,7 @@ def format_eur(cents: int) -> str:
 def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) -> str | None:
     """Link zum Eintrag, wie das besitzende Modul ihn nennt; unbekannte Art: kein Link."""
     if address.kind == ExpectedDocument.__name__:  # Baustein der Datenebene
-        return f"/erwartete-belege/{address.id}"
+        return f"/belege/erwartet/{address.id}"
     if address.kind == Issuer.__name__:  # Baustein der Datenebene
         return issuer_url(address.id)
     return next((url for m in modules if (url := m.entry_url(address)) is not None), None)

@@ -3,7 +3,7 @@
 <nav class="reiter">
   <a href="/belege"{% if active == "ablage" %} aria-current="page"{% endif %}>Ablage</a>
   <a href="/belege/dokumente"{% if active == "dokumente" %} aria-current="page"{% endif %}>Dokumente</a>
-  <a href="/erwartete-belege">Erwartet</a>
+  <a href="/belege/erwartet"{% if active == "erwartet" %} aria-current="page"{% endif %}>Erwartet</a>
 </nav>
 {% endmacro %}
 {% macro preview(kind, url, path) %}

@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.documents import IntakeRejected, take_in
+from moarcoal.expected_documents import expected_name, pending_for
 from moarcoal.incoming import (
     STANDS,
     ablage_rows,
@@ -22,7 +23,15 @@ from moarcoal.incoming import (
 from moarcoal.issuer_field import resolve_issuer
 from moarcoal.prefill import Prefill, prefill_from_name
 from moarcoal.previews import file_response, preview_kind
-from moarcoal.storage import Applied, HiddenFile, Issuer, SiteFile, entry_checksum
+from moarcoal.storage import (
+    Applied,
+    Document,
+    ExpectedDocument,
+    HiddenFile,
+    Issuer,
+    SiteFile,
+    entry_checksum,
+)
 from moarcoal.web import (
     document_kinds,
     entry_url,
@@ -66,6 +75,20 @@ def _page(
         if chosen and chosen.document is None and not values
         else Prefill()
     )
+    # Hinweis nur bei passender Art und Jahr (aus dem Namen) und nur für eine offene Datei
+    would_fulfil: list[tuple[str, str]] = []
+    if suggestion.kind and suggestion.year:
+        user = user_of(request)
+        titles = {k: v.title for k, v in kinds.items()}
+        would_fulfil = [
+            (e.id, expected_name(e, titles))
+            for e in pending_for(
+                [d for d in state.of_kind(Document) if d.owner == user],
+                [e for e in state.of_kind(ExpectedDocument) if e.owner == user],
+                suggestion.kind,
+                suggestion.year,
+            )
+        ]
     return render(
         request,
         "belege.html",
@@ -80,6 +103,7 @@ def _page(
             else f"/belege/datei/{chosen.file.sha256}"
         ),
         suggestion=suggestion,
+        would_fulfil=would_fulfil,
         stand=stand,
         stands=STANDS,
         kinds=list(kinds.values()),
@@ -198,6 +222,13 @@ def show(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> R
     if not isinstance(result, Applied):
         return _page(request, 409, "Die Ausblendung wurde inzwischen geändert. Bitte neu prüfen.")
     return RedirectResponse("/belege", status_code=303)
+
+
+@moved_router.api_route("/erwartete-belege", methods=["GET", "POST"])
+@moved_router.api_route("/erwartete-belege/{rest:path}", methods=["GET", "POST"])
+def moved_expected(rest: str = "") -> RedirectResponse:
+    """Die Erwarteten Belege sind der Reiter Erwartet; 308 behält Methode und Formular bei."""
+    return RedirectResponse(f"/belege/erwartet/{rest}".rstrip("/"), status_code=308)
 
 
 @moved_router.api_route("/eingang", methods=["GET", "POST"])

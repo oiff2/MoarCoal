@@ -13,7 +13,7 @@ from moarcoal.values.findings import Finding, Severity, fingerprint
 
 PENDING = "expected_document_pending"
 DUPLICATE = "expected_document_duplicate"
-HREF = "/erwartete-belege"
+HREF = "/belege/erwartet"
 
 
 def matching_documents(
@@ -54,6 +54,18 @@ def statuses(
     ]
 
 
+def pending_for(
+    documents: list[Document], expecteds: list[ExpectedDocument], kind: str, year: int
+) -> list[ExpectedDocument]:
+    """Die Erwarteten Belege, die ein Dokument dieser Art für dieses Jahr erfüllen würde: gleiche
+    Art, Jahr fällig und noch ausstehend (nach derselben Regel wie `statuses`)."""
+    return [
+        e
+        for e in expecteds
+        if e.document_kind == kind and e.due_in(year) and not matching_documents(documents, e, year)
+    ]
+
+
 def previous_year_issuer(
     documents: list[Document], expected: ExpectedDocument, year: int
 ) -> EntryAddress | None:
@@ -69,7 +81,7 @@ def previous_year_issuer(
     )
 
 
-def _name(expected: ExpectedDocument, titles: Mapping[str, str]) -> str:
+def expected_name(expected: ExpectedDocument, titles: Mapping[str, str]) -> str:
     title = titles.get(expected.document_kind, expected.document_kind)
     return f"{title} ({expected.description})" if expected.description else title
 
@@ -90,7 +102,7 @@ def expected_document_findings(
         if expected.owner != user or not expected.due_in(year):
             continue
         matching = matching_documents(documents, expected, year)
-        name = _name(expected, titles)
+        name = expected_name(expected, titles)
         target = f"{expected.address}@{year}"  # je Jahr ein eigener Befund
         if not matching:
             text = f"Erwarteter Beleg für {year} ausstehend: {name}"

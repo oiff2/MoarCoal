@@ -1,4 +1,4 @@
-"""Seite „Erwartete Belege“: Stand je Jahr, anlegen, ändern, löschen (Baustein der Datenebene)."""
+"""Belege-Seite, Reiter Erwartet: Stand je Jahr, anlegen, ändern, löschen (Datenebene)."""
 
 from typing import Annotated
 
@@ -8,8 +8,9 @@ from pydantic import ValidationError
 
 from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.documents import DocumentKind
-from moarcoal.expected_documents import previous_year_issuer, statuses
-from moarcoal.registration import ModuleRegistration
+from moarcoal.expected_documents import pending_for, previous_year_issuer, statuses
+from moarcoal.incoming import all_site_files, incoming_files
+from moarcoal.prefill import prefill_from_name
 from moarcoal.storage import (
     Applied,
     Delete,
@@ -19,13 +20,14 @@ from moarcoal.storage import (
     Issuer,
     Put,
     Rejected,
+    SiteFile,
     entry_checksum,
     new_id,
 )
 from moarcoal.storage.expected_documents import MAX_YEAR, MIN_YEAR, TEXT_MAX
-from moarcoal.web import form_fields, render, store_of, user_of
+from moarcoal.web import document_kinds, form_fields, render, store_of, user_of
 
-router = APIRouter(prefix="/erwartete-belege")
+router = APIRouter(prefix="/belege/erwartet")
 
 type Fields = dict[str, str]
 
@@ -39,8 +41,7 @@ END_BEFORE_START = "Ende: nicht vor dem Beginn"
 
 
 def _all_kinds(request: Request) -> list[DocumentKind]:
-    registrations: tuple[ModuleRegistration, ...] = request.app.state.modules
-    return [k for r in registrations for k in r.document_kinds]
+    return list(document_kinds(request).values())
 
 
 def _kinds(request: Request) -> dict[str, DocumentKind]:
@@ -115,6 +116,16 @@ def _overview(
         key=lambda e: (e.start_year, e.id),
     )
     rows = [(e, statuses(documents, e, DEFAULT_YEAR), _suggestion(request, e)) for e in expected]
+    # offene Dateien der Ablage, die einen ausstehenden Stand erfüllen würden (Art, Jahr aus Name)
+    store = store_of(request)
+    kinds = document_kinds(request).values()
+    offers: dict[tuple[str, int], list[SiteFile]] = {}
+    for file in incoming_files(all_site_files(store), state, user):
+        found = prefill_from_name(state, kinds, file.path)
+        if found.kind is None or found.year is None:
+            continue
+        for e in pending_for(documents, expected, found.kind, found.year):
+            offers.setdefault((e.id, found.year), []).append(file)
     return render(
         request,
         "expected_documents/index.html",
@@ -124,6 +135,7 @@ def _overview(
         titles={k.key: k.title for k in _all_kinds(request)},
         errors=errors,
         values=values,
+        offers=offers,
     )
 
 
@@ -165,7 +177,7 @@ def create(request: Request, fields: Annotated[Fields, Depends(form_fields)]) ->
     result = store_of(request).apply([Put(entry)])
     if not isinstance(result, Applied):
         return _overview(request, _reasons(result), fields, 409)
-    return RedirectResponse("/erwartete-belege", status_code=303)
+    return RedirectResponse("/belege/erwartet", status_code=303)
 
 
 @router.get("/{entry_id}", response_class=HTMLResponse)
@@ -186,7 +198,7 @@ def update(
     result = store_of(request).apply([Put(entry, expected=checksum)])
     if not isinstance(result, Applied):
         return _edit(request, entry_id, fields, _reasons(result), checksum, 409)
-    return RedirectResponse("/erwartete-belege", status_code=303)
+    return RedirectResponse("/belege/erwartet", status_code=303)
 
 
 @router.post("/{entry_id}/loeschen")
@@ -198,4 +210,4 @@ def delete(
     result = store_of(request).apply([Delete(entry.address, expected=checksum)])
     if not isinstance(result, Applied):
         return _edit(request, entry_id, _prefill(entry), _reasons(result), checksum, 409)
-    return RedirectResponse("/erwartete-belege", status_code=303)
+    return RedirectResponse("/belege/erwartet", status_code=303)

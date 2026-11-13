@@ -29,7 +29,7 @@
 {% if expected %}
 <ul>
   {% for entry in expected %}
-  <li><a href="/erwartete-belege/{{ entry.id }}">{{ entry.document_kind }}, ab {{ entry.start_year }}{% if entry.description %}: {{ entry.description }}{% endif %}</a></li>
+  <li><a href="/belege/erwartet/{{ entry.id }}">{{ entry.document_kind }}, ab {{ entry.start_year }}{% if entry.description %}: {{ entry.description }}{% endif %}</a></li>
   {% endfor %}
 </ul>
 {% else %}

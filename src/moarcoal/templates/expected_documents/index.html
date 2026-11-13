@@ -1,16 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Erwartete Belege – MoarCoal{% endblock %}
+{% from "_belege.html" import tabs %}
 {% block main %}
-<h1>Erwartete Belege</h1>
+<h1>Belege</h1>
+{{ tabs("erwartet") }}
 <p>Welches Dokument für welches Jahr noch fehlt. Ein Dokument mit passender Dokumentart und Bezugszeitraum im Jahr erfüllt den Erwarteten Beleg.</p>
 
 {% if rows %}
 {% for entry, years, suggestion in rows %}
-<section>
+<section id="e-{{ entry.id }}">
   <h2>{{ titles.get(entry.document_kind, entry.document_kind) }}{% if entry.description %} ({{ entry.description }}){% endif %}</h2>
   <p>
     Erwartet ab {{ entry.start_year }}{% if entry.end_year %} bis {{ entry.end_year }}{% else %}, ohne Ende{% endif %}.
-    <a href="/erwartete-belege/{{ entry.id }}">Ändern</a>
+    <a href="/belege/erwartet/{{ entry.id }}">Ändern</a>
   </p>
   {% include "expected_documents/_suggestion.html" %}
   <table>
@@ -19,8 +21,10 @@
     <tr>
       <td>{{ status.year }}</td>
       <td>
-        {% if status.pending %}ausstehend{% else %}erfüllt durch
-        {% for document in status.documents %}{{ document.site }}: {{ document.path }}{% if not loop.last %}, {% endif %}{% endfor %}
+        {% if status.pending %}ausstehend
+        {% for file in offers.get((entry.id, status.year), []) %}<br>würde erfüllt durch <a href="/belege?datei={{ file.sha256 }}">{{ file.site }}: {{ file.path }}</a>{% endfor %}
+        {% else %}erfüllt durch
+        {% for document in status.documents %}<a href="/dokumente/{{ document.id }}">{{ document.site }}: {{ document.path }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
         {% if status.documents | length > 1 %}(mögliche Dublette){% endif %}
         {% endif %}
       </td>
@@ -36,7 +40,7 @@
 <h2>Neuer Erwarteter Beleg</h2>
 {% if kinds %}
 {% include "work/_errors.html" %}
-<form method="post" action="/erwartete-belege">
+<form method="post" action="/belege/erwartet">
   {% include "expected_documents/_fields.html" %}
   <button type="submit">Speichern</button>
 </form>
