@@ -86,14 +86,14 @@ def test_search_endpoint_without_hit_offers_nothing(client: httpx.Client) -> Non
     assert "<button" not in html
 
 
-def test_search_endpoint_shows_the_choice_with_change_button(client: httpx.Client) -> None:
+def test_search_endpoint_shows_the_choice_as_hidden_field(client: httpx.Client) -> None:
     bank = add_issuer(client)
     html = client.get(
         "/aussteller-suche",
         params={"issuer_text": "Beispielbank", "issuer_choice": f"id:{bank.id}"},
     ).text
     assert f'name="issuer_choice" value="id:{bank.id}"' in html
-    assert "Beispielbank AG" in html and "ändern" in html and "treffer" not in html
+    assert 'data-name="Beispielbank AG"' in html and "treffer" not in html and "ändern" not in html
     alias = client.get(
         "/aussteller-suche",
         params={"issuer_text": "Beispielbank Filiale", "issuer_choice": f"alias:{bank.id}"},

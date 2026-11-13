@@ -43,14 +43,14 @@ main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
 form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
 
 /* Aussteller-Feld */
-.aussteller-feld { border: 0; padding: 0; margin: 0; }
+.aussteller-feld { border: 0; padding: 0; margin: 0; position: relative; }
 .aussteller-feld legend { padding: 0; }
 .aussteller-feld .zeile { display: flex; gap: 1rem; align-items: center; }
 .aussteller-feld .suche { flex: 1; }
 .aussteller-feld .privat { display: none; white-space: nowrap; }
-.aussteller-feld:has(.suche:not(:placeholder-shown)):not(:has(.gewaehlt)) .privat { display: inline; }
-.aussteller-feld:has(.gewaehlt) .suche { display: none; }
-.aussteller-feld .treffer { list-style: none; margin: 0.25rem 0 0; padding: 0; }
-.aussteller-feld .treffer button, .aussteller-feld .aendern { font: inherit; }
-.aussteller-feld .treffer button { display: block; width: 100%; text-align: left; }
-.aussteller-feld .gewaehlt { display: flex; gap: 1rem; align-items: center; }
+.aussteller-feld:has(.suche:not(:placeholder-shown)):not(:has(.gewaehlt input)) .privat { display: inline; }
+/* Trefferliste klappt unter dem Feld auf, ohne den Seitenaufbau zu verschieben */
+.aussteller-feld .treffer { list-style: none; margin: 0.15rem 0 0; padding: 0; position: absolute; left: 0; right: 0; z-index: 10; background: Canvas; border: 1px solid gray; border-radius: 0.25rem; }
+.aussteller-feld .treffer:empty { display: none; }
+.aussteller-feld .treffer button { font: inherit; display: block; width: 100%; text-align: left; border: 0; background: none; padding: 0.3rem 0.5rem; cursor: pointer; }
+.aussteller-feld .treffer button:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
