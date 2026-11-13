@@ -355,6 +355,11 @@ Quellen: [Technikentscheidung](https://github.com/oiff2/MoarCoal/issues/8), [ADR
 - Gestaltung: nur Desktop ab UWHD, kein Seiten-Scrollen (innen scrollende Bereiche erlaubt), wichtigste Infos immer sichtbar, Übersichtlichkeit hat Vorrang, der Platz wird genutzt. Hell und Dunkel über CSS-Variablen; ausgestaltet wird zuerst Dunkel. Tastatur wo sinnvoll.
 - Absicherung: Middleware prüft `Host`; ändernde Anfragen brauchen `Origin` gleich dem eigenen Origin (`http://127.0.0.1:<port>` bzw. `http://localhost:<port>`) oder `Sec-Fetch-Site: same-origin`; kein CORS, kein Token. Strikte CSP ohne Inline-Skript, `nosniff`, Autoescape überall.
 - Oberflächentexte stehen direkt in den Vorlagen, nur Deutsch.
+- Aufteilung ([Prototyp #62](https://github.com/oiff2/MoarCoal/issues/62)): schmale Kopfleiste und linke Seitenleiste um einen scrollenden Inhaltsbereich. Ziel ist ein Desktop ab UWHD bis 4k, Schriftgröße 15 px.
+  - Seitenleiste: die angemeldeten Module als Einträge mit Icon (größer als der Text) und Name, in Kategorien gegliedert (Bereiche = Module mit eigener Fachlichkeit, Allgemein = Eingang, Belege), mit Zähler am Eintrag, wo etwas offen ist. Stufenlos ziehbar (Muss-Anforderung): schmal nur Icons, breit mit Text; `[` klappt um. Die Breite merkt sich der Browser, kein Eintrag der Datenebene. Befunde sind kein Eintrag der Seitenleiste.
+  - Kopfleiste: links das Jahr (global, je Seite übersteuerbar), daneben die Befundübersicht des gewählten Jahrs (Zähler je Schweregrad mit Text und dem wichtigsten Befund als Zeile, Link zur Befundliste); rechts oben das Nutzer-Symbol mit Menü (Nutzerwechsel, Hell/Dunkel, Module ein- und ausschalten).
+  - Gemeinsame Statussprache: Schweregrad und Belegstand haben je ein festes Symbol und eine feste Farbe, einmal als Jinja-Baustein, nicht je Seite.
+  - Bewusst nicht gebaut: Karten-Rahmen, Schiene mit Unterleiste (erst sinnvoll, wenn Module viele Unterseiten haben), Befehlsleiste (`Strg+K`, kein Nutzen, solange es wenige Seiten gibt; bleibt als Idee).
 
 ## 7. Claude-Aufruf
 
