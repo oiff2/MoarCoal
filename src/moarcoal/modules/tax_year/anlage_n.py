@@ -35,11 +35,18 @@ WORK_TAX_CLASS = ValueKey("work.tax_class")
 WORK_GROSS_WAGES = ValueKey("work.gross_wages")
 WORK_INCOME_TAX = ValueKey("work.income_tax_withheld")
 WORK_SOLI = ValueKey("work.soli_withheld")
+WORK_WORKDAYS_PER_WEEK = ValueKey("work.workdays_per_week")
+WORK_ABSENCE_DAYS = ValueKey("work.absence_days")
+WORK_CAR_DISTANCE = ValueKey("work.car_distance_km")
+WORK_TRIP_DAYS = ValueKey("work.trip_days")
 WORK_TRAVEL_FARE = ValueKey("work.travel_fare")
 WORK_TRAVEL_TOTAL = ValueKey("work.travel_total")
 
 N_WORKPLACE_DAYS = ValueKey("tax_year.n_workplace_days")
 N_WORKPLACE_DISTANCE = ValueKey("tax_year.n_workplace_distance")
+N_WORKDAYS_PER_WEEK = ValueKey("tax_year.n_workdays_per_week")
+N_ABSENCE_DAYS = ValueKey("tax_year.n_absence_days")
+N_CAR_DISTANCE = ValueKey("tax_year.n_car_distance")
 N_EQUIPMENT = ValueKey("tax_year.n_equipment")
 N_TAX_CLASS = ValueKey("tax_year.n_tax_class")
 N_GROSS_WAGES = ValueKey("tax_year.n_gross_wages")
@@ -203,13 +210,8 @@ def fields_n(structure: FormStructure) -> tuple[FormField, ...]:
         known("workplace_target", "E0203003", None, Rounding.NONE),
         known("workplace_address", "E0203501", None, Rounding.NONE),
         known("workplace_period", "E0203101", None, Rounding.NONE),
-        known("workdays_per_week", "E0203508", Unit.DAYS, Rounding.NONE),
-        known(
-            "absence_days",
-            "E0203509",
-            Unit.DAYS,
-            Rounding.NONE,
-        ),
+        computed(N_WORKDAYS_PER_WEEK, "E0203508", Unit.DAYS, Rounding.NONE),
+        computed(N_ABSENCE_DAYS, "E0203509", Unit.DAYS, Rounding.NONE),
         computed(
             N_WORKPLACE_DAYS,
             "E0203503",
@@ -224,12 +226,7 @@ def fields_n(structure: FormStructure) -> tuple[FormField, ...]:
             Rounding.WHOLE_KM,
             assessment=(COMMUTE_KM,),
         ),
-        known(
-            "car_distance",
-            "E0203505",
-            Unit.KM,
-            Rounding.WHOLE_KM,
-        ),
+        computed(N_CAR_DISTANCE, "E0203505", Unit.KM, Rounding.WHOLE_KM),
         known(
             "refund_tax_free",
             "E0204103",
@@ -327,6 +324,37 @@ def compute_workplace_distance(calculation: Calculation, field: FormField) -> Am
     return _work_value(calculation, field, WORK_DISTANCE_KM, "Einfache Entfernung")
 
 
+def compute_workdays_per_week(calculation: Calculation, field: FormField) -> Amount:
+    return _work_value(calculation, field, WORK_WORKDAYS_PER_WEEK, "Arbeitstage je Woche")
+
+
+def compute_car_distance(calculation: Calculation, field: FormField) -> Amount:
+    return _work_value(calculation, field, WORK_CAR_DISTANCE, "Mit dem Pkw gefahrene km")
+
+
+def homeoffice_days(calculation: Calculation) -> Amount:
+    """Homeoffice-Tage (Nr. 58): ein Eingabefeld des Steuerjahrs, das es noch nicht gibt (#110).
+    Bis dahin ist Nr. 28 noch nicht berechenbar; #110 ersetzt allein diesen Rumpf."""
+    calculation.not_yet("Die Homeoffice-Tage (Nr. 58) sind noch nicht erfasst")
+
+
+def compute_absence_days(calculation: Calculation, field: FormField) -> Amount:
+    """Nr. 28 „Urlaubs-, Krankheits-, Heimarbeits- und Dienstreisetage“: Summe aus den Urlaubs-
+    und Krankheitstagen der Tätigkeitsstätte, den Homeoffice-Tagen (Nr. 58) und den Tagen der
+    Dienstreisen. Fehlt ein Summand, ist das Feld noch nicht berechenbar (nie 0)."""
+    absence = _work_value(calculation, field, WORK_ABSENCE_DAYS, "Urlaubs- und Krankheitstage")
+    trips = calculation.use(WORK_TRIP_DAYS, label="Dienstreisetage")
+    if trips is None:
+        calculation.not_applicable("Dienstreisetage entfallen")
+    home = homeoffice_days(calculation)
+    total = Amount(absence.value + trips.amount.value + home.value, Unit.DAYS)
+    return calculation.step(
+        f"{absence.value} Urlaubs- und Krankheitstage + {home.value} Homeoffice-Tage "
+        f"+ {trips.amount.value} Dienstreisetage",
+        total,
+    )
+
+
 def _work_total(calculation: Calculation, field: FormField, source: ValueKey, label: str) -> Amount:
     """Übernimmt den Wert des Jahrs aus dem Modul Arbeit; entfällt er, entfällt das Feld."""
     item = calculation.use(source, label=label)
@@ -343,6 +371,9 @@ def compute_equipment(calculation: Calculation, field: FormField) -> Amount:
 _COMPUTE: dict[ValueKey, Callable[[Calculation, FormField], Amount]] = {
     N_WORKPLACE_DAYS: compute_workplace_days,
     N_WORKPLACE_DISTANCE: compute_workplace_distance,
+    N_WORKDAYS_PER_WEEK: compute_workdays_per_week,
+    N_ABSENCE_DAYS: compute_absence_days,
+    N_CAR_DISTANCE: compute_car_distance,
     N_EQUIPMENT: compute_equipment,
     N_TAX_CLASS: partial(_work_total, source=WORK_TAX_CLASS, label="Steuerklasse"),
     N_GROSS_WAGES: partial(_work_total, source=WORK_GROSS_WAGES, label="Bruttoarbeitslohn"),

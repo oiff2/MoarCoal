@@ -3,7 +3,14 @@
 import datetime
 from collections.abc import Mapping
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 from moarcoal.storage import Entry, EntryAddress, EntryKind, entry_checksum, entry_kind
 from moarcoal.values.findings import fingerprint
@@ -18,6 +25,7 @@ MAX_WORKDAYS = 250
 DEFAULT_WORKDAYS = MAX_WORKDAYS - 30  # abzüglich 30 Urlaubstage
 MAX_TRIP_KM = 100_000
 MAX_PLACES = 20
+MAX_ABSENCE_DAYS = 366
 
 
 class UserInput(BaseModel):
@@ -31,7 +39,8 @@ class UserInput(BaseModel):
 
 
 class FirstWorkplace(Entry):
-    """Erste Tätigkeitsstätte eines Steuerjahrs: Arbeitstage und einfache Entfernung in km.
+    """Erste Tätigkeitsstätte eines Steuerjahrs: Arbeitstage, einfache Entfernung in km und
+    die Angaben zu Arbeitstagen je Woche, Urlaubs- und Krankheitstagen und Pkw-km.
 
     `workdays` sind die Tage, an denen der Nutzer die Tätigkeitsstätte aufgesucht hat (Anlage N
     „aufgesucht an Tagen“), nicht alle Arbeitstage des Jahrs (Homeoffice, Dienstreisen fehlen).
@@ -42,6 +51,18 @@ class FirstWorkplace(Entry):
     workdays: int = Field(ge=0, le=MAX_WORKDAYS)
     distance_km: int = Field(ge=0, le=1000)
     description: str = Field(default="", max_length=TEXT_MAX)
+    # Freiwillige Angaben zu Anlage N Nr. 28 und 31; fehlt eine, ist ihr Feld noch nicht
+    # berechenbar.
+    workdays_per_week: int | None = Field(default=None, ge=1, le=7)
+    absence_days: int | None = Field(default=None, ge=0, le=MAX_ABSENCE_DAYS)
+    car_distance_km: int | None = Field(default=None, ge=0, le=1000)
+
+    @field_validator("car_distance_km")
+    @classmethod
+    def _check_car_distance(cls, km: int | None, info: ValidationInfo) -> int | None:
+        if km is not None and km > info.data.get("distance_km", km):
+            raise ValueError("Mit dem Pkw gefahrene km liegen über der einfachen Entfernung")
+        return km
 
 
 class WorkEquipment(Entry):

@@ -79,7 +79,7 @@ _Avoid_: manuelle Buchung, Handeingabe
 Das Modul für die Angaben zur nichtselbständigen Arbeit (Anlage N), im Durchstich von Hand erfasst (erste Tätigkeitsstätte, Arbeitsmittel), dazu die eingelesene Lohnsteuerbescheinigung und die Dienstreisen. Modulschlüssel `work`.
 
 **Erste Tätigkeitsstätte**:
-Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die Arbeitstage und die einfache Entfernung in km von der Wohnung dorthin (Code: `FirstWorkplace`); sie ist das Bezugsobjekt der Ausgewiesenen Werte Arbeitstage und einfache Entfernung.
+Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die Arbeitstage und die einfache Entfernung in km von der Wohnung dorthin, freiwillig dazu Arbeitstage je Woche, Urlaubs- und Krankheitstage und die davon mit dem eigenen Pkw gefahrenen km (Code: `FirstWorkplace`); sie ist das Bezugsobjekt dieser Ausgewiesenen Werte. Daraus kommen die Felder Nr. 28 und 31 der Anlage N; Nr. 28 „Urlaubs-, Krankheits-, Heimarbeits- und Dienstreisetage“ ist die Summe aus den Urlaubs- und Krankheitstagen, den Homeoffice-Tagen (Nr. 58, Eingabe im Steuerjahr) und den Tagen der Dienstreisen. Nr. 27 (Ziel, Adresse, Zeitraum) berechnet MoarCoal noch nicht.
 
 **Arbeitsmittel**:
 Werkzeug und Material, das ein Nutzer für die Arbeit selbst gekauft hat; erfasst wird je Anschaffung ein Betrag als Nutzereingabe mit dem Steuerjahr, für das er gilt (Code: `WorkEquipment`).

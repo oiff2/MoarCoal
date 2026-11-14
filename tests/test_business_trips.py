@@ -454,3 +454,22 @@ def test_text_is_escaped(tmp_path: Path) -> None:
     client.post("/arbeit/dienstreisen/2025", data=data, headers=ORIGIN)
     page = client.get("/arbeit/dienstreisen/2025").text
     assert "<b>A</b>" not in page and "&lt;b&gt;A&lt;/b&gt;" in page
+
+
+# --- Dienstreisetage (Anlage N Nr. 28) ----------------------------------------------------------
+
+
+def test_trip_days_count_each_trip_from_start_to_end_inclusive() -> None:
+    long = trip(day=3).model_copy(update={"end": datetime.date(2025, 2, 5)})
+    result = value("work.trip_days", [long, trip(day=10)])
+
+    assert isinstance(result, ExposedValue)
+    assert result.amount == Amount.of(4, Unit.DAYS)  # 3 Tage + 1 Tag (ohne Ende)
+
+
+def test_trip_days_without_trips_need_the_confirmation() -> None:
+    assert isinstance(value("work.trip_days", []), NotYetComputable)
+
+    result = value("work.trip_days", [confirmation([])])
+
+    assert isinstance(result, ExposedValue) and result.amount == Amount.of(0, Unit.DAYS)

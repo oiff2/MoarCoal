@@ -43,6 +43,10 @@ HINTS = {
     "year": "Steuerjahr: Jahr zwischen 2000 und 2100",
     "workdays": f"Arbeitstage: ganze Zahl von 0 bis {MAX_WORKDAYS}",
     "distance_km": "Einfache Entfernung: ganze Zahl von 0 bis 1000 km",
+    "workdays_per_week": "Arbeitstage je Woche: ganze Zahl von 1 bis 7, oder leer",
+    "absence_days": "Urlaubs- und Krankheitstage: ganze Zahl von 0 bis 366, oder leer",
+    "car_distance_km": "Mit dem Pkw gefahrene km: ganze Zahl, höchstens die einfache Entfernung, "
+    "oder leer",
     "description": "Beschreibung: höchstens 200 Zeichen",
     "amount_cents": "Betrag: größer als 0, mit höchstens zwei Nachkommastellen, z. B. 49,90",
     "date": "Datum: gültiges Datum",
@@ -71,6 +75,9 @@ def _errors(error: ValidationError, required_description: bool) -> list[str]:
     return messages
 
 
+OPTIONAL_WORKPLACE = ("workdays_per_week", "absence_days", "car_distance_km")
+
+
 def build_workplace(fields: Fields, owner: str, entry_id: str) -> tuple[Entry | None, list[str]]:
     try:
         entry = FirstWorkplace.model_validate(
@@ -81,6 +88,7 @@ def build_workplace(fields: Fields, owner: str, entry_id: str) -> tuple[Entry | 
                 "workdays": fields.get("workdays", ""),
                 "distance_km": fields.get("distance_km", ""),
                 "description": fields.get("description", "").strip(),
+                **{name: fields.get(name, "").strip() or None for name in OPTIONAL_WORKPLACE},
             }
         )
     except ValidationError as error:
@@ -171,6 +179,10 @@ def _prefill_from(entry: Entry | None) -> Fields:
                 "workdays": str(entry.workdays),
                 "distance_km": str(entry.distance_km),
                 "description": entry.description,
+                **{
+                    name: "" if getattr(entry, name) is None else str(getattr(entry, name))
+                    for name in OPTIONAL_WORKPLACE
+                },
             }
         case WorkEquipment():
             euros, cents = divmod(entry.input.amount_cents, 100)

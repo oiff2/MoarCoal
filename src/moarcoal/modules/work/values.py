@@ -45,6 +45,10 @@ TAX_CLASS = ValueKey("work.tax_class")
 GROSS_WAGES = ValueKey("work.gross_wages")
 INCOME_TAX_WITHHELD = ValueKey("work.income_tax_withheld")
 SOLI_WITHHELD = ValueKey("work.soli_withheld")
+WORKDAYS_PER_WEEK = ValueKey("work.workdays_per_week")
+ABSENCE_DAYS = ValueKey("work.absence_days")
+CAR_DISTANCE_KM = ValueKey("work.car_distance_km")
+TRIP_DAYS = ValueKey("work.trip_days")
 TRAVEL_FARE = ValueKey("work.travel_fare")
 TRAVEL_TOTAL = ValueKey("work.travel_total")
 
@@ -75,6 +79,30 @@ def compute_distance(calculation: Calculation) -> Amount:
     distance = Amount.of(entry.distance_km, Unit.KM)
     calculation.item("Einfache Entfernung", distance, UserInputLocator(entry.address))
     return calculation.step("Einfache Entfernung laut Eingabe", distance)
+
+
+def _optional_input(calculation: Calculation, attribute: str, label: str, unit: Unit) -> Amount:
+    """Eine freiwillige Angabe der ersten Tätigkeitsstätte; fehlt sie, ist der Wert noch nicht
+    berechenbar (nie 0)."""
+    entry = _workplace(calculation)
+    number = getattr(entry, attribute)
+    if number is None:
+        calculation.not_yet(f"{label} für {calculation.year} nicht erfasst")
+    amount = Amount.of(number, unit)
+    calculation.item(label, amount, UserInputLocator(entry.address))
+    return calculation.step(f"{label} laut Eingabe", amount)
+
+
+def compute_workdays_per_week(calculation: Calculation) -> Amount:
+    return _optional_input(calculation, "workdays_per_week", "Arbeitstage je Woche", Unit.DAYS)
+
+
+def compute_absence_days(calculation: Calculation) -> Amount:
+    return _optional_input(calculation, "absence_days", "Urlaubs- und Krankheitstage", Unit.DAYS)
+
+
+def compute_car_distance(calculation: Calculation) -> Amount:
+    return _optional_input(calculation, "car_distance_km", "Mit dem Pkw gefahrene km", Unit.KM)
 
 
 def _purchases(state: ModuleState, year: int) -> list[WorkEquipment]:
@@ -154,6 +182,27 @@ def _trips(state: ModuleState, year: int) -> list[BusinessTrip]:
 def _confirmation(state: ModuleState, year: int) -> TripsConfirmation | None:
     confirmations = [c for c in state.all(TripsConfirmation) if c.year == year]
     return current_confirmation(confirmations, _trips(state, year))
+
+
+def compute_trip_days(calculation: Calculation) -> Amount:
+    """Dienstreisetage des Jahrs: je Reise Ende minus Start plus 1, ohne Ende ein Tag.
+
+    Wie bei den Fahrtkosten gilt ohne Reisen nur die Bestätigung als vollständig (dann 0)."""
+    year = calculation.year
+    trips = _trips(calculation.own, year)
+    if not trips and _confirmation(calculation.own, year) is None:
+        calculation.not_yet(
+            f"Für {year} sind keine Dienstreisen erfasst und nicht als vollständig bestätigt"
+        )
+    total = 0
+    for trip in trips:
+        days = ((trip.end or trip.start) - trip.start).days + 1
+        label = f"Dienstreise {trip.start:%d.%m.%Y}, {format_places(trip.places)}"
+        calculation.item(label, Amount.of(days, Unit.DAYS), UserInputLocator(trip.address))
+        total += days
+    if not trips:
+        calculation.decide(f"Dienstreisen {year} sind als vollständig bestätigt, es gab keine")
+    return calculation.step("Summe der Dienstreisetage", Amount.of(total, Unit.DAYS))
 
 
 def compute_travel_fare(calculation: Calculation) -> Amount:
@@ -250,6 +299,48 @@ VALUES: tuple[ValueDefinition, ...] = (
         ),
         compute_distance,
         _workplace_subjects,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            WORKDAYS_PER_WEEK,
+            "Arbeitstage je Woche an einer ersten Tätigkeitsstätte",
+            Unit.DAYS,
+            TimeKind.PERIOD,
+            has_subject=True,
+        ),
+        compute_workdays_per_week,
+        _workplace_subjects,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            ABSENCE_DAYS,
+            "Urlaubs- und Krankheitstage bei einer ersten Tätigkeitsstätte im Steuerjahr",
+            Unit.DAYS,
+            TimeKind.PERIOD,
+            has_subject=True,
+        ),
+        compute_absence_days,
+        _workplace_subjects,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            CAR_DISTANCE_KM,
+            "Mit dem eigenen Pkw gefahrene km zu einer ersten Tätigkeitsstätte im Steuerjahr",
+            Unit.KM,
+            TimeKind.PERIOD,
+            has_subject=True,
+        ),
+        compute_car_distance,
+        _workplace_subjects,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            TRIP_DAYS,
+            "Tage der Dienstreisen im Steuerjahr",
+            Unit.DAYS,
+            TimeKind.PERIOD,
+        ),
+        compute_trip_days,
     ),
     ValueDefinition(
         CatalogEntry(

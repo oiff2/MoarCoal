@@ -336,3 +336,40 @@ def test_display_name_is_shown_and_replaceable(tmp_path: Path) -> None:
     assert "Max Mustermann" in make_client(tmp_path).get("/arbeit").text
     other = make_client(tmp_path, user_name="Erika Beispiel")
     assert "Erika Beispiel" in other.get("/").text
+
+
+def test_workplace_inputs_are_optional_and_stored(tmp_path: Path) -> None:
+    http = make_client(tmp_path)
+    http.post("/arbeit/erste-taetigkeitsstaette", data=WORKPLACE, headers=ORIGIN)
+    (entry,) = stored(tmp_path).values()
+    assert entry.get("workdays_per_week") is None and entry.get("car_distance_km") is None
+
+    entry_id = only_id(tmp_path)
+    page = http.get(f"/arbeit/erste-taetigkeitsstaette/{entry_id}").text
+    checksum = page.split('name="checksum" value="')[1].split('"')[0]
+    extra = {**WORKPLACE, "workdays_per_week": "5", "absence_days": "32", "car_distance_km": "11"}
+    response = http.post(
+        f"/arbeit/erste-taetigkeitsstaette/{entry_id}",
+        data={**extra, "checksum": checksum},
+        headers=ORIGIN,
+    )
+    assert response.status_code == 303
+    (entry,) = stored(tmp_path).values()
+    assert entry["workdays_per_week"] == 5 and entry["absence_days"] == 32
+    assert entry["car_distance_km"] == 11
+
+
+def test_workplace_inputs_are_validated(tmp_path: Path) -> None:
+    http = make_client(tmp_path)
+    bad_inputs = (("workdays_per_week", "8"), ("absence_days", "-1"), ("car_distance_km", "13"))
+    for name, bad in bad_inputs:
+        response = http.post(
+            "/arbeit/erste-taetigkeitsstaette", data={**WORKPLACE, name: bad}, headers=ORIGIN
+        )
+        assert response.status_code == 422
+    assert not work_file(tmp_path).exists()
+
+
+def test_workplace_without_the_new_fields_still_loads() -> None:
+    entry = FirstWorkplace(owner="anna", year=2025, workdays=180, distance_km=12)
+    assert entry.workdays_per_week is None and entry.absence_days is None

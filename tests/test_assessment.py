@@ -25,6 +25,8 @@ from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_n import (
     FORMS,
     N_EQUIPMENT,
+    WORK_ABSENCE_DAYS,
+    WORK_CAR_DISTANCE,
     WORK_DISTANCE_KM,
     WORK_EQUIPMENT,
     WORK_GROSS_WAGES,
@@ -33,7 +35,9 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_TAX_CLASS,
     WORK_TRAVEL_FARE,
     WORK_TRAVEL_TOTAL,
+    WORK_TRIP_DAYS,
     WORK_WORKDAYS,
+    WORK_WORKDAYS_PER_WEEK,
 )
 from moarcoal.modules.tax_year.assessment import (
     BUSINESS_TRAVEL,
@@ -74,6 +78,10 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
         (WORK_DISTANCE_KM, PLACE, YEAR): fixed(Amount.of(km, Unit.KM)),
         (WORK_EQUIPMENT, None, YEAR): fixed(Amount.eur_cents(cents)),
         **{
+            (key, PLACE, YEAR): not_yet("keine Eingabe")
+            for key in (WORK_WORKDAYS_PER_WEEK, WORK_ABSENCE_DAYS, WORK_CAR_DISTANCE)
+        },
+        **{
             (key, None, YEAR): not_yet("keine Lohnsteuerbescheinigung")
             for key in (
                 WORK_TAX_CLASS,
@@ -82,6 +90,7 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
                 WORK_SOLI,
                 WORK_TRAVEL_FARE,
                 WORK_TRAVEL_TOTAL,
+                WORK_TRIP_DAYS,
             )
         },
     }
