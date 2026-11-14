@@ -88,6 +88,15 @@ def test_due_in_respects_start_and_open_end() -> None:
     assert not expected(2024, 2024).due_in(2025)
 
 
+def test_touches_year_needs_a_period_that_reaches_into_the_year() -> None:
+    spanning = document().model_copy(
+        update={"period_start": datetime.date(2024, 7, 1), "period_end": datetime.date(2025, 6, 30)}
+    )
+    assert spanning.touches_year(2024) and spanning.touches_year(2025)
+    assert not spanning.touches_year(2023) and not spanning.touches_year(2026)
+    assert not document(None).touches_year(2025)
+
+
 # --- Befunde ----------------------------------------------------------------------------------
 
 

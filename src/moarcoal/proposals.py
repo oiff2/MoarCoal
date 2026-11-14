@@ -238,11 +238,7 @@ def proposal_findings(
         if not history:
             continue
         proposal = history[-1]  # nur der neueste Vorschlag zählt
-        if (
-            document.period_start is not None
-            and document.period_end is not None
-            and not document.period_start.year <= year <= document.period_end.year
-        ):
+        if document.period_start is not None and not document.touches_year(year):
             continue
         open_keys = proposal.open_keys
         if not open_keys:

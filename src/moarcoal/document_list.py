@@ -67,11 +67,7 @@ def filter_documents(
             continue
         if issuer and (document.issuer.id if document.issuer else NONE) != issuer:
             continue
-        if year is not None and not (
-            document.period_start
-            and document.period_end
-            and document.period_start.year <= year <= document.period_end.year
-        ):
+        if year is not None and not document.touches_year(year):
             continue
         owner = issuers.get(document.issuer) if document.issuer else None
         kind_entry = kinds.get(document.document_kind or "")

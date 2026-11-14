@@ -42,6 +42,14 @@ class Document(Entry):
             raise ValueError("Bezugszeitraum endet vor seinem Beginn")
         return self
 
+    def touches_year(self, year: int) -> bool:
+        """Ob der Bezugszeitraum das Jahr berührt; ohne Bezugszeitraum nie."""
+        return (
+            self.period_start is not None
+            and self.period_end is not None
+            and self.period_start.year <= year <= self.period_end.year
+        )
+
 
 def document_path(entry: Document) -> str:
     return f"users/{entry.owner}/documents.json"

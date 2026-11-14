@@ -21,12 +21,7 @@ def matching_documents(
 ) -> list[Document]:
     """Dokumente der Dokumentart, deren Bezugszeitraum das Jahr berührt; nach Adresse sortiert."""
     found = [
-        d
-        for d in documents
-        if d.document_kind == expected.document_kind
-        and d.period_start is not None
-        and d.period_end is not None
-        and d.period_start.year <= year <= d.period_end.year
+        d for d in documents if d.document_kind == expected.document_kind and d.touches_year(year)
     ]
     return sorted(found, key=lambda d: str(d.address))
 
