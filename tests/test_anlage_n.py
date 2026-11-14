@@ -488,7 +488,7 @@ def test_page_shows_not_yet_computable_with_chain(
 def test_pages_follow_mein_elster_and_show_only_catalog_fields() -> None:
     pages = form_pages(STRUCTURES[2025], FORMS[2025])
 
-    assert [p.slug for p in pages][:2] == ["1", "wege-zwischen-wohnung"]
+    assert [p.slug for p in pages][:2] == ["1", "8"]
     assert len({p.slug for p in pages}) == len(pages)
     shown = [row.field.elster_id for p in pages for row in p.rows]
     assert sorted(str(e) for e in shown) == sorted(str(f.elster_id) for f in FORMS[2025])

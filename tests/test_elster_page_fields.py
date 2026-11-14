@@ -192,3 +192,43 @@ def test_diff_reports_a_changed_choice():
     after = year_of({**field("E0100001", "Art"), "options": ["Computer"]})
 
     assert epf.diff_structures(before, after) == ["Auswahl geändert: E0100001 (Art)"]
+
+
+def test_page_order_is_numeric_by_elster_page_number_and_unnumbered_come_last():
+    names = [
+        "ELSTER - Anlage N - 10 - Zehn.htm",
+        "ELSTER - Anlage N - 2 - Zwei.htm",
+        "Zwischenseite.htm",
+        "ELSTER - Anlage N - 1 - Eins.htm",
+        "Anfang ohne Nummer.htm",
+    ]
+
+    ordered, unnumbered = epf.page_order(names)
+
+    assert ordered == [
+        "ELSTER - Anlage N - 1 - Eins.htm",
+        "ELSTER - Anlage N - 2 - Zwei.htm",
+        "ELSTER - Anlage N - 10 - Zehn.htm",
+        "Anfang ohne Nummer.htm",
+        "Zwischenseite.htm",
+    ]
+    assert unnumbered == ["Anfang ohne Nummer.htm", "Zwischenseite.htm"]
+
+
+def test_structure_command_orders_pages_ignores_non_pages_and_notes_unnumbered(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    folder, out = tmp_path / "in", tmp_path / "out"
+    folder.mkdir()
+    out.mkdir()
+    for name in ("ELSTER - N - 10 - B.htm", "ELSTER - N - 2 - A.htm", "Lose.htm"):
+        (folder / name).write_text(PAGE, encoding="utf-8")
+    (folder / "ELSTER - N - 1 - X.htm:Zone.Identifier").write_text("x", encoding="utf-8")
+
+    assert (
+        epf.main(["structure", str(folder), "--form", "N", "--year", "2025", "--out", str(out)])
+        == 0
+    )
+
+    assert "Lose.htm" in capsys.readouterr().err
+    assert (out / "n-2025.json").exists()

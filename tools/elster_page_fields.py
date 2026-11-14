@@ -15,9 +15,10 @@ Mein ELSTER before saving.
 
 Usage: uv run --no-project python -I tools/elster_page_fields.py <page.htm>...
 
-Structure of a year: reads every page of a folder (in file-name order, so name them in the order
-of Mein ELSTER) and writes the structure file of the year into the repo (page, headings, Zeile,
-label, E-Kennung per field; never values or names):
+Structure of a year: reads every page of a folder (in the order of Mein ELSTER: by the page
+number in the file name "ELSTER - ... - <Nr> - <Title>.htm", numerically;
+files without a number follow in file-name order, with a note) and writes the structure file of
+the year into the repo (page, headings, Zeile, label, E-Kennung per field; never values or names):
 
     elster_page_fields.py structure <folder> --form N --year 2025 [--out <dir>]
 
@@ -217,6 +218,25 @@ DEFAULT_OUT = Path(__file__).parents[1] / "src/moarcoal/modules/tax_year/struktu
 type Structure = dict[str, Any]
 
 
+PAGE_NUMBER_RE = re.compile(r" - (\d+) - ")
+
+
+def page_order(names: list[str]) -> tuple[list[str], list[str]]:
+    """File names in Mein-ELSTER order: numbered by page number, then the others by name.
+
+    Returns the ordered names and the ones without a recognisable page number.
+    """
+    numbered: list[tuple[int, str]] = []
+    unnumbered: list[str] = []
+    for name in names:
+        if match := PAGE_NUMBER_RE.search(Path(name).stem):
+            numbered.append((int(match.group(1)), name))
+        else:
+            unnumbered.append(name)
+    unnumbered.sort()
+    return [name for _, name in sorted(numbered)] + unnumbered, unnumbered
+
+
 def build_structure(pages: list[tuple[str, str]], form: str, year: int) -> Structure:
     """The structure of a year from (file name, HTML) pages, in the order given.
 
@@ -300,11 +320,16 @@ def _structure_command(argv: list[str]) -> int:
     parser.add_argument("--year", type=int, required=True)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = parser.parse_args(argv)
-    paths = sorted(p for p in args.folder.iterdir() if p.suffix.lower() in (".htm", ".html"))
-    if not paths:
+    files = [p.name for p in args.folder.iterdir() if p.suffix.lower() in (".htm", ".html")]
+    if not files:
         print(f"Keine Seiten in {args.folder}", file=sys.stderr)
         return 1
-    pages = [(p.name, p.read_text(encoding="utf-8", errors="replace")) for p in paths]
+    names, unnumbered = page_order(files)
+    for name in unnumbered:
+        print(f"Ohne Seitennummer, ans Ende gestellt: {name}", file=sys.stderr)
+    pages = [
+        (name, (args.folder / name).read_text(encoding="utf-8", errors="replace")) for name in names
+    ]
     structure = build_structure(pages, args.form, args.year)
     target = args.out / f"{args.form.lower()}-{args.year}.json"
     target.write_text(json.dumps(structure, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")

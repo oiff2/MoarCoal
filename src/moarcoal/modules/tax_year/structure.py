@@ -7,7 +7,7 @@ im Katalog (`anlage_n.py`) und verweist per E-Kennung auf die Struktur.
 
 import json
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -100,12 +100,6 @@ class FormPage:
     rows: tuple[PageRow, ...]
 
 
-def _first_line(rows: Sequence[PageRow]) -> int:
-    """Kleinste Nr. im Vordruck der Seite: die Vordrucknummern laufen in Seitenreihenfolge."""
-    numbers = [int(r.structure.line) for r in rows if r.structure.line.isdigit()]
-    return min(numbers, default=10**6)
-
-
 def _slug(title: str) -> str:
     number, separator, _ = title.partition(" - ")
     if separator and number.isdigit():
@@ -116,9 +110,9 @@ def _slug(title: str) -> str:
 def form_pages(structure: FormStructure, fields: Iterable[FormField]) -> tuple[FormPage, ...]:
     """Die Seiten der Anlage in Mein-ELSTER-Reihenfolge, je mit den Feldern aus `fields`.
 
-    Seiten ohne Katalogfeld entfallen, Felder der Struktur ohne Katalogeintrag auch. Die Reihenfolge
-    der Seiten folgt der Nr. im Vordruck (die Dateien der Struktur liegen nach Dateinamen, nicht
-    nach Seiten), die der Felder der Struktur.
+    Seiten ohne Katalogfeld entfallen, Felder der Struktur ohne Katalogeintrag auch. Seiten und
+    Felder folgen der Reihenfolge der Struktur (das Werkzeug legt sie in
+    Mein-ELSTER-Reihenfolge ab).
     """
     wanted = {f.elster_id: f for f in fields if f.elster_id}
     by_page: dict[str, list[PageRow]] = {}
@@ -134,5 +128,4 @@ def form_pages(structure: FormStructure, fields: Iterable[FormField]) -> tuple[F
         shown = () if described.headings == previous else described.headings
         previous = described.headings
         by_page.setdefault(described.page, []).append(PageRow(field, described, shown))
-    ordered = sorted(by_page.items(), key=lambda item: _first_line(item[1]))
-    return tuple(FormPage(_slug(title), title, tuple(rows)) for title, rows in ordered)
+    return tuple(FormPage(_slug(title), title, tuple(rows)) for title, rows in by_page.items())

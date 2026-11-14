@@ -210,6 +210,33 @@
    "label": "In Zeile 5 wurde ein von der Lohnsteuerbescheinigung abweichender Bruttoarbeitslohn wegen einer Korrektur der Firmenwagenbesteuerung erklärt."
   },
   {
+   "e_kennung": "E0204103",
+   "page": "8 - Entfernungspauschale",
+   "headings": [
+    "Arbeitgeberleistungen, Fahrtkostenzuschüsse"
+   ],
+   "line": "51",
+   "label": "Arbeitgeberleistungen laut Nr. 17 der Lohnsteuerbescheinigung (steuerfrei ersetzt) (Euro)"
+  },
+  {
+   "e_kennung": "E0203901",
+   "page": "8 - Entfernungspauschale",
+   "headings": [
+    "Arbeitgeberleistungen, Fahrtkostenzuschüsse"
+   ],
+   "line": "51",
+   "label": "Arbeitgeberleistungen laut Nr. 18 der Lohnsteuerbescheinigung (pauschal besteuert) (Euro)"
+  },
+  {
+   "e_kennung": "E0204004",
+   "page": "8 - Entfernungspauschale",
+   "headings": [
+    "Arbeitgeberleistungen, Fahrtkostenzuschüsse"
+   ],
+   "line": "52",
+   "label": "Von der Agentur für Arbeit oder dem Jobcenter gezahlte Fahrtkostenzuschüsse (Euro)"
+  },
+  {
    "e_kennung": "E0204401",
    "page": "10 - Aufwendungen für Arbeitsmittel",
    "headings": [],
@@ -494,33 +521,6 @@
    ],
    "line": "83",
    "label": "Werbungskosten zu Arbeitslohn für eine Tätigkeit im Inland, wenn die Ansässigkeit in Belgien gegeben ist – in den Zeilen 27 bis 77 und in der Anlage N-Doppelte Haushaltsführung enthalten – (Euro)"
-  },
-  {
-   "e_kennung": "E0204103",
-   "page": "8 - Entfernungspauschale",
-   "headings": [
-    "Arbeitgeberleistungen, Fahrtkostenzuschüsse"
-   ],
-   "line": "51",
-   "label": "Arbeitgeberleistungen laut Nr. 17 der Lohnsteuerbescheinigung (steuerfrei ersetzt) (Euro)"
-  },
-  {
-   "e_kennung": "E0203901",
-   "page": "8 - Entfernungspauschale",
-   "headings": [
-    "Arbeitgeberleistungen, Fahrtkostenzuschüsse"
-   ],
-   "line": "51",
-   "label": "Arbeitgeberleistungen laut Nr. 18 der Lohnsteuerbescheinigung (pauschal besteuert) (Euro)"
-  },
-  {
-   "e_kennung": "E0204004",
-   "page": "8 - Entfernungspauschale",
-   "headings": [
-    "Arbeitgeberleistungen, Fahrtkostenzuschüsse"
-   ],
-   "line": "52",
-   "label": "Von der Agentur für Arbeit oder dem Jobcenter gezahlte Fahrtkostenzuschüsse (Euro)"
   },
   {
    "e_kennung": "E0203003",
