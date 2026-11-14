@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from moarcoal.document_list import documents_page, read_document_choice
 from moarcoal.documents import IntakeRejected, change_document
 from moarcoal.extraction import Extractor
+from moarcoal.links import document_url
 from moarcoal.previews import file_response
 from moarcoal.proposals import (
     ReadOutRejected,
@@ -22,7 +23,7 @@ from moarcoal.proposals import (
     proposals_of,
     read_out,
 )
-from moarcoal.storage import Applied, Delete, Document, document_url
+from moarcoal.storage import Applied, Delete, Document
 from moarcoal.web import document_kinds, form_fields, store_of, user_of
 
 router = APIRouter(prefix="/dokumente")
@@ -47,7 +48,7 @@ def _refused(request: Request, document: Document, status_code: int, *reasons: s
 
 def _in_list(document: Document) -> RedirectResponse:
     """Zurück in den Reiter Dokumente, das Dokument gewählt."""
-    return RedirectResponse(document.url, status_code=303)
+    return RedirectResponse(document_url(document.id), status_code=303)
 
 
 @router.get("/{document_id}")

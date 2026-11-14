@@ -13,6 +13,7 @@ from moarcoal.documents import (
     duplicate_findings,
     take_in,
 )
+from moarcoal.links import document_url
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.storage import (
     Applied,
@@ -143,7 +144,7 @@ def test_existing_duplicates_stay_and_give_a_note_each(store: Store) -> None:
     by_target = {str(f.target): f for f in found}
     assert set(by_target) == {str(first.document.address), str(later.address)}
     assert {f.kind for f in found} == {DUPLICATE_DOCUMENT}
-    assert by_target[str(later.address)].href == later.url
+    assert by_target[str(later.address)].href == document_url(later.id)
     assert len(documents(store)) == 2
     assert duplicate_findings(store.state(), "berta", KINDS) == []
 

@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from moarcoal.app import create_app
 from moarcoal.documents import DocumentKind
 from moarcoal.expected_documents import DUPLICATE, PENDING, matching_documents, previous_year_issuer
+from moarcoal.links import issuer_url
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import TRANSFER_PROTOCOL
 from moarcoal.modules.work import REGISTRATION as WORK
@@ -361,7 +362,7 @@ def test_pages_show_the_suggestion_and_follow_a_merge(tmp_path: Path) -> None:
 
     for url in ("/belege/erwartet", f"/belege/erwartet/{entry.id}"):
         page = client.get(url).text
-        assert f'Aussteller im Vorjahr: <a href="{source.url}">Beispielbank</a>' in page
+        assert f'Aussteller im Vorjahr: <a href="{issuer_url(source.id)}">Beispielbank</a>' in page
 
     state = store.state()
     store.apply(
@@ -375,7 +376,7 @@ def test_pages_show_the_suggestion_and_follow_a_merge(tmp_path: Path) -> None:
         ]
     )
     page = make_client(tmp_path).get("/belege/erwartet").text
-    assert f'<a href="{target.url}">Beispielbank AG</a>' in page
+    assert f'<a href="{issuer_url(target.id)}">Beispielbank AG</a>' in page
 
 
 def test_pages_show_no_suggestion_without_issuer(tmp_path: Path) -> None:

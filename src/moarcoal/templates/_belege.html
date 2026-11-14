@@ -13,4 +13,4 @@
   {% else %}<p>Keine Vorschau.</p>{% endif %}
 </div>
 {% endmacro %}
-{% macro rejection(message, existing) %}<p class="fehler">{{ message }}{% if existing %} (<a href="{{ existing.url }}">vorhandenes Dokument</a>){% endif %}</p>{% endmacro %}
+{% macro rejection(message, existing) %}<p class="fehler">{{ message }}{% if existing %} (<a href="{{ entry_url(existing.address) }}">vorhandenes Dokument</a>){% endif %}</p>{% endmacro %}

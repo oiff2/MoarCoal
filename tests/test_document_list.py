@@ -10,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
+from moarcoal.links import document_url
 from moarcoal.storage import (
     COMMON_OWNER,
     Document,
@@ -205,7 +206,11 @@ def test_old_document_address_redirects_to_the_tab(two: httpx.Client) -> None:
     bescheid = doc(two, "bescheid.txt")
     old = two.get(f"/dokumente/{bescheid.id}")
     assert old.status_code == 308
-    assert old.headers["location"] == bescheid.url == f"/belege/dokumente?dokument={bescheid.id}"
+    assert (
+        old.headers["location"]
+        == document_url(bescheid.id)
+        == f"/belege/dokumente?dokument={bescheid.id}"
+    )
     protocol = doc(two, "protokoll.html")
     assert two.get(f"/dokumente/{protocol.id}/datei").status_code == 200  # die Datei bleibt
 
@@ -243,7 +248,7 @@ def test_refused_change_links_the_existing_document_in_the_tab(
     assert response.status_code == 422
     right = tab_of(response)
     assert "Existiert bereits: Übertragungsprotokoll 2025" in right
-    assert f'(<a href="{protocol.url}">vorhandenes Dokument</a>)' in right
+    assert f'(<a href="{document_url(protocol.id)}">vorhandenes Dokument</a>)' in right
 
 
 def test_issuer_changes_even_while_locked_and_keeps_kind_and_year(two: httpx.Client) -> None:
@@ -356,4 +361,4 @@ def test_other_users_documents_are_not_listed(two: httpx.Client) -> None:
     store_of(two).apply([Put(foreign)])
     assert "2 Dokumente" in main_of(two, "/belege/dokumente")
     assert two.get(f"/dokumente/{foreign.id}/datei").status_code == 404
-    assert f"/dokumente/{foreign.id}/aendern" not in main_of(two, foreign.url)
+    assert f"/dokumente/{foreign.id}/aendern" not in main_of(two, document_url(foreign.id))

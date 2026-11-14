@@ -1,1 +1,1 @@
-{% if suggestion %}<p>Aussteller im Vorjahr: <a href="{{ suggestion.url }}">{{ suggestion.display_name }}</a></p>{% endif %}
+{% if suggestion %}<p>Aussteller im Vorjahr: <a href="{{ entry_url(suggestion.address) }}">{{ suggestion.display_name }}</a></p>{% endif %}

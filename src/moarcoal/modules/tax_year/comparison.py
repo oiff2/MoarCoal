@@ -14,6 +14,7 @@ import datetime
 from collections.abc import Iterator, Sequence
 from decimal import Decimal
 
+from moarcoal.links import document_url
 from moarcoal.modules.tax_year.anlage_n import FORMS, Forms
 from moarcoal.modules.tax_year.assessment import ASSESSMENT_KEY
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
@@ -277,7 +278,7 @@ def assessment_findings(state: ModuleState, year: int, forms: Forms = FORMS) -> 
                 document.address,
                 f"Zum EStB {year} gibt es keinen Schnappschuss der Abgabe; "
                 "ein Abgleich ist nicht möglich.",
-                href=document.url,
+                href=document_url(document.id),
                 fingerprint=fingerprint(document.id),
             )
         ]
@@ -298,7 +299,7 @@ def assessment_findings(state: ModuleState, year: int, forms: Forms = FORMS) -> 
                 ValueRef(field.key, state.user, period, None),
                 f"Anlage N Nr. {field.form_line}, {field.label}: Laut EStB "
                 f"{field.show(printed)}, bei Abgabe am {taken} {field.show(frozen)}.",
-                href=document.url,
+                href=document_url(document.id),
                 fingerprint=fingerprint(document.id, field.key, printed, frozen),
             )
         )

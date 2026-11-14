@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
+from moarcoal.links import issuer_url
 from moarcoal.storage import (
     Applied,
     Delete,
@@ -145,7 +146,7 @@ def show(request: Request, issuer_id: str) -> Response:
         raise HTTPException(404) from error
     found = store_of(request).state().resolve(address)
     if isinstance(found, Issuer) and found.id != issuer_id:  # zusammengeführt: alte Adresse
-        return RedirectResponse(found.url, status_code=308)
+        return RedirectResponse(issuer_url(found.id), status_code=308)
     return _detail(request, _issuer(request, issuer_id))
 
 
@@ -214,7 +215,7 @@ def merge(
     )
     if not isinstance(result, Applied):
         return _merge_page(request, source, target, _reasons(result), 409)
-    return RedirectResponse(target.url, status_code=303)
+    return RedirectResponse(issuer_url(target.id), status_code=303)
 
 
 @router.post("/{issuer_id}")

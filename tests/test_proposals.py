@@ -22,6 +22,7 @@ from moarcoal.extraction import (
     FakeExtractor,
 )
 from moarcoal.extraction_template import ExtractionTemplate, TemplateField
+from moarcoal.links import document_url
 from moarcoal.proposals import UNCONFIRMED
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import AbortedExtraction, Change, Document, Proposal, Rejected, Store
@@ -198,14 +199,14 @@ def test_re_extraction_creates_a_new_proposal_next_to_the_old_one(tmp_path: Path
     location = setup.take_in()
     setup.post(f"{location}/auslesen")
     setup.post(f"{location}/bestaetigen", all="1")
-    assert "Neu auslesen" in setup.client.get(setup.document().url).text
+    assert "Neu auslesen" in setup.client.get(document_url(setup.document().id)).text
     assert setup.post(f"{location}/auslesen").status_code == 303
     proposals = setup.store.state().of_kind(Proposal)
     assert len(proposals) == 2
     newest = max(proposals, key=lambda p: (p.created_at, p.id))
     assert newest.fields["tax"].value == "9.999,00"
     assert not any(f.confirmed for f in newest.fields.values())  # nichts übernommen
-    page = setup.client.get(setup.document().url).text
+    page = setup.client.get(document_url(setup.document().id)).text
     assert "9.999,00" in page and "1.234,00" not in page
     assert setup.module_state().confirmed_fields(setup.document()) == {}
     [finding] = findings(setup)  # nur der neueste Vorschlag zählt
@@ -231,9 +232,9 @@ def test_kind_without_template_is_not_extracted(tmp_path: Path) -> None:
     setup = make(tmp_path, answer())
     location = setup.take_in("plain")
     assert location == "/belege"
-    document_url = f"/dokumente/{setup.document().id}"
-    assert "nicht ausgelesen" in setup.client.get(setup.document().url).text
-    assert setup.post(f"{document_url}/auslesen").status_code == 409
+    document_path = f"/dokumente/{setup.document().id}"
+    assert "nicht ausgelesen" in setup.client.get(document_url(setup.document().id)).text
+    assert setup.post(f"{document_path}/auslesen").status_code == 409
     assert setup.fake.calls == []
 
 
@@ -270,7 +271,7 @@ def test_correction_keeps_the_extracted_content_beside_it(tmp_path: Path) -> Non
     assert field.confirmed
     assert field.value == "1.234,00"
     assert field.correction == "1.243,00"
-    page = setup.client.get(setup.document().url).text
+    page = setup.client.get(document_url(setup.document().id)).text
     assert "1.234,00" in page and "1.243,00" in page
 
 
@@ -305,7 +306,7 @@ def test_content_from_claude_is_escaped(tmp_path: Path) -> None:
     }
     setup, location = extracted(tmp_path, Extracted(fields, evil))
     setup.post(f"{location}/bestaetigen", field="tax", correction=evil)
-    page = setup.client.get(setup.document().url).text
+    page = setup.client.get(document_url(setup.document().id)).text
     assert "<script>alert(1)</script>" not in page
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in page
     assert "<script>alert(1)" not in setup.client.get("/befunde?year=2025").text
@@ -320,10 +321,10 @@ def test_open_fields_give_a_note_with_a_link_and_confirming_all_removes_it(
     setup, location = extracted(tmp_path)
     [finding] = findings(setup)
     assert finding.severity.value == "Hinweis"
-    assert finding.href == setup.document().url
+    assert finding.href == document_url(setup.document().id)
     assert "2 von 2" in finding.message
     page = setup.client.get("/befunde?year=2025").text
-    assert f'href="{setup.document().url}"' in page
+    assert f'href="{document_url(setup.document().id)}"' in page
     setup.post(f"{location}/bestaetigen", field="tax")
     [partly] = findings(setup)
     assert "1 von 2" in partly.message
@@ -463,10 +464,12 @@ def test_tools_abort_is_recorded_with_an_error_finding_linking_the_document(
     [finding] = aborted_findings(setup)
     assert finding.severity.value == "Fehler"
     assert finding.target == setup.document().address
-    assert finding.href == setup.document().url
-    assert f'href="{setup.document().url}"' in setup.client.get("/befunde?year=2025").text
+    assert finding.href == document_url(setup.document().id)
+    assert (
+        f'href="{document_url(setup.document().id)}"' in setup.client.get("/befunde?year=2025").text
+    )
     before = setup.store.state().entries
-    setup.client.get(setup.document().url)
+    setup.client.get(document_url(setup.document().id))
     setup.client.get("/befunde?year=2025")
     assert setup.store.state().entries == before
 

@@ -9,8 +9,9 @@ from fastapi.templating import Jinja2Templates
 
 from moarcoal.documents import DocumentKind
 from moarcoal.incoming import all_site_files, incoming_files
+from moarcoal.links import document_url, issuer_url
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import EntryAddress, ExpectedDocument, Issuer, State, Store, issuer_url
+from moarcoal.storage import Document, EntryAddress, ExpectedDocument, Issuer, State, Store
 from moarcoal.values.engine import Values
 from moarcoal.values.model import Amount, format_amount
 
@@ -30,6 +31,8 @@ def year_of(text: str) -> int | None:
 
 def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) -> str | None:
     """Link zum Eintrag, wie das besitzende Modul ihn nennt; unbekannte Art: kein Link."""
+    if address.kind == Document.__name__:  # Baustein der Datenebene
+        return document_url(address.id)
     if address.kind == ExpectedDocument.__name__:  # Baustein der Datenebene
         return f"/belege/erwartet/{address.id}"
     if address.kind == Issuer.__name__:  # Baustein der Datenebene

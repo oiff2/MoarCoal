@@ -19,6 +19,7 @@ from moarcoal.incoming import (
     site_listing,
     unhide,
 )
+from moarcoal.links import document_url
 from moarcoal.prefill import Prefill, prefill_from_name
 from moarcoal.previews import file_response, preview_kind
 from moarcoal.storage import Applied, HiddenFile, HiddenFolder, Issuer
@@ -163,7 +164,7 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
     kind = kinds.get(result.document.document_kind or "")
     if kind is not None and kind.extraction_template is not None:
         # im Reiter Dokumente liest der Nutzer das Dokument aus
-        target = result.document.url
+        target = document_url(result.document.id)
     elif following is not None:
         return following
     return RedirectResponse(target or "/belege", status_code=303)

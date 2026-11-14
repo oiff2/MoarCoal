@@ -13,7 +13,7 @@
   <tr><th>Name</th><th>Weitere Namen</th><th>Dokumente</th><th>Erwartete Belege</th></tr>
   {% for issuer, documents, expected in rows %}
   <tr>
-    <td><a href="{{ issuer.url }}">{{ issuer.name }}</a>{% if issuer.private_person %} (Privatperson){% endif %}</td>
+    <td><a href="{{ entry_url(issuer.address) }}">{{ issuer.name }}</a>{% if issuer.private_person %} (Privatperson){% endif %}</td>
     <td>{{ issuer.aliases | join(", ") }}</td>
     <td>{{ documents }}</td>
     <td>{{ expected }}</td>

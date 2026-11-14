@@ -17,10 +17,6 @@ def name_key(text: str) -> str:
     return text.strip().casefold()
 
 
-def issuer_url(issuer_id: str) -> str:
-    return f"/aussteller/{issuer_id}"
-
-
 class Issuer(Entry):
     """Ein Aussteller im gemeinsamen Katalog: Name, weitere Namen (Aliasse), Privatperson.
 
@@ -56,10 +52,6 @@ class Issuer(Entry):
     @property
     def display_name(self) -> str:
         return self.name
-
-    @property
-    def url(self) -> str:
-        return issuer_url(self.id)
 
     def sensitive_values(self) -> list[str]:
         """Die Werte für die Sperrliste: Name und Aliasse, nur bei einer Privatperson."""

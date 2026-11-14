@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from pydantic import ValidationError
 
 from moarcoal.extraction_template import ExtractionTemplate
+from moarcoal.links import document_url
 from moarcoal.storage import (
     Applied,
     Change,
@@ -137,7 +138,7 @@ def duplicate_findings(state: State, user: str, kinds: Mapping[str, DocumentKind
                     Severity.NOTE,
                     d.address,
                     f"Existiert mehrfach: {kind.title} {year}: {d.path}",
-                    href=d.url,
+                    href=document_url(d.id),
                 )
             )
     return found

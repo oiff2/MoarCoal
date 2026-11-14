@@ -12,11 +12,6 @@ DOCUMENT_SCHEMA = "datenebene/1"
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
 
 
-def document_url(document_id: str) -> str:
-    """Die Adresse eines Dokuments: der Reiter Dokumente, das Dokument gewählt."""
-    return f"/belege/dokumente?dokument={document_id}"
-
-
 class Document(Entry):
     """Eine aufgenommene Datei: Ablageort + relativer Pfad + SHA-256, höchstens eine Dokumentart.
 
@@ -47,10 +42,6 @@ class Document(Entry):
         if self.period_start and self.period_end and self.period_end < self.period_start:
             raise ValueError("Bezugszeitraum endet vor seinem Beginn")
         return self
-
-    @property
-    def url(self) -> str:
-        return document_url(self.id)
 
     def touches_year(self, year: int) -> bool:
         """Ob der Bezugszeitraum das Jahr berührt; ohne Bezugszeitraum nie."""

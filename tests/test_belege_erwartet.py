@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
+from moarcoal.links import document_url
 from moarcoal.modules import MODULES
 from moarcoal.modules.tax_year import TRANSFER_PROTOCOL
 from moarcoal.storage import Document, ExpectedDocument, Put, Store
@@ -77,4 +78,4 @@ def test_fulfilled_year_links_to_the_document(client: httpx.Client) -> None:
 
     page = client.get("/belege/erwartet").text
 
-    assert f'<a href="{document.url}">Belege: Protokoll_2025.html</a>' in page
+    assert f'<a href="{document_url(document.id)}">Belege: Protokoll_2025.html</a>' in page

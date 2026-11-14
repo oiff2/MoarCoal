@@ -21,6 +21,7 @@ from moarcoal.extraction import (
     FailureReason,
 )
 from moarcoal.extraction_template import ExtractionTemplate
+from moarcoal.links import document_url
 from moarcoal.storage import (
     AbortedExtraction,
     Applied,
@@ -149,7 +150,7 @@ def aborted_extraction_findings(state: State, user: str) -> list[Finding]:
                 Severity.ERROR,
                 document.address,
                 text,
-                href=document.url,
+                href=document_url(document.id),
                 fingerprint=fingerprint(aborted.aborted_at.isoformat()),
             )
         )
@@ -250,7 +251,7 @@ def proposal_findings(
                 Severity.NOTE,
                 proposal.address,
                 text,
-                href=document.url,
+                href=document_url(document.id),
                 fingerprint=fingerprint(*open_keys),
             )
         )

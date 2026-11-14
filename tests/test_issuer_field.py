@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
 from moarcoal.issuer_field import IssuerChoice, last_issuer, resolve_issuer, search_issuers
+from moarcoal.links import document_url
 from moarcoal.storage import COMMON_OWNER, Document, Issuer, Put, State
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
@@ -104,7 +105,7 @@ def test_search_endpoint_shows_the_choice_as_hidden_field(client: httpx.Client) 
 
 def test_field_has_private_checkbox_in_the_line_of_the_input(client: httpx.Client) -> None:
     document = taken_in(client)
-    html = client.get(document.url).text
+    html = client.get(document_url(document.id)).text
     line = html.split('class="zeile"')[1].split("</div>")[0]
     assert 'name="issuer_text"' in line and 'name="issuer_private"' in line
 
@@ -254,7 +255,7 @@ def change(client: httpx.Client, document: Document, **fields: str) -> httpx.Res
 def test_document_page_shows_field_and_get_writes_nothing(client: httpx.Client) -> None:
     document = taken_in(client)
     before = state_of(client)
-    html = client.get(document.url).text
+    html = client.get(document_url(document.id)).text
     assert "Kein Aussteller angegeben." in html
     assert 'hx-get="/aussteller-suche"' in html
     assert state_of(client) == before
@@ -266,7 +267,7 @@ def test_change_issuer_on_document(client: httpx.Client) -> None:
     response = change(client, document, issuer_choice=f"id:{bank.id}")
     assert response.status_code == 303
     assert only_document(client).issuer == bank.address
-    assert bank.name in client.get(document.url).text
+    assert bank.name in client.get(document_url(document.id)).text
 
 
 def test_change_issuer_creates_new_one_and_can_remove(client: httpx.Client) -> None:

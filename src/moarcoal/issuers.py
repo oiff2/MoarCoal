@@ -1,5 +1,6 @@
 """Befund der Datenebene zum Aussteller (docs/grundgeruest.md, 3.2, Zuschnitt des Ausstellers)."""
 
+from moarcoal.links import document_url
 from moarcoal.storage import Document, State
 from moarcoal.values.findings import Finding, Severity
 
@@ -18,7 +19,7 @@ def issuer_findings(state: State, user: str) -> list[Finding]:
             Severity.NOTE,
             d.address,
             f"Dokument ohne Aussteller: {d.path}",
-            href=d.url,
+            href=document_url(d.id),
         )
         for d in documents
     ]

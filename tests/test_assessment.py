@@ -19,6 +19,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
+from moarcoal.links import document_url
 from moarcoal.modules.tax_year import ASSESSMENT, ProtocolReading, registration
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_n import (
@@ -209,7 +210,7 @@ def test_deviation_is_a_warning_with_both_amounts_and_a_link_to_the_proposal() -
     assert "Laut EStB 219 Tage" in finding.message
     assert "bei Abgabe am 01.03.2026 220 Tage" in finding.message
     assert "aufgesucht an Tagen" in finding.message
-    assert finding.href == document.url
+    assert finding.href == document_url(document.id)
 
 
 def test_the_snapshot_is_compared_not_the_current_value() -> None:
@@ -500,5 +501,5 @@ def test_whole_flow_the_page_and_the_finding_list_show_the_assessment(
     listing = http.get("/befunde?year=2025").text
     assert "keinen Schnappschuss" not in listing
     assert "Laut EStB 218 Tage, bei Abgabe am" in listing
-    assert document.url in listing
+    assert document_url(document.id) in listing
     assert "Laut EStB 12 km" not in listing

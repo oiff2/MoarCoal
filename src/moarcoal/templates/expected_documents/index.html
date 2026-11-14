@@ -23,7 +23,7 @@
       <td>
         {% if status.pending %}ausstehend
         {% else %}erfüllt durch
-        {% for document in status.documents %}<a href="{{ document.url }}">{{ document.site }}: {{ document.path }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+        {% for document in status.documents %}<a href="{{ entry_url(document.address) }}">{{ document.site }}: {{ document.path }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
         {% if status.documents | length > 1 %}(mögliche Dublette){% endif %}
         {% endif %}
       </td>

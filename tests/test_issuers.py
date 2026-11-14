@@ -7,6 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from moarcoal.issuers import DOCUMENT_WITHOUT_ISSUER
+from moarcoal.links import document_url, issuer_url
 from moarcoal.storage import (
     COMMON_OWNER,
     Applied,
@@ -78,7 +79,7 @@ def test_issuer_belongs_to_everybody_and_needs_a_name() -> None:
 def test_display_name_and_url() -> None:
     bank = issuer()
     assert bank.display_name == "Beispielbank AG"
-    assert bank.url == f"/aussteller/{bank.id}"
+    assert issuer_url(bank.id) == f"/aussteller/{bank.id}"
 
 
 def test_document_with_issuer_and_delete_only_without_references(tmp_path: Path) -> None:
@@ -140,7 +141,7 @@ def test_note_for_each_document_without_issuer_of_the_user() -> None:
 
     notes = [f for f in found if f.kind == DOCUMENT_WITHOUT_ISSUER]
     assert [n.target for n in notes] == [plain.address]
-    assert notes[0].href == plain.url
+    assert notes[0].href == document_url(plain.id)
 
 
 def test_only_private_persons_feed_the_denylist() -> None:
