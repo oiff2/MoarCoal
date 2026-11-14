@@ -303,7 +303,7 @@ def test_page_shows_values_with_workings_and_backing(tmp_path: Path) -> None:
 
     assert "Ausgewiesene Werte 2025" in html
     assert "180 Tage" in html and "12 km" in html and "49,90 €" in html
-    assert "Belegstand: angenommen" in html
+    assert ">angenommen<" in html and "Belegstand:" not in html
     assert "<details>" in html and "Rechenweg" in html and "Einzelposten" in html
     assert "Summe der Arbeitsmittel" in html
     assert 'href="/arbeit/arbeitsmittel/' in html  # Fundstelle verlinkt die Nutzereingabe

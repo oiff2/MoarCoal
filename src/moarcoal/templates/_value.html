@@ -6,7 +6,7 @@
     <summary>
       <span class="titel">{{ title }}:</span>
       <strong class="betrag">{{ result.amount | amount(whole_euros=whole) }}</strong>
-      <span class="belegstand belegstand-{{ result.backing.name | lower }}">Belegstand: {{ result.backing.label }}</span>
+      <span class="belegstand belegstand-{{ result.backing.name | lower }}" title="Belegstand">{{ result.backing.label }}</span>
     </summary>
     <h4>Einzelposten</h4>
     {% if result.items %}
