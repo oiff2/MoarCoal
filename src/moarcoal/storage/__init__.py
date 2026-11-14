@@ -21,6 +21,7 @@ from moarcoal.storage.issuers import (
     issuer_with_name,
     name_key,
 )
+from moarcoal.storage.pid_file import read_pid, remove_pid, write_pid
 from moarcoal.storage.proposals import PROPOSAL_KIND, Content, Proposal, ProposalField
 from moarcoal.storage.snapshots import (
     FrozenAmount,
@@ -94,4 +95,7 @@ __all__ = [
     "name_key",
     "new_id",
     "open_store",
+    "read_pid",
+    "remove_pid",
+    "write_pid",
 ]
