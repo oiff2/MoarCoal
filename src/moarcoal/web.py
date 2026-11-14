@@ -7,6 +7,7 @@ from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.documents import DocumentKind
 from moarcoal.incoming import all_site_files, incoming_files
 from moarcoal.links import document_url, issuer_url
@@ -22,12 +23,14 @@ def format_eur(cents: int) -> str:
     return format_amount(Amount.eur_cents(cents))
 
 
-def year_of(text: str) -> int | None:
-    """Das Jahr als ganze Zahl (Randleerzeichen egal); `None`, wenn `text` keine ist."""
+def year_of(text: str, *, in_range: bool = False) -> int | None:
+    """Das Jahr als ganze Zahl (Randleerzeichen egal); `None`, wenn `text` keine ist, mit
+    `in_range` auch, wenn sie außerhalb von `MIN_YEAR` bis `MAX_YEAR` liegt."""
     try:
-        return int(text.strip())
+        year = int(text.strip())
     except ValueError:
         return None
+    return year if not in_range or MIN_YEAR <= year <= MAX_YEAR else None
 
 
 def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) -> str | None:

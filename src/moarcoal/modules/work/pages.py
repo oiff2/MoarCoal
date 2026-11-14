@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
-from moarcoal.defaults import DEFAULT_YEAR
+from moarcoal.defaults import DEFAULT_YEAR, MAX_YEAR, MIN_YEAR
 from moarcoal.modules.work.entries import (
     DEFAULT_WORKDAYS,
     MAX_WORKDAYS,
@@ -40,7 +40,7 @@ type Build = Callable[[Fields, str, str], tuple[Entry | None, list[str]]]
 
 # Hinweis je Feld, wenn die Prüfung es ablehnt (Pydantic liefert nur englische Meldungen).
 HINTS = {
-    "year": "Steuerjahr: Jahr zwischen 2000 und 2100",
+    "year": f"Steuerjahr: Jahr zwischen {MIN_YEAR} und {MAX_YEAR}",
     "workdays": f"Arbeitstage: ganze Zahl von 0 bis {MAX_WORKDAYS}",
     "distance_km": "Einfache Entfernung: ganze Zahl von 0 bis 1000 km",
     "workdays_per_week": "Arbeitstage je Woche: ganze Zahl von 1 bis 7, oder leer",

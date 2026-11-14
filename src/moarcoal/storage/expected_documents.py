@@ -4,11 +4,10 @@ from typing import Self
 
 from pydantic import Field, model_validator
 
+from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.storage.entries import Entry, entry_kind
 
 EXPECTED_DOCUMENT_SCHEMA = "datenebene/1"
-MIN_YEAR = 2000
-MAX_YEAR = 2100
 TEXT_MAX = 200
 
 

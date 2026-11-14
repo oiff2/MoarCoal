@@ -12,13 +12,12 @@ from pydantic import (
     model_validator,
 )
 
+from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.storage import Entry, EntryAddress, EntryKind, entry_checksum, entry_kind
 from moarcoal.values.findings import fingerprint
 
 SCHEMA = "work/1"
 MODULE_KEY = "work"
-MIN_YEAR = 2000
-MAX_YEAR = 2100
 MAX_CENTS = 100_000_000
 MAX_WAGE_CENTS = 100_000_000_000  # 1 Mrd. Euro
 TEXT_MAX = 200

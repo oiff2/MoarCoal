@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
-from moarcoal.defaults import DEFAULT_YEAR
+from moarcoal.defaults import DEFAULT_YEAR, MAX_YEAR, MIN_YEAR
 from moarcoal.documents import DocumentKind
 from moarcoal.expected_documents import previous_year_issuer, statuses
 from moarcoal.storage import (
@@ -21,7 +21,7 @@ from moarcoal.storage import (
     entry_checksum,
     new_id,
 )
-from moarcoal.storage.expected_documents import MAX_YEAR, MIN_YEAR, TEXT_MAX
+from moarcoal.storage.expected_documents import TEXT_MAX
 from moarcoal.web import document_kinds, form_fields, render, store_of, user_of
 
 router = APIRouter(prefix="/belege/erwartet")

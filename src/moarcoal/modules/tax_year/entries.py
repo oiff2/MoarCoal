@@ -6,6 +6,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.storage import Entry, EntryAddress, EntryKind, entry_kind
 
 SCHEMA = "tax_year/1"
@@ -44,7 +45,7 @@ class ProtocolReading(Entry):
     """
 
     document: EntryAddress
-    year: int = Field(ge=2000, le=2100)
+    year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
     reader_version: int = Field(ge=1)
     belegversion: str = Field(default="", max_length=TEXT_MAX)
     received: datetime.date | None = None
@@ -59,7 +60,7 @@ class FormInput(Entry):
     Jahr und Feld höchstens eine.
     """
 
-    year: int = Field(ge=2000, le=2100)
+    year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
     elster_id: ElsterId
     content: str = Field(min_length=1, max_length=TEXT_MAX)
 

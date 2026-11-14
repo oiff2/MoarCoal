@@ -7,9 +7,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
+from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.modules.work.entries import (
-    MAX_YEAR,
-    MIN_YEAR,
     MODULE_KEY,
     trips_fingerprint,
 )

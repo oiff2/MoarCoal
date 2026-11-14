@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
+from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.extraction_template import ExtractionTemplate
 from moarcoal.links import document_url
 from moarcoal.storage import (
@@ -33,8 +34,6 @@ if TYPE_CHECKING:
     from moarcoal.values.engine import Values
 
 DUPLICATE_DOCUMENT = "document_duplicate"
-MIN_YEAR = 2000
-MAX_YEAR = 2100
 
 
 class ReadInError(Exception):

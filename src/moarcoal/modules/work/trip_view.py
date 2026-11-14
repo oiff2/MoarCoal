@@ -9,8 +9,6 @@ from fastapi import Request
 from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.links import document_url
 from moarcoal.modules.work.entries import (
-    MAX_YEAR,
-    MIN_YEAR,
     MODULE_KEY,
     BusinessTrip,
     TripsConfirmation,
@@ -31,7 +29,7 @@ from moarcoal.place_search import PlaceHit
 from moarcoal.proposals import proposals_of
 from moarcoal.storage import entry_checksum
 from moarcoal.values.model import Period
-from moarcoal.web import module_state, store_of, user_of, values_of
+from moarcoal.web import module_state, store_of, user_of, values_of, year_of
 
 MAX_YEARS = 10  # so viele Jahre stehen höchstens zur Auswahl
 
@@ -69,10 +67,8 @@ def trip_years(request: Request) -> list[int]:
 
 def chosen_year(request: Request, years: Sequence[int]) -> int:
     """Das Jahr aus `?jahr=`, sonst das neueste; Unbrauchbares zählt als nicht gewählt."""
-    text = request.query_params.get("jahr", "")
-    if text.isdecimal() and MIN_YEAR <= int(text) <= MAX_YEAR:
-        return int(text)
-    return years[0]
+    year = year_of(request.query_params.get("jahr", ""), in_range=True)
+    return years[0] if year is None else year
 
 
 def _statements(request: Request, year: int, trips: Sequence[BusinessTrip]) -> list[dict[str, Any]]:
