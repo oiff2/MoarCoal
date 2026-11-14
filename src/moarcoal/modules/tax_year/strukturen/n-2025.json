@@ -237,6 +237,95 @@
    "label": "Von der Agentur für Arbeit oder dem Jobcenter gezahlte Fahrtkostenzuschüsse (Euro)"
   },
   {
+   "e_kennung": "E0203003",
+   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
+   "headings": [],
+   "line": "27",
+   "label": "Ziel des Weges",
+   "options": [
+    "Keine Angabe",
+    "erste Tätigkeitsstätte",
+    "Sammelpunkt / weiträumiges Tätigkeitsgebiet"
+   ]
+  },
+  {
+   "e_kennung": "E0203501",
+   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
+   "headings": [],
+   "line": "27",
+   "label": "PLZ, Ort und Straße"
+  },
+  {
+   "e_kennung": "E0203101",
+   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
+   "headings": [],
+   "line": "27",
+   "label": "vom - bis (TT.MM-TT.MM)"
+  },
+  {
+   "e_kennung": "E0203508",
+   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
+   "headings": [],
+   "line": "28",
+   "label": "Arbeitstage je Woche"
+  },
+  {
+   "e_kennung": "E0203509",
+   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
+   "headings": [],
+   "line": "28",
+   "label": "Urlaubs-, Krankheits-, Heimarbeits- und Dienstreisetage"
+  },
+  {
+   "e_kennung": "E0203507",
+   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
+   "headings": [],
+   "line": "28",
+   "label": "Behinderungsgrad mindestens 70 oder mindestens 50 und Merkzeichen „G“"
+  },
+  {
+   "e_kennung": "E0203503",
+   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
+   "headings": [],
+   "line": "29",
+   "label": "aufgesucht an Tagen"
+  },
+  {
+   "e_kennung": "E0203504",
+   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
+   "headings": [],
+   "line": "30",
+   "label": "einfache Entfernung in Kilometern (auf volle Kilometer abgerundet) (km)"
+  },
+  {
+   "e_kennung": "E0203505",
+   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
+   "headings": [],
+   "line": "31",
+   "label": "davon mit eigenem oder zur Nutzung überlassenem PKW zurückgelegt (km)"
+  },
+  {
+   "e_kennung": "E0203510",
+   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
+   "headings": [],
+   "line": "32",
+   "label": "davon mit Sammelbeförderung des Arbeitgebers zurückgelegt (km)"
+  },
+  {
+   "e_kennung": "E0203506",
+   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
+   "headings": [],
+   "line": "33",
+   "label": "davon mit öffentlichen Verkehrsmitteln, Motorrad, Fahrrad oder Ähnlichem, als Fußgänger und / oder als Mitfahrer einer Fahrgemeinschaft zurückgelegt (km)"
+  },
+  {
+   "e_kennung": "E0203611",
+   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
+   "headings": [],
+   "line": "34",
+   "label": "Aufwendungen für Fahrten mit öffentlichen Verkehrsmitteln (ohne Fähr- und Flugkosten) (Euro)"
+  },
+  {
    "e_kennung": "E0204401",
    "page": "10 - Aufwendungen für Arbeitsmittel",
    "headings": [],
@@ -521,95 +610,6 @@
    ],
    "line": "83",
    "label": "Werbungskosten zu Arbeitslohn für eine Tätigkeit im Inland, wenn die Ansässigkeit in Belgien gegeben ist – in den Zeilen 27 bis 77 und in der Anlage N-Doppelte Haushaltsführung enthalten – (Euro)"
-  },
-  {
-   "e_kennung": "E0203003",
-   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
-   "headings": [],
-   "line": "27",
-   "label": "Ziel des Weges",
-   "options": [
-    "Keine Angabe",
-    "erste Tätigkeitsstätte",
-    "Sammelpunkt / weiträumiges Tätigkeitsgebiet"
-   ]
-  },
-  {
-   "e_kennung": "E0203501",
-   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
-   "headings": [],
-   "line": "27",
-   "label": "PLZ, Ort und Straße"
-  },
-  {
-   "e_kennung": "E0203101",
-   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
-   "headings": [],
-   "line": "27",
-   "label": "vom - bis (TT.MM-TT.MM)"
-  },
-  {
-   "e_kennung": "E0203508",
-   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
-   "headings": [],
-   "line": "28",
-   "label": "Arbeitstage je Woche"
-  },
-  {
-   "e_kennung": "E0203509",
-   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
-   "headings": [],
-   "line": "28",
-   "label": "Urlaubs-, Krankheits-, Heimarbeits- und Dienstreisetage"
-  },
-  {
-   "e_kennung": "E0203507",
-   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
-   "headings": [],
-   "line": "28",
-   "label": "Behinderungsgrad mindestens 70 oder mindestens 50 und Merkzeichen „G“"
-  },
-  {
-   "e_kennung": "E0203503",
-   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
-   "headings": [],
-   "line": "29",
-   "label": "aufgesucht an Tagen"
-  },
-  {
-   "e_kennung": "E0203504",
-   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
-   "headings": [],
-   "line": "30",
-   "label": "einfache Entfernung in Kilometern (auf volle Kilometer abgerundet) (km)"
-  },
-  {
-   "e_kennung": "E0203505",
-   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
-   "headings": [],
-   "line": "31",
-   "label": "davon mit eigenem oder zur Nutzung überlassenem PKW zurückgelegt (km)"
-  },
-  {
-   "e_kennung": "E0203510",
-   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
-   "headings": [],
-   "line": "32",
-   "label": "davon mit Sammelbeförderung des Arbeitgebers zurückgelegt (km)"
-  },
-  {
-   "e_kennung": "E0203506",
-   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
-   "headings": [],
-   "line": "33",
-   "label": "davon mit öffentlichen Verkehrsmitteln, Motorrad, Fahrrad oder Ähnlichem, als Fußgänger und / oder als Mitfahrer einer Fahrgemeinschaft zurückgelegt (km)"
-  },
-  {
-   "e_kennung": "E0203611",
-   "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
-   "headings": [],
-   "line": "34",
-   "label": "Aufwendungen für Fahrten mit öffentlichen Verkehrsmitteln (ohne Fähr- und Flugkosten) (Euro)"
   }
  ]
 }
