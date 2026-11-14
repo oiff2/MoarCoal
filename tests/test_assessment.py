@@ -8,7 +8,7 @@ import datetime
 import hashlib
 import json
 import shutil
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
@@ -504,7 +504,10 @@ def take(http: httpx.Client, path: Path, kind: str) -> None:
 
 
 def test_whole_flow_the_page_and_the_finding_list_show_the_assessment(
-    http: httpx.Client, app: FastAPI, site: Path
+    http: httpx.Client,
+    app: FastAPI,
+    site: Path,
+    anlage_n_text: Callable[[httpx.Client], str],
 ) -> None:
     form = {"year": "2025", "workdays": "219", "distance_km": "12", "description": "Büro"}
     http.post("/arbeit/erste-taetigkeitsstaette", data=form, headers=ORIGIN)
@@ -516,7 +519,7 @@ def test_whole_flow_the_page_and_the_finding_list_show_the_assessment(
         [Put(proposal(document, {COMMUTE_DAYS: "218", COMMUTE_KM: "12", GROSS_WAGES: "97.292"}))]
     )
 
-    page = http.get("/steuerjahr/anlage-n/2025").text
+    page = anlage_n_text(http)
     assert "Laut EStB" in page
     assert "<td>218 Tage</td>" in page and "<td>97.292 €</td>" in page
     assert "wird noch nicht berechnet" in page

@@ -85,3 +85,6 @@ form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
 .karte .orte { list-style: none; padding-left: 0; }
 .karte .treffer { margin: 0.25rem 0 0.5rem 1rem; }
 label.inline { display: inline; }
+
+nav.seiten { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin: 0.5rem 0; }
+nav.seiten a[aria-current="page"] { font-weight: bold; text-decoration: none; }
