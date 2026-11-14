@@ -19,10 +19,15 @@ from moarcoal.documents import DocumentKind, IntakeRejected, TakenIn, take_in
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolReading
 from moarcoal.modules.tax_year.anlage_n import (
+    FIELDS_2025,
     N_EQUIPMENT,
     N_WORKPLACE_DAYS,
     N_WORKPLACE_DISTANCE,
     WORK_EQUIPMENT,
+    WORK_GROSS_WAGES,
+    WORK_INCOME_TAX,
+    WORK_SOLI,
+    WORK_TAX_CLASS,
     WORK_WORKDAYS,
 )
 from moarcoal.modules.tax_year.comparison import SNAPSHOT_DEVIATION, snapshot_on_filing
@@ -148,7 +153,9 @@ def test_take_in_writes_document_reading_and_snapshot_in_one_vorgang(store: Stor
     assert snapshot.module == "tax_year"
     assert snapshot.document == taken.document.address
     assert snapshot.taken_at == taken.document.taken_in_at
-    assert [v.ref.key for v in snapshot.values if v.requested] == FIELD_KEYS
+    assert [v.ref.key for v in snapshot.values if v.requested] == [
+        f.key for f in FIELDS_2025 if f.computed
+    ]
     assert frozen(snapshot, N_WORKPLACE_DAYS).amount.value == 219  # type: ignore[union-attr]
     kinds = {type(e).__name__ for e in store.state().entries.values()}
     assert {"Document", "ProtocolReading", "Snapshot"} <= kinds
@@ -241,7 +248,10 @@ def test_value_not_yet_computable_is_frozen_with_reason_and_gives_an_error(store
     assert days.amount is None
     errors = [f for f in finding_list(store) if f.kind == SNAPSHOT_NOT_YET]
     assert {f.severity for f in errors} == {Severity.ERROR}
-    assert len(errors) == 2  # Tage und km, nicht die Werte, auf die sie sich stützen
+    # Tage, km und die sieben Felder der Lohnsteuerbescheinigung; Arbeitsmittel sind 0 €
+    assert {f.target.key for f in errors} == {  # type: ignore[union-attr]
+        k for k in (f.key for f in FIELDS_2025 if f.computed) if k != N_EQUIPMENT
+    }
     assert all("noch nicht berechenbar" in f.message for f in errors)
 
 
@@ -328,6 +338,10 @@ def foreign(**given: ForeignResult) -> Foreign:
         (WORK_WORKDAYS, PLACE, YEAR): fixed(Amount.of(219, Unit.DAYS)),
         ("work.distance_km", PLACE, YEAR): fixed(Amount.of(12, Unit.KM)),
         (WORK_EQUIPMENT, None, YEAR): with_items(("Stuhl", 5000), ("Lampe", 3640)),
+        **{
+            (key, None, YEAR): not_yet("keine Lohnsteuerbescheinigung")
+            for key in (WORK_TAX_CLASS, WORK_GROSS_WAGES, WORK_INCOME_TAX, WORK_SOLI)
+        },
     }
     base.update({(k, None, YEAR): v for k, v in given.items()})
     return base

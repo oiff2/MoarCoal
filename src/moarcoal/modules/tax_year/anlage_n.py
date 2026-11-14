@@ -31,10 +31,21 @@ FORM = "N"  # Anlage N (Person A)
 WORK_WORKDAYS = ValueKey("work.workdays")
 WORK_DISTANCE_KM = ValueKey("work.distance_km")
 WORK_EQUIPMENT = ValueKey("work.equipment")
+WORK_TAX_CLASS = ValueKey("work.tax_class")
+WORK_GROSS_WAGES = ValueKey("work.gross_wages")
+WORK_INCOME_TAX = ValueKey("work.income_tax_withheld")
+WORK_SOLI = ValueKey("work.soli_withheld")
 
 N_WORKPLACE_DAYS = ValueKey("tax_year.n_workplace_days")
 N_WORKPLACE_DISTANCE = ValueKey("tax_year.n_workplace_distance")
 N_EQUIPMENT = ValueKey("tax_year.n_equipment")
+N_TAX_CLASS = ValueKey("tax_year.n_tax_class")
+N_GROSS_WAGES = ValueKey("tax_year.n_gross_wages")
+N_GROSS_WAGES_SINGLE = ValueKey("tax_year.n_gross_wages_single")
+N_INCOME_TAX = ValueKey("tax_year.n_income_tax")
+N_INCOME_TAX_SINGLE = ValueKey("tax_year.n_income_tax_single")
+N_SOLI = ValueKey("tax_year.n_soli")
+N_SOLI_SINGLE = ValueKey("tax_year.n_soli_single")
 
 
 def _rounded(calculation: Calculation, field: FormField, amount: Amount) -> Amount:
@@ -51,7 +62,7 @@ def _rounded(calculation: Calculation, field: FormField, amount: Amount) -> Amou
 # Quelle von E-Kennung, Nr. im Vordruck und Bezeichnung: das Übertragungsprotokoll der Abgabe 2025
 # (E-Kennung, Zeile, Bezeichnung; keine Beträge), für Arbeitsmittel die Seite „10 - Aufwendungen
 # für Arbeitsmittel“ in Mein ELSTER (Summe, tools/elster_page_fields.py). Der Katalog nimmt alle
-# bekannten Felder mit; berechnet werden bisher nur die drei mit Quelle im Modul Arbeit
+# bekannten Felder mit; berechnet werden bisher nur die mit Quelle im Modul Arbeit
 # (`computed`). Die Positionen des EStB (`assessment`) und welche er gerundet druckt, hat der
 # Mensch an einem echten EStB zugeordnet (#54).
 def _catalog_field(
@@ -120,6 +131,7 @@ def _computed(
     direction: Direction | None = None,
     *,
     assessment: tuple[str, ...] = (),
+    printed_rounded: bool = False,
     previous: str | None = None,
 ) -> FormField:
     """Ein Feld des Katalogs, das MoarCoal berechnet."""
@@ -132,7 +144,7 @@ def _computed(
         direction,
         computed=True,
         assessment=assessment,
-        printed_rounded=False,
+        printed_rounded=printed_rounded,
         previous=previous,
     )
 
@@ -142,44 +154,44 @@ def fields_n(structure: FormStructure) -> tuple[FormField, ...]:
     known = partial(_known, structure)
     computed = partial(_computed, structure)
     return (
-        known("tax_class", "E0200002", None, Rounding.NONE),
-        known(
-            "gross_wages",
+        computed(N_TAX_CLASS, "E0200002", Unit.TAX_CLASS, Rounding.NONE),
+        computed(
+            N_GROSS_WAGES,
             "E0200201",
             Unit.EUR,
             Rounding.WHOLE_EUROS,
             Direction.INCOME,
             assessment=(GROSS_WAGES,),
         ),
-        known(
-            "gross_wages_single",
+        computed(
+            N_GROSS_WAGES_SINGLE,
             "E0200204",
             Unit.EUR,
             Rounding.EURO_CENTS,
         ),
-        known(
-            "income_tax",
+        computed(
+            N_INCOME_TAX,
             "E0200301",
             Unit.EUR,
             Rounding.EURO_CENTS,
             assessment=(INCOME_TAX_WITHHELD,),
             printed_rounded=True,
         ),
-        known(
-            "income_tax_single",
+        computed(
+            N_INCOME_TAX_SINGLE,
             "E0200304",
             Unit.EUR,
             Rounding.EURO_CENTS,
         ),
-        known(
-            "soli",
+        computed(
+            N_SOLI,
             "E0200401",
             Unit.EUR,
             Rounding.EURO_CENTS,
             assessment=(SOLI_WITHHELD,),
         ),
-        known(
-            "soli_single",
+        computed(
+            N_SOLI_SINGLE,
             "E0200404",
             Unit.EUR,
             Rounding.EURO_CENTS,
@@ -311,18 +323,30 @@ def compute_workplace_distance(calculation: Calculation, field: FormField) -> Am
     return _work_value(calculation, field, WORK_DISTANCE_KM, "Einfache Entfernung")
 
 
-def compute_equipment(calculation: Calculation, field: FormField) -> Amount:
-    item = calculation.use(WORK_EQUIPMENT, label="Summe der Arbeitsmittel")
+def _work_total(calculation: Calculation, field: FormField, source: ValueKey, label: str) -> Amount:
+    """Übernimmt den Wert des Jahrs aus dem Modul Arbeit; entfällt er, entfällt das Feld."""
+    item = calculation.use(source, label=label)
     if item is None:
-        calculation.not_applicable("Arbeitsmittel entfallen")
-    amount = calculation.step("Summe der Arbeitsmittel übernommen", item.amount)
+        calculation.not_applicable(f"{label} entfällt")
+    amount = calculation.step(f"{label} übernommen", item.amount)
     return _rounded(calculation, field, amount)
+
+
+def compute_equipment(calculation: Calculation, field: FormField) -> Amount:
+    return _work_total(calculation, field, WORK_EQUIPMENT, "Summe der Arbeitsmittel")
 
 
 _COMPUTE: dict[ValueKey, Callable[[Calculation, FormField], Amount]] = {
     N_WORKPLACE_DAYS: compute_workplace_days,
     N_WORKPLACE_DISTANCE: compute_workplace_distance,
     N_EQUIPMENT: compute_equipment,
+    N_TAX_CLASS: partial(_work_total, source=WORK_TAX_CLASS, label="Steuerklasse"),
+    N_GROSS_WAGES: partial(_work_total, source=WORK_GROSS_WAGES, label="Bruttoarbeitslohn"),
+    N_GROSS_WAGES_SINGLE: partial(_work_total, source=WORK_GROSS_WAGES, label="Bruttoarbeitslohn"),
+    N_INCOME_TAX: partial(_work_total, source=WORK_INCOME_TAX, label="Lohnsteuer"),
+    N_INCOME_TAX_SINGLE: partial(_work_total, source=WORK_INCOME_TAX, label="Lohnsteuer"),
+    N_SOLI: partial(_work_total, source=WORK_SOLI, label="Solidaritätszuschlag"),
+    N_SOLI_SINGLE: partial(_work_total, source=WORK_SOLI, label="Solidaritätszuschlag"),
 }
 
 

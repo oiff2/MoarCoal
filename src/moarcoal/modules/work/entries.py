@@ -4,12 +4,13 @@ import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from moarcoal.storage import Entry, EntryKind, entry_kind
+from moarcoal.storage import Entry, EntryAddress, EntryKind, entry_kind
 
 SCHEMA = "work/1"
 MIN_YEAR = 2000
 MAX_YEAR = 2100
 MAX_CENTS = 100_000_000
+MAX_WAGE_CENTS = 100_000_000_000  # 1 Mrd. Euro
 TEXT_MAX = 200
 MAX_WORKDAYS = 250
 DEFAULT_WORKDAYS = MAX_WORKDAYS - 30  # abzüglich 30 Urlaubstage
@@ -46,11 +47,30 @@ class WorkEquipment(Entry):
     input: UserInput
 
 
-def yearly_path(entry: FirstWorkplace | WorkEquipment) -> str:
+class WageTaxCertificate(Entry):
+    """Ergebnis des Einlesens einer Lohnsteuerbescheinigung (eDaten) zu genau einem Dokument.
+
+    Beträge stehen in ganzen Cent, genau wie bescheinigt. `None` heißt: die Bescheinigung nennt die
+    Angabe nicht (nie 0). `places` nennt je Angabe den vollen Feldnamen `data-name` als Fundstelle.
+    `reader_version` nennt die Fassung der Einlese-Regel.
+    """
+
+    document: EntryAddress
+    year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
+    reader_version: int = Field(ge=1)
+    tax_class: int | None = Field(default=None, ge=1, le=6)
+    gross_wages_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)
+    income_tax_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)
+    soli_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)
+    places: dict[str, str] = Field(default_factory=dict)
+
+
+def yearly_path(entry: FirstWorkplace | WorkEquipment | WageTaxCertificate) -> str:
     return f"users/{entry.owner}/work/{entry.year}.json"
 
 
 KINDS: tuple[EntryKind, ...] = (
     entry_kind(FirstWorkplace, SCHEMA, yearly_path),
     entry_kind(WorkEquipment, SCHEMA, yearly_path),
+    entry_kind(WageTaxCertificate, SCHEMA, yearly_path),
 )

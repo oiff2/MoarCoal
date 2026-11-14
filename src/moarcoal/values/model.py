@@ -18,6 +18,7 @@ class Unit(StrEnum):
     KM = "km"
     SQM = "m²"
     PERCENT = "Prozent"
+    TAX_CLASS = "Steuerklasse"
 
 
 @dataclass(frozen=True)

@@ -76,13 +76,17 @@ Ein von Hand erfasster Betrag mit Datum und Beschreibung, eingebettet in eine ei
 _Avoid_: manuelle Buchung, Handeingabe
 
 **Arbeit**:
-Das Modul für die Angaben zur nichtselbständigen Arbeit (Anlage N), im Durchstich von Hand erfasst: erste Tätigkeitsstätte und Arbeitsmittel. Modulschlüssel `work`.
+Das Modul für die Angaben zur nichtselbständigen Arbeit (Anlage N), im Durchstich von Hand erfasst (erste Tätigkeitsstätte, Arbeitsmittel), dazu die eingelesene Lohnsteuerbescheinigung. Modulschlüssel `work`.
 
 **Erste Tätigkeitsstätte**:
 Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die Arbeitstage und die einfache Entfernung in km von der Wohnung dorthin (Code: `FirstWorkplace`); sie ist das Bezugsobjekt der Ausgewiesenen Werte Arbeitstage und einfache Entfernung.
 
 **Arbeitsmittel**:
 Werkzeug und Material, das ein Nutzer für die Arbeit selbst gekauft hat; erfasst wird je Anschaffung ein Betrag als Nutzereingabe mit dem Steuerjahr, für das er gilt (Code: `WorkEquipment`).
+
+**Lohnsteuerbescheinigung**:
+Die Bescheinigung des Arbeitgebers über Bruttoarbeitslohn und einbehaltene Steuern eines Jahres; als eDaten-HTML aus „Meine Bescheinigungen“ in Mein ELSTER (`Belegart: VaSt_LStB`) Dokumentart des Moduls Arbeit mit Bezugszeitraum, je Nutzer und Jahr eindeutig. Sie wird exakt eingelesen; der Eintrag hält Steuerklasse, Bruttoarbeitslohn, Lohnsteuer und Solidaritätszuschlag in Cent, je mit Fundstelle im Dokument (Code: `WageTaxCertificate`). Was die Datei nicht nennt, bleibt leer und ist noch nicht berechenbar, nie 0. Daraus kommen die Felder Nr. 4 bis 7 der Anlage N.
+_Avoid_: Lohnsteuerkarte, Lohnbescheinigung
 
 **Steuerjahr**:
 Das Modul für die Steuererklärung eines Jahres; im Durchstich nimmt es das Übertragungsprotokoll auf und liest es ein. Modulschlüssel `tax_year`.

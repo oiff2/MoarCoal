@@ -12,7 +12,13 @@ from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
 from moarcoal.modules import MODULES, ModuleState
-from moarcoal.modules.work import REGISTRATION, FirstWorkplace, UserInput, WorkEquipment
+from moarcoal.modules.work import (
+    REGISTRATION,
+    FirstWorkplace,
+    UserInput,
+    WageTaxCertificate,
+    WorkEquipment,
+)
 from moarcoal.modules.work.pages import parse_cents
 from moarcoal.modules.work.values import EQUIPMENT as EQUIPMENT_KEY
 from moarcoal.modules.work.values import EQUIPMENT_GAP
@@ -58,7 +64,11 @@ def only_id(root: Path) -> str:
 def test_work_module_is_in_the_fixed_list() -> None:
     assert "work" in [m.key for m in MODULES]
     assert REGISTRATION.area_name == "Arbeit"
-    assert {k.model for k in REGISTRATION.kinds} == {FirstWorkplace, WorkEquipment}
+    assert {k.model for k in REGISTRATION.kinds} == {
+        FirstWorkplace,
+        WorkEquipment,
+        WageTaxCertificate,
+    }
 
 
 def test_registration_maps_entry_to_path_and_schema(tmp_path: Path) -> None:

@@ -37,6 +37,7 @@ REFERENCE_LABELS = {
     "AbortedExtraction": "Abgebrochene Auslesung",
     "Snapshot": "Schnappschuss",
     "ProtocolReading": "Einlesung",
+    "WageTaxCertificate": "Einlesung",
 }
 """Bezeichnungen für die Einträge, die auf ein Dokument verweisen; sonst gilt der Name im Code."""
 
