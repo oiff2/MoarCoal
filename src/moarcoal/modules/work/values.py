@@ -2,11 +2,25 @@
 
 Alle Einzelposten sind Nutzereingaben (Belegstand angenommen). Arbeitstage und einfache Entfernung
 gelten je erster Tätigkeitsstätte (Bezugsobjekt); die Arbeitsmittel eines Jahres ergeben einen Wert.
+Die Fahrtkosten der Dienstreisen sind die km des Jahrs mal dem km-Satz des Jahrs.
 """
 
 from decimal import Decimal
 
-from moarcoal.modules.work.entries import FirstWorkplace, WageTaxCertificate, WorkEquipment
+from moarcoal.modules.work.entries import (
+    BusinessTrip,
+    FirstWorkplace,
+    TripsConfirmation,
+    WageTaxCertificate,
+    WorkEquipment,
+)
+from moarcoal.modules.work.trips import (
+    KM_RATES,
+    current_confirmation,
+    format_places,
+    km_amount,
+    sorted_trips,
+)
 from moarcoal.registration import ModuleState
 from moarcoal.values.calculation import Calculation, ValueSource
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
@@ -31,6 +45,8 @@ TAX_CLASS = ValueKey("work.tax_class")
 GROSS_WAGES = ValueKey("work.gross_wages")
 INCOME_TAX_WITHHELD = ValueKey("work.income_tax_withheld")
 SOLI_WITHHELD = ValueKey("work.soli_withheld")
+TRAVEL_FARE = ValueKey("work.travel_fare")
+TRAVEL_TOTAL = ValueKey("work.travel_total")
 
 
 def _workplace(calculation: Calculation) -> FirstWorkplace:
@@ -131,21 +147,85 @@ def compute_soli(calculation: Calculation) -> Amount:
     return _certified(calculation, "soli_cents", "Solidaritätszuschlag", Unit.EUR)
 
 
-EQUIPMENT_GAP = "work.equipment_gap"
+def _trips(state: ModuleState, year: int) -> list[BusinessTrip]:
+    return sorted_trips([t for t in state.all(BusinessTrip) if t.year == year])
 
-FINDING_KINDS = (FindingKind(EQUIPMENT_GAP, "Arbeitsmittel im Vorjahr, im Steuerjahr keine"),)
+
+def _confirmation(state: ModuleState, year: int) -> TripsConfirmation | None:
+    confirmations = [c for c in state.all(TripsConfirmation) if c.year == year]
+    return current_confirmation(confirmations, _trips(state, year))
+
+
+def compute_travel_fare(calculation: Calculation) -> Amount:
+    """Fahrtkosten mit dem privaten Pkw: erst alle km des Jahrs summieren, dann einmal mal km-Satz.
+
+    Ohne Reisen gilt das nur, wenn der Nutzer die Dienstreisen als vollständig bestätigt hat
+    (dann ausdrücklich 0); sonst ist der Wert noch nicht berechenbar.
+    """
+    year = calculation.year
+    trips = _trips(calculation.own, year)
+    rate = KM_RATES.get(year)
+    if rate is None:
+        calculation.not_yet(f"Für {year} ist der km-Satz noch nicht hinterlegt")
+    confirmed = _confirmation(calculation.own, year)
+    if not trips and confirmed is None:
+        calculation.not_yet(
+            f"Für {year} sind keine Dienstreisen erfasst und nicht als vollständig bestätigt"
+        )
+    total_km = 0
+    for trip in trips:
+        label = f"Dienstreise {trip.start:%d.%m.%Y}, {format_places(trip.places)}"
+        calculation.item(
+            label, Amount.of(trip.distance_km, Unit.KM), UserInputLocator(trip.address)
+        )
+        total_km += trip.distance_km
+    if not trips:
+        calculation.decide(f"Dienstreisen {year} sind als vollständig bestätigt, es gab keine")
+    calculation.step("Summe der km", Amount.of(total_km, Unit.KM))
+    rate_text = f"{rate:.2f}".replace(".", ",")
+    return calculation.step(
+        f"{total_km} km × {rate_text} €/km", Amount(km_amount(total_km, rate), Unit.EUR)
+    )
+
+
+def compute_travel_total(calculation: Calculation) -> Amount:
+    """Summe der Reisekosten: erfasst sind nur Fahrtkosten, Verpflegung, Übernachtung und
+    Nebenkosten rechnet der Arbeitgeber ab."""
+    item = calculation.use(TRAVEL_FARE, label="Fahrtkosten")
+    if item is None:
+        calculation.not_applicable("Fahrtkosten entfallen")
+    return calculation.step("Summe der Reisekosten (nur Fahrtkosten erfasst)", item.amount)
+
+
+EQUIPMENT_GAP = "work.equipment_gap"
+TRIPS_TO_FILL = "work.trips_to_fill"
+
+FINDING_KINDS = (
+    FindingKind(EQUIPMENT_GAP, "Arbeitsmittel im Vorjahr, im Steuerjahr keine"),
+    FindingKind(TRIPS_TO_FILL, "Dienstreisen noch auszufüllen"),
+)
 
 
 def work_findings(state: ModuleState, values: ValueSource, year: int) -> list[Finding]:
-    """Hinweis, wenn das Vorjahr Arbeitsmittel hatte und das Steuerjahr keine (vergessen?)."""
-    if _purchases(state, year) or not _purchases(state, year - 1):
-        return []
-    ref = ValueRef(EQUIPMENT, state.user, Period.year(year), None)
-    text = (
-        f"Für {year - 1} sind Arbeitsmittel erfasst, für {year} keine; "
-        "der Wert ist 0. Fehlt eine Anschaffung?"
-    )
-    return [Finding(EQUIPMENT_GAP, Severity.NOTE, ref, text, href="/arbeit")]
+    """Hinweise: Arbeitsmittel im Vorjahr, im Steuerjahr keine (vergessen?); Dienstreisen offen."""
+    found: list[Finding] = []
+    period = Period.year(year)
+    if not _purchases(state, year) and _purchases(state, year - 1):
+        text = (
+            f"Für {year - 1} sind Arbeitsmittel erfasst, für {year} keine; "
+            "der Wert ist 0. Fehlt eine Anschaffung?"
+        )
+        ref = ValueRef(EQUIPMENT, state.user, period, None)
+        found.append(Finding(EQUIPMENT_GAP, Severity.NOTE, ref, text, href="/arbeit"))
+    if _confirmation(state, year) is None:
+        text = (
+            f"Dienstreisen {year} noch auszufüllen: erfassen und als vollständig bestätigen "
+            "(auch wenn es keine gab)."
+        )
+        ref = ValueRef(TRAVEL_FARE, state.user, period, None)
+        href = f"/arbeit/dienstreisen/{year}"
+        found.append(Finding(TRIPS_TO_FILL, Severity.NOTE, ref, text, href=href))
+    return found
 
 
 VALUES: tuple[ValueDefinition, ...] = (
@@ -215,5 +295,23 @@ VALUES: tuple[ValueDefinition, ...] = (
             TimeKind.PERIOD,
         ),
         compute_soli,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            TRAVEL_FARE,
+            "Fahrtkosten der Dienstreisen mit dem privaten Pkw im Steuerjahr",
+            Unit.EUR,
+            TimeKind.PERIOD,
+        ),
+        compute_travel_fare,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            TRAVEL_TOTAL,
+            "Summe der Reisekosten der Dienstreisen im Steuerjahr",
+            Unit.EUR,
+            TimeKind.PERIOD,
+        ),
+        compute_travel_total,
     ),
 )

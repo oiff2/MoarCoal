@@ -65,3 +65,8 @@ form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
 .aussteller-feld .treffer:empty { display: none; }
 .aussteller-feld .treffer button { font: inherit; display: block; width: 100%; text-align: left; border: 0; background: none; padding: 0.3rem 0.5rem; cursor: pointer; }
 .aussteller-feld .treffer button:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+
+/* Dienstreisen */
+.reisen input.ungueltig { outline: 2px solid crimson; }
+.reisen tr.mit-fehler td { background: color-mix(in srgb, crimson 8%, transparent); }
+.reisen tfoot td { font-weight: bold; }

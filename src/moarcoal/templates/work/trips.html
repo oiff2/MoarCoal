@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "_value.html" import value_view %}
+{% block title %}Dienstreisen {{ year }} – MoarCoal{% endblock %}
+{% macro cell(row, n, name, col, value, size, extra="") -%}
+<input name="{{ name }}-{{ n }}" value="{{ value }}" size="{{ size }}" data-col="{{ col }}"{{ extra | safe }}{% if row.errors[name] %} class="ungueltig" title="{{ row.errors[name] }}"{% endif %}>
+{%- endmacro %}
+{% block main %}
+<h1>Dienstreisen {{ year }}</h1>
+<p><a href="/arbeit">Zurück zu Arbeit</a> · <a href="/arbeit/dienstreisen/{{ year - 1 }}">{{ year - 1 }}</a> · <a href="/arbeit/dienstreisen/{{ year + 1 }}">{{ year + 1 }}</a></p>
+<p>Nur Fahrten mit dem privaten Pkw: Summe der km mal km-Satz{% if rate %} ({{ rate | string | replace(".", ",") }} € je km){% endif %}. Verpflegung, Übernachtung und Nebenkosten rechnet der Arbeitgeber ab und stehen hier nicht.</p>
+
+<section class="werte">
+  <h2>Ausgewiesene Werte {{ year }}</h2>
+  {{ value_view("Fahrtkosten", fare, whole=true) }}
+  {{ value_view("Summe der Reisekosten", total, whole=true) }}
+</section>
+
+<p class="stand">
+  {% if confirmation %}
+  Vollständig bestätigt am {{ confirmation.confirmed_on.strftime("%d.%m.%Y") }}.
+  <form method="post" action="/arbeit/dienstreisen/{{ year }}/vollstaendig/aufheben" class="inline"><button type="submit">Bestätigung aufheben</button></form>
+  {% else %}
+  Noch nicht als vollständig bestätigt. Ändert sich eine Reise, ist die Bestätigung aufgehoben.
+  <form method="post" action="/arbeit/dienstreisen/{{ year }}/vollstaendig" class="inline">
+    <input type="hidden" name="stand" value="{{ stand }}">
+    <button type="submit" title="Alle Dienstreisen des Jahres sind erfasst (oder es gab keine)">Dienstreisen vollständig</button>
+  </form>
+  {% endif %}
+</p>
+
+<p>Orte in Reihenfolge, Rückweg ausdrücklich (A → B → A). Pfeiltasten ↑/↓ wechseln die Reise, Enter speichert die ganze Tabelle.</p>
+{% if error %}<ul class="fehler"><li>{{ error }}</li></ul>{% endif %}
+<form method="post" action="/arbeit/dienstreisen/{{ year }}" id="dienstreisen">
+  <input type="hidden" name="zeilen" value="{{ rows | length }}">
+  <table class="reisen">
+    <thead><tr><th>Nr.</th><th>Start</th><th title="ohne Angabe = Start">Ende</th><th>Orte</th><th>km</th><th>Betrag</th><th>Notiz</th><th></th></tr></thead>
+    <tbody>
+      {% for row in rows %}{% set n = loop.index0 %}
+      {% set is_new = not row.entry_id and loop.last %}
+      <tr{% if is_new %} id="neu"{% endif %}{% if row.errors %} class="mit-fehler"{% endif %}>
+        <td>{% if row.entry_id %}{{ n + 1 }}{% else %}+{% endif %}
+          <input type="hidden" name="id-{{ n }}" value="{{ row.entry_id }}"><input type="hidden" name="pruefsumme-{{ n }}" value="{{ row.checksum }}"></td>
+        <td>{{ cell(row, n, "start", 0, row.start, 10, ' type="date" min="%s" max="%s"' % (min_date, max_date) ~ (' autofocus' if is_new and not row.errors else '')) }}</td>
+        <td>{{ cell(row, n, "ende", 1, row.end, 10, ' type="date" min="%s" max="%s" aria-label="Ende (ohne Angabe = Start)"' % (min_date, max_date)) }}</td>
+        <td>{{ cell(row, n, "orte", 2, row.places, 40, ' placeholder="A → B → A"') }}</td>
+        <td>{{ cell(row, n, "km", 3, row.km, 5, ' inputmode="numeric"') }}</td>
+        <td>{% if row.amount %}{{ row.amount | amount }}{% endif %}</td>
+        <td>{{ cell(row, n, "notiz", 4, row.note, 24) }}</td>
+        <td>{% if row.entry_id %}
+          <button type="button" class="reise-kopieren" title="Reise kopieren: Orte, km und Notiz in die neue Reise" hidden>kopieren</button>
+          <label title="Reise beim Speichern löschen"><input type="checkbox" name="loeschen-{{ n }}" value="ja" data-col="5"{% if row.delete %} checked{% endif %}> löschen</label>
+        {% endif %}</td>
+      </tr>
+      {% if row.errors %}<tr class="fehler-zeile"><td></td><td colspan="7" class="fehler">{{ row.errors.values() | join(" ") }}</td></tr>{% endif %}
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td></td><td colspan="3">Summe {{ trip_count }} {{ "Dienstreise" if trip_count == 1 else "Dienstreisen" }} (gespeicherter Stand)</td>
+        <td>{{ total_km }} km</td>
+        <td colspan="3">{% if fare.outcome == "amount" %}{{ fare.amount | amount }}{% endif %}</td>
+      </tr>
+    </tfoot>
+  </table>
+  <button type="button" id="reise-dazu" hidden>+ Reise</button>
+  <button type="submit">Speichern</button>
+  <button type="button" id="abbrechen" hidden>Abbrechen</button>
+</form>
+<script src="/static/trip_table.js" defer></script>
+{% endblock %}

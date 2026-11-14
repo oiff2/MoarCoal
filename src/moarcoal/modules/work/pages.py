@@ -12,6 +12,7 @@ from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.modules.work.entries import (
     DEFAULT_WORKDAYS,
     MAX_WORKDAYS,
+    BusinessTrip,
     FirstWorkplace,
     UserInput,
     WorkEquipment,
@@ -233,6 +234,7 @@ def _overview(
         years=_years(request, state),
         workplaces=[(e, entry_checksum(e)) for e in state.all(FirstWorkplace)],
         equipment=[(e, entry_checksum(e)) for e in state.all(WorkEquipment)],
+        trip_years=sorted({DEFAULT_YEAR, *(t.year for t in state.all(BusinessTrip))}),
         kinds=KINDS,
         errors=errors,
         values=values,

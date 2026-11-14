@@ -31,12 +31,15 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_INCOME_TAX,
     WORK_SOLI,
     WORK_TAX_CLASS,
+    WORK_TRAVEL_FARE,
+    WORK_TRAVEL_TOTAL,
     WORK_WORKDAYS,
 )
 from moarcoal.modules.tax_year.assessment import (
     BUSINESS_TRAVEL,
     COMMUTE_DAYS,
     COMMUTE_KM,
+    EMPLOYEE_ALLOWANCE,
     GROSS_WAGES,
     MEAL_ALLOWANCE,
     TEMPLATE,
@@ -72,7 +75,14 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
         (WORK_EQUIPMENT, None, YEAR): fixed(Amount.eur_cents(cents)),
         **{
             (key, None, YEAR): not_yet("keine Lohnsteuerbescheinigung")
-            for key in (WORK_TAX_CLASS, WORK_GROSS_WAGES, WORK_INCOME_TAX, WORK_SOLI)
+            for key in (
+                WORK_TAX_CLASS,
+                WORK_GROSS_WAGES,
+                WORK_INCOME_TAX,
+                WORK_SOLI,
+                WORK_TRAVEL_FARE,
+                WORK_TRAVEL_TOTAL,
+            )
         },
     }
 
@@ -421,7 +431,7 @@ def test_a_newer_assessment_without_confirmed_positions_does_not_displace_the_ol
 
 def test_no_snapshot_note_only_for_a_field_that_could_be_compared() -> None:
     document = assessment()
-    uncomputed = [document, proposal(document, {BUSINESS_TRAVEL: "100"})]
+    uncomputed = [document, proposal(document, {EMPLOYEE_ALLOWANCE: "100"})]
 
     assert findings(uncomputed) == []
 

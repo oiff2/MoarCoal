@@ -29,6 +29,8 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_INCOME_TAX,
     WORK_SOLI,
     WORK_TAX_CLASS,
+    WORK_TRAVEL_FARE,
+    WORK_TRAVEL_TOTAL,
     WORK_WORKDAYS,
 )
 from moarcoal.modules.tax_year.comparison import (
@@ -92,7 +94,14 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
         (WORK_EQUIPMENT, None, YEAR): fixed(Amount.eur_cents(cents)),
         **{
             (key, None, YEAR): not_yet("keine Lohnsteuerbescheinigung")
-            for key in (WORK_TAX_CLASS, WORK_GROSS_WAGES, WORK_INCOME_TAX, WORK_SOLI)
+            for key in (
+                WORK_TAX_CLASS,
+                WORK_GROSS_WAGES,
+                WORK_INCOME_TAX,
+                WORK_SOLI,
+                WORK_TRAVEL_FARE,
+                WORK_TRAVEL_TOTAL,
+            )
         },
     }
 
@@ -237,7 +246,7 @@ def test_without_protocol_there_is_no_comparison() -> None:
 def test_no_equipment_after_previous_year_matches_a_missing_field_and_keeps_the_note() -> None:
     from moarcoal.modules.work import REGISTRATION as WORK
     from moarcoal.modules.work import FirstWorkplace, UserInput, WorkEquipment
-    from moarcoal.modules.work.values import EQUIPMENT_GAP
+    from moarcoal.modules.work.values import EQUIPMENT_GAP, TRIPS_TO_FILL
 
     place = FirstWorkplace(owner="anna", year=2025, workdays=220, distance_km=12, description="x")
     bought_2024 = WorkEquipment(
@@ -249,7 +258,8 @@ def test_no_equipment_after_previous_year_matches_a_missing_field_and_keeps_the_
 
     found = evaluate([WORK, TAX_YEAR], items).finding_list("anna", 2025).visible
 
-    assert kinds(found) == [EQUIPMENT_GAP]  # Hinweis von Arbeit, kein Befund des Abgleichs
+    # Hinweise von Arbeit, kein Befund des Abgleichs
+    assert kinds(found) == [EQUIPMENT_GAP, TRIPS_TO_FILL]
 
 
 # --- Befundliste und Klick zur Stelle im Protokoll ----------------------------------------------

@@ -35,6 +35,8 @@ WORK_TAX_CLASS = ValueKey("work.tax_class")
 WORK_GROSS_WAGES = ValueKey("work.gross_wages")
 WORK_INCOME_TAX = ValueKey("work.income_tax_withheld")
 WORK_SOLI = ValueKey("work.soli_withheld")
+WORK_TRAVEL_FARE = ValueKey("work.travel_fare")
+WORK_TRAVEL_TOTAL = ValueKey("work.travel_total")
 
 N_WORKPLACE_DAYS = ValueKey("tax_year.n_workplace_days")
 N_WORKPLACE_DISTANCE = ValueKey("tax_year.n_workplace_distance")
@@ -46,6 +48,8 @@ N_INCOME_TAX = ValueKey("tax_year.n_income_tax")
 N_INCOME_TAX_SINGLE = ValueKey("tax_year.n_income_tax_single")
 N_SOLI = ValueKey("tax_year.n_soli")
 N_SOLI_SINGLE = ValueKey("tax_year.n_soli_single")
+N_TRAVEL_FARE = ValueKey("tax_year.n_travel_fare")
+N_TRAVEL_TOTAL = ValueKey("tax_year.n_travel_total")
 
 
 def _rounded(calculation: Calculation, field: FormField, amount: Amount) -> Amount:
@@ -260,16 +264,16 @@ def fields_n(structure: FormStructure) -> tuple[FormField, ...]:
             Rounding.NONE,
         ),
         known("travel_fare_kind", "E0205003", None, Rounding.NONE),
-        known(
-            "travel_fare",
+        computed(
+            N_TRAVEL_FARE,
             "E0205004",
             Unit.EUR,
             Rounding.WHOLE_EUROS,
             Direction.EXPENSE,
             assessment=(BUSINESS_TRAVEL,),
         ),
-        known(
-            "travel_total",
+        computed(
+            N_TRAVEL_TOTAL,
             "E0205518",
             Unit.EUR,
             Rounding.WHOLE_EUROS,
@@ -347,6 +351,8 @@ _COMPUTE: dict[ValueKey, Callable[[Calculation, FormField], Amount]] = {
     N_INCOME_TAX_SINGLE: partial(_work_total, source=WORK_INCOME_TAX, label="Lohnsteuer"),
     N_SOLI: partial(_work_total, source=WORK_SOLI, label="Solidaritätszuschlag"),
     N_SOLI_SINGLE: partial(_work_total, source=WORK_SOLI, label="Solidaritätszuschlag"),
+    N_TRAVEL_FARE: partial(_work_total, source=WORK_TRAVEL_FARE, label="Fahrtkosten"),
+    N_TRAVEL_TOTAL: partial(_work_total, source=WORK_TRAVEL_TOTAL, label="Summe der Reisekosten"),
 }
 
 

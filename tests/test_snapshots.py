@@ -28,6 +28,8 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_INCOME_TAX,
     WORK_SOLI,
     WORK_TAX_CLASS,
+    WORK_TRAVEL_FARE,
+    WORK_TRAVEL_TOTAL,
     WORK_WORKDAYS,
 )
 from moarcoal.modules.tax_year.comparison import SNAPSHOT_DEVIATION, snapshot_on_filing
@@ -340,7 +342,14 @@ def foreign(**given: ForeignResult) -> Foreign:
         (WORK_EQUIPMENT, None, YEAR): with_items(("Stuhl", 5000), ("Lampe", 3640)),
         **{
             (key, None, YEAR): not_yet("keine Lohnsteuerbescheinigung")
-            for key in (WORK_TAX_CLASS, WORK_GROSS_WAGES, WORK_INCOME_TAX, WORK_SOLI)
+            for key in (
+                WORK_TAX_CLASS,
+                WORK_GROSS_WAGES,
+                WORK_INCOME_TAX,
+                WORK_SOLI,
+                WORK_TRAVEL_FARE,
+                WORK_TRAVEL_TOTAL,
+            )
         },
     }
     base.update({(k, None, YEAR): v for k, v in given.items()})

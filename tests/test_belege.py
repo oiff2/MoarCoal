@@ -332,7 +332,8 @@ def test_finding_is_per_user(root: Path, site: Path) -> None:
 def test_finding_comes_back_when_the_set_of_files_changes(root: Path, site: Path) -> None:
     client = make_client(root, site)
     page = main_of(client, "/befunde?year=2025")
-    fingerprint = page.split('name="fingerprint" value="')[1].split('"')[0]
+    own = page.split('name="kind" value="incoming_files"')[1]
+    fingerprint = own.split('name="fingerprint" value="')[1].split('"')[0]
     dismissed = client.post(
         "/befunde/ausblenden",
         data={

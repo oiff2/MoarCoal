@@ -76,13 +76,16 @@ Ein von Hand erfasster Betrag mit Datum und Beschreibung, eingebettet in eine ei
 _Avoid_: manuelle Buchung, Handeingabe
 
 **Arbeit**:
-Das Modul für die Angaben zur nichtselbständigen Arbeit (Anlage N), im Durchstich von Hand erfasst (erste Tätigkeitsstätte, Arbeitsmittel), dazu die eingelesene Lohnsteuerbescheinigung. Modulschlüssel `work`.
+Das Modul für die Angaben zur nichtselbständigen Arbeit (Anlage N), im Durchstich von Hand erfasst (erste Tätigkeitsstätte, Arbeitsmittel), dazu die eingelesene Lohnsteuerbescheinigung und die Dienstreisen. Modulschlüssel `work`.
 
 **Erste Tätigkeitsstätte**:
 Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die Arbeitstage und die einfache Entfernung in km von der Wohnung dorthin (Code: `FirstWorkplace`); sie ist das Bezugsobjekt der Ausgewiesenen Werte Arbeitstage und einfache Entfernung.
 
 **Arbeitsmittel**:
 Werkzeug und Material, das ein Nutzer für die Arbeit selbst gekauft hat; erfasst wird je Anschaffung ein Betrag als Nutzereingabe mit dem Steuerjahr, für das er gilt (Code: `WorkEquipment`).
+
+**Dienstreise**:
+Eine berufliche Fahrt mit dem privaten Pkw im Steuerjahr: Start, Ende (leer = Start), die Orte in Reihenfolge mit ausdrücklichem Rückweg (A → B → A), die km der ganzen Reise und eine Notiz (Code: `BusinessTrip`). Nur die Fahrtkosten zählen, die Summe der km mal dem km-Satz des Jahrs; Verpflegung, Übernachtung und Nebenkosten rechnet der Arbeitgeber ab. Die Reisen eines Jahrs bearbeitet man in einer Tabelle, in einem Vorgang. Der Nutzer bestätigt sie je Jahr als vollständig, auch wenn es keine gab (Code: `TripsConfirmation`); sie gilt für genau diesen Stand, jede Änderung an den Reisen hebt sie auf. Bis dahin gibt es einen Hinweis. Daraus kommen die Felder Nr. 66 und 69 der Anlage N.
 
 **Lohnsteuerbescheinigung**:
 Die Bescheinigung des Arbeitgebers über Bruttoarbeitslohn und einbehaltene Steuern eines Jahres; als eDaten-HTML aus „Meine Bescheinigungen“ in Mein ELSTER (`Belegart: VaSt_LStB`) Dokumentart des Moduls Arbeit mit Bezugszeitraum, je Nutzer und Jahr eindeutig. Sie wird exakt eingelesen; der Eintrag hält Steuerklasse, Bruttoarbeitslohn, Lohnsteuer und Solidaritätszuschlag in Cent, je mit Fundstelle im Dokument (Code: `WageTaxCertificate`). Was die Datei nicht nennt, bleibt leer und ist noch nicht berechenbar, nie 0. Daraus kommen die Felder Nr. 4 bis 7 der Anlage N.

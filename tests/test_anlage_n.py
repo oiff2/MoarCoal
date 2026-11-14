@@ -167,6 +167,8 @@ def test_catalog_has_every_known_field_but_values_only_for_the_computed_ones() -
         "E0203503",
         "E0203504",
         "E0204403",
+        "E0205004",
+        "E0205518",
     }
     assert len(FIELDS_2025) == len({f.key for f in FIELDS_2025}) == 23
     assert len({f.elster_id for f in FIELDS_2025}) == 23
@@ -177,7 +179,7 @@ def test_fields_without_amount_or_computation_are_marked_and_consistent() -> Non
     uncomputed = [f for f in FIELDS_2025 if not f.computed]
     no_amount = [f for f in FIELDS_2025 if f.unit is None]
 
-    assert len(uncomputed) == 13
+    assert len(uncomputed) == 11
     assert {f.elster_id for f in no_amount} == {
         "E0203003",
         "E0203501",
