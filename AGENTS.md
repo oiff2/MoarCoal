@@ -5,6 +5,7 @@ Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is don
 ## Where things are
 
 - `CONTEXT.md`: glossary. Use its terms in code and docs; add each new term there as soon as it's settled.
+- `PRINCIPLES.md`: architecture principles. Every change keeps them; read them before you build, and ask instead of breaking one.
 - `docs/adr/`: architecture decisions. Read the ones that touch your area before you change anything.
 - `docs/grundgeruest.md`: architecture spec of the scaffold (Datenebene, Module, contract, storage), merged from the map. Start here before building.
 - [Wayfinder-Karte: Inhalte nach dem Durchstich #61](https://github.com/oiff2/MoarCoal/issues/61): the current work. Plans global UI (prototype #62), the Belege page (#63), then Steuerjahr Anlage N as far as the Übertragungsprotokoll shows it, ELSTER-like (#64); Abschnitt 3 follows from its decisions. Read its Notes first: no duplicate functionality, keep the glossary and code small, reuse existing building blocks. Abschnitt 2 ([#46](https://github.com/oiff2/MoarCoal/issues/46)) and the Durchstich ([#27](https://github.com/oiff2/MoarCoal/issues/27)) are done.
