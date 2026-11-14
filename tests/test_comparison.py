@@ -40,6 +40,7 @@ from moarcoal.modules.tax_year.anlage_n import (
 from moarcoal.modules.tax_year.comparison import (
     AMBIGUOUS,
     DEVIATION,
+    LINE_MISMATCH,
     MISSING,
     UNKNOWN_ELSTER_ID,
 )
@@ -147,6 +148,39 @@ def test_field_without_elster_id_gets_a_note() -> None:
     assert found[0].severity is Severity.NOTE
 
 
+def structure_findings(lines: list[ProtocolLine], kind: str) -> list[Finding]:
+    return [f for f in findings(protocol(lines)) if f.kind == kind]
+
+
+def test_protocol_line_unknown_in_the_structure_names_the_page_before_it() -> None:
+    lines = [line(DAYS, "220"), line(KM, "12"), line("E0299999", "5")]
+
+    found = structure_findings(lines, UNKNOWN_ELSTER_ID)
+
+    assert len(found) == 1
+    assert found[0].severity is Severity.NOTE
+    assert "E0299999" in found[0].message and "Wege zwischen Wohnung" in found[0].message
+    assert found[0].href.endswith("#id-N-Beispiel-E0299999_usb1_1-1-1")
+
+
+def test_unknown_elster_id_is_reported_once_for_repeated_lines() -> None:
+    lines = [line("E0299999", "5", "1_1-1-1"), line("E0299999", "6", "2_1-1-1")]
+
+    assert len(structure_findings(lines, UNKNOWN_ELSTER_ID)) == 1
+
+
+def test_different_line_number_is_a_warning_and_empty_numbers_are_not_compared() -> None:
+    same = line(DAYS, "220").model_copy(update={"form_line": "29"})
+    other = line(KM, "12").model_copy(update={"form_line": "31"})
+    repeat = line(EQUIPMENT, "1,00", "2_1-1-1").model_copy(update={"form_line": ""})
+
+    found = structure_findings([same, other, repeat], LINE_MISMATCH)
+
+    assert len(found) == 1
+    assert found[0].severity is Severity.WARNING
+    assert "Nr. 31" in found[0].message and "Nr. 30" in found[0].message
+
+
 def test_deviation_is_a_warning_with_link_to_the_line() -> None:
     items = protocol([line(DAYS, "219"), line(KM, "12")])
     found = [f for f in findings(items) if f.kind == DEVIATION]
@@ -214,8 +248,10 @@ def test_repeated_days_or_km_are_ambiguous_not_compared() -> None:
     assert next(f for f in found if f.kind == AMBIGUOUS).severity is Severity.WARNING
 
 
-def test_lines_without_field_in_the_catalog_are_ignored() -> None:
-    found = findings(protocol([line(DAYS, "220"), line(KM, "12"), line("E0100004", "Musterstadt")]))
+def test_lines_of_other_forms_are_ignored() -> None:
+    other = line("E0100004", "Musterstadt").model_copy(update={"form": "ESt1A"})
+
+    found = findings(protocol([line(DAYS, "220"), line(KM, "12"), other]))
 
     assert found == []
 

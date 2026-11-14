@@ -11,14 +11,15 @@ Positionen gehen ein; berechnete Felder ohne Gegenstück im Schnappschuss bleibe
 """
 
 import datetime
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from decimal import Decimal
 
 from moarcoal.links import document_url
-from moarcoal.modules.tax_year.anlage_n import FORMS, Forms
+from moarcoal.modules.tax_year.anlage_n import FORMS, STRUCTURES, Forms
 from moarcoal.modules.tax_year.assessment import ASSESSMENT_KEY
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
 from moarcoal.modules.tax_year.fields import AmbiguousLines, FormField, NotANumber
+from moarcoal.modules.tax_year.structure import FormStructure
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Change, Document, Entry, FrozenValue, Occasion, Put, Snapshot
 from moarcoal.values.calculation import ValueSource
@@ -37,6 +38,7 @@ DEVIATION = "tax_year.protocol_deviation"
 MISSING = "tax_year.protocol_missing"
 AMBIGUOUS = "tax_year.protocol_ambiguous"
 UNKNOWN_ELSTER_ID = "tax_year.protocol_unknown_elster_id"
+LINE_MISMATCH = "tax_year.protocol_line_mismatch"
 SNAPSHOT_DEVIATION = "tax_year.snapshot_deviation"
 ASSESSMENT_DEVIATION = "tax_year.assessment_deviation"
 ASSESSMENT_NO_SNAPSHOT = "tax_year.assessment_no_snapshot"
@@ -47,6 +49,7 @@ FINDING_KINDS = (
     FindingKind(MISSING, "Feld fehlt im Übertragungsprotokoll"),
     FindingKind(AMBIGUOUS, "Feld kommt im Übertragungsprotokoll mehrfach vor"),
     FindingKind(UNKNOWN_ELSTER_ID, "E-Kennung unbekannt, nicht abgleichbar"),
+    FindingKind(LINE_MISMATCH, "Nr. im Vordruck weicht von der Struktur ab"),
     FindingKind(SNAPSHOT_DEVIATION, "Abweichung zum Schnappschuss"),
     FindingKind(ASSESSMENT_DEVIATION, "EStB weicht vom Schnappschuss der Abgabe ab"),
     FindingKind(ASSESSMENT_NO_SNAPSHOT, "Kein Schnappschuss zum Abgleich mit dem EStB"),
@@ -126,15 +129,65 @@ def _field_findings(
     )
 
 
+def _structure_findings(reading: ProtocolReading, structure: FormStructure) -> Iterator[Finding]:
+    """Gegenprobe der Zeilen der Anlage im Protokoll gegen die Struktur des Jahres: eine E-Kennung
+    ohne Feld in der Struktur (vermutlich fehlt eine gespeicherte Mein-ELSTER-Seite) und eine
+    andere Nr. im Vordruck. Eine leere Nr. (Wiederholzeile) wird nicht verglichen."""
+    seen: set[tuple[str, str]] = set()
+    page = ""  # Seite des zuletzt gesehenen bekannten Felds: dort dürfte das unbekannte liegen
+    known = {f.e_kennung: f for f in structure.fields}
+    for line in reading.lines:
+        if line.form != structure.form:
+            continue
+        field = known.get(line.elster_id)
+        if field is not None:
+            page = field.page
+        if (line.elster_id, line.form_line) in seen:
+            continue
+        seen.add((line.elster_id, line.form_line))
+        number = line.form_line or "–"
+        name = f"Anlage {structure.form} Nr. {number}, {line.label} ({line.elster_id})"
+        href = protocol_url(reading, line.data_name)
+        if field is None:
+            where = f"nach der Seite „{page}“" if page else "am Anfang"
+            yield Finding(
+                UNKNOWN_ELSTER_ID,
+                Severity.NOTE,
+                line.elster_id,
+                f"{name}: E-Kennung fehlt in der Struktur {structure.year}, nicht abgleichbar; "
+                f"vermutlich fehlt eine gespeicherte Mein-ELSTER-Seite {where}.",
+                href=href,
+                fingerprint=fingerprint(line.elster_id, structure.year),
+            )
+        elif line.form_line and field.line and line.form_line != field.line:
+            yield Finding(
+                LINE_MISMATCH,
+                Severity.WARNING,
+                line.elster_id,
+                f"{name}: Das Protokoll nennt Nr. {line.form_line}, die Struktur {structure.year} "
+                f"Nr. {field.line}.",
+                href=href,
+                fingerprint=fingerprint(line.elster_id, line.form_line, field.line),
+            )
+
+
 def protocol_findings(
-    state: ModuleState, values: ValueSource, year: int, forms: Forms = FORMS
+    state: ModuleState,
+    values: ValueSource,
+    year: int,
+    forms: Forms = FORMS,
+    structures: Mapping[int, FormStructure] = STRUCTURES,
 ) -> list[Finding]:
     """Befunde des Abgleichs für das Jahr; ohne aufgenommenes Protokoll gibt es keinen Abgleich."""
     fields = forms.get(year)
     reading = latest_reading(state, year)
-    if fields is None or reading is None:
+    if reading is None:
         return []
     found: list[Finding] = []
+    if (structure := structures.get(year)) is not None:
+        found.extend(_structure_findings(reading, structure))
+    if fields is None:
+        return found
     for field in fields:
         if not field.computed:
             continue  # kein Wert, also nichts zu vergleichen
@@ -307,12 +360,16 @@ def assessment_findings(state: ModuleState, year: int, forms: Forms = FORMS) -> 
 
 
 def module_findings(
-    state: ModuleState, values: ValueSource, year: int, forms: Forms = FORMS
+    state: ModuleState,
+    values: ValueSource,
+    year: int,
+    forms: Forms = FORMS,
+    structures: Mapping[int, FormStructure] = STRUCTURES,
 ) -> list[Finding]:
     """Alle Befunde des Steuerjahrs: Abgleich mit dem Protokoll, Abweichung zum Schnappschuss und
     Abgleich des EStB mit dem Schnappschuss."""
     return [
-        *protocol_findings(state, values, year, forms),
+        *protocol_findings(state, values, year, forms, structures),
         *snapshot_findings(state, values, year, forms),
         *assessment_findings(state, year, forms),
     ]

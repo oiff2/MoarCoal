@@ -1,10 +1,11 @@
 """Modul Steuerjahr: Übertragungsprotokoll einlesen, Werte Feldern der Anlage N zuordnen,
 EStB auslesen und mit dem Schnappschuss der Abgabe abgleichen."""
 
+from collections.abc import Mapping
 from functools import partial
 
 from moarcoal.documents import DocumentKind
-from moarcoal.modules.tax_year.anlage_n import FORMS, Forms, values_for
+from moarcoal.modules.tax_year.anlage_n import FORMS, STRUCTURES, Forms, values_for
 from moarcoal.modules.tax_year.assessment import ASSESSMENT
 from moarcoal.modules.tax_year.comparison import (
     FINDING_KINDS,
@@ -19,6 +20,7 @@ from moarcoal.modules.tax_year.entries import (
 )
 from moarcoal.modules.tax_year.pages import MODULE_KEY, entry_url, router
 from moarcoal.modules.tax_year.reading import read_in_protocol
+from moarcoal.modules.tax_year.structure import FormStructure
 from moarcoal.registration import ModuleRegistration
 
 
@@ -38,8 +40,11 @@ def transfer_protocol(forms: Forms = FORMS) -> DocumentKind:
 TRANSFER_PROTOCOL = transfer_protocol()
 
 
-def registration(forms: Forms = FORMS) -> ModuleRegistration:
-    """Die Modulanmeldung über den Feldern `forms`; Tests geben einen eigenen Katalog vor."""
+def registration(
+    forms: Forms = FORMS, structures: Mapping[int, FormStructure] = STRUCTURES
+) -> ModuleRegistration:
+    """Die Modulanmeldung über den Feldern `forms` und den Strukturen `structures`; Tests geben
+    einen eigenen Katalog vor."""
     return ModuleRegistration(
         key=MODULE_KEY,
         area_name="Steuerjahr",
@@ -51,7 +56,7 @@ def registration(forms: Forms = FORMS) -> ModuleRegistration:
         values=values_for(forms),
         document_kinds=(transfer_protocol(forms), ASSESSMENT),
         finding_kinds=FINDING_KINDS,
-        findings=partial(module_findings, forms=forms),
+        findings=partial(module_findings, forms=forms, structures=structures),
     )
 
 
