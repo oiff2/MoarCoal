@@ -58,11 +58,15 @@ def confirmations_of(request: Request, year: int) -> list[TripsConfirmation]:
     return [c for c in state.all(TripsConfirmation) if c.year == year]
 
 
-def trip_years(request: Request) -> list[int]:
-    """Jahre zur Auswahl: Jahre mit Dienstreisen und das aktuelle Steuerjahr, neueste zuerst."""
+def trip_years(request: Request, chosen: int | None = None) -> list[int]:
+    """Jahre zur Auswahl: Jahre mit Dienstreisen und das aktuelle Steuerjahr, neueste zuerst.
+    Ein gewähltes Jahr außerhalb der Liste steht zusätzlich an seinem Platz."""
     state = module_state(request, MODULE_KEY)
     found = {DEFAULT_YEAR, *(t.year for t in state.all(BusinessTrip))}
-    return sorted(found, reverse=True)[:MAX_YEARS]
+    years = set(sorted(found, reverse=True)[:MAX_YEARS])
+    if chosen is not None:
+        years.add(chosen)
+    return sorted(years, reverse=True)
 
 
 def chosen_year(request: Request, years: Sequence[int]) -> int:
@@ -110,7 +114,7 @@ def trips_context(
     values = values_of(request)
     user = user_of(request)
     return {
-        "trip_years": trip_years(request),
+        "trip_years": trip_years(request, year),
         "year": year,
         "rows": rows,
         "error": error,

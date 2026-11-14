@@ -322,6 +322,15 @@ def test_page_is_empty_prefilled_and_get_never_writes(tmp_path: Path) -> None:
     assert "/arbeit/dienstreisen/2025" in client.get("/arbeit").text
 
 
+def test_chosen_year_outside_the_list_is_added_and_marked(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    for url in ("/arbeit?jahr=2010", "/arbeit/dienstreisen/2010"):
+        page = client.get(url).text
+        assert len(re.findall(r'href="/arbeit\?jahr=2010" aria-current="true"', page)) == 1
+        assert page.count('aria-current="true"') == 1
+    assert 'href="/arbeit?jahr=2010"' not in client.get("/arbeit").text
+
+
 def test_save_table_in_one_step_and_show_fare(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     response = client.post("/arbeit/dienstreisen/2025", data=NEW, headers=ORIGIN)
