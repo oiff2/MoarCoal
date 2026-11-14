@@ -31,6 +31,24 @@ class Rounding(StrEnum):
 
 
 NEW_FIELD = "neu"
+MAX_DAYS = 366
+
+
+@dataclass(frozen=True)
+class TypedInput:
+    """Ein Eintippfeld: der Nutzer gibt es im Steuerjahr ein. Mit `choices` nimmt es genau einen
+    dieser Texte, sonst eine ganze Zahl (Tage) von 0 bis `maximum`."""
+
+    choices: tuple[str, ...] = ()
+    maximum: int = MAX_DAYS
+
+    def check(self, text: str) -> str | None:
+        """Der Grund, warum `text` nicht passt; `None`, wenn er passt."""
+        if self.choices:
+            return None if text in self.choices else "Wähle eine der Möglichkeiten."
+        if not (text.isascii() and text.isdigit()) or int(text) > self.maximum:
+            return f"Gib eine ganze Zahl von 0 bis {self.maximum} ein."
+        return None
 
 
 @dataclass(frozen=True)
@@ -60,6 +78,8 @@ class FormField:
     dem Feld entspricht (leer: der EStB druckt das Feld nicht). `printed_rounded` heißt: der
     EStB druckt die Position in ganzen Euro, auch wo das Feld Cent hat.
 
+    `typed` heißt: ein Eintippfeld, das der Nutzer im Steuerjahr eingibt (`TypedInput`).
+
     `previous` ordnet das Feld dem Vorjahr zu, wo seine E-Kennung sich ändert: die E-Kennung des
     Vorjahrs oder `NEW_FIELD` (gibt es im Vorjahr nicht). Leer heißt: dieselbe E-Kennung wie im
     Vorjahr (`check_previous_years`).
@@ -76,6 +96,7 @@ class FormField:
     assessment: tuple[str, ...] = ()
     printed_rounded: bool = False
     previous: str | None = None
+    typed: TypedInput | None = None
 
     def __post_init__(self) -> None:
         if (self.rounding is Rounding.WHOLE_EUROS) != (self.direction is not None):

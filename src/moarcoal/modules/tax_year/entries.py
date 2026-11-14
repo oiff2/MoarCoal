@@ -1,6 +1,7 @@
-"""Daten des Moduls Steuerjahr: die eingelesenen Zeilen eines Übertragungsprotokolls."""
+"""Daten des Moduls Steuerjahr: eingelesene Zeilen eines Übertragungsprotokolls und Eingaben."""
 
 import datetime
+from collections.abc import Mapping
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -49,8 +50,37 @@ class ProtocolReading(Entry):
     lines: tuple[ProtocolLine, ...]
 
 
-def reading_path(entry: ProtocolReading) -> str:
+class FormInput(Entry):
+    """Eingabe zu einem Eintippfeld der Anlage, direkt im Steuerjahr erfasst (Nutzereingabe).
+
+    `content` steht so, wie sie in das Feld in ELSTER einzutragen ist (Anzahl Tage als Zahl, eine
+    Auswahl als ihr Text); die Prüfung gegen das Feld macht der Vorgang in `inputs`. Je Nutzer,
+    Jahr und Feld höchstens eine.
+    """
+
+    year: int = Field(ge=2000, le=2100)
+    elster_id: ElsterId
+    content: str = Field(min_length=1, max_length=TEXT_MAX)
+
+
+def check_input(entry: FormInput, entries: Mapping[EntryAddress, Entry]) -> str | None:
+    """Schreibweg: nur eine Eingabe je Nutzer, Jahr und Feld."""
+    same = [
+        e
+        for e in entries.values()
+        if isinstance(e, FormInput)
+        and (e.owner, e.year, e.elster_id) == (entry.owner, entry.year, entry.elster_id)
+    ]
+    if len(same) > 1:
+        return f"Für {entry.year} gibt es zu {entry.elster_id} schon eine Eingabe"
+    return None
+
+
+def yearly_path(entry: ProtocolReading | FormInput) -> str:
     return f"users/{entry.owner}/tax_year/{entry.year}.json"
 
 
-KINDS: tuple[EntryKind, ...] = (entry_kind(ProtocolReading, SCHEMA, reading_path),)
+KINDS: tuple[EntryKind, ...] = (
+    entry_kind(ProtocolReading, SCHEMA, yearly_path),
+    entry_kind(FormInput, SCHEMA, yearly_path, check=check_input),
+)

@@ -187,6 +187,7 @@ def test_catalog_has_every_known_field_but_values_only_for_the_computed_ones() -
         "E0203508",
         "E0203509",
         "E0204403",
+        "E0204507",
         "E0205004",
         "E0205518",
     }
@@ -199,7 +200,7 @@ def test_fields_without_amount_or_computation_are_marked_and_consistent() -> Non
     uncomputed = [f for f in FIELDS_2025 if not f.computed]
     no_amount = [f for f in FIELDS_2025 if f.unit is None]
 
-    assert len(uncomputed) == 8
+    assert len(uncomputed) == 7
     assert {f.elster_id for f in no_amount} == {
         "E0203003",
         "E0203501",
@@ -572,7 +573,7 @@ def absence(trip_days: int = 3, vacation: int = 30) -> Foreign:
 
 
 def test_absence_days_are_not_yet_computable_without_homeoffice_days() -> None:
-    result = tax_year(absence())(N_ABSENCE_DAYS, YEAR)  # Nr. 58 gibt es erst mit #110
+    result = tax_year(absence())(N_ABSENCE_DAYS, YEAR)  # ohne Eingabe zu Nr. 58
 
     assert isinstance(result, NotYetComputable)
     assert "Homeoffice-Tage" in result.reason

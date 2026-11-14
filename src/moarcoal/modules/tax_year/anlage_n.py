@@ -20,13 +20,15 @@ from moarcoal.modules.tax_year.assessment import (
     MEAL_ALLOWANCE,
     SOLI_WITHHELD,
 )
-from moarcoal.modules.tax_year.fields import Direction, FormField, Rounding
+from moarcoal.modules.tax_year.entries import FormInput
+from moarcoal.modules.tax_year.fields import Direction, FormField, Rounding, TypedInput
 from moarcoal.modules.tax_year.structure import FormStructure, load_structure
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
-from moarcoal.values.model import Amount, Unit, ValueKey
+from moarcoal.values.model import Amount, Unit, UserInputLocator, ValueKey
 
 FORM = "N"  # Anlage N (Person A)
+YES_NO = ("Ja", "Nein")  # Auswahl von Nr. 65; die Struktur nennt für Auswahlfelder ohne Liste keine
 
 WORK_WORKDAYS = ValueKey("work.workdays")
 WORK_DISTANCE_KM = ValueKey("work.distance_km")
@@ -48,6 +50,7 @@ N_WORKDAYS_PER_WEEK = ValueKey("tax_year.n_workdays_per_week")
 N_ABSENCE_DAYS = ValueKey("tax_year.n_absence_days")
 N_CAR_DISTANCE = ValueKey("tax_year.n_car_distance")
 N_EQUIPMENT = ValueKey("tax_year.n_equipment")
+N_HOMEOFFICE_DAYS = ValueKey("tax_year.n_homeoffice_days")
 N_TAX_CLASS = ValueKey("tax_year.n_tax_class")
 N_GROSS_WAGES = ValueKey("tax_year.n_gross_wages")
 N_GROSS_WAGES_SINGLE = ValueKey("tax_year.n_gross_wages_single")
@@ -88,6 +91,7 @@ def _catalog_field(
     assessment: tuple[str, ...],
     printed_rounded: bool,
     previous: str | None,
+    typed: TypedInput | None,
 ) -> FormField:
     """Ein Feld des Katalogs: Bedeutung aus den Argumenten, Nr. und Bezeichnung aus der Struktur."""
     described = structure.get(elster_id)
@@ -103,6 +107,7 @@ def _catalog_field(
         assessment=assessment,
         printed_rounded=printed_rounded,
         previous=previous,
+        typed=typed,
     )
 
 
@@ -117,6 +122,7 @@ def _known(
     assessment: tuple[str, ...] = (),
     printed_rounded: bool = False,
     previous: str | None = None,
+    typed: TypedInput | None = None,
 ) -> FormField:
     """Ein Feld des Katalogs, das MoarCoal bisher nicht berechnet."""
     return _catalog_field(
@@ -130,6 +136,7 @@ def _known(
         assessment=assessment,
         printed_rounded=printed_rounded,
         previous=previous,
+        typed=typed,
     )
 
 
@@ -144,6 +151,7 @@ def _computed(
     assessment: tuple[str, ...] = (),
     printed_rounded: bool = False,
     previous: str | None = None,
+    typed: TypedInput | None = None,
 ) -> FormField:
     """Ein Feld des Katalogs, das MoarCoal berechnet."""
     return _catalog_field(
@@ -157,6 +165,7 @@ def _computed(
         assessment=assessment,
         printed_rounded=printed_rounded,
         previous=previous,
+        typed=typed,
     )
 
 
@@ -248,18 +257,8 @@ def fields_n(structure: FormStructure) -> tuple[FormField, ...]:
             Rounding.WHOLE_EUROS,
             Direction.EXPENSE,
         ),
-        known(
-            "homeoffice_days",
-            "E0204507",
-            Unit.DAYS,
-            Rounding.NONE,
-        ),
-        known(
-            "company_car",
-            "E0204901",
-            None,
-            Rounding.NONE,
-        ),
+        computed(N_HOMEOFFICE_DAYS, "E0204507", Unit.DAYS, Rounding.NONE, typed=TypedInput()),
+        known("company_car", "E0204901", None, Rounding.NONE, typed=TypedInput(YES_NO)),
         known("travel_fare_kind", "E0205003", None, Rounding.NONE),
         computed(
             N_TRAVEL_FARE,
@@ -332,10 +331,31 @@ def compute_car_distance(calculation: Calculation, field: FormField) -> Amount:
     return _work_value(calculation, field, WORK_CAR_DISTANCE, "Mit dem Pkw gefahrene km")
 
 
+def compute_homeoffice_days(calculation: Calculation, field: FormField) -> Amount:
+    """Nr. 58: die Tage, die der Nutzer im Steuerjahr eingegeben hat; ohne Eingabe noch nicht
+    berechenbar (nie 0)."""
+    year = calculation.year
+    entry = next(
+        (
+            e
+            for e in calculation.own.all(FormInput)
+            if (e.year, e.elster_id) == (year, field.elster_id)
+        ),
+        None,
+    )
+    if entry is None:
+        calculation.not_yet(f"Die Homeoffice-Tage (Nr. 58) sind für {year} noch nicht erfasst")
+    days = Amount.of(int(entry.content), Unit.DAYS)
+    calculation.item("Homeoffice-Tage", days, UserInputLocator(entry.address))
+    return calculation.step("Homeoffice-Tage laut Eingabe", days)
+
+
 def homeoffice_days(calculation: Calculation) -> Amount:
-    """Homeoffice-Tage (Nr. 58): ein Eingabefeld des Steuerjahrs, das es noch nicht gibt (#110).
-    Bis dahin ist Nr. 28 noch nicht berechenbar; #110 ersetzt allein diesen Rumpf."""
-    calculation.not_yet("Die Homeoffice-Tage (Nr. 58) sind noch nicht erfasst")
+    """Homeoffice-Tage (Nr. 58) als Summand von Nr. 28."""
+    item = calculation.use(N_HOMEOFFICE_DAYS, label="Homeoffice-Tage")
+    if item is None:
+        calculation.not_applicable("Homeoffice-Tage entfallen")
+    return item.amount
 
 
 def compute_absence_days(calculation: Calculation, field: FormField) -> Amount:
@@ -374,6 +394,7 @@ _COMPUTE: dict[ValueKey, Callable[[Calculation, FormField], Amount]] = {
     N_WORKDAYS_PER_WEEK: compute_workdays_per_week,
     N_ABSENCE_DAYS: compute_absence_days,
     N_CAR_DISTANCE: compute_car_distance,
+    N_HOMEOFFICE_DAYS: compute_homeoffice_days,
     N_EQUIPMENT: compute_equipment,
     N_TAX_CLASS: partial(_work_total, source=WORK_TAX_CLASS, label="Steuerklasse"),
     N_GROSS_WAGES: partial(_work_total, source=WORK_GROSS_WAGES, label="Bruttoarbeitslohn"),

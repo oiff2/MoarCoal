@@ -1,0 +1,25 @@
+{#- Eintippfeld einer Anlage: Wert mit Rechenweg und darunter die Eingabe direkt am Feld (htmx). Der Austausch ersetzt das ganze Teil. -#}
+{% from "_value.html" import value_view %}
+{% macro input_cell(year, field, result, content, error) %}
+<div id="eingabe-{{ field.elster_id }}">
+  {% if field.computed %}
+  {{ value_view("Angabe", result, whole=field.whole_euros) }}
+  {% elif content %}
+  <strong>{{ content }}</strong>
+  {% else %}
+  <strong class="fehler">noch nicht berechenbar</strong> (noch nicht angegeben)
+  {% endif %}
+  <form method="post" action="/steuerjahr/anlage-n/{{ year }}/eingabe/{{ field.elster_id }}" hx-post="/steuerjahr/anlage-n/{{ year }}/eingabe/{{ field.elster_id }}" hx-target="#eingabe-{{ field.elster_id }}" hx-swap="outerHTML">
+    {% if field.typed.choices %}
+    <select name="content" aria-label="{{ field.label }}">
+      <option value="">keine Angabe</option>
+      {% for choice in field.typed.choices %}<option value="{{ choice }}"{% if choice == content %} selected{% endif %}>{{ choice }}</option>{% endfor %}
+    </select>
+    {% else %}
+    <input name="content" inputmode="numeric" value="{{ content or '' }}" aria-label="{{ field.label }}" size="5">
+    {% endif %}
+    <button type="submit">Speichern</button>
+    {% if error %}<span class="fehler">{{ error }}</span>{% endif %}
+  </form>
+</div>
+{% endmacro %}

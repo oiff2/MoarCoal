@@ -72,7 +72,7 @@ Der Kanal, über den Daten von außen in MoarCoal gelangen: eDaten-Abruf aus Mei
 _Avoid_: Herkunft, Import, Datenquelle
 
 **Nutzereingabe**:
-Ein von Hand erfasster Betrag mit Datum und Beschreibung, eingebettet in eine eigene Eintragsart des Moduls; als Fundstelle ergibt sie den Belegstand angenommen (Code: `UserInput`).
+Eine von Hand erfasste Angabe, eingebettet in eine eigene Eintragsart des Moduls: in Arbeit ein Betrag mit Datum und Beschreibung (Code: `UserInput`), im Steuerjahr der Inhalt eines einzelnen Felds der Anlage, direkt dort eingegeben (Code: `FormInput`). Als Fundstelle ergibt sie den Belegstand angenommen.
 _Avoid_: manuelle Buchung, Handeingabe
 
 **Arbeit**:
