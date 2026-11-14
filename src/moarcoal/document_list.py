@@ -20,8 +20,11 @@ from moarcoal.web import document_kinds, render, store_of, user_of
 
 router = APIRouter(prefix="/belege/dokumente")
 
-NONE = "none"
-"""Filterwert für „Beleg“ (ohne Art) und „ohne Aussteller“."""
+WITHOUT_KIND = "none"
+"""Filterwert für „Beleg“: Dokumente ohne Dokumentart."""
+
+WITHOUT_ISSUER = "none"
+"""Filterwert für „ohne Aussteller“."""
 
 REFERENCE_LABELS = {
     "Proposal": "Vorschlag",
@@ -53,9 +56,10 @@ def filter_documents(
 ) -> list[Document]:
     """Die Dokumente von `user`, die alle gesetzten Filter erfüllen, nach Pfad sortiert.
 
-    `kind` und `issuer` sind ein Schlüssel bzw. eine Kennung, `NONE` für „ohne“, leer für alle;
-    `year` trifft Dokumente, deren Bezugszeitraum das Jahr berührt; `query` sucht ohne Groß-/
-    Kleinschreibung in Pfad, Ablageort, Art und Namen und Aliassen des Ausstellers.
+    `kind` ist ein Schlüssel oder `WITHOUT_KIND`, `issuer` eine Kennung oder `WITHOUT_ISSUER`,
+    leer jeweils für alle; `year` trifft Dokumente, deren Bezugszeitraum das Jahr berührt;
+    `query` sucht ohne Groß-/Kleinschreibung in Pfad, Ablageort, Art und Namen und Aliassen des
+    Ausstellers.
     """
     issuers = {i.address: i for i in state.of_kind(Issuer)}
     needle = name_key(query)
@@ -63,9 +67,9 @@ def filter_documents(
     for document in state.of_kind(Document):
         if document.owner != user:
             continue
-        if kind and (document.document_kind or NONE) != kind:
+        if kind and (document.document_kind or WITHOUT_KIND) != kind:
             continue
-        if issuer and (document.issuer.id if document.issuer else NONE) != issuer:
+        if issuer and (document.issuer.id if document.issuer else WITHOUT_ISSUER) != issuer:
             continue
         if year is not None and not document.touches_year(year):
             continue
@@ -150,5 +154,6 @@ def index(
         base=urlencode({k: v for k, v in filters.items() if v}),
         preview_kind=chosen and preview_kind(chosen.path),
         preview_url=chosen and f"/dokumente/{chosen.id}/datei",
-        none=NONE,
+        without_kind=WITHOUT_KIND,
+        without_issuer=WITHOUT_ISSUER,
     )

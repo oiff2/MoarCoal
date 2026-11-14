@@ -13,7 +13,7 @@
     <label>Art
       <select name="art">
         <option value="">alle</option>
-        <option value="{{ none }}"{% if filters.art == none %} selected{% endif %}>Beleg</option>
+        <option value="{{ without_kind }}"{% if filters.art == without_kind %} selected{% endif %}>Beleg</option>
         {% for kind in kinds %}<option value="{{ kind.key }}"{% if filters.art == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
       </select>
     </label>
@@ -21,7 +21,7 @@
     <label>Aussteller
       <select name="aussteller">
         <option value="">alle</option>
-        <option value="{{ none }}"{% if filters.aussteller == none %} selected{% endif %}>ohne Aussteller</option>
+        <option value="{{ without_issuer }}"{% if filters.aussteller == without_issuer %} selected{% endif %}>ohne Aussteller</option>
         {% for i in issuer_list %}<option value="{{ i.id }}"{% if filters.aussteller == i.id %} selected{% endif %}>{{ i.name }}</option>{% endfor %}
       </select>
     </label>
