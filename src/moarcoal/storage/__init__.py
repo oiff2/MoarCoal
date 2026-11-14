@@ -2,7 +2,7 @@
 
 from moarcoal.storage.aborted_extractions import ABORTED_EXTRACTION_KIND, AbortedExtraction
 from moarcoal.storage.dismissals import Dismissal
-from moarcoal.storage.documents import Document
+from moarcoal.storage.documents import Document, document_url
 from moarcoal.storage.entries import (
     Entry,
     EntryAddress,
@@ -87,6 +87,7 @@ __all__ = [
     "StoreError",
     "all_kinds",
     "denylist_lines",
+    "document_url",
     "default_data_dir",
     "entry_checksum",
     "entry_kind",

@@ -483,7 +483,7 @@ def test_second_protocol_for_the_same_year_is_rejected_with_a_link_to_the_existi
     assert response.status_code == 422
     assert "Existiert bereits: Übertragungsprotokoll 2025" in response.text
     existing = next(iter(open_store(root, [*REGISTRATION.kinds]).state().of_kind(Document)))
-    assert f'href="/dokumente/{existing.id}"' in response.text
+    assert f'href="{existing.url}"' in response.text
 
 
 def test_hidden_files_are_flat_clickable_rows_with_a_preview_and_the_note_in_the_head(

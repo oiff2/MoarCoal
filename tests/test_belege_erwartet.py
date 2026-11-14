@@ -77,4 +77,4 @@ def test_fulfilled_year_links_to_the_document(client: httpx.Client) -> None:
 
     page = client.get("/belege/erwartet").text
 
-    assert f'<a href="/dokumente/{document.id}">Belege: Protokoll_2025.html</a>' in page
+    assert f'<a href="{document.url}">Belege: Protokoll_2025.html</a>' in page

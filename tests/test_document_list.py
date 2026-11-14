@@ -170,12 +170,49 @@ def test_detail_shows_form_with_preview_and_locks_when_something_hangs(
     assert 'name="kind" disabled' in locked and "Dokument löschen" not in locked
     assert f"/dokumente/{protocol.id}/datei" in locked
     assert f'href="/dokumente/{protocol.id}">Dokument</a>' not in locked  # kein Link je Zeile
-    assert "<h2>Aussteller</h2>" in locked  # der Kopf von /dokumente/{id}, im Reiter
+    assert "<h2>Aussteller</h2>" in locked  # der Kopf des Dokuments, im Reiter
     free = main_of(two, f"/belege/dokumente?dokument={bescheid.id}")
     assert "gesperrt" not in free and "disabled" not in free and "Dokument löschen" in free
 
 
+def test_old_document_address_redirects_to_the_tab(two: httpx.Client) -> None:
+    bescheid = doc(two, "bescheid.txt")
+    old = two.get(f"/dokumente/{bescheid.id}")
+    assert old.status_code == 308
+    assert old.headers["location"] == bescheid.url == f"/belege/dokumente?dokument={bescheid.id}"
+    protocol = doc(two, "protokoll.html")
+    assert two.get(f"/dokumente/{protocol.id}/datei").status_code == 200  # die Datei bleibt
+
+
+def tab_of(response: httpx.Response) -> str:
+    """Der Reiter Dokumente einer Antwort, mit dem gewählten Dokument rechts."""
+    main = response.text.split("<main>")[1]
+    assert '<a href="/belege/dokumente" aria-current="page">Dokumente</a>' in main
+    return main.split('<div class="rechts">')[1]
+
+
 # --- Ändern ---------------------------------------------------------------------------------
+
+
+def test_refused_change_shows_the_tab_with_the_document_reason_and_input(
+    two: httpx.Client,
+) -> None:
+    bescheid = doc(two, "bescheid.txt")
+    response = change(two, bescheid, issuer_choice="", kind="assessment", year="zwanzig")
+    assert response.status_code == 422
+    right = tab_of(response)
+    assert "bescheid.txt" in right and f"/dokumente/{bescheid.id}/aendern" in right
+    assert '<p class="fehler">Steuerjahr: ganze Zahl, z. B. 2025</p>' in right
+    assert 'value="zwanzig"' in right
+
+
+def test_refused_change_links_the_existing_document_in_the_tab(two: httpx.Client) -> None:
+    protocol, bescheid = doc(two, "protokoll.html"), doc(two, "bescheid.txt")
+    response = change(two, bescheid, issuer_choice="", kind="transfer_protocol", year="2025")
+    assert response.status_code == 422
+    right = tab_of(response)
+    assert "Existiert bereits: Übertragungsprotokoll 2025" in right
+    assert f'(<a href="{protocol.url}">vorhandenes Dokument</a>)' in right
 
 
 def test_issuer_changes_even_while_locked_and_keeps_kind_and_year(two: httpx.Client) -> None:
@@ -274,9 +311,12 @@ def test_delete_is_refused_while_something_points_at_the_document(two: httpx.Cli
     assert len(documents(two)) == 2
 
 
-def test_delete_with_stale_checksum_is_refused(two: httpx.Client) -> None:
+def test_delete_with_stale_checksum_is_refused_in_the_tab(two: httpx.Client) -> None:
     bescheid = doc(two, "bescheid.txt")
-    assert delete(two, bescheid, "alt").status_code == 409
+    response = delete(two, bescheid, "alt")
+    assert response.status_code == 409
+    right = tab_of(response)
+    assert "bescheid.txt" in right and '<p class="fehler">' in right
     assert len(documents(two)) == 2
 
 
@@ -284,4 +324,5 @@ def test_other_users_documents_are_not_listed(two: httpx.Client) -> None:
     foreign = doc(two, "protokoll.html").model_copy(update={"owner": "ben", "id": "ABCDEFGHIJ"})
     store_of(two).apply([Put(foreign)])
     assert "2 Dokumente" in main_of(two, "/belege/dokumente")
-    assert two.get(f"/dokumente/{foreign.id}").status_code == 404
+    assert two.get(f"/dokumente/{foreign.id}/datei").status_code == 404
+    assert f"/dokumente/{foreign.id}/aendern" not in main_of(two, foreign.url)

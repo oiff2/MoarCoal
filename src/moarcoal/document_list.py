@@ -1,10 +1,12 @@
 """Seite „Belege“, Reiter Dokumente: alle aufgenommenen Dokumente mit Filter und Suche.
 
 Der Zustand eines Dokuments wird bei jeder Anfrage abgeleitet und nicht gespeichert. Ändern und
-Löschen laufen über die Routen unter `/dokumente/{id}` (`document_pages.py`).
+Löschen laufen über die Routen unter `/dokumente/{id}` (`document_pages.py`); ihre Abweisungen
+zeigt `documents_page` hier im Reiter.
 """
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
 
@@ -12,7 +14,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 from moarcoal.defaults import DEFAULT_YEAR
-from moarcoal.documents import DocumentKind, references_to
+from moarcoal.documents import DocumentKind, IntakeRejected, references_to
+from moarcoal.issuer_field import IssuerChoice, resolve_issuer
 from moarcoal.previews import preview_kind
 from moarcoal.proposals import proposals_of
 from moarcoal.storage import Document, Issuer, State, entry_checksum, name_key
@@ -25,6 +28,8 @@ WITHOUT_KIND = "none"
 
 WITHOUT_ISSUER = "none"
 """Filterwert für „ohne Aussteller“."""
+
+YEAR_NOT_A_NUMBER = "Steuerjahr: ganze Zahl, z. B. 2025"
 
 REFERENCE_LABELS = {
     "Proposal": "Vorschlag",
@@ -87,7 +92,7 @@ def document_detail(
     request: Request, document: Document, issuer_text: str = "", year: str = ""
 ) -> dict[str, Any]:
     """Alles, was `documents/_detail.html` für den Kopf eines Dokuments braucht (Seite
-    `/dokumente/{id}`, Reiter Dokumente und Ablage). `issuer_text` und `year` stellen eine
+    Reiter Dokumente und Ablage). `issuer_text` und `year` stellen eine
     abgewiesene Eingabe wieder her."""
     state = store_of(request).state()
     kinds = document_kinds(request)
@@ -116,6 +121,40 @@ def _year_of(text: str) -> int | None:
         return None
 
 
+@dataclass(frozen=True)
+class DocumentChoice:
+    """Aussteller, Art und Jahr aus dem Formular eines Dokuments (Aufnehmen oder Ändern).
+
+    `kind_key` ist leer für „Beleg“ und `None`, wenn das Formular keine Art schickt (gesperrt);
+    `year` ist `DEFAULT_YEAR`, wenn die Art keinen Bezugszeitraum hat.
+    """
+
+    issuer: IssuerChoice
+    kind_key: str | None
+    year: int
+
+
+def read_document_choice(
+    state: State, kinds: Mapping[str, DocumentKind], fields: Mapping[str, str]
+) -> DocumentChoice | IntakeRejected:
+    """Liest Art, Jahr und Aussteller aus den Formularfeldern `kind`, `year` und denen des
+    Aussteller-Felds; was sich nicht lesen lässt, weist es ab wie `take_in`."""
+    kind_key = fields.get("kind")
+    kind = kinds.get(kind_key or "")
+    if kind_key and kind is None:
+        return IntakeRejected(("Bitte eine Dokumentart wählen.",))
+    year = DEFAULT_YEAR
+    if kind is not None and kind.has_period:
+        given = _year_of(fields.get("year", ""))
+        if given is None:
+            return IntakeRejected((YEAR_NOT_A_NUMBER,))
+        year = given
+    issuer = resolve_issuer(state, fields)
+    if isinstance(issuer, str):
+        return IntakeRejected((issuer,))
+    return DocumentChoice(issuer, kind_key, year)
+
+
 @router.get("", response_class=HTMLResponse)
 def index(
     request: Request,
@@ -125,6 +164,25 @@ def index(
     aussteller: str = "",
     dokument: str = "",
 ) -> HTMLResponse:
+    filters = {"q": q, "art": art, "jahr": jahr, "aussteller": aussteller}
+    return documents_page(request, filters=filters, selected=dokument)
+
+
+def documents_page(
+    request: Request,
+    status_code: int = 200,
+    *,
+    filters: dict[str, str] | None = None,
+    selected: str = "",
+    notice: str = "",
+    existing: Document | None = None,
+    issuer_text: str = "",
+    year: str = "",
+) -> HTMLResponse:
+    """Der Reiter Dokumente mit dem Dokument `selected` (Kennung) rechts. `notice` ist eine
+    Abweisung (mit `existing`, dem vorhandenen Dokument bei „Existiert bereits“); `issuer_text`
+    und `year` stellen die abgewiesene Eingabe wieder her."""
+    filters = filters or {"q": "", "art": "", "jahr": "", "aussteller": ""}
     store = store_of(request)
     state = store.state()
     kinds = document_kinds(request)
@@ -132,21 +190,21 @@ def index(
         state,
         user_of(request),
         kinds,
-        kind=art,
-        year=_year_of(jahr),
-        issuer=aussteller,
-        query=q,
+        kind=filters["art"],
+        year=_year_of(filters["jahr"]),
+        issuer=filters["aussteller"],
+        query=filters["q"],
     )
-    chosen = next((d for d in documents if d.id == dokument), None)
+    chosen = next((d for d in documents if d.id == selected), None)
     issuers = {i.id: i for i in state.of_kind(Issuer)}
-    filters = {"q": q, "art": art, "jahr": jahr, "aussteller": aussteller}
     return render(
         request,
         "documents/list.html",
+        status_code,
         documents=documents,
         states={d.id: document_state(state, d) for d in documents},
         selected=chosen,
-        detail=document_detail(request, chosen) if chosen else None,
+        detail=document_detail(request, chosen, issuer_text, year) if chosen else None,
         issuer_names={i.id: i.name for i in issuers.values()},
         issuer_list=sorted(issuers.values(), key=lambda i: name_key(i.name)),
         kind_titles={k.key: k.title for k in kinds.values()},
@@ -156,4 +214,6 @@ def index(
         preview_url=chosen and f"/dokumente/{chosen.id}/datei",
         without_kind=WITHOUT_KIND,
         without_issuer=WITHOUT_ISSUER,
+        notice=notice,
+        existing=existing,
     )

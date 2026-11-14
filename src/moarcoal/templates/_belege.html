@@ -1,4 +1,4 @@
-{# Gemeinsames der Belege-Seite: Reiter und Vorschau. #}
+{# Gemeinsames der Belege-Seite: Reiter, Vorschau und Abweisung (mit Link auf ein vorhandenes Dokument). #}
 {% macro tabs(active) %}
 <nav class="reiter">
   <a href="/belege"{% if active == "ablage" %} aria-current="page"{% endif %}>Ablage</a>
@@ -13,3 +13,4 @@
   {% else %}<p>Keine Vorschau.</p>{% endif %}
 </div>
 {% endmacro %}
+{% macro rejection(message, existing) %}<p class="fehler">{{ message }}{% if existing %} (<a href="{{ existing.url }}">vorhandenes Dokument</a>){% endif %}</p>{% endmacro %}

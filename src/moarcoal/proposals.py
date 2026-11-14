@@ -51,10 +51,6 @@ class ReadOutRejected:
     message: str
 
 
-def document_url(document: Document) -> str:
-    return f"/dokumente/{document.id}"
-
-
 def proposals_of(state: State, document: Document) -> list[Proposal]:
     """Die Vorschläge des Eigentümers zum Dokument, der neueste zuletzt."""
     found = [
@@ -153,7 +149,7 @@ def aborted_extraction_findings(state: State, user: str) -> list[Finding]:
                 Severity.ERROR,
                 document.address,
                 text,
-                href=document_url(document),
+                href=document.url,
                 fingerprint=fingerprint(aborted.aborted_at.isoformat()),
             )
         )
@@ -254,7 +250,7 @@ def proposal_findings(
                 Severity.NOTE,
                 proposal.address,
                 text,
-                href=document_url(document),
+                href=document.url,
                 fingerprint=fingerprint(*open_keys),
             )
         )

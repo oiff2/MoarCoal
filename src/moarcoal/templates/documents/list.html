@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_belege.html" import tabs, preview %}
+{% from "_belege.html" import tabs, preview, rejection %}
 {% from "documents/_detail.html" import document_detail %}
 {% block title %}Belege – Dokumente – MoarCoal{% endblock %}
 {% block main %}
@@ -43,6 +43,7 @@
   {% if selected %}
   <div class="formular">
     <p class="dateiname">{{ selected.site }}/{{ selected.path }}</p>
+    {% if notice %}{{ rejection(notice, existing) }}{% endif %}
     {{ document_detail(detail) }}
   </div>
   {{ preview(preview_kind, preview_url, selected.path) }}

@@ -135,7 +135,7 @@ def duplicate_findings(state: State, user: str, kinds: Mapping[str, DocumentKind
                     Severity.NOTE,
                     d.address,
                     f"Existiert mehrfach: {kind.title} {year}: {d.path}",
-                    href=f"/dokumente/{d.id}",
+                    href=d.url,
                 )
             )
     return found

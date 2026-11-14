@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import DEFAULT_YEAR
-from moarcoal.document_list import document_detail
+from moarcoal.document_list import document_detail, read_document_choice
 from moarcoal.documents import IntakeRejected, take_in
 from moarcoal.incoming import (
     STANDS,
@@ -25,7 +25,6 @@ from moarcoal.incoming import (
     show_file,
     show_folder,
 )
-from moarcoal.issuer_field import resolve_issuer
 from moarcoal.prefill import Prefill, prefill_from_name
 from moarcoal.previews import file_response, preview_kind
 from moarcoal.storage import (
@@ -167,50 +166,39 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
         return _page(request, 409, GONE)
 
     following = _after(request, sha256)
-
-    def rejected(*reasons: str, existing: Document | None = None) -> Response:
+    kinds = document_kinds(request)
+    choice = read_document_choice(store_of(request).state(), kinds, fields)
+    result = (
+        choice
+        if isinstance(choice, IntakeRejected)
+        else take_in(
+            store_of(request),
+            kinds,
+            user_of(request),
+            file.site,
+            file.path,
+            choice.kind_key or "",
+            choice.year,
+            values_on=lambda state: values_on(request, state),
+            issuer=choice.issuer.address,
+            issuer_changes=choice.issuer.changes,
+        )
+    )
+    if isinstance(result, IntakeRejected):
         return _page(
             request,
             422,
-            errors={sha256: list(reasons)},
-            existing=existing,
+            errors={sha256: list(result.reasons)},
+            existing=result.existing,
             values={"sha256": sha256, **fields},
             selected=sha256,
         )
-
-    kinds = document_kinds(request)
-    kind_key = fields.get("kind", "")
-    kind = kinds.get(kind_key)
-    if kind_key and kind is None:
-        return rejected("Bitte eine Dokumentart wählen.")
-    year = DEFAULT_YEAR
-    if kind is not None and kind.has_period:
-        try:
-            year = int(fields.get("year", "").strip())
-        except ValueError:
-            return rejected("Steuerjahr: ganze Zahl, z. B. 2025")
-    chosen = resolve_issuer(store_of(request).state(), fields)
-    if isinstance(chosen, str):
-        return rejected(chosen)
-    result = take_in(
-        store_of(request),
-        kinds,
-        user_of(request),
-        file.site,
-        file.path,
-        kind_key,
-        year,
-        values_on=lambda state: values_on(request, state),
-        issuer=chosen.address,
-        issuer_changes=chosen.changes,
-    )
-    if isinstance(result, IntakeRejected):
-        return rejected(*result.reasons, existing=result.existing)
     modules = request.app.state.modules
     target = next((url for e in result.entries if (url := entry_url(modules, e.address))), None)
+    kind = kinds.get(result.document.document_kind or "")
     if kind is not None and kind.extraction_template is not None:
         # im Reiter Dokumente liest der Nutzer das Dokument aus
-        target = f"/belege/dokumente?dokument={result.document.id}"
+        target = result.document.url
     elif following is not None:
         return following
     return RedirectResponse(target or "/belege", status_code=303)

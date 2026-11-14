@@ -140,7 +140,7 @@ def test_note_for_each_document_without_issuer_of_the_user() -> None:
 
     notes = [f for f in found if f.kind == DOCUMENT_WITHOUT_ISSUER]
     assert [n.target for n in notes] == [plain.address]
-    assert notes[0].href == f"/dokumente/{plain.id}"
+    assert notes[0].href == plain.url
 
 
 def test_only_private_persons_feed_the_denylist() -> None:
