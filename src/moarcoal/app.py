@@ -20,6 +20,7 @@ from moarcoal.extraction import ClaudeExtractor, Extractor
 from moarcoal.issuer_field import router as issuer_field_router
 from moarcoal.issuer_pages import router as issuer_router
 from moarcoal.modules import MODULES
+from moarcoal.person_pages import router as person_router
 from moarcoal.place_search import NominatimSearch, PlaceSearch
 from moarcoal.registration import ModuleRegistration
 from moarcoal.security import SecurityMiddleware
@@ -32,6 +33,7 @@ from moarcoal.web import (
     form_fields,
     format_eur,
     render,
+    require_user,
     store_of,
     user_of,
     values_of,
@@ -41,9 +43,8 @@ from moarcoal.web import (
 PACKAGE_DIR = Path(__file__).parent
 TEMPLATES_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
-# Durchstich: ein Nutzer, die Nutzerliste kommt später; der Anzeigename ist erfunden.
+# Durchstich: ein fester Nutzer; Nutzerliste und Nutzerwechsel kommen mit dem Prototyp (#62).
 DEFAULT_USER = "ich"
-DEFAULT_USER_NAME = "Max Mustermann"
 
 
 def _required_year(fields: dict[str, str]) -> int:
@@ -58,12 +59,13 @@ def create_app(
     data_dir: Path,
     modules: Sequence[ModuleRegistration] = MODULES,
     user: str = DEFAULT_USER,
-    user_name: str = DEFAULT_USER_NAME,
     extractor: Extractor | None = None,
     place_search: PlaceSearch | None = None,
 ) -> FastAPI:
     """`data_dir` wird immer übergeben; `default_data_dir()` gilt nur beim Start der App."""
-    app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(
+        docs_url=None, redoc_url=None, openapi_url=None, dependencies=[Depends(require_user)]
+    )
     app.add_middleware(SecurityMiddleware, port=port)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     environment = Environment(loader=FileSystemLoader(TEMPLATES_DIR), autoescape=True)
@@ -74,7 +76,6 @@ def create_app(
     app.state.templates = Jinja2Templates(env=environment)
     app.state.modules = tuple(modules)
     app.state.user = user
-    app.state.user_name = user_name
     # Die App bekommt den echten Baustein, Tests einen Fake; aufgerufen wird nur auf Wunsch.
     app.state.extractor = extractor if extractor is not None else ClaudeExtractor()
     # Ebenso die Ortssuche: der echte Baustein fragt nur nach Klick auf „Suchen“ (ADR 0008).
@@ -98,10 +99,7 @@ def create_app(
     app.include_router(expected_documents_router)
     app.include_router(issuer_router)
     app.include_router(issuer_field_router)
-
-    @app.get("/", response_class=HTMLResponse)
-    def start(request: Request) -> HTMLResponse:  # pyright: ignore[reportUnusedFunction]
-        return render(request, "start.html")
+    app.include_router(person_router)
 
     @app.get("/befunde", response_class=HTMLResponse)
     def findings(  # pyright: ignore[reportUnusedFunction]

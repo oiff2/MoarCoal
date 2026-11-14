@@ -1,4 +1,8 @@
 {% extends "base.html" %}
 {% block main %}
 <h1>MoarCoal</h1>
+{% if not user_name %}
+<h2>Bitte Nutzer anlegen</h2>
+{% with button = "Nutzer anlegen" %}{% include "person/_form.html" %}{% endwith %}
+{% endif %}
 {% endblock %}

@@ -37,6 +37,7 @@ from moarcoal.storage.entries import (
 from moarcoal.storage.expected_documents import EXPECTED_DOCUMENT_KIND
 from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND, HIDDEN_FOLDER_KIND
 from moarcoal.storage.issuers import ISSUER_KIND
+from moarcoal.storage.personal_details import PERSONAL_DETAILS_KIND
 from moarcoal.storage.proposals import PROPOSAL_KIND
 from moarcoal.storage.snapshots import SNAPSHOT_KIND
 
@@ -685,6 +686,7 @@ def open_store(
         HIDDEN_FILE_KIND,
         HIDDEN_FOLDER_KIND,
         ISSUER_KIND,
+        PERSONAL_DETAILS_KIND,
         EXPECTED_DOCUMENT_KIND,
         PROPOSAL_KIND,
         ABORTED_EXTRACTION_KIND,

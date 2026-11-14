@@ -418,7 +418,7 @@ def test_page_rejects_year_that_contradicts_the_head(root: Path, site: Path) -> 
     response = take_in_via_page(client, year="2024")
     assert response.status_code == 422
     assert "gehört zum Steuerjahr 2025, eingetragen ist 2024" in response.text
-    assert not (root / "users").exists()
+    assert [p.name for p in (root / "users").rglob("*.json")] == ["personal_details.json"]
 
 
 def test_protocol_line_is_stored_as_elster_id() -> None:

@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
 from moarcoal.links import issuer_url
+from moarcoal.personal_details import details_for_issuer
 from moarcoal.storage import (
     Applied,
     Delete,
@@ -32,6 +33,8 @@ from moarcoal.web import form_fields, render, store_of, user_of
 router = APIRouter(prefix="/aussteller")
 
 type Fields = dict[str, str]
+
+FROM_DETAILS = "Der Aussteller kommt aus den Angaben zur Person."
 
 HINTS = {
     "name": "Name: darf nicht leer sein",
@@ -60,15 +63,19 @@ def _matches(issuer: Issuer, query: str) -> bool:
     return any(needle in name_key(name) for name in (issuer.name, *issuer.aliases))
 
 
-def _build(fields: Fields, issuer: Issuer) -> tuple[Issuer | None, list[str]]:
+def _build(fields: Fields, issuer: Issuer, locked: bool = False) -> tuple[Issuer | None, list[str]]:
+    """Der geänderte Aussteller; Name und Privatperson bleiben, wenn er aus den Angaben zur
+    Person kommt (`locked`)."""
     aliases = tuple(line.strip() for line in fields.get("aliases", "").splitlines() if line.strip())
     try:
         changed = Issuer.model_validate(
             {
                 **issuer.model_dump(),
-                "name": fields.get("name", "").strip(),
+                "name": issuer.name if locked else fields.get("name", "").strip(),
                 "aliases": aliases,
-                "private_person": fields.get("private_person") == "on",
+                "private_person": issuer.private_person
+                if locked
+                else fields.get("private_person") == "on",
             }
         )
     except ValidationError as error:
@@ -118,6 +125,7 @@ def _detail(
         expected=expected,
         errors=errors or [],
         holder=holder,
+        from_details=details_for_issuer(state, issuer) is not None,
     )
 
 
@@ -223,7 +231,8 @@ def update(
     request: Request, issuer_id: str, fields: Annotated[Fields, Depends(form_fields)]
 ) -> Response:
     issuer = _issuer(request, issuer_id)
-    changed, errors = _build(fields, issuer)
+    locked = details_for_issuer(store_of(request).state(), issuer) is not None
+    changed, errors = _build(fields, issuer, locked)
     if changed is None:
         return _detail(request, issuer, fields, errors, 422)
     result = store_of(request).apply([Put(changed, expected=fields.get("checksum", ""))])
@@ -243,6 +252,8 @@ def delete(
     request: Request, issuer_id: str, fields: Annotated[Fields, Depends(form_fields)]
 ) -> Response:
     issuer = _issuer(request, issuer_id)
+    if details_for_issuer(store_of(request).state(), issuer) is not None:
+        return _detail(request, issuer, errors=[FROM_DETAILS], status_code=409)
     result = store_of(request).apply([Delete(issuer.address, expected=fields.get("checksum", ""))])
     if not isinstance(result, Applied):
         return _detail(request, issuer, errors=_reasons(result), status_code=409)

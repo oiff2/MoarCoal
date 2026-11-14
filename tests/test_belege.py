@@ -249,7 +249,7 @@ def test_rejection_stays_in_the_row_with_422(root: Path, site: Path) -> None:
     assert "gehört zum Steuerjahr 2025, eingetragen ist 2024" in response.text
     assert "2025/protokoll.html" in response.text
     assert 'value="2024"' in response.text
-    assert not (root / "users").exists()
+    assert [p.name for p in (root / "users").rglob("*.json")] == ["personal_details.json"]
     assert take(client, year="abc").status_code == 422
     unknown = client.post(
         "/belege/aufnehmen", data={"sha256": SHA, "kind": "gibt.es.nicht"}, headers=ORIGIN

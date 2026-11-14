@@ -1,0 +1,11 @@
+{% include "work/_errors.html" %}
+<form method="post" action="/person">
+  <input type="hidden" name="checksum" value="{{ checksum }}">
+  <label>Vorname
+    <input name="first_name" value="{{ values.get('first_name', '') }}" required>
+  </label>
+  <label>Name
+    <input name="last_name" value="{{ values.get('last_name', '') }}" required>
+  </label>
+  <button type="submit">{{ button }}</button>
+</form>

@@ -21,6 +21,7 @@ from moarcoal.storage.issuers import (
     issuer_with_name,
     name_key,
 )
+from moarcoal.storage.personal_details import PersonalDetails
 from moarcoal.storage.pid_file import read_pid, remove_pid, write_pid
 from moarcoal.storage.proposals import PROPOSAL_KIND, Content, Proposal, ProposalField
 from moarcoal.storage.snapshots import (
@@ -74,6 +75,7 @@ __all__ = [
     "Issuer",
     "Merge",
     "Occasion",
+    "PersonalDetails",
     "Snapshot",
     "ExpectedDocument",
     "Proposal",

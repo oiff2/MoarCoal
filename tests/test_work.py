@@ -43,8 +43,8 @@ EQUIPMENT = {
 }
 
 
-def make_client(root: Path, user: str = "anna", user_name: str = "Max Mustermann") -> httpx.Client:
-    app = create_app(PORT, root, user=user, user_name=user_name)
+def make_client(root: Path, user: str = "anna") -> httpx.Client:
+    app = create_app(PORT, root, user=user)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -147,7 +147,7 @@ def test_overview_is_empty_and_has_links(tmp_path: Path) -> None:
     assert "Erste Tätigkeitsstätte" in response.text
     assert "Arbeitsmittel" in response.text
     assert "<script>" not in response.text
-    assert list(tmp_path.iterdir()) == []  # GET schreibt nie
+    assert [p.name for p in tmp_path.rglob("*.json")] == ["personal_details.json"]
 
 
 def test_create_workplace_lands_in_data_dir(tmp_path: Path) -> None:
@@ -258,7 +258,7 @@ def test_invalid_input_shows_german_hints_and_writes_nothing(tmp_path: Path) -> 
     response = client.post("/arbeit/arbeitsmittel", data=bad_equipment, headers=ORIGIN)
     assert response.status_code == 422
     assert "Betrag" in response.text and "Beschreibung" in response.text
-    assert list(tmp_path.iterdir()) == []
+    assert [p.name for p in tmp_path.rglob("*.json")] == ["personal_details.json"]
 
 
 def test_stale_form_is_rejected(tmp_path: Path) -> None:
@@ -298,7 +298,7 @@ def test_posts_need_same_origin(tmp_path: Path) -> None:
     assert client.post("/arbeit/arbeitsmittel", data=EQUIPMENT).status_code == 403
     foreign = {"Origin": "http://evil.example"}
     assert client.post("/arbeit/arbeitsmittel", data=EQUIPMENT, headers=foreign).status_code == 403
-    assert list(tmp_path.iterdir()) == []
+    assert [p.name for p in tmp_path.rglob("*.json")] == ["personal_details.json"]
 
 
 def test_text_is_escaped(tmp_path: Path) -> None:
@@ -315,7 +315,7 @@ def test_workdays_limit_is_250(tmp_path: Path) -> None:
         "/arbeit/erste-taetigkeitsstaette", data=WORKPLACE | {"workdays": "251"}, headers=ORIGIN
     )
     assert over.status_code == 422 and "bis 250" in over.text
-    assert list(tmp_path.iterdir()) == []
+    assert [p.name for p in tmp_path.rglob("*.json")] == ["personal_details.json"]
     at_limit = client.post(
         "/arbeit/erste-taetigkeitsstaette", data=WORKPLACE | {"workdays": "250"}, headers=ORIGIN
     )
@@ -332,10 +332,8 @@ def test_new_workplace_form_prefills_220_but_edit_keeps_stored_value(tmp_path: P
     assert 'name="workdays" inputmode="numeric" value="180"' in page
 
 
-def test_display_name_is_shown_and_replaceable(tmp_path: Path) -> None:
+def test_display_name_is_shown_in_the_header(tmp_path: Path) -> None:
     assert "Max Mustermann" in make_client(tmp_path).get("/arbeit").text
-    other = make_client(tmp_path, user_name="Erika Beispiel")
-    assert "Erika Beispiel" in other.get("/").text
 
 
 def test_workplace_inputs_are_optional_and_stored(tmp_path: Path) -> None:

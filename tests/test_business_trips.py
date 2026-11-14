@@ -317,7 +317,7 @@ def test_page_is_empty_prefilled_and_get_never_writes(tmp_path: Path) -> None:
     assert "Verpflegung, Übernachtung und Nebenkosten rechnet der Arbeitgeber ab" in response.text
     assert "0,30 € je km" in response.text
     assert "<script>" not in response.text and 'src="/static/trip_table.js"' in response.text
-    assert list(tmp_path.iterdir()) == []
+    assert [p.name for p in tmp_path.rglob("*.json")] == ["personal_details.json"]  # nur der Nutzer
     assert client.get("/arbeit/dienstreisen/1800").status_code == 404
     assert "/arbeit/dienstreisen/2025" in client.get("/arbeit").text
 
@@ -339,7 +339,7 @@ def test_invalid_cell_saves_nothing_and_keeps_input(tmp_path: Path) -> None:
     assert response.status_code == 422
     assert "Bitte die markierten Zellen korrigieren." in response.text
     assert 'value="abc"' in response.text and 'class="ungueltig"' in response.text
-    assert list(tmp_path.iterdir()) == []
+    assert [p.name for p in tmp_path.rglob("*.json")] == ["personal_details.json"]  # nur der Nutzer
 
 
 def test_change_and_delete_with_the_shown_checksums(tmp_path: Path) -> None:
