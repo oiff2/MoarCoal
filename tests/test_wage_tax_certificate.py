@@ -22,7 +22,15 @@ from moarcoal.modules.tax_year.comparison import DEVIATION, MISSING
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import WAGE_TAX_CERTIFICATE, WageTaxCertificate
 from moarcoal.modules.work.reading import read_in_wage_tax_certificate
-from moarcoal.storage import Document, Entry, Store, open_store
+from moarcoal.storage import (
+    Applied,
+    Delete,
+    Document,
+    Entry,
+    Store,
+    entry_checksum,
+    open_store,
+)
 from moarcoal.values.model import (
     Amount,
     Backing,
@@ -180,6 +188,25 @@ def test_take_in_stores_document_and_reading_and_allows_one_per_year(
 
     (site / "zweite.html").write_text(fixture_text() + "<!-- 2 -->", encoding="utf-8")
     assert isinstance(take(store, "zweite.html"), IntakeRejected)
+
+
+def test_deleting_the_document_takes_the_certificate_along_and_the_file_can_be_taken_in_again(
+    store: Store, site: Path
+) -> None:
+    first = take(store)
+    assert isinstance(first, TakenIn)
+    (old,) = first.entries
+    (site / "zweite.html").write_text(fixture_text() + "<!-- 2 -->", encoding="utf-8")
+    assert isinstance(take(store, "zweite.html"), IntakeRejected)  # solange das Dokument da ist
+
+    deleted = store.apply([Delete(first.document.address, entry_checksum(first.document))])
+
+    assert isinstance(deleted, Applied)
+    assert store.state().of_kind(WageTaxCertificate) == []
+    again = take(store)  # dieselbe Datei, das Jahr ist wieder frei
+    assert isinstance(again, TakenIn)
+    (new,) = store.state().of_kind(WageTaxCertificate)
+    assert new.id != old.id and new.document == again.document.address
 
 
 def test_fields_4_to_7_are_computed_from_the_certificate(store: Store) -> None:

@@ -77,7 +77,8 @@ class WageTaxCertificate(Entry):
 
     Beträge stehen in ganzen Cent, genau wie bescheinigt. `None` heißt: die Bescheinigung nennt die
     Angabe nicht (nie 0). `places` nennt je Angabe den vollen Feldnamen `data-name` als Fundstelle.
-    `reader_version` nennt die Fassung der Einlese-Regel.
+    `reader_version` nennt die Fassung der Einlese-Regel. Die Bescheinigung fällt mit dem Dokument
+    weg; nach dem Löschen lässt sich die Datei erneut aufnehmen und wird neu eingelesen.
     """
 
     document: EntryAddress
@@ -161,7 +162,7 @@ def yearly_path(
 KINDS: tuple[EntryKind, ...] = (
     entry_kind(FirstWorkplace, SCHEMA, yearly_path),
     entry_kind(WorkEquipment, SCHEMA, yearly_path),
-    entry_kind(WageTaxCertificate, SCHEMA, yearly_path),
+    entry_kind(WageTaxCertificate, SCHEMA, yearly_path, falls_with="document"),
     entry_kind(BusinessTrip, SCHEMA, yearly_path),
     entry_kind(TripsConfirmation, SCHEMA, yearly_path, check=check_confirmation),
 )
