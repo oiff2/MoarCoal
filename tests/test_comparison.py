@@ -33,6 +33,7 @@ from moarcoal.modules.tax_year.comparison import (
     MISSING,
     UNKNOWN_ELSTER_ID,
 )
+from moarcoal.modules.tax_year.reading import parse_protocol
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import Document, Entry, EntryAddress
 from moarcoal.values.engine import Foreign
@@ -349,3 +350,14 @@ def test_unknown_elster_id_fingerprint_follows_the_field() -> None:
         return only(found, UNKNOWN_ELSTER_ID)
 
     assert unknown("Arbeitsmittel").fingerprint == unknown("Arbeitsmittel").fingerprint
+
+
+def test_fixture_protocol_matches_the_catalog_for_all_three_computed_fields() -> None:
+    lines = list(parse_protocol(FIXTURE.read_bytes()).lines)
+
+    found = findings(protocol(lines), work(cents=6990))
+
+    # Tage und km stimmen; Arbeitsmittel (69,90 € laut Protokoll) wird gefunden und weicht nur
+    # durch die Rundung des Felds ab. Kein Feld „fehlt“.
+    assert kinds(found) == [DEVIATION]
+    assert EQUIPMENT in found[0].message

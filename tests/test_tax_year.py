@@ -101,10 +101,10 @@ def test_parse_protocol_reads_header_and_fields_as_printed() -> None:
         for line in parsed.lines
     ]
     assert fields == [
-        ("E0203503", "N", "5", "Arbeitstage", "220", "1_1-1-1"),
-        ("E0203504", "N", "6", "Einfache Entfernung in km", "12", "1_1-1-1"),
-        ("E0107601", "N", "12", "Arbeitsmittel (Art & Anschaffung)", "49,90", "1_1-1-1"),
-        ("E0107601", "N", "", "Weiteres Arbeitsmittel", "20,00", "2_1-1-1"),
+        ("E0203503", "N", "29", "aufgesucht an Tagen", "220", "1_1-1-1"),
+        ("E0203504", "N", "30", "einfache Entfernung in Kilometern", "12", "1_1-1-1"),
+        ("E0204403", "N", "56", "Arbeitsmittel", "49,90", "1_1-1-1"),
+        ("E0204403", "N", "", "Weiteres Arbeitsmittel", "20,00", "2_1-1-1"),
         ("E0100004", "ESt1A", "", "Ort", "Musterstadt", "1_1-1-1"),
     ]
 
@@ -112,7 +112,7 @@ def test_parse_protocol_reads_header_and_fields_as_printed() -> None:
 def test_fundstelle_is_the_full_data_name_and_repeated_elster_id_stay_separate() -> None:
     lines = parse_protocol(FIXTURE.read_bytes()).lines
     assert lines[0].data_name == "id-N-Werbungskosten-Fahrten-E0203503_usb1_1-1-1"
-    repeated = [line for line in lines if line.elster_id == "E0107601"]
+    repeated = [line for line in lines if line.elster_id == "E0204403"]
     assert [line.content for line in repeated] == ["49,90", "20,00"]  # nicht summiert
     assert len({line.data_name for line in repeated}) == 2
 
@@ -382,7 +382,7 @@ def test_pages_take_in_and_show_document_and_lines(root: Path, site: Path) -> No
     assert hashlib.sha256(FIXTURE.read_bytes()).hexdigest() in detail
     assert "E0203504" in detail
     assert "49,90" in detail
-    assert "Arbeitsmittel (Art &amp; Anschaffung)" in detail
+    assert "einfache Entfernung in Kilometern" in detail
     assert 'id="id-N-Werbungskosten-Fahrten-E0203503_usb1_1-1-1"' in detail
     assert "01.03.2026" in detail
     overview = client.get("/steuerjahr").text
