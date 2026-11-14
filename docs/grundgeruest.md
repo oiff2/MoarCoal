@@ -418,7 +418,8 @@ Quellen: [Claude als Baustein](https://github.com/oiff2/MoarCoal/issues/7), [ADR
 Quelle: [Sensible Werte](https://github.com/oiff2/MoarCoal/issues/14).
 
 - Felder werden am Pydantic-Modell als `Sensitive[str]` markiert, einmal je Feldtyp. Bei Ausstellern nur, wenn sie Privatperson sind. Der Name des Nutzers kommt nur so hinein: über den Aussteller, den die Angaben zur Person erzeugen (Abschnitt 3.2).
-- Die Datenebene schreibt daraus `common/derived-denylist.txt`: ganze Werte ab 6 Zeichen, bei Namen und Anschriften zusätzlich Teile ab 6 Zeichen. `tools/privacy_guard.py` liest sie neben der handgepflegten Sperrliste, ohne Modelle zu importieren; fehlt sie, gilt nur die handgepflegte, ohne Fehler.
+- Die Datenebene schreibt daraus `common/derived-denylist.txt`: ganze Werte ab 6 Zeichen, bei Namen und Anschriften zusätzlich Teile ab 6 Zeichen (kein Wörterbuch, [#123](https://github.com/oiff2/MoarCoal/issues/123)). `tools/privacy_guard.py` liest sie neben der handgepflegten Sperrliste, ohne Modelle zu importieren; fehlt sie, gilt nur die handgepflegte, ohne Fehler.
+- Regel: Ein Wert der Sperrliste trifft nur an Wortgrenzen, ohne Groß-/Kleinschreibung; Leerraum zählt nicht. `tools/erlaubte_beispielwerte.txt` gilt auch für Treffer der Sperrliste. Die Meldung nennt die Quelle (persönliche oder abgeleitete Sperrliste), nie den Wert.
 - Gilt für git, GitHub und das Protokoll der App (dort maskiert), nicht für Claude.
 
 ## 9. Glossar und Testkern

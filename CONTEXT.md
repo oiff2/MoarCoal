@@ -284,5 +284,5 @@ Eigenschaft eines Felds (nicht eines einzelnen Inhalts): sein Inhalt sind echte 
 _Avoid_: geheim, vertraulich, privat
 
 **Sperrliste**:
-Die Werte, die die Datenschutz-Prüfung vor git und GitHub abfängt: von Hand gepflegt oder aus den sensiblen Feldern der gespeicherten Daten abgeleitet.
+Die Werte, die die Datenschutz-Prüfung vor git und GitHub abfängt: von Hand gepflegt oder aus den sensiblen Feldern der gespeicherten Daten abgeleitet. Ein Wert trifft nur an Wortgrenzen (ohne Groß-/Kleinschreibung, Leerraum zählt nicht); die Meldung nennt die Quelle, nie den Wert.
 _Avoid_: Denylist, Blacklist, Filterliste
