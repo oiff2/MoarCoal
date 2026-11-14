@@ -9,7 +9,9 @@ Modes:
 Checks: local denylist (outside the repo, plus the one the app derives into its data
 directory), IBAN with mod-97 checksum,
 Steuer-ID with ISO 7064 check digit, Steuernummer in slash format, e-mail
-addresses outside example domains. Values in the repo allowlist pass.
+addresses outside example domains. Denylist values match at word boundaries only.
+Values in the repo allowlist pass,
+also when they hit the denylist.
 """
 
 from __future__ import annotations
@@ -96,7 +98,17 @@ def steuer_id_valid(raw: str) -> bool:
     return check == int(tin[10])
 
 
-def scan(text: str, where: str, allow: list[str], deny: list[str]) -> list[Finding]:
+def denylist_pattern(value: str) -> re.Pattern[str]:
+    """Trifft den Wert nur an Wortgrenzen, ohne Groß-/Kleinschreibung und Leerzeichen."""
+    chars = r"\s*".join(re.escape(c) for c in value if not c.isspace())
+    return re.compile(rf"(?<!\w){chars}(?!\w)", re.IGNORECASE)
+
+
+def tagged(path: Path, source: str) -> list[tuple[str, str]]:
+    return [(v, source) for v in load_values(path)]
+
+
+def scan(text: str, where: str, allow: list[str], deny: list[tuple[str, str]]) -> list[Finding]:
     allowed = {normalize(v) for v in allow}
     findings: list[Finding] = []
 
@@ -104,10 +116,11 @@ def scan(text: str, where: str, allow: list[str], deny: list[str]) -> list[Findi
         if normalize(value) not in allowed:
             findings.append(Finding(kind, value, where))
 
-    flat = normalize(text)
-    for value in deny:
-        if normalize(value) in flat:
-            findings.append(Finding("Sperrliste", "<Wert aus Sperrliste>", where))
+    for value, source in deny:
+        for m in denylist_pattern(value).finditer(text):
+            if normalize(m.group()) not in allowed and normalize(value) not in allowed:
+                findings.append(Finding("Sperrliste", f"<Wert aus {source}>", where))
+                break
     for m in IBAN_RE.finditer(text):
         if iban_valid(m.group()):
             add("IBAN", m.group())
@@ -172,7 +185,9 @@ def report(findings: list[Finding]) -> None:
 
 def main(argv: list[str]) -> int:
     allow = load_values(ALLOWLIST_PATH)
-    deny = load_values(DENYLIST_PATH) + load_values(derived_denylist_path())
+    deny = tagged(DENYLIST_PATH, "persönlicher Sperrliste") + tagged(
+        derived_denylist_path(), "abgeleiteter Sperrliste"
+    )
     mode = argv[1] if len(argv) > 1 else ""
     findings: list[Finding] = []
 
