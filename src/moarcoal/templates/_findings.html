@@ -1,11 +1,12 @@
 {#- Gemeinsame Anzeige von Befunden: Schweregrad, Text, Link zur Stelle.
     Mit `year` bekommt jeder Befund ein Formular „Ausblenden“; `earlier` nennt frühere Ausblendungen,
     `error` den Befund (Art, Ziel) mit fehlender Notiz und `note` die eingegebene Notiz. -#}
+{% from "_status.html" import severity %}
 {% macro finding_list(findings, year=none, earlier={}, error=none, note="") %}
 <ul class="befunde">
   {% for finding in findings %}
-  <li class="schweregrad-{{ finding.severity.name | lower }}">
-    <strong>{{ finding.severity.value }}</strong>
+  <li>
+    {{ severity(finding.severity) }}
     {% if finding.href %}<a href="{{ finding.href }}">{{ finding.message }}</a>{% else %}{{ finding.message }}{% endif %}
     {% set before = earlier.get(finding.identity) %}
     {% if before %}<br><em>war ausgeblendet: {{ before.note }} ({{ before.noted_on.strftime("%d.%m.%Y") }})</em>{% endif %}
@@ -29,8 +30,8 @@
 {% macro hidden_list(hidden, year) %}
 <ul class="befunde">
   {% for item in hidden %}
-  <li class="schweregrad-{{ item.finding.severity.name | lower }}">
-    <strong>{{ item.finding.severity.value }}</strong>
+  <li>
+    {{ severity(item.finding.severity) }}
     {% if item.finding.href %}<a href="{{ item.finding.href }}">{{ item.finding.message }}</a>{% else %}{{ item.finding.message }}{% endif %}
     <br><em>ausgeblendet: {{ item.dismissal.note }} ({{ item.dismissal.noted_on.strftime("%d.%m.%Y") }})</em>
     <form method="post" action="/befunde/einblenden">

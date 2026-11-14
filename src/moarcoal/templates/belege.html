@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_issuer_field.html" import issuer_field %}
+{% from "_status.html" import file_type %}
 {% from "_belege.html" import tabs, preview, rejection %}
 {% from "documents/_detail.html" import document_detail %}
 {% block title %}Belege – MoarCoal{% endblock %}
@@ -22,6 +23,7 @@
 {% set file = row.file %}
 {% set doc = row.document %}
 <div class="datei" title="{{ file.site }}/{{ file.path }}">
+  {{ file_type(file.path) }}
   <a class="name" href="/belege?stand={{ intake_filter }}&datei={{ file.sha256 }}"{% if selected and selected.file.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
   <span class="groesse">{{ size(file) }}</span>
   {% if doc %}
@@ -112,6 +114,7 @@
     {% endfor %}
     {% for row in hidden_files %}{% set entry, file = row.entry, row.file %}
     <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
+      {{ file_type(entry.path) }}
       <a class="name" href="/belege?stand={{ intake_filter }}&datei={{ entry.sha256 }}"{% if selected_hidden and selected_hidden.entry.sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a>
       {% if file %}<span class="groesse">{{ size(file) }}</span>{% endif %}
       <span class="stand">ausgeblendet</span>

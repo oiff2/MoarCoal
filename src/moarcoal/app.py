@@ -21,6 +21,7 @@ from moarcoal.issuer_pages import router as issuer_router
 from moarcoal.modules import MODULES
 from moarcoal.person_pages import router as person_router
 from moarcoal.place_search import NominatimSearch, PlaceSearch
+from moarcoal.previews import preview_kind
 from moarcoal.registration import ModuleRegistration
 from moarcoal.security import SecurityMiddleware
 from moarcoal.site_pages import moved_router
@@ -73,6 +74,7 @@ def create_app(
     environment.filters["eur"] = format_eur
     environment.filters["amount"] = format_amount
     globals_: dict[str, Any] = environment.globals  # pyright: ignore[reportAssignmentType]
+    globals_["preview_kind"] = preview_kind
     globals_["entry_url"] = lambda address: entry_url(app.state.modules, address)  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
     app.state.templates = Jinja2Templates(env=environment)
     app.state.modules = tuple(modules)

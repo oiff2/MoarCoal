@@ -1,4 +1,4 @@
-<!doctype html>
+{% from "_status.html" import severity as status_severity %}<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8">
@@ -33,7 +33,7 @@
     {% set summary = findings_summary() %}
     {% set plural = {"Fehler": "Fehler", "Warnung": "Warnungen", "Hinweis": "Hinweise"} %}
     <a class="befunde-kopf" href="/befunde?year={{ summary.year }}" title="Befunde {{ summary.year }}{% if summary.top %}: {{ summary.top.message }}{% endif %}">
-      {% for severity, n in summary.counts.items() if n %}<span class="schweregrad-{{ severity.name | lower }}">{{ n }} {{ severity.value if n == 1 else plural[severity.value] }}</span>{% else %}<span class="keine">Keine Befunde</span>{% endfor %}
+      {% for severity, n in summary.counts.items() if n %}{{ status_severity(severity, n ~ " " ~ (severity.value if n == 1 else plural[severity.value])) }}{% else %}<span class="keine">Keine Befunde</span>{% endfor %}
       {% if summary.top %}<span class="wichtigster">{{ summary.top.message }}</span>{% endif %}
     </a>
     <button type="button" class="darstellung" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">{% include "icons/sonne.svg" %}</button>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_status.html" import file_type %}
 {% from "_belege.html" import tabs, preview, rejection %}
 {% from "documents/_detail.html" import document_detail %}
 {% block title %}Belege – Dokumente – MoarCoal{% endblock %}
@@ -36,6 +37,7 @@
   <p>{{ documents | length }} Dokumente</p>
   {% for doc in documents %}
   <div class="datei" title="{{ doc.site }}/{{ doc.path }}">
+    {{ file_type(doc.path) }}
     <a class="name" href="/belege/dokumente?{{ base ~ '&' if base }}dokument={{ doc.id }}"{% if selected and selected.id == doc.id %} aria-current="true"{% endif %}>{{ doc.path.rsplit("/", 1)[-1] }}</a>
     <span class="stand">{{ states[doc.id] }}</span>
     <span class="art">{{ kind_titles.get(doc.document_kind, doc.document_kind or "") }}{% if doc.period_start %}, {{ doc.period_start.year }}{% endif %}</span>
