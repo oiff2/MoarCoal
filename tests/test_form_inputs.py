@@ -192,7 +192,7 @@ def test_company_car_takes_only_the_choices_and_stays_unanswered_by_default(tmp_
     client = make_client(tmp_path)
     page = client.get("/steuerjahr/anlage-n/2025/15").text
     assert "noch nicht angegeben" in page and '<option value="Ja"' in page
-    assert " selected" not in page
+    assert " selected" not in page.split("<main>", 1)[1]
 
     client.post(CAR, data={"content": "Vielleicht"}, headers=ORIGIN)
     assert stored(tmp_path) == {}

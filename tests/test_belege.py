@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import httpx
@@ -21,6 +22,7 @@ from moarcoal.incoming import (
 )
 from moarcoal.links import document_url
 from moarcoal.modules.tax_year import REGISTRATION
+from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import (
     Applied,
@@ -49,6 +51,14 @@ def site(tmp_path: Path) -> Path:
 @pytest.fixture
 def root(tmp_path: Path) -> Path:
     return tmp_path / "daten"
+
+
+def belege_count(page: str) -> int:
+    """Der Zähler am Eintrag „Belege“ der Seitenleiste (0 ohne Zähler)."""
+    side = page.split("<aside", 1)[1].split("</aside>", 1)[0]
+    entry = side.split('href="/belege"', 1)[1].split("</a>", 1)[0]
+    found = re.search(r'<b class="anzahl">(\d+)</b>', entry)
+    return 0 if found is None else int(found.group(1))
 
 
 def make_client(root: Path, site: Path, user: str = "anna") -> httpx.Client:
@@ -369,7 +379,7 @@ def test_year_input_is_hidden_for_kinds_without_period(root: Path, site: Path) -
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = make_app(PORT, root, [REGISTRATION, demo], user="anna")
+    app = make_app(PORT, root, [REGISTRATION, WORK, demo], user="anna")
     client = TestClient(app, base_url=f"http://127.0.0.1:{PORT}")
     page = main_of(client, f"/belege?datei={SHA}")
     assert '<option value="demo.contract" data-ohne-zeitraum>' in page
@@ -434,7 +444,7 @@ def test_each_file_has_one_place_hidden_ones_are_not_in_the_tree_or_counters(
     assert page.count("2025/protokoll.html") == 1  # nur im Abschnitt, mit Pfad
     assert '<span class="name">protokoll.html' not in page
     assert '<span class="zaehler">1</span>' in page  # nur lose.txt zählt
-    assert 'href="/belege">Belege (1)</a>' in client.get("/").text
+    assert belege_count(client.get("/").text) == 1
 
 
 def test_taken_in_file_hidden_by_someone_else_stays_in_the_tree_only(
@@ -452,10 +462,10 @@ def test_taken_in_file_hidden_by_someone_else_stays_in_the_tree_only(
 def test_navigation_counter_counts_open_files_per_user(root: Path, site: Path) -> None:
     (site / "lose.txt").write_text("lose", encoding="utf-8")
     anna = make_client(root, site, "anna")
-    assert 'href="/belege">Belege (2)</a>' in anna.get("/").text
+    assert belege_count(anna.get("/").text) == 2
     take(anna)
-    assert 'href="/belege">Belege (1)</a>' in anna.get("/").text
-    assert 'href="/belege">Belege (2)</a>' in make_client(root, site, "ben").get("/").text
+    assert belege_count(anna.get("/").text) == 1
+    assert belege_count(make_client(root, site, "ben").get("/").text) == 2
 
 
 def test_tabs_point_to_existing_pages(root: Path, site: Path) -> None:
@@ -562,7 +572,7 @@ def test_hiding_a_folder_takes_its_content_with_it_also_later_files(root: Path, 
     assert "auszug.txt" not in page and "neu.txt" not in page
     assert "Ausgeblendet (1)" in page and "2024/</span>" in page
     assert "3 Dateien" in page  # der Ordner ist eine Zeile mit Zahl
-    assert 'href="/belege">Belege (2)</a>' in client.get("/").text
+    assert belege_count(client.get("/").text) == 2
     assert hide_directly(client, site="Belege", path="2024").status_code == 303  # nochmal: nichts
     assert len(hidden_folders_of(root, site)) == 1
 
