@@ -206,7 +206,7 @@ def test_equipment_this_year_gives_no_note() -> None:
 def test_year_without_equipment_shows_zero(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     client.post("/arbeit/erste-taetigkeitsstaette", data=WORKPLACE, headers=ORIGIN)
-    page = client.get("/arbeit").text
+    page = client.get("/arbeit").text.split("<h2>Dienstreisen</h2>")[0]
     assert "noch nicht berechenbar" not in page
     assert "keine Arbeitsmittel erfasst" in page
     client.post("/arbeit/arbeitsmittel", data=EQUIPMENT, headers=ORIGIN)

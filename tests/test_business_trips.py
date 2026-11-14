@@ -473,3 +473,40 @@ def test_trip_days_without_trips_need_the_confirmation() -> None:
     result = value("work.trip_days", [confirmation([])])
 
     assert isinstance(result, ExposedValue) and result.amount == Amount.of(0, Unit.DAYS)
+
+
+def year_links(page: str) -> list[int]:
+    nav = page.split('<nav class="liste"', 1)[1].split("</nav>", 1)[0]
+    return [int(y) for y in re.findall(r'href="/arbeit\?jahr=(\d+)"', nav)]
+
+
+def post_trip(client: httpx.Client, year: int) -> None:
+    data = {"zeilen": "1", "start-0": f"03.02.{year}", "orte-0": "A → B → A", "km-0": "9"}
+    client.post(f"/arbeit/dienstreisen/{year}", data=data, headers=ORIGIN)
+
+
+def test_arbeit_selects_year_with_trip_page_on_the_right(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    page = client.get("/arbeit").text
+    assert year_links(page) == [2025]  # ohne Reisen nur das aktuelle Steuerjahr
+    assert 'aria-current="true"' in page and "Dienstreisen 2025" in page
+    assert '<form method="post" action="/arbeit/dienstreisen/2025"' in page
+    assert "<script>" not in page and " style=" not in page
+    post_trip(client, 2023)
+    page = client.get("/arbeit").text
+    assert year_links(page) == [2025, 2023]
+    assert "Dienstreisen 2025" in page  # ohne Auswahl das neueste Jahr
+    chosen = client.get("/arbeit?jahr=2023").text
+    assert "Dienstreisen 2023" in chosen and 'action="/arbeit/dienstreisen/2023"' in chosen
+    assert "Dienstreisen 2025" not in chosen
+    assert "Dienstreisen 2025" in client.get("/arbeit?jahr=abc").text
+    assert "Dienstreisen 2023" in client.get("/arbeit/dienstreisen/2023").text
+
+
+def test_year_selection_has_at_most_ten_years_newest_first(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    for year in range(2010, 2022):
+        post_trip(client, year)
+    years = year_links(client.get("/arbeit").text)
+    assert years == [2025, *range(2021, 2012, -1)]
+    assert year_links(client.get("/arbeit/dienstreisen/2025").text) == years

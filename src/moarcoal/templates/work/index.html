@@ -19,8 +19,7 @@
 {% endfor %}
 
 <h2>Dienstreisen</h2>
-<p>Fahrten mit dem privaten Pkw, je Steuerjahr eine Tabelle:
-  {% for year in trip_years %}<a href="/arbeit/dienstreisen/{{ year }}">{{ year }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+{% include "work/_trip_select.html" %}
 
 <h2>Erste Tätigkeitsstätte</h2>
 {% if workplaces %}

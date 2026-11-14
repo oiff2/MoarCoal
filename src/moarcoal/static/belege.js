@@ -1,4 +1,4 @@
-// Belege: Pfeiltasten wechseln die Datei der Liste, Enter springt ins Formular.
+// Belege und Arbeit: Pfeiltasten wechseln die Datei der Liste, Enter springt ins Formular.
 document.addEventListener("keydown", (event) => {
   if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
   const target = event.target;
@@ -13,7 +13,9 @@ document.addEventListener("keydown", (event) => {
   }
   const step = { ArrowDown: 1, ArrowUp: -1 }[event.key];
   if (step === undefined) return;
-  const links = [...document.querySelectorAll(".baum a.name")].filter((a) => a.offsetParent !== null);
+  // Auf einer Seite zum Scrollen (Arbeit) wechseln die Pfeiltasten nur, wenn die Liste den Fokus hat.
+  if (!document.querySelector(".baum") && !(target instanceof Element && target.closest(".liste"))) return;
+  const links = [...document.querySelectorAll(".baum a.name, .liste a.name")].filter((a) => a.offsetParent !== null);
   const at = links.findIndex((a) => a.hasAttribute("aria-current"));
   const next = links[at === -1 ? (step > 0 ? 0 : links.length - 1) : at + step];
   if (next instanceof HTMLAnchorElement) {

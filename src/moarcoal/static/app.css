@@ -49,6 +49,8 @@ button.auge svg { display: block; }
 .vorschau iframe { width: 100%; height: 100%; border: 0; }
 .vorschau img { max-width: 100%; }
 .ausgeblendet { margin-top: 1rem; }
+/* Arbeit, Dienstreisen: dieselbe Aufteilung, die Liste links nur eine schmale Leiste */
+.arbeit.schmal { grid-template-columns: 6rem minmax(0, 1fr); align-items: start; }
 
 /* Belege: das Jahr nur bei Dokumentarten mit Bezugszeitraum */
 form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }

@@ -1,0 +1,9 @@
+<div class="arbeit schmal">
+  <nav class="liste" aria-label="Steuerjahre">
+    {% for y in trip_years %}<div class="datei"><a class="name" href="/arbeit?jahr={{ y }}"{% if y == year %} aria-current="true"{% endif %}>{{ y }}</a></div>{% endfor %}
+  </nav>
+  <div class="rechts">
+    {% include "work/_trips.html" %}
+  </div>
+</div>
+<script src="/static/belege.js" defer></script>

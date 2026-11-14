@@ -16,6 +16,7 @@ from moarcoal.storage import Entry, EntryAddress, EntryKind, entry_checksum, ent
 from moarcoal.values.findings import fingerprint
 
 SCHEMA = "work/1"
+MODULE_KEY = "work"
 MIN_YEAR = 2000
 MAX_YEAR = 2100
 MAX_CENTS = 100_000_000

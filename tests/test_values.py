@@ -311,7 +311,8 @@ def test_page_shows_values_with_workings_and_backing(tmp_path: Path) -> None:
 
 
 def test_page_without_entries_shows_no_value_section(tmp_path: Path) -> None:
-    assert "Ausgewiesene Werte" not in make_client(tmp_path).get("/arbeit").text
+    page = make_client(tmp_path).get("/arbeit").text
+    assert "Ausgewiesene Werte" not in page.split("<h2>Dienstreisen</h2>")[0]
 
 
 # --- Doppelte Fundstellen -----------------------------------------------------------------------

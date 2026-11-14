@@ -2,22 +2,18 @@
 
 import datetime
 from collections.abc import Sequence
-from dataclasses import dataclass
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
-from moarcoal.links import document_url
 from moarcoal.modules.work.entries import (
     MAX_YEAR,
     MIN_YEAR,
-    BusinessTrip,
-    TripsConfirmation,
+    MODULE_KEY,
     trips_fingerprint,
 )
 from moarcoal.modules.work.germany_map import germany_map
-from moarcoal.modules.work.pages import MODULE_KEY
 from moarcoal.modules.work.places import (
     Place,
     PlaceError,
@@ -25,83 +21,35 @@ from moarcoal.modules.work.places import (
     hide_changes,
     locate_changes,
     place_uses,
-    sort_places,
 )
-from moarcoal.modules.work.trip_reading import (
-    IGNORED,
-    proposed_trips,
-    statements,
-    take_over_changes,
+from moarcoal.modules.work.trip_reading import statements, take_over_changes
+from moarcoal.modules.work.trip_view import (
+    PlaceSearchView,
+    confirmations_of,
+    places_of,
+    trips_context,
+    trips_of,
 )
 from moarcoal.modules.work.trips import (
-    KM_RATES,
     TripRow,
     TripTableError,
     confirm_changes,
     current_confirmation,
-    place_prefill,
     plan_changes,
     rows_from_form,
-    sorted_trips,
 )
-from moarcoal.modules.work.values import TRAVEL_FARE, TRAVEL_TOTAL
-from moarcoal.place_search import PlaceHit, PlaceSearch, PlaceSearchError
+from moarcoal.place_search import PlaceSearch, PlaceSearchError
 from moarcoal.proposals import proposals_of
 from moarcoal.storage import Applied, Change, Delete, Proposal, entry_checksum
-from moarcoal.values.model import Period
-from moarcoal.web import form_fields, module_state, render, store_of, user_of, values_of
+from moarcoal.web import form_fields, module_state, render, store_of, user_of
 
 router = APIRouter(prefix="/arbeit/dienstreisen")
-
-
-@dataclass(frozen=True)
-class PlaceSearchView:
-    """Ergebnis einer Ortssuche auf Klick, nur zum Anzeigen: nichts davon ist gespeichert."""
-
-    place: str
-    text: str
-    hits: list[PlaceHit]
-    message: str = ""
 
 
 def _year(year: int) -> int:
     if not MIN_YEAR <= year <= MAX_YEAR:
         raise HTTPException(404)
     return year
-
-
-def _trips(request: Request, year: int) -> list[BusinessTrip]:
-    state = module_state(request, MODULE_KEY)
-    return sorted_trips([t for t in state.all(BusinessTrip) if t.year == year])
-
-
-def _places(request: Request) -> list[Place]:
-    return module_state(request, MODULE_KEY).all(Place)
-
-
-def _confirmations(request: Request, year: int) -> list[TripsConfirmation]:
-    state = module_state(request, MODULE_KEY)
-    return [c for c in state.all(TripsConfirmation) if c.year == year]
-
-
-def _statements(request: Request, year: int, trips: Sequence[BusinessTrip]) -> list[dict[str, Any]]:
-    """Je Reiseaufstellung des Jahrs ihr neuester Vorschlag als Tabelle (oder noch keiner)."""
-    state = module_state(request, MODULE_KEY)
-    found: list[dict[str, Any]] = []
-    for document in statements(state.documents(), year):
-        history = proposals_of(store_of(request).state(), document)
-        proposal = history[-1] if history else None
-        found.append(
-            {
-                "document": document,
-                "url": document_url(document.id),
-                "proposal": proposal,
-                "checksum": entry_checksum(proposal) if proposal else "",
-                "trips": [] if proposal is None else proposed_trips(proposal, year, trips),
-                "ignored": None if proposal is None else proposal.fields.get(IGNORED),
-            }
-        )
-    return found
 
 
 def _page(
@@ -114,37 +62,8 @@ def _page(
     problems: dict[int, str] | None = None,
     search: PlaceSearchView | None = None,
 ) -> HTMLResponse:
-    trips = _trips(request, year)
-    confirmations = _confirmations(request, year)
-    rate = KM_RATES.get(year)
-    if rows is None:
-        rows = [TripRow.from_trip(t, rate) for t in trips]
-        rows.append(TripRow(places=place_prefill(trips)))
-    period = Period.year(year)
-    values = values_of(request)
-    user = user_of(request)
-    return render(
-        request,
-        "work/trips.html",
-        status_code,
-        year=year,
-        rows=rows,
-        error=error,
-        trip_count=len(trips),
-        total_km=sum(t.distance_km for t in trips),
-        rate=rate,
-        confirmation=current_confirmation(confirmations, trips),
-        stand=trips_fingerprint(trips),
-        fare=values.get(TRAVEL_FARE, user, period),
-        total=values.get(TRAVEL_TOTAL, user, period),
-        statements=_statements(request, year, trips),
-        germany=germany_map(),
-        map_places=sort_places(place_uses(trips), _places(request), germany_map()),
-        search=search,
-        problems=problems or {},
-        min_date=f"{year}-01-01",
-        max_date=f"{year}-12-31",
-    )
+    context = trips_context(request, year, rows=rows, error=error, problems=problems, search=search)
+    return render(request, "work/trips.html", status_code, **context)
 
 
 def _apply(request: Request, year: int, changes: Sequence[Change]) -> Response:
@@ -166,7 +85,7 @@ def save(
     year = _year(year)
     rows = rows_from_form(fields)
     try:
-        changes = plan_changes(rows, year, user_of(request), _trips(request, year))
+        changes = plan_changes(rows, year, user_of(request), trips_of(request, year))
     except TripTableError as error:
         return _page(request, year, rows=rows, error=str(error), status_code=422)
     if not changes:
@@ -179,14 +98,14 @@ def confirm(
     request: Request, year: int, fields: Annotated[dict[str, str], Depends(form_fields)]
 ) -> Response:
     year = _year(year)
-    trips = _trips(request, year)
+    trips = trips_of(request, year)
     if fields.get("stand", "") != trips_fingerprint(trips):
         error = (
             "Die Dienstreisen haben sich inzwischen geändert; bitte prüfen und erneut bestätigen."
         )
         return _page(request, year, error=error, status_code=409)
     changes = confirm_changes(
-        _confirmations(request, year), trips, year, user_of(request), datetime.date.today()
+        confirmations_of(request, year), trips, year, user_of(request), datetime.date.today()
     )
     return _apply(request, year, changes)
 
@@ -194,7 +113,7 @@ def confirm(
 @router.post("/{year}/vollstaendig/aufheben")
 def withdraw(request: Request, year: int) -> Response:
     year = _year(year)
-    confirmation = current_confirmation(_confirmations(request, year), _trips(request, year))
+    confirmation = current_confirmation(confirmations_of(request, year), trips_of(request, year))
     if confirmation is None:
         return RedirectResponse(f"/arbeit/dienstreisen/{year}", status_code=303)
     return _apply(request, year, [Delete(confirmation.address, entry_checksum(confirmation))])
@@ -229,7 +148,7 @@ def take_over(
         year,
         selected,
         user_of(request),
-        _trips(request, year),
+        trips_of(request, year),
         fields.get("pruefsumme", ""),
     )
     if not changes:
@@ -257,13 +176,13 @@ def delete_proposal(
 def _known_place(request: Request, year: int, name: str) -> str:
     """Der Ortsname, wenn eine Reise des Jahrs ihn nennt, sonst 404."""
     name = name.strip()
-    if name not in {use.name for use in place_uses(_trips(request, year))}:
+    if name not in {use.name for use in place_uses(trips_of(request, year))}:
         raise HTTPException(404)
     return name
 
 
 def _stored(request: Request, name: str) -> Place | None:
-    return next((p for p in _places(request) if p.name == name), None)
+    return next((p for p in places_of(request) if p.name == name), None)
 
 
 @router.post("/{year}/orte/suche")

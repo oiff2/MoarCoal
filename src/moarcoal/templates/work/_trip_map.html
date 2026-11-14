@@ -5,7 +5,7 @@
 </form>
 {%- endmacro %}
 <section class="karte" id="karte">
-  <h2>Karte der Orte</h2>
+  <h3>Karte der Orte</h3>
   <p>
     {{ map_places.points | length }} {{ "Ort" if map_places.points | length == 1 else "Orte" }} auf der Karte{% if map_places.unplaced %}, {{ map_places.unplaced | length }} ohne Lage{% endif %}.
     <span class="legende"><svg viewBox="-11 -11 22 22" aria-hidden="true"><path class="marke start" d="M0 -10L10 0L0 10L-10 0Z"/></svg> Startort (S)
@@ -25,7 +25,7 @@
   </svg>
 
   {% if map_places.unplaced %}
-  <h3 id="ohne-lage">Ohne Lage ({{ map_places.unplaced | length }})</h3>
+  <h4 id="ohne-lage">Ohne Lage ({{ map_places.unplaced | length }})</h4>
   <p>„Suchen“ fragt bei OpenStreetMap (Nominatim) nur nach dem Text im Feld, und nur auf diesen Klick. Die gewählte Lage gilt für alle Jahre.</p>
   <ul class="orte">
     {% for use in map_places.unplaced %}

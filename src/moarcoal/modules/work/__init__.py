@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from moarcoal.documents import DocumentKind
 from moarcoal.modules.work.entries import (
     KINDS,
+    MODULE_KEY,
     BusinessTrip,
     FirstWorkplace,
     TripsConfirmation,
@@ -12,7 +13,7 @@ from moarcoal.modules.work.entries import (
     WageTaxCertificate,
     WorkEquipment,
 )
-from moarcoal.modules.work.pages import MODULE_KEY, entry_url
+from moarcoal.modules.work.pages import entry_url
 from moarcoal.modules.work.pages import router as pages_router
 from moarcoal.modules.work.places import PLACE_KINDS, Place
 from moarcoal.modules.work.reading import TITLE, read_in_wage_tax_certificate
