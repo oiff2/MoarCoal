@@ -9,33 +9,19 @@ from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.document_list import document_detail, read_document_choice
 from moarcoal.documents import IntakeRejected, take_in
 from moarcoal.incoming import (
-    STANDS,
-    ablage_rows,
-    ablage_tree,
+    IntakeFilter,
+    SiteListing,
     all_site_files,
     folder_path_error,
-    hidden_files,
-    hidden_folders,
-    hidden_section,
     hide_file,
     hide_folder,
-    in_hidden_folder,
-    incoming_files,
     next_open,
-    show_file,
-    show_folder,
+    site_listing,
+    unhide,
 )
 from moarcoal.prefill import Prefill, prefill_from_name
 from moarcoal.previews import file_response, preview_kind
-from moarcoal.storage import (
-    Applied,
-    Document,
-    HiddenFile,
-    HiddenFolder,
-    Issuer,
-    SiteFile,
-    entry_checksum,
-)
+from moarcoal.storage import Applied, HiddenFile, HiddenFolder, Issuer
 from moarcoal.web import (
     document_kinds,
     entry_url,
@@ -55,38 +41,29 @@ GONE = "Die Datei ist nicht mehr in der Ablage."
 """Meldung, wenn die gewählte Datei nicht mehr offen ist (aufgenommen, ausgeblendet, fort)."""
 
 
-def _waiting(request: Request) -> list[SiteFile]:
+def _listing(request: Request) -> SiteListing:
     store = store_of(request)
-    return incoming_files(all_site_files(store), store.state(), user_of(request))
+    return site_listing(store, store.state(), user_of(request))
 
 
 def _page(
     request: Request,
+    listing: SiteListing | None = None,
     status_code: int = 200,
     notice: str = "",
-    errors: dict[str, list[str]] | None = None,
-    values: Fields | None = None,
-    stand: str = "offen",
+    *,
+    intake_filter: IntakeFilter = IntakeFilter.OPEN,
     selected: str = "",
-    existing: Document | None = None,
+    rejected: IntakeRejected | None = None,
+    values: Fields | None = None,
 ) -> HTMLResponse:
     """`selected` ist die SHA-256 der gewählten Datei (der Ablage oder der Ausgeblendeten);
-    `errors` und `values` gehören zu ihr (Formular rechts) und bleiben dort stehen."""
+    `rejected` und `values` gehören zu ihr (Formular rechts) und bleiben dort stehen."""
+    listing = listing or _listing(request)
     store = store_of(request)
     state = store.state()
-    rows = ablage_rows(all_site_files(store), state, user_of(request))
-    chosen = next((r for r in rows if r.file.sha256 == selected), None)
-    site_files = all_site_files(store)
-    files = {f.sha256: f for f in site_files}
-    hidden = [
-        (h, entry_checksum(h), files.get(h.sha256))
-        for h in hidden_section(hidden_files(state), rows)
-    ]
-    hidden_chosen = next((h for h in hidden if h[0].sha256 == selected), None)
-    hidden_dirs = [
-        (h, entry_checksum(h), sum(1 for f in site_files if in_hidden_folder(f, [h])))
-        for h in hidden_folders(state)
-    ]
+    chosen = listing.row(selected)
+    hidden_chosen = listing.hidden_file(selected)
     kinds = document_kinds(request)
     # Vorbelegen nur für eine offene Datei und nur, solange keine abgewiesene Eingabe dasteht
     suggestion = (
@@ -94,51 +71,38 @@ def _page(
         if chosen and chosen.document is None and not values
         else Prefill()
     )
-    shown = chosen.file if chosen else hidden_chosen[0] if hidden_chosen else None
-    preview_url = ""
-    if chosen:
-        preview_url = (
-            f"/dokumente/{chosen.document.id}/datei"
-            if chosen.document
-            else f"/belege/datei/{chosen.file.sha256}"
-        )
-    elif hidden_chosen and hidden_chosen[2]:  # ohne Datei im Ablageort keine Vorschau
-        preview_url = f"/belege/datei/{hidden_chosen[0].sha256}"
+    shown = chosen or hidden_chosen
+    preview_url = shown.preview_url if shown else ""
     return render(
         request,
         "belege.html",
         status_code,
-        tree=ablage_tree(rows, store.site_names(), stand),
+        open_files=len(listing.open_files()),
+        tree=listing.tree(intake_filter),
         selected=chosen,
         detail=document_detail(request, chosen.document) if chosen and chosen.document else None,
         selected_hidden=hidden_chosen,
         preview_kind=preview_kind(shown.path) if shown and preview_url else None,
         preview_url=preview_url,
         suggestion=suggestion,
-        stand=stand,
-        stands=STANDS,
+        intake_filter=intake_filter,
+        intake_filters=list(IntakeFilter),
         kinds=list(kinds.values()),
-        hidden=hidden,
-        hidden_dirs=hidden_dirs,
-        sites=store.site_names(),
+        hidden_files=listing.hidden_files,
+        hidden_folders=listing.hidden_folders,
+        sites=listing.sites,
         issuer_names={i.id: i.name for i in state.of_kind(Issuer)},
         default_year=DEFAULT_YEAR,
         notice=notice,
-        errors=errors or {},
+        errors={selected: list(rejected.reasons)} if rejected else {},
         values=values or {},
-        existing=existing,
+        existing=rejected.existing if rejected else None,
     )
 
 
-def _find(request: Request, sha256: str) -> SiteFile | None:
-    return next((f for f in _waiting(request) if f.sha256 == sha256), None)
-
-
-def _after(request: Request, sha256: str) -> RedirectResponse | None:
+def _after(listing: SiteListing, sha256: str) -> RedirectResponse | None:
     """Weiter zur nächsten offenen Datei nach `sha256`; ohne weitere `None`."""
-    store = store_of(request)
-    rows = ablage_rows(all_site_files(store), store.state(), user_of(request))
-    following = next_open(ablage_tree(rows, store.site_names(), "offen"), sha256)
+    following = next_open(listing.tree(IntakeFilter.OPEN), sha256)
     if following is None:
         return None
     return RedirectResponse(f"/belege?datei={following}", status_code=303)
@@ -146,7 +110,7 @@ def _after(request: Request, sha256: str) -> RedirectResponse | None:
 
 @router.get("", response_class=HTMLResponse)
 def index(request: Request, stand: str = "offen", datei: str = "") -> HTMLResponse:
-    return _page(request, stand=stand if stand in STANDS else "offen", selected=datei)
+    return _page(request, intake_filter=IntakeFilter.of(stand), selected=datei)
 
 
 @router.get("/datei/{sha256}")
@@ -161,11 +125,12 @@ def file(request: Request, sha256: str) -> Response:
 @router.post("/aufnehmen")
 def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
     sha256 = fields.get("sha256", "")
-    file = _find(request, sha256)
+    listing = _listing(request)
+    file = listing.open_file(sha256)
     if file is None:
-        return _page(request, 409, GONE)
+        return _page(request, listing, 409, GONE)
 
-    following = _after(request, sha256)
+    following = _after(listing, sha256)
     kinds = document_kinds(request)
     choice = read_document_choice(store_of(request).state(), kinds, fields)
     result = (
@@ -187,11 +152,11 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
     if isinstance(result, IntakeRejected):
         return _page(
             request,
+            listing,
             422,
-            errors={sha256: list(result.reasons)},
-            existing=result.existing,
-            values={"sha256": sha256, **fields},
             selected=sha256,
+            rejected=result,
+            values={"sha256": sha256, **fields},
         )
     modules = request.app.state.modules
     target = next((url for e in result.entries if (url := entry_url(modules, e.address))), None)
@@ -206,13 +171,14 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
 
 @router.post("/ausblenden")
 def hide(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
-    file = _find(request, fields.get("sha256", ""))
+    listing = _listing(request)
+    file = listing.open_file(fields.get("sha256", ""))
     if file is None:
-        return _page(request, 409, GONE)
-    following = _after(request, file.sha256)
+        return _page(request, listing, 409, GONE)
+    following = _after(listing, file.sha256)
     result = hide_file(store_of(request), file, fields.get("note", ""))
     if not isinstance(result, Applied):
-        return _page(request, 409, " ".join(result.reasons.values()), selected=file.sha256)
+        return _page(request, listing, 409, " ".join(result.reasons.values()), selected=file.sha256)
     return following or RedirectResponse("/belege", status_code=303)
 
 
@@ -220,52 +186,51 @@ def hide(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> R
 def hide_directly(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
     """Ein Klick in der Zeile: eine offene Datei (`sha256`) oder ein Ordner (`site` und `path`)."""
     store = store_of(request)
-    stand = fields.get("stand", "offen")
-    back = RedirectResponse(f"/belege?stand={stand if stand in STANDS else 'offen'}", 303)
+    listing = _listing(request)
+    intake_filter = IntakeFilter.of(fields.get("stand", ""))
+    back = RedirectResponse(f"/belege?stand={intake_filter}", 303)
     if "sha256" in fields:
-        file = _find(request, fields["sha256"])
+        file = listing.open_file(fields["sha256"])
         if file is None:
-            return _page(request, 409, GONE)
+            return _page(request, listing, 409, GONE)
         result = hide_file(store, file, "")
     else:
         site, path = fields.get("site", ""), fields.get("path", "")
-        if site not in store.site_names():
-            return _page(request, 409, f"Unbekannter Ablageort {site!r}.")
-        error = folder_path_error(all_site_files(store), site, path)
+        if site not in listing.sites:
+            return _page(request, listing, 409, f"Unbekannter Ablageort {site!r}.")
+        error = folder_path_error(listing.files, site, path)
         if error:
-            return _page(request, 409, error)
+            return _page(request, listing, 409, error)
         result = hide_folder(store, store.state(), site, path)
     if result is not None and not isinstance(result, Applied):
-        return _page(request, 409, " ".join(result.reasons.values()))
+        return _page(request, listing, 409, " ".join(result.reasons.values()))
     return back
+
+
+def _unhide(request: Request, hidden: HiddenFile | HiddenFolder | None, checksum: str) -> Response:
+    if hidden is None:
+        return _page(request, None, 409, "Die Ausblendung gibt es nicht mehr.")
+    result = unhide(store_of(request), hidden, checksum)
+    if not isinstance(result, Applied):
+        changed = "Die Ausblendung wurde inzwischen geändert. Bitte neu prüfen."
+        return _page(request, None, 409, changed)
+    return RedirectResponse("/belege", status_code=303)
 
 
 @router.post("/einblenden-ordner")
 def show_dir(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
-    state = store_of(request).state()
     site, path = fields.get("site", ""), fields.get("path", "")
-    hidden = next(
-        (h for h in state.of_kind(HiddenFolder) if (h.site, h.path) == (site, path)), None
-    )
-    if hidden is None:
-        return _page(request, 409, "Die Ausblendung gibt es nicht mehr.")
-    result = show_folder(store_of(request), hidden, fields.get("checksum", ""))
-    if not isinstance(result, Applied):
-        return _page(request, 409, "Die Ausblendung wurde inzwischen geändert. Bitte neu prüfen.")
-    return RedirectResponse("/belege", status_code=303)
+    folders = store_of(request).state().of_kind(HiddenFolder)
+    hidden = next((h for h in folders if (h.site, h.path) == (site, path)), None)
+    return _unhide(request, hidden, fields.get("checksum", ""))
 
 
 @router.post("/einblenden")
 def show(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
     sha256 = fields.get("sha256", "")
-    state = store_of(request).state()
-    hidden = next((h for h in state.of_kind(HiddenFile) if h.sha256 == sha256), None)
-    if hidden is None:
-        return _page(request, 409, "Die Ausblendung gibt es nicht mehr.")
-    result = show_file(store_of(request), hidden, fields.get("checksum", ""))
-    if not isinstance(result, Applied):
-        return _page(request, 409, "Die Ausblendung wurde inzwischen geändert. Bitte neu prüfen.")
-    return RedirectResponse("/belege", status_code=303)
+    files = store_of(request).state().of_kind(HiddenFile)
+    hidden = next((h for h in files if h.sha256 == sha256), None)
+    return _unhide(request, hidden, fields.get("checksum", ""))
 
 
 @moved_router.api_route("/erwartete-belege", methods=["GET", "POST"])

@@ -11,7 +11,14 @@ from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
 from moarcoal.documents import DocumentKind, IntakeRejected, take_in
-from moarcoal.incoming import ablage_rows, ablage_tree, all_site_files, hide_file, incoming_files
+from moarcoal.incoming import (
+    IntakeFilter,
+    all_site_files,
+    hide_file,
+    incoming_files,
+    site_rows,
+    site_tree,
+)
 from moarcoal.modules.tax_year import REGISTRATION
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import (
@@ -383,8 +390,8 @@ def add_files(site: Path) -> None:
 def test_tree_nests_folders_and_counts_only_open_files(root: Path, site: Path) -> None:
     add_files(site)
     store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    rows = ablage_rows(all_site_files(store), store.state(), "anna")
-    (belege,) = ablage_tree(rows, ["Belege"], "offen")
+    rows = site_rows(all_site_files(store), store.state(), "anna")
+    (belege,) = site_tree(rows, ["Belege"], IntakeFilter.OPEN)
     assert belege.waiting == 4
     assert sorted(belege.folders) == ["2024", "2025"]
     assert belege.folders["2024"].waiting == 2
@@ -397,10 +404,10 @@ def test_filters_show_taken_in_files_and_keep_open_counts(root: Path, site: Path
     client = make_client(root, site)
     take(client)
     store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    rows = ablage_rows(all_site_files(store), store.state(), "anna")
-    (taken,) = ablage_tree(rows, ["Belege"], "aufgenommen")
+    rows = site_rows(all_site_files(store), store.state(), "anna")
+    (taken,) = site_tree(rows, ["Belege"], IntakeFilter.TAKEN_IN)
     assert sorted(taken.folders) == ["2025"] and taken.waiting == 3
-    (everything,) = ablage_tree(rows, ["Belege"], "alle")
+    (everything,) = site_tree(rows, ["Belege"], IntakeFilter.ALL)
     assert sorted(everything.folders) == ["2024", "2025"]
     page = main_of(client, "/belege?stand=aufgenommen")
     assert "protokoll.html" in page and "aufgenommen" in page
@@ -546,7 +553,7 @@ def test_hiding_a_folder_takes_its_content_with_it_also_later_files(root: Path, 
     assert (entry["owner"], entry["site"], entry["path"]) == ("common", "Belege", "2024")
     (site / "2024" / "neu.txt").write_text("neu", encoding="utf-8")
     store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    rows = ablage_rows(all_site_files(store), store.state(), "anna")
+    rows = site_rows(all_site_files(store), store.state(), "anna")
     assert sorted(r.name for r in rows) == ["lose.txt", "protokoll.html"]
     assert len(incoming_files(all_site_files(store), store.state(), "anna")) == 2
     page = main_of(client, "/belege?stand=alle")

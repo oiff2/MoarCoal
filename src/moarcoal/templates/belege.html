@@ -4,16 +4,16 @@
 {% from "documents/_detail.html" import document_detail %}
 {% block title %}Belege – MoarCoal{% endblock %}
 {% macro size(file) %}{{ (file.size / 1024) | round(1) | string | replace(".", ",") }} KB{% endmacro %}
-{% macro hide_button(stand, sha256="", site="", path="") %}
+{% macro hide_button(sha256="", site="", path="") %}
 <form class="direkt" method="post" action="/belege/ausblenden-direkt">
-  <input type="hidden" name="stand" value="{{ stand }}">
+  <input type="hidden" name="stand" value="{{ intake_filter }}">
   {% if sha256 %}<input type="hidden" name="sha256" value="{{ sha256 }}">{% else %}<input type="hidden" name="site" value="{{ site }}"><input type="hidden" name="path" value="{{ path }}">{% endif %}
   <button type="submit" class="auge" title="Ausblenden" aria-label="Ausblenden"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
 </form>
 {% endmacro %}
 {% macro folder_node(folder) %}
 <details class="ordner"{% if folder.waiting or (selected and folder.contains(selected.file.sha256)) %} open{% endif %}>
-  <summary>{{ folder.name }}{% if folder.waiting %} <span class="zaehler">{{ folder.waiting }}</span>{% endif %}{% if folder.path %} {{ hide_button(stand, site=folder.site, path=folder.path) }}{% endif %}</summary>
+  <summary>{{ folder.name }}{% if folder.waiting %} <span class="zaehler">{{ folder.waiting }}</span>{% endif %}{% if folder.path %} {{ hide_button(site=folder.site, path=folder.path) }}{% endif %}</summary>
   {% for sub in folder.folders.values() %}{{ folder_node(sub) }}{% endfor %}
   {% for row in folder.rows %}{{ file_row(row) }}{% endfor %}
 </details>
@@ -22,7 +22,7 @@
 {% set file = row.file %}
 {% set doc = row.document %}
 <div class="datei" title="{{ file.site }}/{{ file.path }}">
-  <a class="name" href="/belege?stand={{ stand }}&datei={{ file.sha256 }}"{% if selected and selected.file.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
+  <a class="name" href="/belege?stand={{ intake_filter }}&datei={{ file.sha256 }}"{% if selected and selected.file.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
   <span class="groesse">{{ size(file) }}</span>
   {% if doc %}
   <span class="stand">aufgenommen</span>
@@ -30,7 +30,7 @@
   <span class="art">{% for kind in kinds if kind.key == doc.document_kind %}{{ kind.title }}{% endfor %}{% if doc.period_start %}, {{ doc.period_start.year }}{% endif %}</span>
   {% else %}
   <span class="stand">offen</span>
-  {{ hide_button(stand, sha256=file.sha256) }}
+  {{ hide_button(sha256=file.sha256) }}
   {% endif %}
 </div>
 {% endmacro %}
@@ -67,7 +67,7 @@
 {{ preview(preview_kind, preview_url, file.path) }}
 {% endmacro %}
 {% macro hidden_pane() %}
-{% set entry, checksum, file = selected_hidden %}
+{% set entry, checksum, file = selected_hidden.entry, selected_hidden.checksum, selected_hidden.file %}
 <div class="formular">
   <p class="dateiname">{{ entry.site }}/{{ entry.path }}{% if file %} ({{ size(file) }}){% endif %}</p>
   <p>Für alle Nutzer ausgeblendet, bis jemand die Datei wieder einblendet; sie zählt in keinem Zähler.{% if entry.note %} Notiz: {{ entry.note }}{% endif %}</p>
@@ -87,17 +87,17 @@
 <p class="fehler">Es ist noch kein Ablageort eingerichtet (common/sites.json im Datenverzeichnis).</p>
 {% else %}
 <p class="filter">Anzeigen:
-  {% for s in stands %}{% if s == stand %}<strong>{{ s }}</strong>{% else %}<a href="/belege?stand={{ s }}">{{ s }}</a>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}
+  {% for s in intake_filters %}{% if s == intake_filter %}<strong>{{ s }}</strong>{% else %}<a href="/belege?stand={{ s }}">{{ s }}</a>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}
 </p>
 <div class="arbeit">
 <div class="baum">
   {% for root in tree %}
   {% if root.shown %}{{ folder_node(root) }}{% else %}<p>{{ root.name }}: keine Dateien.</p>{% endif %}
   {% endfor %}
-  {% if hidden or hidden_dirs %}
+  {% if hidden_files or hidden_folders %}
   <details class="ausgeblendet"{% if selected_hidden %} open{% endif %}>
-    <summary>Ausgeblendet ({{ hidden | length + hidden_dirs | length }})</summary>
-    {% for entry, checksum, count in hidden_dirs %}
+    <summary>Ausgeblendet ({{ hidden_files | length + hidden_folders | length }})</summary>
+    {% for row in hidden_folders %}{% set entry, checksum, count = row.entry, row.checksum, row.count %}
     <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
       <span class="name">{{ entry.path }}/</span>
       <span class="groesse">{{ count }} {{ "Datei" if count == 1 else "Dateien" }}</span>
@@ -110,9 +110,9 @@
       </form>
     </div>
     {% endfor %}
-    {% for entry, checksum, file in hidden %}
+    {% for row in hidden_files %}{% set entry, file = row.entry, row.file %}
     <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
-      <a class="name" href="/belege?stand={{ stand }}&datei={{ entry.sha256 }}"{% if selected_hidden and selected_hidden[0].sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a>
+      <a class="name" href="/belege?stand={{ intake_filter }}&datei={{ entry.sha256 }}"{% if selected_hidden and selected_hidden.entry.sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a>
       {% if file %}<span class="groesse">{{ size(file) }}</span>{% endif %}
       <span class="stand">ausgeblendet</span>
     </div>

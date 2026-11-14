@@ -6,6 +6,7 @@ Aufgenommen wird nur über `take_in` (`documents.py`); hier steht das Auflisten 
 
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
+from enum import StrEnum
 
 from moarcoal.storage import (
     COMMON_OWNER,
@@ -19,6 +20,7 @@ from moarcoal.storage import (
     SiteFile,
     State,
     Store,
+    entry_checksum,
 )
 
 
@@ -74,11 +76,6 @@ def hidden_folders(state: State) -> list[HiddenFolder]:
     return sorted(state.of_kind(HiddenFolder), key=lambda h: (h.site, h.path))
 
 
-def show_folder(store: Store, hidden: HiddenFolder, expected: str) -> Applied | Rejected:
-    """Blendet den Ordner wieder ein; `expected` ist die Prüfsumme der angezeigten Fassung."""
-    return store.apply([Delete(hidden.address, expected=expected)])
-
-
 def hide_file(store: Store, file: SiteFile, note: str) -> Applied | Rejected:
     """Blendet die Datei für alle Nutzer aus; die Notiz ist freiwillig."""
     entry = HiddenFile(
@@ -92,12 +89,26 @@ def hidden_files(state: State) -> list[HiddenFile]:
     return sorted(state.of_kind(HiddenFile), key=lambda h: (h.path, h.site, h.sha256))
 
 
-def show_file(store: Store, hidden: HiddenFile, expected: str) -> Applied | Rejected:
-    """Blendet die Datei wieder ein; `expected` ist die Prüfsumme der angezeigten Fassung."""
+def unhide(store: Store, hidden: HiddenFile | HiddenFolder, expected: str) -> Applied | Rejected:
+    """Blendet Datei oder Ordner wieder ein; `expected`: Prüfsumme der angezeigten Fassung."""
     return store.apply([Delete(hidden.address, expected=expected)])
 
 
-STANDS = ("offen", "aufgenommen", "alle")
+class IntakeFilter(StrEnum):
+    """Filter der Ablage nach Stand (URL-Parameter `stand`); voreingestellt offen, der Eingang."""
+
+    OPEN = "offen"
+    TAKEN_IN = "aufgenommen"
+    ALL = "alle"
+
+    @classmethod
+    def of(cls, text: str) -> "IntakeFilter":
+        """Der Filter zu `text`; Unbekanntes gilt als offen."""
+        return next((f for f in cls if f.value == text), cls.OPEN)
+
+    def shows(self, waiting: bool) -> bool:
+        """Zeigt der Filter eine offene (`waiting`) bzw. aufgenommene Datei?"""
+        return self == IntakeFilter.ALL or (self == IntakeFilter.OPEN) == waiting
 
 
 @dataclass(frozen=True)
@@ -110,6 +121,43 @@ class Row:
     @property
     def name(self) -> str:
         return self.file.path.rsplit("/", 1)[-1]
+
+    @property
+    def path(self) -> str:
+        return self.file.path
+
+    @property
+    def preview_url(self) -> str:
+        if self.document is not None:
+            return f"/dokumente/{self.document.id}/datei"
+        return f"/belege/datei/{self.file.sha256}"
+
+
+@dataclass(frozen=True)
+class HiddenFileRow:
+    """Eine Zeile im Abschnitt „Ausgeblendet“: die Ausblendung, ihre Prüfsumme und die Datei,
+    falls sie noch in einem Ablageort liegt (sonst keine Größe und keine Vorschau)."""
+
+    entry: HiddenFile
+    checksum: str
+    file: SiteFile | None
+
+    @property
+    def path(self) -> str:
+        return self.entry.path
+
+    @property
+    def preview_url(self) -> str:
+        return f"/belege/datei/{self.entry.sha256}" if self.file else ""
+
+
+@dataclass(frozen=True)
+class HiddenFolderRow:
+    """Ein ausgeblendeter Ordner mit seiner Prüfsumme und der Zahl der Dateien darunter."""
+
+    entry: HiddenFolder
+    checksum: str
+    count: int
 
 
 @dataclass
@@ -144,7 +192,7 @@ def next_open(tree: Sequence[Folder], sha256: str) -> str | None:
     return others[0] if others else None
 
 
-def ablage_rows(files: Sequence[SiteFile], state: State, user: str) -> list[Row]:
+def site_rows(files: Sequence[SiteFile], state: State, user: str) -> list[Row]:
     """Alle Zeilen der Ablage von `user`: eine je Inhalt (mit dem ersten Pfad), ohne Ausgeblendete.
 
     Hat `user` den Inhalt aufgenommen, steht er mit seinem Dokument da, auch wenn ihn jemand
@@ -165,22 +213,18 @@ def ablage_rows(files: Sequence[SiteFile], state: State, user: str) -> list[Row]
     return list(rows.values())
 
 
-def hidden_section(hidden: Sequence[HiddenFile], rows: Sequence[Row]) -> list[HiddenFile]:
-    """Die Ausblendungen des Abschnitts „Ausgeblendet“ (ohne Dateien, die in der Ablage stehen)."""
-    in_tree = {r.file.sha256 for r in rows}
-    return [h for h in hidden if h.sha256 not in in_tree]
-
-
-def ablage_tree(rows: Sequence[Row], sites: Sequence[str], stand: str) -> list[Folder]:
-    """Die Ablageorte als Bäume. Der Filter `stand` (offen, aufgenommen, alle) bestimmt, welche
-    Dateien erscheinen; Ordner ohne sichtbare Datei fehlen."""
+def site_tree(
+    rows: Sequence[Row], sites: Sequence[str], intake_filter: IntakeFilter
+) -> list[Folder]:
+    """Die Ablageorte als Bäume. Der Filter bestimmt, welche Dateien erscheinen; Ordner ohne
+    sichtbare Datei fehlen."""
     roots = {site: Folder(site, site) for site in sites}
     for row in sorted(rows, key=lambda r: r.file.path):
         folder = roots.get(row.file.site)
         if folder is None:
             continue
         waiting = row.document is None
-        visible = stand == "alle" or (stand == "offen") == waiting
+        visible = intake_filter.shows(waiting)
         *parents, _ = row.file.path.split("/")
         path = [folder]
         for name in parents:
@@ -199,3 +243,53 @@ def _pruned(folder: Folder) -> Folder:
     kept = {n: _pruned(f) for n, f in sorted(folder.folders.items()) if f.shown}
     folder.folders = kept
     return folder
+
+
+@dataclass(frozen=True)
+class SiteListing:
+    """Die Ablage einer Anfrage, einmal aus den Dateien aller Ablageorte gebaut: Zeilen und
+    Ausgeblendete (Dateien ohne die, die in der Ablage stehen, und Ordner)."""
+
+    files: list[SiteFile]
+    sites: list[str]
+    rows: list[Row]
+    hidden_files: list[HiddenFileRow]
+    hidden_folders: list[HiddenFolderRow]
+
+    def tree(self, intake_filter: IntakeFilter) -> list[Folder]:
+        return site_tree(self.rows, self.sites, intake_filter)
+
+    def open_files(self) -> list[SiteFile]:
+        """Der Eingang (wie `incoming_files`)."""
+        return [row.file for row in self.rows if row.document is None]
+
+    def open_file(self, sha256: str) -> SiteFile | None:
+        return next((f for f in self.open_files() if f.sha256 == sha256), None)
+
+    def row(self, sha256: str) -> Row | None:
+        return next((r for r in self.rows if r.file.sha256 == sha256), None)
+
+    def hidden_file(self, sha256: str) -> HiddenFileRow | None:
+        return next((h for h in self.hidden_files if h.entry.sha256 == sha256), None)
+
+
+def site_listing(store: Store, state: State, user: str) -> SiteListing:
+    """Die Ablage von `user` auf dem Stand `state`."""
+    files = all_site_files(store)
+    rows = site_rows(files, state, user)
+    by_sha = {f.sha256: f for f in files}
+    in_tree = {r.file.sha256 for r in rows}
+    return SiteListing(
+        files=files,
+        sites=store.site_names(),
+        rows=rows,
+        hidden_files=[
+            HiddenFileRow(h, entry_checksum(h), by_sha.get(h.sha256))
+            for h in hidden_files(state)
+            if h.sha256 not in in_tree
+        ],
+        hidden_folders=[
+            HiddenFolderRow(h, entry_checksum(h), sum(1 for f in files if in_hidden_folder(f, [h])))
+            for h in hidden_folders(state)
+        ],
+    )
