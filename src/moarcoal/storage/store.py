@@ -23,7 +23,7 @@ from pydantic import ValidationError
 
 from moarcoal.storage.aborted_extractions import ABORTED_EXTRACTION_KIND
 from moarcoal.storage.dismissals import DISMISSAL_KIND
-from moarcoal.storage.documents import DATA_LAYER_KINDS, Document
+from moarcoal.storage.documents import DATA_LAYER_KINDS
 from moarcoal.storage.entries import (
     Entry,
     EntryAddress,
@@ -31,10 +31,11 @@ from moarcoal.storage.entries import (
     entry_checksum,
     kind_collisions,
     referenced_addresses,
+    with_reference_moved,
 )
 from moarcoal.storage.expected_documents import EXPECTED_DOCUMENT_KIND
 from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND, HIDDEN_FOLDER_KIND
-from moarcoal.storage.issuers import ISSUER_KIND, Issuer, denylist_lines, name_clashes, name_key
+from moarcoal.storage.issuers import ISSUER_KIND
 from moarcoal.storage.proposals import PROPOSAL_KIND
 from moarcoal.storage.snapshots import SNAPSHOT_KIND
 
@@ -93,11 +94,12 @@ class Delete:
 
 @dataclass(frozen=True)
 class Merge:
-    """Aussteller `source` in Aussteller `into` zusammenführen (bewusste Ausnahme).
+    """Eintrag `source` in Eintrag `into` derselben Art zusammenführen (bewusste Ausnahme).
 
-    Name und Aliasse der Quelle werden Aliasse des Ziels, die Kennung der Quelle verweist
-    danach auf das Ziel (`State.resolve`), Dokumente der Quelle verweisen auf das Ziel.
-    `expected` und `expected_into` sind die Prüfsummen der bekannten Fassungen.
+    Geht nur bei Arten mit `EntryKind.merge` (bisher Aussteller), die das neue Ziel bildet; die
+    Kennung der Quelle verweist danach auf das Ziel (`State.resolve` über `merged_ids`), Einträge
+    mit einem Feld auf die Quelle verweisen auf das Ziel. `expected` und `expected_into` sind die
+    Prüfsummen der bekannten Fassungen.
     """
 
     source: EntryAddress
@@ -125,19 +127,30 @@ class Rejected:
 
 @dataclass(frozen=True)
 class State:
-    """Alle geladenen Einträge, unveränderlich."""
+    """Alle geladenen Einträge, unveränderlich.
+
+    `denylist_failed`: die abgeleitete Sperrliste ließ sich zuletzt nicht schreiben (Befund).
+    """
 
     entries: Mapping[EntryAddress, Entry]
+    denylist_failed: bool = False
 
     def get(self, address: EntryAddress) -> Entry | None:
         return self.entries.get(address)
 
     def resolve(self, address: EntryAddress) -> Entry | None:
-        """Wie `get`; die Adresse eines zusammengeführten Ausstellers liefert das Ziel."""
+        """Wie `get`; die Adresse eines zusammengeführten Eintrags liefert das Ziel."""
         found = self.entries.get(address)
-        if found is not None or address.kind != Issuer.__name__:
+        if found is not None:
             return found
-        return next((i for i in self.of_kind(Issuer) if address.id in i.merged_ids), None)
+        return next(
+            (
+                e
+                for e in self.entries.values()
+                if e.address.kind == address.kind and address.id in getattr(e, "merged_ids", ())
+            ),
+            None,
+        )
 
     def of_kind[E: Entry](self, kind: type[E]) -> list[E]:
         return [e for e in self.entries.values() if type(e) is kind]
@@ -179,8 +192,7 @@ def _sort_key(entry: Entry) -> str:
 def _reference_problems(
     changes: Sequence[Change], new_entries: Mapping[EntryAddress, Entry]
 ) -> dict[EntryAddress, str]:
-    """Verweise nach dem Vorgang: Gelöschtes wird nicht mehr verwendet, der Aussteller am
-    geschriebenen Dokument existiert."""
+    """Verweise nach dem Vorgang: Gelöschtes wird nicht mehr verwendet."""
     problems: dict[EntryAddress, str] = {}
     deleted: set[EntryAddress] = set()
     deleted.update(c.address for c in changes if isinstance(c, Delete | Merge))
@@ -188,26 +200,7 @@ def _reference_problems(
         for entry in new_entries.values():
             for address in referenced_addresses(entry) & deleted:
                 problems[address] = "Wird noch verwendet."
-    for change in changes:
-        if isinstance(change, Put) and isinstance(change.entry, Document):
-            issuer = change.entry.issuer
-            if issuer is not None and issuer not in new_entries:
-                problems[change.address] = "Aussteller existiert nicht."
     return problems
-
-
-def _name_problems(
-    changes: Sequence[Change], new_entries: Mapping[EntryAddress, Entry]
-) -> dict[EntryAddress, str]:
-    """Namen nach dem Vorgang: kein Name oder Alias kommt zweimal vor; abgewiesen werden die
-    in diesem Vorgang geschriebenen Aussteller."""
-    written = [c.into if isinstance(c, Merge) else c.address for c in changes]
-    clashing = name_clashes(e for e in new_entries.values() if isinstance(e, Issuer))
-    return {
-        a: "Name gibt es schon."
-        for a in written
-        if isinstance(new_entries.get(a), Issuer) and a.id in clashing
-    }
 
 
 def _safe_path(relative: str) -> bool:
@@ -300,7 +293,8 @@ class Store:
         self._site_hashes: dict[tuple[str, int, int], str] = {}  # (Datei, Größe, mtime) -> SHA-256
         self._state = State(MappingProxyType({}))
         self._load()
-        self._write_denylist()
+        entries = self._state.entries
+        self._state = State(entries, denylist_failed=not self._write_denylist(entries))
 
     @property
     def root(self) -> Path:
@@ -464,7 +458,7 @@ class Store:
                 touch(self._path_of(current), address)
         if not reasons:
             reasons.update(_reference_problems(changes, new_entries))
-            reasons.update(_name_problems(changes, new_entries))
+            reasons.update(self._kind_problems(changes, new_entries))
         if reasons:
             return Rejected(reasons)
 
@@ -473,9 +467,25 @@ class Store:
             return Rejected(reasons)
 
         self._write(plan)
-        self._state = State(MappingProxyType(new_entries))
-        self._write_denylist()
+        entries = MappingProxyType(new_entries)
+        self._state = State(entries, denylist_failed=not self._write_denylist(entries))
         return Applied(changes)
+
+    def _kind_problems(
+        self, changes: Sequence[Change], new_entries: Mapping[EntryAddress, Entry]
+    ) -> dict[EntryAddress, str]:
+        """Prüfungen der Eintragsarten (`EntryKind.check`) für jeden geschriebenen Eintrag,
+        gegen den Stand nach dem ganzen Vorgang."""
+        problems: dict[EntryAddress, str] = {}
+        for change in changes:
+            address = change.into if isinstance(change, Merge) else change.address
+            entry = new_entries.get(address)
+            check = None if entry is None else self._kinds[type(entry).__name__].check
+            if entry is not None and check is not None:
+                reason = check(entry, new_entries)
+                if reason is not None:
+                    problems[address] = reason
+        return problems
 
     def _merge(
         self,
@@ -485,30 +495,26 @@ class Store:
         touch: Callable[[str, EntryAddress], None],
     ) -> str | None:
         source, target = state.get(change.source), state.get(change.into)
-        if not isinstance(source, Issuer) or not isinstance(target, Issuer):
-            return "Zusammenführen geht nur zwischen zwei Ausstellern."
+        if source is None or target is None or type(source) is not type(target):
+            return "Diese Einträge lassen sich nicht zusammenführen."
+        merge = self._kinds[type(target).__name__].merge
+        if merge is None:
+            return "Diese Einträge lassen sich nicht zusammenführen."
         if source.address == target.address:
-            return "Ein Aussteller lässt sich nicht mit sich selbst zusammenführen."
+            return "Ein Eintrag lässt sich nicht mit sich selbst zusammenführen."
         if (
             entry_checksum(source) != change.expected
             or entry_checksum(target) != change.expected_into
         ):
             return "Inzwischen geändert."
-        known = {name_key(n) for n in (target.name, *target.aliases)}
-        added = [n for n in (source.name, *source.aliases) if name_key(n) not in known]
-        merged = target.model_copy(
-            update={
-                "aliases": (*target.aliases, *dict.fromkeys(added)),
-                "merged_ids": (*target.merged_ids, source.id, *source.merged_ids),
-                "private_person": target.private_person or source.private_person,
-            }
-        )
+        merged = merge(source, target)
         new_entries[merged.address] = merged
         touch(self._path_of(merged), merged.address)
         del new_entries[source.address]
         for address, entry in list(new_entries.items()):
-            if isinstance(entry, Document) and entry.issuer == source.address:
-                new_entries[address] = entry.model_copy(update={"issuer": target.address})
+            moved = with_reference_moved(entry, source.address, target.address)
+            if moved is not entry:
+                new_entries[address] = moved
                 touch(self._path_of(entry), address)
         return None
 
@@ -583,17 +589,25 @@ class Store:
             else:
                 self._file_checksums[path] = _sha256(data)
 
-    def _write_denylist(self) -> None:
-        """Schreibt die Sperrliste aus den sensiblen Feldern neu (Spec 8). Scheitert das, gilt
-        der Vorgang trotzdem; die Warnung geht ins Protokoll."""
-        lines = denylist_lines(self._state.of_kind(Issuer))
-        data = "".join(f"{line}\n" for line in lines).encode()
+    def _write_denylist(self, entries: Mapping[EntryAddress, Entry]) -> bool:
+        """Schreibt die Sperrliste aus den sensiblen Feldern neu (Spec 8; `EntryKind.denylist`).
+
+        Scheitert das, gilt der Vorgang trotzdem (ADR 0006): `False`, daraus wird über
+        `State.denylist_failed` ein Befund, und die Warnung geht ins Protokoll.
+        """
+        lines: set[str] = set()
+        for kind in self._kinds.values():
+            if kind.denylist is not None:
+                lines.update(kind.denylist([e for e in entries.values() if type(e) is kind.model]))
+        data = "".join(f"{line}\n" for line in sorted(lines)).encode()
         target = self._root / DERIVED_DENYLIST_FILE
         try:
             if (_read_if_exists(target) or b"") != data:  # leer und fehlend ist dasselbe
                 _write_file(target, data)
         except OSError:
             logging.getLogger(__name__).warning("Abgeleitete Sperrliste nicht geschrieben")
+            return False
+        return True
 
     def _backup(self, path: str, data: bytes) -> None:
         directory = self._root / BACKUP_DIR / path

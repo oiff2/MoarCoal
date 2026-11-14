@@ -1,6 +1,7 @@
 """Baustein Dokument: Verweis auf eine Datei an einem Ablageort (docs/grundgeruest.md, 3.2)."""
 
 import datetime
+from collections.abc import Mapping
 from typing import Self
 
 from pydantic import Field, model_validator
@@ -64,4 +65,13 @@ def document_path(entry: Document) -> str:
     return f"users/{entry.owner}/documents.json"
 
 
-DATA_LAYER_KINDS: tuple[EntryKind, ...] = (entry_kind(Document, DOCUMENT_SCHEMA, document_path),)
+def check_document(document: Document, entries: Mapping[EntryAddress, Entry]) -> str | None:
+    """Prüfung im Schreibweg: der Aussteller am Dokument existiert nach dem Vorgang."""
+    if document.issuer is not None and document.issuer not in entries:
+        return "Aussteller existiert nicht."
+    return None
+
+
+DATA_LAYER_KINDS: tuple[EntryKind, ...] = (
+    entry_kind(Document, DOCUMENT_SCHEMA, document_path, check=check_document),
+)

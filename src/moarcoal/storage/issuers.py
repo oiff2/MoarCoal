@@ -1,11 +1,11 @@
 """Baustein Aussteller: wer ein Dokument ausgestellt hat (docs/grundgeruest.md, 3.2)."""
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Self
 
 from pydantic import Field, field_validator, model_validator
 
-from moarcoal.storage.entries import Entry, entry_kind
+from moarcoal.storage.entries import Entry, EntryAddress, entry_kind
 from moarcoal.storage.hidden_files import COMMON_OWNER
 
 ISSUER_SCHEMA = "datenebene/1"
@@ -100,8 +100,35 @@ def denylist_lines(issuers: list[Issuer]) -> list[str]:
     return sorted(found)
 
 
+def check_issuer(issuer: Issuer, entries: Mapping[EntryAddress, Entry]) -> str | None:
+    """Prüfung im Schreibweg: Name und Aliasse kommen nach dem Vorgang nur einmal vor."""
+    clashing = name_clashes(e for e in entries.values() if isinstance(e, Issuer))
+    return "Name gibt es schon." if issuer.id in clashing else None
+
+
+def merge_issuers(source: Issuer, target: Issuer) -> Issuer:
+    """Das Ziel nach dem Zusammenführen: Name und Aliasse der Quelle werden Aliasse (ohne
+    Dubletten), ihre Kennung löst auf das Ziel auf, Privatperson, wenn eine von beiden es war."""
+    known = {name_key(n) for n in (target.name, *target.aliases)}
+    added = [n for n in (source.name, *source.aliases) if name_key(n) not in known]
+    return target.model_copy(
+        update={
+            "aliases": (*target.aliases, *dict.fromkeys(added)),
+            "merged_ids": (*target.merged_ids, source.id, *source.merged_ids),
+            "private_person": target.private_person or source.private_person,
+        }
+    )
+
+
 def issuer_path(entry: Issuer) -> str:
     return "common/issuers.json"
 
 
-ISSUER_KIND = entry_kind(Issuer, ISSUER_SCHEMA, issuer_path)
+ISSUER_KIND = entry_kind(
+    Issuer,
+    ISSUER_SCHEMA,
+    issuer_path,
+    check=check_issuer,
+    denylist=denylist_lines,
+    merge=merge_issuers,
+)

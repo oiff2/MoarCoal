@@ -75,6 +75,7 @@ class Finding:
 CYCLE = "cycle"
 DUPLICATE_LOCATOR = "duplicate_locator"
 INCOMING_FILES = "incoming_files"
+DENYLIST_NOT_WRITTEN = "denylist_not_written"
 
 
 @dataclass(frozen=True)

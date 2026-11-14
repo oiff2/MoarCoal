@@ -13,9 +13,12 @@ from moarcoal.storage import (
     Issuer,
     Merge,
     Put,
+    Store,
     entry_checksum,
     open_store,
 )
+from moarcoal.values.engine import Values
+from moarcoal.values.findings import DENYLIST_NOT_WRITTEN, Finding, Severity
 
 DENYLIST = "common/derived-denylist.txt"
 
@@ -77,6 +80,32 @@ def test_failed_write_does_not_fail_the_operation(
         assert isinstance(store.apply([Put(person("Erika Mustermann"))]), Applied)
     assert "Sperrliste" in caplog.text
     assert "Mustermann" not in caplog.text
+
+
+def denylist_findings(store: Store) -> list[Finding]:
+    found = Values([], store.state()).finding_list("anna", 2025).visible
+    return [f for f in found if f.kind == DENYLIST_NOT_WRITTEN]
+
+
+def test_failed_write_gives_a_finding_until_the_next_write_succeeds(tmp_path: Path) -> None:
+    store = open_store(tmp_path, [])
+    (tmp_path / DENYLIST).mkdir(parents=True)
+    assert isinstance(store.apply([Put(person("Erika Mustermann"))]), Applied)
+    [finding] = denylist_findings(store)
+    assert finding.severity is Severity.WARNING
+    assert "Mustermann" not in finding.message
+
+    (tmp_path / DENYLIST).rmdir()
+    assert isinstance(store.apply([Put(person("Berta Musterfrau"))]), Applied)
+    assert denylist_findings(store) == []
+    assert "Musterfrau" in lines(tmp_path)
+
+
+def test_failed_write_on_open_gives_a_finding(tmp_path: Path) -> None:
+    open_store(tmp_path, []).apply([Put(person("Erika Mustermann"))])
+    (tmp_path / DENYLIST).unlink()
+    (tmp_path / DENYLIST).mkdir()
+    assert len(denylist_findings(open_store(tmp_path, []))) == 1
 
 
 # --- privacy_guard liest die Datei ---------------------------------------------------------------

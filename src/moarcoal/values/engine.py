@@ -13,6 +13,7 @@ from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYet
 from moarcoal.values.catalog import TimeKind, ValueCatalog
 from moarcoal.values.findings import (
     CYCLE,
+    DENYLIST_NOT_WRITTEN,
     DUPLICATE_LOCATOR,
     INCOMING_FILES,
     Finding,
@@ -193,6 +194,9 @@ class Values:
         titles = {k.key: k.title for m in self._modules.values() for k in m.document_kinds}
         found.extend(expected_document_findings(self._state, user, year, titles))
         found.extend(issuer_findings(self._state, user))
+        if self._state.denylist_failed:
+            text = "Abgeleitete Sperrliste konnte nicht geschrieben werden"
+            found.append(Finding(DENYLIST_NOT_WRITTEN, Severity.WARNING, "sperrliste", text))
         kinds = {k.key: k for m in self._modules.values() for k in m.document_kinds}
         found.extend(duplicate_findings(self._state, user, kinds))
         found.extend(proposal_findings(self._state, user, year, titles))
