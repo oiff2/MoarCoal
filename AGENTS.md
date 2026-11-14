@@ -1,6 +1,6 @@
 # MoarCoal
 
-Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is done; the Durchstich (#27) and Abschnitt 2 (#46) are built and merged. Content planning is under way on a Wayfinder map (#61). Docs and app text in German; code and identifiers in English.
+Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is done; the Durchstich (#27), Abschnitt 2 (#46) and the content map (#61, incl. Abschnitt 3 / Anlage N) are built and merged. Current work: building the UI and tidying up the modules on a Wayfinder map (#129). Docs and app text in German; code and identifiers in English.
 
 ## Where things are
 
@@ -8,7 +8,8 @@ Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is don
 - `PRINCIPLES.md`: architecture principles. Every change keeps them; read them before you build, and ask instead of breaking one.
 - `docs/adr/`: architecture decisions. Read the ones that touch your area before you change anything.
 - `docs/grundgeruest.md`: architecture spec of the scaffold (Datenebene, Module, contract, storage), merged from the map. Start here before building.
-- [Wayfinder-Karte: Inhalte nach dem Durchstich #61](https://github.com/oiff2/MoarCoal/issues/61): the current work. Plans global UI (prototype #62), the Belege page (#63), then Steuerjahr Anlage N as far as the Übertragungsprotokoll shows it, ELSTER-like (#64); Abschnitt 3 follows from its decisions. Read its Notes first: no duplicate functionality, keep the glossary and code small, reuse existing building blocks. Abschnitt 2 ([#46](https://github.com/oiff2/MoarCoal/issues/46)) and the Durchstich ([#27](https://github.com/oiff2/MoarCoal/issues/27)) are done.
+- [Wayfinder-Karte: Oberfläche bauen und Module aufräumen #129](https://github.com/oiff2/MoarCoal/issues/129): the current work. Builds the UI from the prototype (header, sidebar, light/dark), decides which parts are modules, then removes duplicate logic. This map carries execution: settled slices are built as `task` tickets (TDD, user acceptance for visible changes). Read its Notes first. No new content here; that gets its own map.
+- [Wayfinder-Karte: Inhalte nach dem Durchstich #61](https://github.com/oiff2/MoarCoal/issues/61) (closed): global UI prototype, Belege page, Aussteller, Steuerjahr Anlage N with Abschnitt 3. Abschnitt 2 ([#46](https://github.com/oiff2/MoarCoal/issues/46)) and the Durchstich ([#27](https://github.com/oiff2/MoarCoal/issues/27)) are done.
 - [Wayfinder-Karte: Grundgerüst MoarCoal](https://github.com/oiff2/MoarCoal/issues/1) (closed): decisions behind the spec, one sub-issue per design question.
 - `erkenntnisse.md`: lessons from the predecessor project Kohlebau. Use it for orientation; it is not a spec.
 
