@@ -1,8 +1,7 @@
-"""Belege-Seite, Reiter Erwartet: Verlinkung mit Ablage und Dokument (nur tmp_path)."""
+"""Belege-Seite, Reiter Erwartet: Verlinkung mit dem erfüllenden Dokument (nur tmp_path)."""
 
 import hashlib
 import json
-from dataclasses import replace
 from pathlib import Path
 
 import httpx
@@ -10,9 +9,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
-from moarcoal.expected_documents import pending_for
 from moarcoal.modules import MODULES
-from moarcoal.modules.tax_year import REGISTRATION, TRANSFER_PROTOCOL
+from moarcoal.modules.tax_year import TRANSFER_PROTOCOL
 from moarcoal.storage import Document, ExpectedDocument, Put, Store
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
@@ -22,7 +20,7 @@ ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
 KIND = TRANSFER_PROTOCOL.key
 
 
-def make_client(tmp_path: Path, filename: str, pattern: str | None = None) -> httpx.Client:
+def make_client(tmp_path: Path, filename: str) -> httpx.Client:
     site = tmp_path / "ablage"
     site.mkdir()
     (site / filename).write_bytes(FIXTURE.read_bytes())
@@ -31,12 +29,7 @@ def make_client(tmp_path: Path, filename: str, pattern: str | None = None) -> ht
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    modules = MODULES
-    if pattern:  # echte Arten tragen kein Namensmuster; eine Test-Art mit gleichem Schlüssel schon
-        kind = replace(TRANSFER_PROTOCOL, name_patterns=(pattern,))
-        patterned = replace(REGISTRATION, document_kinds=(kind,))
-        modules = [patterned if m is REGISTRATION else m for m in MODULES]
-    app = create_app(PORT, tmp_path / "daten", modules, user="anna")
+    app = create_app(PORT, tmp_path / "daten", MODULES, user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -52,13 +45,9 @@ def expect(client: httpx.Client, start: int = 2025) -> ExpectedDocument:
     return entry
 
 
-def form(client: httpx.Client) -> str:
-    return client.get(f"/belege?datei={SHA}").text.split('<div class="formular">')[1]
-
-
 @pytest.fixture
 def client(tmp_path: Path) -> httpx.Client:
-    return make_client(tmp_path, "Protokoll_2025.html", "protokoll")
+    return make_client(tmp_path, "Protokoll_2025.html")
 
 
 def test_tab_is_part_of_the_belege_page(client: httpx.Client) -> None:
@@ -79,30 +68,7 @@ def test_old_urls_redirect_keeping_method(client: httpx.Client) -> None:
             assert response.headers["location"] == new
 
 
-def test_open_file_with_matching_kind_and_year_is_offered_to_pending_year(
-    client: httpx.Client,
-) -> None:
-    entry = expect(client)
-
-    assert f'Würde erfüllen: <a href="/belege/erwartet#e-{entry.id}">' in form(client)
-    page = client.get("/belege/erwartet").text
-    assert f'würde erfüllt durch <a href="/belege?datei={SHA}">Belege: Protokoll_2025.html' in page
-
-
-def test_no_hint_for_other_year_or_without_expected_document(client: httpx.Client) -> None:
-    assert "Würde erfüllen" not in form(client)
-    expect(client, start=2024)
-    assert "Würde erfüllen" not in form(client)
-    assert "würde erfüllt" not in client.get("/belege/erwartet").text
-
-
-def test_no_hint_without_kind_in_the_name(tmp_path: Path) -> None:
-    client = make_client(tmp_path, "unbekannt_2025.html")
-    expect(client)
-    assert "Würde erfüllen" not in form(client)
-
-
-def test_fulfilled_year_links_to_the_document_and_gives_no_hint(client: httpx.Client) -> None:
+def test_fulfilled_year_links_to_the_document(client: httpx.Client) -> None:
     expect(client)
     client.post(
         "/belege/aufnehmen", data={"sha256": SHA, "kind": KIND, "year": "2025"}, headers=ORIGIN
@@ -112,11 +78,3 @@ def test_fulfilled_year_links_to_the_document_and_gives_no_hint(client: httpx.Cl
     page = client.get("/belege/erwartet").text
 
     assert f'<a href="/dokumente/{document.id}">Belege: Protokoll_2025.html</a>' in page
-    assert "würde erfüllt" not in page
-
-
-def test_pending_for_uses_the_fulfilment_rule() -> None:
-    entry = ExpectedDocument(owner="anna", document_kind=KIND, start_year=2025)
-    assert pending_for([], [entry], KIND, 2025) == [entry]
-    assert pending_for([], [entry], KIND, 2024) == []
-    assert pending_for([], [entry], "anderes.dokument", 2025) == []

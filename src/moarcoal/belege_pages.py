@@ -8,7 +8,6 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.document_list import document_detail
 from moarcoal.documents import IntakeRejected, take_in
-from moarcoal.expected_documents import expected_name, pending_for
 from moarcoal.incoming import (
     STANDS,
     ablage_rows,
@@ -32,7 +31,6 @@ from moarcoal.previews import file_response, preview_kind
 from moarcoal.storage import (
     Applied,
     Document,
-    ExpectedDocument,
     HiddenFile,
     HiddenFolder,
     Issuer,
@@ -94,20 +92,6 @@ def _page(
         if chosen and chosen.document is None and not values
         else Prefill()
     )
-    # Hinweis nur bei passender Art und Jahr (aus dem Namen) und nur für eine offene Datei
-    would_fulfil: list[tuple[str, str]] = []
-    if suggestion.kind and suggestion.year:
-        user = user_of(request)
-        titles = {k: v.title for k, v in kinds.items()}
-        would_fulfil = [
-            (e.id, expected_name(e, titles))
-            for e in pending_for(
-                [d for d in state.of_kind(Document) if d.owner == user],
-                [e for e in state.of_kind(ExpectedDocument) if e.owner == user],
-                suggestion.kind,
-                suggestion.year,
-            )
-        ]
     shown = chosen.file if chosen else hidden_chosen[0] if hidden_chosen else None
     preview_url = ""
     if chosen:
@@ -129,7 +113,6 @@ def _page(
         preview_kind=preview_kind(shown.path) if shown and preview_url else None,
         preview_url=preview_url,
         suggestion=suggestion,
-        would_fulfil=would_fulfil,
         stand=stand,
         stands=STANDS,
         kinds=list(kinds.values()),

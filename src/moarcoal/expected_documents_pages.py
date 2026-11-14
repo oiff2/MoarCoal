@@ -8,9 +8,7 @@ from pydantic import ValidationError
 
 from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.documents import DocumentKind
-from moarcoal.expected_documents import pending_for, previous_year_issuer, statuses
-from moarcoal.incoming import all_site_files, incoming_files
-from moarcoal.prefill import prefill_from_name
+from moarcoal.expected_documents import previous_year_issuer, statuses
 from moarcoal.storage import (
     Applied,
     Delete,
@@ -20,7 +18,6 @@ from moarcoal.storage import (
     Issuer,
     Put,
     Rejected,
-    SiteFile,
     entry_checksum,
     new_id,
 )
@@ -116,16 +113,6 @@ def _overview(
         key=lambda e: (e.start_year, e.id),
     )
     rows = [(e, statuses(documents, e, DEFAULT_YEAR), _suggestion(request, e)) for e in expected]
-    # offene Dateien der Ablage, die einen ausstehenden Stand erfüllen würden (Art, Jahr aus Name)
-    store = store_of(request)
-    kinds = document_kinds(request).values()
-    offers: dict[tuple[str, int], list[SiteFile]] = {}
-    for file in incoming_files(all_site_files(store), state, user):
-        found = prefill_from_name(state, kinds, file.path)
-        if found.kind is None or found.year is None:
-            continue
-        for e in pending_for(documents, expected, found.kind, found.year):
-            offers.setdefault((e.id, found.year), []).append(file)
     return render(
         request,
         "expected_documents/index.html",
@@ -135,7 +122,6 @@ def _overview(
         titles={k.key: k.title for k in _all_kinds(request)},
         errors=errors,
         values=values,
-        offers=offers,
     )
 
 

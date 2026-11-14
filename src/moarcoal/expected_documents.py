@@ -49,18 +49,6 @@ def statuses(
     ]
 
 
-def pending_for(
-    documents: list[Document], expecteds: list[ExpectedDocument], kind: str, year: int
-) -> list[ExpectedDocument]:
-    """Die Erwarteten Belege, die ein Dokument dieser Art für dieses Jahr erfüllen würde: gleiche
-    Art, Jahr fällig und noch ausstehend (nach derselben Regel wie `statuses`)."""
-    return [
-        e
-        for e in expecteds
-        if e.document_kind == kind and e.due_in(year) and not matching_documents(documents, e, year)
-    ]
-
-
 def previous_year_issuer(
     documents: list[Document], expected: ExpectedDocument, year: int
 ) -> EntryAddress | None:
