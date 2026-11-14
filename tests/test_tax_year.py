@@ -372,6 +372,7 @@ def test_pages_take_in_and_show_document_and_lines(root: Path, site: Path) -> No
     page = client.get("/steuerjahr")
     assert page.status_code == 200
     assert "Noch kein Übertragungsprotokoll" in page.text
+    assert 'Neue Dateien nimmt man in der <a href="/belege">Ablage</a> auf.' in page.text
 
     response = take_in_via_page(client)
     assert response.status_code == 303
