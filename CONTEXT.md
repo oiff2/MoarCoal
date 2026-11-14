@@ -177,7 +177,7 @@ Vorname und Name eines Nutzers samt Verweis auf seinen eigenen Aussteller; ein B
 _Avoid_: Profil, Konto, Stammdaten
 
 **Aussteller**:
-Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Name und weiteren Namen (Aliasse), auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ob Unternehmen oder Behörde, spielt keine Rolle; nur wer als **Privatperson** gekennzeichnet ist (z. B. privater Vermieter), hat sensiblen Namen und sensible Anschrift. Ein anderer Name desselben Ausstellers wird als Alias hinzugefügt; Zusammenführen zweier Aussteller ist die bewusste Ausnahme (Code: `Issuer`).
+Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Name und weiteren Namen (Aliasse), auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ob Unternehmen oder Behörde, spielt keine Rolle; nur wer als **Privatperson** gekennzeichnet ist (z. B. privater Vermieter), hat sensiblen Namen und sensible Anschrift. Ein anderer Name desselben Ausstellers wird als Alias hinzugefügt; Auch der Nutzer selbst ist Aussteller, für Unterlagen, die er selbst erzeugt (Screenshot, eigene Aufstellung, Notiz); dieser Aussteller kommt aus seinen Angaben zur Person. Zusammenführen zweier Aussteller ist die bewusste Ausnahme (Code: `Issuer`).
 _Avoid_: Absender, Firma (im HGB der Handelsname), Gegenpartei
 
 **Eintrag**:
