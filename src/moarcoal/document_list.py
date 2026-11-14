@@ -15,7 +15,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 from moarcoal.defaults import DEFAULT_YEAR
-from moarcoal.documents import DocumentKind, IntakeRejected, references_to
+from moarcoal.documents import DocumentKind, IntakeRejected
 from moarcoal.issuer_field import IssuerChoice, resolve_issuer
 from moarcoal.previews import preview_kind
 from moarcoal.proposals import proposals_of
@@ -115,7 +115,8 @@ def document_detail(
     """Alles, was `documents/_detail.html` für den Kopf eines Dokuments braucht (Seite
     Reiter Dokumente und Ablage). `issuer_text` und `year` stellen eine
     abgewiesene Eingabe wieder her."""
-    state = store_of(request).state()
+    store = store_of(request)
+    state = store.state()
     kinds = document_kinds(request)
     kind = kinds.get(document.document_kind or "")
     proposals = proposals_of(state, document)
@@ -125,7 +126,8 @@ def document_detail(
         "issuer_text": issuer_text,
         "year": year,
         "kinds": list(kinds.values()),
-        "references": references_to(state, document),
+        "references": store.references_to(document.address),
+        "bound": store.references_to(document.address, with_derived=True),
         "checksum": entry_checksum(document),
         "labels": REFERENCE_LABELS,
         "default_year": DEFAULT_YEAR,

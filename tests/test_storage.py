@@ -369,3 +369,82 @@ def test_backup_is_not_loaded_as_data(tmp_path: Path) -> None:
     create(store, entry)
     store.apply([Put(entry.model_copy(update={"cents": 7}), expected=entry_checksum(entry))])
     assert len(make_store(tmp_path).state().entries) == 1
+
+
+# --- Mitlöschen und schwache Verweise ----------------------------------------------------
+
+
+class Parent(Entry):
+    year: int
+
+
+class Derived(Entry):
+    parent: EntryAddress
+    year: int
+
+
+class Pinned(Entry):
+    parent: EntryAddress
+    year: int
+
+
+class Holder(Entry):
+    parent: EntryAddress
+    year: int
+
+
+def _pair_path(entry: Parent | Derived | Pinned | Holder) -> str:
+    return f"users/{entry.owner}/pair/{entry.year}.json"
+
+
+PAIR_KINDS = [
+    entry_kind(Parent, "pair/1", _pair_path),
+    entry_kind(Derived, "pair/1", _pair_path, falls_with="parent"),
+    entry_kind(Pinned, "pair/1", _pair_path, weak_references=("parent",)),
+    entry_kind(Holder, "pair/1", _pair_path),
+]
+
+
+def test_entries_that_fall_with_their_parent_go_along_and_applied_names_them(
+    tmp_path: Path,
+) -> None:
+    store = open_store(tmp_path, PAIR_KINDS)
+    parent = Parent(owner="anna", year=2025)
+    derived = Derived(owner="anna", year=2025, parent=parent.address)
+    pinned = Pinned(owner="anna", year=2025, parent=parent.address)
+    create(store, parent)
+    create(store, derived)
+    create(store, pinned)
+
+    result = store.apply([Delete(parent.address, entry_checksum(parent))])
+
+    assert isinstance(result, Applied)
+    assert sorted(str(c.address) for c in result.changes) == sorted(
+        [str(parent.address), str(derived.address)]
+    )
+    assert store.state().get(derived.address) is None
+    assert store.state().get(pinned.address) == pinned  # schwacher Verweis sperrt nicht
+
+
+def test_a_normal_reference_still_blocks_deleting_and_nothing_goes_along(tmp_path: Path) -> None:
+    store = open_store(tmp_path, PAIR_KINDS)
+    parent = Parent(owner="anna", year=2025)
+    derived = Derived(owner="anna", year=2025, parent=parent.address)
+    holder = Holder(owner="anna", year=2025, parent=parent.address)
+    pinned = Pinned(owner="anna", year=2025, parent=parent.address)
+    for entry in (parent, derived, holder, pinned):
+        create(store, entry)
+
+    assert store.references_to(parent.address) == [
+        holder
+    ]  # Mitgelöschtes und Schwaches zählen nicht
+    result = store.apply([Delete(parent.address, entry_checksum(parent))])
+
+    assert isinstance(result, Rejected)
+    assert store.state().get(parent.address) == parent
+    assert store.state().get(derived.address) == derived
+
+
+def test_falls_with_must_name_a_field_of_the_kind() -> None:
+    with pytest.raises(ValueError):
+        entry_kind(Parent, "pair/1", _pair_path, falls_with="nope")

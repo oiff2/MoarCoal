@@ -65,6 +65,11 @@ class EntryKind:
     ganzen Vorgang, `denylist` bildet aus allen Einträgen der Art die Werte der Sperrliste,
     `merge` führt zwei Einträge der Art zusammen (Quelle, Ziel -> neues Ziel), `former_ids` nennt
     die Kennungen früherer, zusammengeführter Einträge, die jetzt auf diesen auflösen.
+
+    Zwei Merkmale regeln das Löschen des Eintrags, auf den andere verweisen: `falls_with` nennt das
+    Feld, dessen Ziel diesen Eintrag beim Löschen mitnimmt (er fällt mit ihm weg, `Store.apply`
+    rechnet es als Folge aus); `weak_references` nennt Felder, deren Verweis das Löschen des Ziels
+    nicht sperrt (der Eintrag behält die Adresse des Gelöschten).
     """
 
     model: type[Entry]
@@ -74,6 +79,8 @@ class EntryKind:
     denylist: Callable[[list[Entry]], list[str]] | None = None
     merge: Callable[[Entry, Entry], Entry] | None = None
     former_ids: Callable[[Entry], Sequence[str]] | None = None
+    falls_with: str | None = None
+    weak_references: tuple[str, ...] = ()
 
 
 def entry_kind[E: Entry](
@@ -85,7 +92,12 @@ def entry_kind[E: Entry](
     denylist: Callable[[list[E]], list[str]] | None = None,
     merge: Callable[[E, E], E] | None = None,
     former_ids: Callable[[E], Sequence[str]] | None = None,
+    falls_with: str | None = None,
+    weak_references: tuple[str, ...] = (),
 ) -> EntryKind:
+    named = [*weak_references, *([falls_with] if falls_with else [])]
+    if unknown := [name for name in named if name not in model.model_fields]:
+        raise ValueError(f"{model.__name__}: kein Feld {', '.join(unknown)}")
     return EntryKind(
         model,
         schema,
@@ -94,6 +106,8 @@ def entry_kind[E: Entry](
         cast(Callable[[list[Entry]], list[str]] | None, denylist),
         cast(Callable[[Entry, Entry], Entry] | None, merge),
         cast(Callable[[Entry], Sequence[str]] | None, former_ids),
+        falls_with,
+        weak_references,
     )
 
 
@@ -103,8 +117,9 @@ def with_reference_moved(entry: Entry, old: EntryAddress, new: EntryAddress) -> 
     return entry.model_copy(update=moved) if moved else entry
 
 
-def referenced_addresses(entry: Entry) -> set[EntryAddress]:
-    """Alle Adressen, auf die Felder des Eintrags verweisen (auch in Listen und Teilmodellen)."""
+def referenced_addresses(entry: Entry, ignore: Iterable[str] = ()) -> set[EntryAddress]:
+    """Alle Adressen, auf die Felder des Eintrags verweisen (auch in Listen und Teilmodellen);
+    die Felder `ignore` (oberste Ebene) zählen nicht."""
     found: set[EntryAddress] = set()
 
     def walk(value: object) -> None:
@@ -120,8 +135,31 @@ def referenced_addresses(entry: Entry) -> set[EntryAddress]:
             for item in cast(dict[object, object], value).values():
                 walk(item)
 
-    walk(entry)
+    skipped = set(ignore)
+    for name in type(entry).model_fields:
+        if name not in skipped:
+            walk(getattr(entry, name))
     return found
+
+
+def strong_references(
+    entries: Iterable[Entry], target: EntryAddress, kinds: Mapping[str, EntryKind]
+) -> list[Entry]:
+    """Die Einträge, die `target` verwenden: jeder Verweis außer den schwachen der Art
+    (`EntryKind.weak_references`) und außer dem Eintrag selbst."""
+    found = [
+        e
+        for e in entries
+        if e.address != target
+        and target in referenced_addresses(e, kinds[type(e).__name__].weak_references)
+    ]
+    return sorted(found, key=lambda e: str(e.address))
+
+
+def falls_with(entry: Entry, target: EntryAddress, kinds: Mapping[str, EntryKind]) -> bool:
+    """Ob der Eintrag mit `target` wegfällt (`EntryKind.falls_with`)."""
+    field = kinds[type(entry).__name__].falls_with
+    return field is not None and getattr(entry, field) == target
 
 
 def entry_checksum(entry: Entry) -> str:

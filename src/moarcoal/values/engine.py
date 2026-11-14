@@ -85,7 +85,7 @@ class Values:
         self._stack: list[ValueRef] = []  # laufende Anfragen, zur Zykluserkennung
         self.findings: list[Finding] = []
 
-    def _module_state(self, module_key: str, user: str) -> ModuleState:
+    def module_state(self, module_key: str, user: str) -> ModuleState:
         return ModuleState(self._state, self._modules[module_key], user)
 
     def get(
@@ -107,7 +107,7 @@ class Values:
         if ref in self._stack:
             return self._cycle(ref)
         calculation = Calculation(
-            self._module_state(self.catalog.owners[entry.key], user), subject, time, self
+            self.module_state(self.catalog.owners[entry.key], user), subject, time, self
         )
         result: ValueResult
         self._stack.append(ref)
@@ -204,7 +204,7 @@ class Values:
         found.extend(snapshot_findings(self._state.of_kind(Snapshot), user, year))
         for module in self._modules.values():
             if module.findings is not None:
-                found.extend(module.findings(self._module_state(module.key, user), self, year))
+                found.extend(module.findings(self.module_state(module.key, user), self, year))
         if self._site_files is not None:
             waiting = incoming_files(self._site_files(), self._state, user)
             if waiting:
@@ -235,7 +235,7 @@ class Values:
         if definition.subjects is None:
             raise ContractViolation(f"{definition.entry.key} hat keine Bezugsobjekte")
         owner = self.catalog.owners[definition.entry.key]
-        return definition.subjects(self._module_state(owner, user), time)
+        return definition.subjects(self.module_state(owner, user), time)
 
     def all(self, key: str, user: str, time: TimeRef) -> list[ValueResult]:
         """Ein Ergebnis je Bezugsobjekt, das das Modul zu Schlüssel und Zeitbezug aufzählt."""

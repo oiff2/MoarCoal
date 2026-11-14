@@ -161,7 +161,7 @@ Die Liste aller Schlüssel, die Module anmelden, mit Bedeutung, Einheit und Zeit
 _Avoid_: Registry, Verzeichnis, Katalog (allein)
 
 **Schnappschuss**:
-Die zu einem Anlass (z. B. Abgabe einer Steuererklärung) eingefrorenen Ausgewiesenen Werte samt Einzelposten, auch solche, die noch nicht berechenbar waren oder entfallen (mit Grund), und allen Werten, auf die sie sich stützen. Ein Schnappschuss ist unveränderlich und hängt nicht vom Ablageort ab, denn die Dokumente, auf die er verweist, werden beim Einfrieren ins Datenverzeichnis kopiert (gebaut ist das noch nicht: bisher steht nur Klartext im Schnappschuss); spätere Abweichungen von den aktuellen Werten werden sichtbar statt verhindert (Code: `Snapshot`; das Anlegen heißt einfrieren).
+Die zu einem Anlass (z. B. Abgabe einer Steuererklärung) eingefrorenen Ausgewiesenen Werte samt Einzelposten, auch solche, die noch nicht berechenbar waren oder entfallen (mit Grund), und allen Werten, auf die sie sich stützen. Ein Schnappschuss ist unveränderlich und hängt nicht vom Ablageort ab, denn die Dokumente, auf die er verweist, werden beim Einfrieren ins Datenverzeichnis kopiert (gebaut ist das noch nicht: bisher steht nur Klartext im Schnappschuss); spätere Abweichungen von den aktuellen Werten werden sichtbar statt verhindert (Code: `Snapshot`; das Anlegen heißt einfrieren). Er sperrt das Löschen seines Dokuments nicht und behält dessen Adresse; je Nutzer, Modul und Jahr gibt es höchstens einen Schnappschuss der Abgabe.
 _Avoid_: Sperre, Abgabestand, Festschreibung, Version
 
 **Anlass**:
@@ -236,7 +236,7 @@ Eine Datei aus dem Eingang zum Dokument machen; danach wird sie je nach Dokument
 _Avoid_: importieren, einlesen (für diesen Schritt)
 
 **einlesen**:
-Felder eines Dokuments mit festem Aufbau exakt und ohne Claude übernehmen (z. B. Übertragungsprotokoll); das Ergebnis gilt ohne Bestätigung, wird nie von Hand korrigiert und beim Start neu eingelesen, wenn sich das Einlesen geändert hat.
+Felder eines Dokuments mit festem Aufbau exakt und ohne Claude übernehmen (z. B. Übertragungsprotokoll); das Ergebnis gilt ohne Bestätigung, wird nie von Hand korrigiert und fällt mit dem Dokument weg; neu eingelesen wird durch Löschen und erneutes Aufnehmen der Datei.
 _Avoid_: importieren, parsen
 
 **auslesen**:

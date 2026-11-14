@@ -38,7 +38,8 @@ class ProtocolLine(BaseModel):
 class ProtocolReading(Entry):
     """Ergebnis des Einlesens eines Übertragungsprotokolls, gehört zu genau einem Dokument.
 
-    `reader_version` nennt die Fassung der Einlese-Regel; ändert sie sich, wird neu eingelesen.
+    `reader_version` nennt die Fassung der Einlese-Regel. Die Einlesung fällt mit dem Dokument weg;
+    nach dem Löschen lässt sich die Datei neu aufnehmen und wird neu eingelesen.
     `belegversion` und `received` stammen aus dem Kopf (leer, wenn dort nicht vorhanden).
     """
 
@@ -81,6 +82,6 @@ def yearly_path(entry: ProtocolReading | FormInput) -> str:
 
 
 KINDS: tuple[EntryKind, ...] = (
-    entry_kind(ProtocolReading, SCHEMA, yearly_path),
+    entry_kind(ProtocolReading, SCHEMA, yearly_path, falls_with="document"),
     entry_kind(FormInput, SCHEMA, yearly_path, check=check_input),
 )

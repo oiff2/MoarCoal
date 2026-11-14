@@ -379,10 +379,14 @@ def snapshot_on_filing(
     document: Document, entries: Sequence[Entry], values: Values, forms: Forms = FORMS
 ) -> Sequence[Change]:
     """Ergänzung beim Aufnehmen eines Protokolls (Spec 3.6 Punkt 8): friert die Werte der Felder
-    des Jahrs als Schnappschuss der Abgabe ein. Jahre ohne Felder (vor 2025): keiner."""
+    des Jahrs als Schnappschuss der Abgabe ein. Jahre ohne Felder (vor 2025): keiner; gibt es für
+    das Jahr schon einen Schnappschuss der Abgabe, auch keiner (der alte gibt den Stand der Abgabe
+    wieder, etwa nach Löschen und erneutem Aufnehmen des Protokolls)."""
     reading = next((e for e in entries if isinstance(e, ProtocolReading)), None)
     fields = None if reading is None else forms.get(reading.year)
     if reading is None or not fields:
+        return []
+    if latest_snapshot(values.module_state(MODULE_KEY, document.owner), reading.year):
         return []
     period = Period.year(reading.year)
     snapshot = Snapshot(
