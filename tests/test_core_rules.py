@@ -11,10 +11,11 @@ from moarcoal.storage import all_kinds, kind_collisions
 SRC = Path(__file__).parent.parent / "src" / "moarcoal"
 STORAGE_PACKAGE = "storage"
 # Der Claude-Aufruf legt nur sein leeres Wegwerfverzeichnis an, nie Nutzerdaten.
-# Die Struktur liest nur die mitgelieferten Dateien des Repos (strukturen/), nie Nutzerdaten.
+# Struktur und Deutschlandkarte lesen nur mitgelieferte Dateien des Repos, nie Nutzerdaten.
 ALLOWED = {
     "extraction.py": {"import tempfile"},
     "modules/tax_year/structure.py": {".read_text(...)"},
+    "modules/work/germany_map.py": {".read_text(...)"},
 }
 
 FILE_METHODS = {

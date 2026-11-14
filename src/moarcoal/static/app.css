@@ -71,3 +71,17 @@ form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
 .reisen tr.mit-fehler td { background: color-mix(in srgb, crimson 8%, transparent); }
 .reisen td.unsicher { background: color-mix(in srgb, orange 18%, transparent); }
 .reisen tfoot td { font-weight: bold; }
+
+/* Dienstreisen: Karte von Deutschland (Farben aus dem Seitenschema, kein Inline-Style wegen der CSP) */
+.deutschlandkarte { width: 100%; max-width: 28rem; height: auto; }
+.deutschlandkarte .land { fill: color-mix(in srgb, currentColor 6%, Canvas); stroke: currentColor; stroke-width: 1.2; }
+.deutschlandkarte .grenzen { fill: none; stroke: gray; stroke-width: 0.6; }
+.marke.ziel { fill: color-mix(in srgb, dodgerblue 25%, Canvas); stroke: dodgerblue; stroke-width: 2; }
+.marke.start { fill: color-mix(in srgb, orange 30%, Canvas); stroke: darkorange; stroke-width: 2.4; stroke-linejoin: round; }
+.deutschlandkarte .pt .innen { text-anchor: middle; font-size: 11px; font-weight: 700; fill: currentColor; }
+.deutschlandkarte .pt .name { font-size: 13px; fill: currentColor; paint-order: stroke; stroke: Canvas; stroke-width: 3px; }
+.karte .legende { margin-left: 1rem; }
+.karte .legende svg { width: 1rem; height: 1rem; vertical-align: middle; }
+.karte .orte { list-style: none; padding-left: 0; }
+.karte .treffer { margin: 0.25rem 0 0.5rem 1rem; }
+label.inline { display: inline; }

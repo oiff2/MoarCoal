@@ -2,6 +2,7 @@
 
 import datetime
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -15,7 +16,17 @@ from moarcoal.modules.work.entries import (
     TripsConfirmation,
     trips_fingerprint,
 )
+from moarcoal.modules.work.germany_map import germany_map
 from moarcoal.modules.work.pages import MODULE_KEY
+from moarcoal.modules.work.places import (
+    Place,
+    PlaceError,
+    forget_changes,
+    hide_changes,
+    locate_changes,
+    place_uses,
+    sort_places,
+)
 from moarcoal.modules.work.trip_reading import (
     IGNORED,
     proposed_trips,
@@ -34,12 +45,23 @@ from moarcoal.modules.work.trips import (
     sorted_trips,
 )
 from moarcoal.modules.work.values import TRAVEL_FARE, TRAVEL_TOTAL
+from moarcoal.place_search import PlaceHit, PlaceSearch, PlaceSearchError
 from moarcoal.proposals import proposals_of
 from moarcoal.storage import Applied, Change, Delete, Proposal, entry_checksum
 from moarcoal.values.model import Period
 from moarcoal.web import form_fields, module_state, render, store_of, user_of, values_of
 
 router = APIRouter(prefix="/arbeit/dienstreisen")
+
+
+@dataclass(frozen=True)
+class PlaceSearchView:
+    """Ergebnis einer Ortssuche auf Klick, nur zum Anzeigen: nichts davon ist gespeichert."""
+
+    place: str
+    text: str
+    hits: list[PlaceHit]
+    message: str = ""
 
 
 def _year(year: int) -> int:
@@ -51,6 +73,10 @@ def _year(year: int) -> int:
 def _trips(request: Request, year: int) -> list[BusinessTrip]:
     state = module_state(request, MODULE_KEY)
     return sorted_trips([t for t in state.all(BusinessTrip) if t.year == year])
+
+
+def _places(request: Request) -> list[Place]:
+    return module_state(request, MODULE_KEY).all(Place)
 
 
 def _confirmations(request: Request, year: int) -> list[TripsConfirmation]:
@@ -86,6 +112,7 @@ def _page(
     error: str = "",
     status_code: int = 200,
     problems: dict[int, str] | None = None,
+    search: PlaceSearchView | None = None,
 ) -> HTMLResponse:
     trips = _trips(request, year)
     confirmations = _confirmations(request, year)
@@ -111,6 +138,9 @@ def _page(
         fare=values.get(TRAVEL_FARE, user, period),
         total=values.get(TRAVEL_TOTAL, user, period),
         statements=_statements(request, year, trips),
+        germany=germany_map(),
+        map_places=sort_places(place_uses(trips), _places(request), germany_map()),
+        search=search,
         problems=problems or {},
         min_date=f"{year}-01-01",
         max_date=f"{year}-12-31",
@@ -219,3 +249,84 @@ def delete_proposal(
     year = _year(year)
     proposal = _latest_proposal(request, year, proposal_id)
     return _apply(request, year, [Delete(proposal.address, fields.get("pruefsumme", ""))])
+
+
+# --- Karte: die Lage eines Orts nur nach ausdrücklichem Klick suchen (ADR 0008) ------------------
+
+
+def _known_place(request: Request, year: int, name: str) -> str:
+    """Der Ortsname, wenn eine Reise des Jahrs ihn nennt, sonst 404."""
+    name = name.strip()
+    if name not in {use.name for use in place_uses(_trips(request, year))}:
+        raise HTTPException(404)
+    return name
+
+
+def _stored(request: Request, name: str) -> Place | None:
+    return next((p for p in _places(request) if p.name == name), None)
+
+
+@router.post("/{year}/orte/suche")
+def search_place(
+    request: Request, year: int, fields: Annotated[dict[str, str], Depends(form_fields)]
+) -> Response:
+    """Ortssuche: nur der getippte Text geht hinaus, nur auf diese Anfrage; nichts gespeichert."""
+    year = _year(year)
+    name = _known_place(request, year, fields.get("ort", ""))
+    text = fields.get("suche", "").strip()
+    if not text:
+        view = PlaceSearchView(name, text, [], "Bitte einen Suchbegriff eingeben.")
+        return _page(request, year, search=view, status_code=422)
+    search: PlaceSearch = request.app.state.place_search
+    try:
+        hits = search.search(text)
+    except PlaceSearchError as error:
+        return _page(
+            request, year, search=PlaceSearchView(name, text, [], str(error)), status_code=502
+        )
+    message = "" if hits else f"Kein Treffer in Deutschland für „{text}“."
+    return _page(request, year, search=PlaceSearchView(name, text, hits, message))
+
+
+@router.post("/{year}/orte/lage")
+def set_place_location(
+    request: Request, year: int, fields: Annotated[dict[str, str], Depends(form_fields)]
+) -> Response:
+    """Den gewählten Treffer als Lage des Orts speichern (für alle Jahre)."""
+    year = _year(year)
+    name = _known_place(request, year, fields.get("ort", ""))
+    try:
+        latitude, longitude = float(fields.get("breite", "")), float(fields.get("laenge", ""))
+        changes = locate_changes(
+            user_of(request),
+            name,
+            _stored(request, name),
+            latitude,
+            longitude,
+            fields.get("name", ""),
+            germany_map(),
+        )
+    except (ValueError, PlaceError) as error:
+        raise HTTPException(400, str(error) or "Breite und Länge sind keine Zahlen.") from error
+    return _apply(request, year, changes)
+
+
+@router.post("/{year}/orte/ausblenden")
+def hide_place(
+    request: Request, year: int, fields: Annotated[dict[str, str], Depends(form_fields)]
+) -> Response:
+    year = _year(year)
+    name = _known_place(request, year, fields.get("ort", ""))
+    return _apply(request, year, hide_changes(user_of(request), name, _stored(request, name)))
+
+
+@router.post("/{year}/orte/vergessen")
+def forget_place(
+    request: Request, year: int, fields: Annotated[dict[str, str], Depends(form_fields)]
+) -> Response:
+    year = _year(year)
+    name = _known_place(request, year, fields.get("ort", ""))
+    changes = forget_changes(_stored(request, name))
+    if not changes:
+        return RedirectResponse(f"/arbeit/dienstreisen/{year}", status_code=303)
+    return _apply(request, year, changes)

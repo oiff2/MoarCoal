@@ -16,6 +16,7 @@ from moarcoal.modules.work import (
     REGISTRATION,
     BusinessTrip,
     FirstWorkplace,
+    Place,
     TripsConfirmation,
     UserInput,
     WageTaxCertificate,
@@ -72,6 +73,7 @@ def test_work_module_is_in_the_fixed_list() -> None:
         WageTaxCertificate,
         BusinessTrip,
         TripsConfirmation,
+        Place,
     }
 
 

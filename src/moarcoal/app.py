@@ -20,6 +20,7 @@ from moarcoal.extraction import ClaudeExtractor, Extractor
 from moarcoal.issuer_field import router as issuer_field_router
 from moarcoal.issuer_pages import router as issuer_router
 from moarcoal.modules import MODULES
+from moarcoal.place_search import NominatimSearch, PlaceSearch
 from moarcoal.registration import ModuleRegistration
 from moarcoal.security import SecurityMiddleware
 from moarcoal.site_pages import moved_router
@@ -59,6 +60,7 @@ def create_app(
     user: str = DEFAULT_USER,
     user_name: str = DEFAULT_USER_NAME,
     extractor: Extractor | None = None,
+    place_search: PlaceSearch | None = None,
 ) -> FastAPI:
     """`data_dir` wird immer übergeben; `default_data_dir()` gilt nur beim Start der App."""
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -75,6 +77,8 @@ def create_app(
     app.state.user_name = user_name
     # Die App bekommt den echten Baustein, Tests einen Fake; aufgerufen wird nur auf Wunsch.
     app.state.extractor = extractor if extractor is not None else ClaudeExtractor()
+    # Ebenso die Ortssuche: der echte Baustein fragt nur nach Klick auf „Suchen“ (ADR 0008).
+    app.state.place_search = place_search if place_search is not None else NominatimSearch()
     app.state.store = open_store(
         data_dir,
         [kind for module in modules for kind in module.kinds],
