@@ -40,6 +40,7 @@ class ModuleRegistration:
     nav_url: str
     router: APIRouter
     kinds: tuple[EntryKind, ...]
+    icon: str = "modul"  # Datei `templates/icons/<icon>.svg`, Icon in der Seitenleiste
     values: tuple[ValueDefinition, ...] = ()
     entry_url: Callable[[EntryAddress], str | None] = lambda address: None
     document_kinds: tuple[DocumentKind, ...] = ()

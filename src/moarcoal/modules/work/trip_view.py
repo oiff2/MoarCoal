@@ -6,7 +6,6 @@ from typing import Any
 
 from fastapi import Request
 
-from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.links import document_url
 from moarcoal.modules.work.entries import (
     MODULE_KEY,
@@ -29,9 +28,15 @@ from moarcoal.place_search import PlaceHit
 from moarcoal.proposals import proposals_of
 from moarcoal.storage import entry_checksum
 from moarcoal.values.model import Period
-from moarcoal.web import module_state, store_of, user_of, values_of, year_of
-
-MAX_YEARS = 10  # so viele Jahre stehen höchstens zur Auswahl
+from moarcoal.web import (
+    global_year,
+    module_state,
+    store_of,
+    user_of,
+    values_of,
+    year_choices,
+    year_of,
+)
 
 
 @dataclass(frozen=True)
@@ -58,21 +63,17 @@ def confirmations_of(request: Request, year: int) -> list[TripsConfirmation]:
     return [c for c in state.all(TripsConfirmation) if c.year == year]
 
 
-def trip_years(request: Request, chosen: int | None = None) -> list[int]:
+def trip_years(request: Request, chosen: int) -> list[int]:
     """Jahre zur Auswahl: Jahre mit Dienstreisen und das aktuelle Steuerjahr, neueste zuerst.
     Ein gewähltes Jahr außerhalb der Liste steht zusätzlich an seinem Platz."""
-    state = module_state(request, MODULE_KEY)
-    found = {DEFAULT_YEAR, *(t.year for t in state.all(BusinessTrip))}
-    years = set(sorted(found, reverse=True)[:MAX_YEARS])
-    if chosen is not None:
-        years.add(chosen)
-    return sorted(years, reverse=True)
+    found = {t.year for t in module_state(request, MODULE_KEY).all(BusinessTrip)}
+    return year_choices(found, chosen)
 
 
-def chosen_year(request: Request, years: Sequence[int]) -> int:
-    """Das Jahr aus `?jahr=`, sonst das neueste; Unbrauchbares zählt als nicht gewählt."""
+def chosen_year(request: Request) -> int:
+    """Das Jahr aus `?jahr=`, sonst das globale Jahr; Unbrauchbares zählt als nicht gewählt."""
     year = year_of(request.query_params.get("jahr", ""), in_range=True)
-    return years[0] if year is None else year
+    return global_year(request) if year is None else year
 
 
 def _statements(request: Request, year: int, trips: Sequence[BusinessTrip]) -> list[dict[str, Any]]:

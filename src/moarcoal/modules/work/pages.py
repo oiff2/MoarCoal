@@ -17,7 +17,7 @@ from moarcoal.modules.work.entries import (
     UserInput,
     WorkEquipment,
 )
-from moarcoal.modules.work.trip_view import chosen_year, trip_years, trips_context
+from moarcoal.modules.work.trip_view import chosen_year, trips_context
 from moarcoal.modules.work.values import DISTANCE_KM, EQUIPMENT, WORKDAYS
 from moarcoal.registration import ModuleState
 from moarcoal.storage import (
@@ -249,7 +249,7 @@ def _overview(
         kinds=KINDS,
         errors=errors,
         values=values,
-        **trips_context(request, chosen_year(request, trip_years(request))),
+        **trips_context(request, chosen_year(request)),
     )
 
 

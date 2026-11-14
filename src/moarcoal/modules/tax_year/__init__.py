@@ -50,6 +50,7 @@ def registration(
         area_name="Steuerjahr",
         nav_label="Steuerjahr",
         nav_url="/steuerjahr",
+        icon="steuerjahr",
         router=router,
         entry_url=entry_url,
         kinds=KINDS,

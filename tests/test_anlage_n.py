@@ -509,10 +509,9 @@ def test_each_page_has_its_own_url_with_label_line_and_e_kennung(tmp_path: Path)
             assert f"Nr. {row.field.form_line or '–'}, {row.field.elster_id}" in html
         other = {r.field.elster_id for p in pages if p is not page for r in p.rows}
         assert not any(str(e) in html for e in other)
-    assert (
-        http.get("/steuerjahr/anlage-n/2025").text
-        == http.get(f"/steuerjahr/anlage-n/2025/{pages[0].slug}").text
-    )
+    first = http.get(f"/steuerjahr/anlage-n/2025/{pages[0].slug}").text
+    whole = http.get("/steuerjahr/anlage-n/2025").text
+    assert whole.split("<main>", 1)[1] == first.split("<main>", 1)[1]
     assert http.get("/steuerjahr/anlage-n/2025/gibt-es-nicht").status_code == 404
     assert http.get("/steuerjahr/anlage-n/2019/1").status_code == 404
 

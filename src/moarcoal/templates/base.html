@@ -6,23 +6,44 @@
   <meta name="htmx-config" content='{"includeIndicatorStyles": false}'>
   <title>{% block title %}MoarCoal{% endblock %}</title>
   <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/rahmen.js"></script>
   <script src="/static/htmx.min.js"></script>
   <script src="/static/aussteller.js" defer></script>
 </head>
 <body>
-  <header>
-    <nav>
-      <a href="/">MoarCoal</a>
-      {% if user_name %}
-      {% for module in modules %}
-      <a href="{{ module.nav_url }}">{{ module.nav_label }}</a>
-      {% endfor %}
-      <a href="/belege">Belege{% if open_files %} ({{ open_files }}){% endif %}</a>
-      <a href="/aussteller">Aussteller</a>
-      <a href="/befunde">Befunde</a>
-      <a href="/person">{{ user_name }}</a>
-      {% endif %}
-    </nav>
+  <aside class="seitenleiste">
+    <a class="logo" href="/" title="MoarCoal"><span class="marke">M</span><span class="lbl">MoarCoal</span></a>
+    {% if user_name %}
+    {% for group, entries in sidebar() %}
+    <div class="gruppe"><span class="lbl">{{ group }}</span><hr></div>
+    {% for entry in entries %}
+    <a href="{{ entry.url }}" title="{{ entry.label }}"{% if request.url.path.startswith(entry.url) %} aria-current="page"{% endif %}>{% include "icons/" ~ entry.icon ~ ".svg" %}<span class="lbl">{{ entry.label }}</span>{% if entry.count %}<b class="anzahl">{{ entry.count }}</b>{% endif %}</a>
+    {% endfor %}
+    {% endfor %}
+    {% endif %}
+    <div class="griff" title="Breite ziehen ([ klappt um)"></div>
+  </aside>
+  <header class="kopfleiste">
+    {% if user_name %}
+    <form class="jahrwahl" method="post" action="/jahr">
+      <input type="hidden" name="back" value="{{ request.url.path }}">
+      <label>Jahr <select name="year">{% for y in year_choices() %}<option value="{{ y }}"{% if y == shell_year %} selected{% endif %}>{{ y }}</option>{% endfor %}</select></label>
+      <button class="ohne-js">Wählen</button>
+    </form>
+    {% set summary = findings_summary() %}
+    {% set plural = {"Fehler": "Fehler", "Warnung": "Warnungen", "Hinweis": "Hinweise"} %}
+    <a class="befunde-kopf" href="/befunde?year={{ summary.year }}" title="Befunde {{ summary.year }}{% if summary.top %}: {{ summary.top.message }}{% endif %}">
+      {% for severity, n in summary.counts.items() if n %}<span class="schweregrad-{{ severity.name | lower }}">{{ n }} {{ severity.value if n == 1 else plural[severity.value] }}</span>{% else %}<span class="keine">Keine Befunde</span>{% endfor %}
+      {% if summary.top %}<span class="wichtigster">{{ summary.top.message }}</span>{% endif %}
+    </a>
+    <details class="nutzer">
+      <summary title="{{ user_name }}" aria-label="Nutzer-Menü">{% include "icons/nutzer.svg" %}</summary>
+      <div class="menue">
+        <a href="/person">{{ user_name }}</a>
+        {#- Platz für Hell/Dunkel (Ticket „Hell und Dunkel über CSS-Variablen“) -#}
+      </div>
+    </details>
+    {% endif %}
   </header>
   <main>
     {% block main %}{% endblock %}

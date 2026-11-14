@@ -42,6 +42,7 @@ REGISTRATION = ModuleRegistration(
     area_name="Arbeit",
     nav_label="Arbeit",
     nav_url="/arbeit",
+    icon="arbeit",
     router=router,
     kinds=KINDS + PLACE_KINDS,
     values=VALUES,
