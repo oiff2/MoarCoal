@@ -28,6 +28,8 @@ class StructureField:
     headings: tuple[str, ...]
     line: str
     label: str
+    options: tuple[str, ...] = ()  # feste Auswahl; leer: keine
+    free_text: bool = False  # Vorschlagsliste: nimmt auch einen eigenen Text
 
 
 @dataclass(frozen=True)
@@ -56,7 +58,15 @@ def parse_structure(text: str) -> FormStructure:
     if data.get("schema") != SCHEMA:
         raise ValueError(f"Struktur mit Schema {data.get('schema')}, erwartet {SCHEMA}")
     fields = tuple(
-        StructureField(f["e_kennung"], f["page"], tuple(f["headings"]), f["line"], f["label"])
+        StructureField(
+            f["e_kennung"],
+            f["page"],
+            tuple(f["headings"]),
+            f["line"],
+            f["label"],
+            tuple(f.get("options", ())),
+            bool(f.get("free_text", False)),
+        )
         for f in data["fields"]
     )
     ids = [f.e_kennung for f in fields]

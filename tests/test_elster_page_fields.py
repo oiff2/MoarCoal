@@ -151,3 +151,44 @@ def test_structure_and_diff_commands(tmp_path: Path, capsys: pytest.CaptureFixtu
     assert epf.main(["diff", str(out / "n-2025.json"), str(out / "n-2026.json")]) == 0
 
     assert capsys.readouterr().out.strip() == "Keine Änderungen."
+
+
+CHOICES = """
+<h1 data-ipe-type="Page.title">10 - Arbeitsmittel</h1>
+<div data-node-type="Line">
+  <label for="X(0)_fields(eruNArtE0204401)">Art der Arbeitsmittel</label>
+  <input name="fields[eruNArtE0204401]" value="Geheimer Wert">
+  <ul id="X(0)_fields(eruNArtE0204401)_suggestions" role="listbox">
+    <li role="option">Büromaterial</li><li role="option">Computer</li>
+  </ul>
+</div>
+<div data-node-type="Line">
+  <label for="X(0)_fields(eruNKlasseE0200002)">Steuerklasse</label>
+  <select name="fields[eruNKlasseE0200002]">
+    <option value=""></option><option value="1" selected>I</option><option value="2">II</option>
+  </select>
+</div>
+<div data-node-type="Line">
+  <label for="X(0)_fields(eruNBetragE0204403)">Betrag</label>
+  <input name="fields[eruNBetragE0204403]">
+</div>
+"""
+
+
+def test_options_of_a_suggestion_list_and_a_select_go_into_the_structure_without_values():
+    structure = structure_of(CHOICES)
+    art, klasse, betrag = structure["fields"]
+
+    assert art["options"] == ["Büromaterial", "Computer"]
+    assert art["free_text"] is True
+    assert klasse["options"] == ["I", "II"]
+    assert "free_text" not in klasse
+    assert "options" not in betrag
+    assert "Geheimer Wert" not in str(structure)
+
+
+def test_diff_reports_a_changed_choice():
+    before = year_of(field("E0100001", "Art"))
+    after = year_of({**field("E0100001", "Art"), "options": ["Computer"]})
+
+    assert epf.diff_structures(before, after) == ["Auswahl geändert: E0100001 (Art)"]

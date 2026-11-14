@@ -35,11 +35,13 @@ def test_a_missing_e_kennung_is_an_error_not_a_gap():
         fields_n(thin)
 
 
-def test_provisional_2025_structure_covers_the_catalog_and_loads_from_the_repo():
+def test_2025_structure_from_the_pages_covers_the_catalog_and_loads_from_the_repo():
     structure = load_structure("N", 2025)
 
-    assert structure.provisional
-    assert [f.e_kennung for f in structure.fields] == [f.elster_id for f in FIELDS_2025]
+    assert not structure.provisional
+    assert {f.elster_id for f in FIELDS_2025} <= {f.e_kennung for f in structure.fields}
+    art = structure.get("E0204401")
+    assert art.free_text and "Büromaterial" in art.options
 
 
 def test_tool_output_loads_as_structure():
@@ -114,3 +116,31 @@ def test_mapping_is_one_to_one():
 
     assert len(problems) == 1
     assert "verweist wie E0200999 auf E0200201" in problems[0]
+
+
+def test_options_and_free_text_load_and_default_to_none():
+    text = json.dumps(
+        {
+            "schema": 1,
+            "form": "N",
+            "year": 2025,
+            "provisional": False,
+            "fields": [
+                {
+                    "e_kennung": "E0100001",
+                    "page": "",
+                    "headings": [],
+                    "line": "1",
+                    "label": "A",
+                    "options": ["x", "y"],
+                    "free_text": True,
+                },
+                {"e_kennung": "E0100002", "page": "", "headings": [], "line": "2", "label": "B"},
+            ],
+        }
+    )
+
+    art, other = parse_structure(text).fields
+
+    assert (art.options, art.free_text) == (("x", "y"), True)
+    assert (other.options, other.free_text) == ((), False)

@@ -33,7 +33,7 @@ import argparse
 import json
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
@@ -41,6 +41,8 @@ from typing import Any
 E_KENNUNG_RE = re.compile(r"E\d{7}$")
 # `fields(name)` in label/for and ids, `fields[name]` in input/name.
 FIELD_NAME_RE = re.compile(r"fields[\[(]([A-Za-z0-9_]+)[\])]$")
+# The suggestion list of a field with free text: <ul id="..._fields(name)_suggestions">.
+SUGGESTIONS_ID_RE = re.compile(r"fields\(([A-Za-z0-9_]+)\)_suggestions$")
 LINE_TITLE_RE = re.compile(r"^Zeile\s+(\d+[a-z]?)$")
 # Screen-reader texts ELSTER puts into headings and labels.
 NOISE = ("Hilfe zum Begriff anzeigen", "Hinweis vorhanden.")
@@ -56,6 +58,10 @@ class PageField:
     line: str
     label: str
     headings: tuple[str, ...]
+    # Fixed choices of a selection field (texts, never the chosen one); `free_text`: the field
+    # is a suggestion list and also takes an own text.
+    options: tuple[str, ...] = ()
+    free_text: bool = False
 
 
 def field_name(attribute: str | None) -> str | None:
@@ -87,6 +93,11 @@ class _PageParser(HTMLParser):
         self._group_label: str = ""
         self._label: tuple[str, list[str]] | None = None
         self._label_depth = 0
+        self.options: dict[str, list[str]] = {}
+        self.free_text: set[str] = set()
+        self._select: str | None = None
+        self._suggestions: str | None = None
+        self._option: list[str] | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attributes = dict(attrs)
@@ -106,10 +117,29 @@ class _PageParser(HTMLParser):
             self._label, self._label_depth = (name, []), 0
         elif tag == "label" and self._label is not None:
             self._label_depth += 1
+        if tag == "select" and (name := field_name(attributes.get("name"))):
+            self._select = name
+            self.options.setdefault(name, [])
+        if tag == "ul" and (match := SUGGESTIONS_ID_RE.search(attributes.get("id") or "")):
+            suggested: str = match[1]
+            self._suggestions = suggested
+            self.options.setdefault(suggested, [])
+            self.free_text.add(suggested)
+        if tag in ("option", "li") and (self._select or self._suggestions):
+            self._option = []
         if tag in ("input", "select", "textarea") and (name := field_name(attributes.get("name"))):
             self._add(name, self._group_label)
 
     def handle_endtag(self, tag: str) -> None:
+        if tag in ("option", "li") and self._option is not None:
+            owner = self._select or self._suggestions
+            if owner and (text := _clean("".join(self._option))):
+                self.options[owner].append(text)
+            self._option = None
+        if tag == "select":
+            self._select = None
+        if tag == "ul":
+            self._suggestions = None
         if self._heading and tag == f"h{self._heading[0]}":
             level, parts = self._heading
             self._headings = {k: v for k, v in self._headings.items() if k < level}
@@ -133,6 +163,8 @@ class _PageParser(HTMLParser):
                 break
 
     def handle_data(self, data: str) -> None:
+        if self._option is not None:
+            self._option.append(data)
         if self._heading:
             self._heading[1].append(data)
         if self._label is not None:
@@ -157,7 +189,14 @@ def read_page(html: str) -> list[PageField]:
     parser = _PageParser()
     parser.feed(html)
     parser.close()
-    return list(parser.fields.values())
+    return [
+        replace(
+            item,
+            options=tuple(parser.options.get(item.name, ())),
+            free_text=item.name in parser.free_text,
+        )
+        for item in parser.fields.values()
+    ]
 
 
 def format_fields(fields: list[PageField]) -> list[str]:
@@ -192,15 +231,18 @@ def build_structure(pages: list[tuple[str, str]], form: str, year: int) -> Struc
                 continue
             seen.add(item.e_kennung)
             page, *headings = item.headings or (Path(name).stem,)
-            fields.append(
-                {
-                    "e_kennung": item.e_kennung,
-                    "page": page,
-                    "headings": headings,
-                    "line": item.line,
-                    "label": item.label,
-                }
-            )
+            entry: dict[str, Any] = {
+                "e_kennung": item.e_kennung,
+                "page": page,
+                "headings": headings,
+                "line": item.line,
+                "label": item.label,
+            }
+            if item.options:
+                entry["options"] = list(item.options)
+                if item.free_text:
+                    entry["free_text"] = True
+            fields.append(entry)
     return {"schema": SCHEMA, "form": form, "year": year, "provisional": False, "fields": fields}
 
 
@@ -227,6 +269,8 @@ def diff_structures(previous: Structure, current: Structure) -> list[str]:
             lines.append(
                 f"Bezeichnung geändert: {kennung}: '{before['label']}' -> '{after['label']}'"
             )
+        if before.get("options", []) != after.get("options", []):
+            lines.append(f"Auswahl geändert: {kennung} ({after['label']})")
         if before["line"] != after["line"]:
             lines.append(
                 f"Nr. im Vordruck geändert: {kennung} ({after['label']}): "
