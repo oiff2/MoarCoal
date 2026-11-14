@@ -16,6 +16,7 @@ from moarcoal.modules.work.pages import MODULE_KEY, entry_url
 from moarcoal.modules.work.pages import router as pages_router
 from moarcoal.modules.work.reading import read_in_wage_tax_certificate
 from moarcoal.modules.work.trip_pages import router as trip_router
+from moarcoal.modules.work.trip_reading import STATEMENT
 from moarcoal.modules.work.values import FINDING_KINDS, VALUES, work_findings
 from moarcoal.registration import ModuleRegistration
 
@@ -42,7 +43,7 @@ REGISTRATION = ModuleRegistration(
     router=router,
     kinds=KINDS,
     values=VALUES,
-    document_kinds=(WAGE_TAX_CERTIFICATE,),
+    document_kinds=(WAGE_TAX_CERTIFICATE, STATEMENT),
     entry_url=entry_url,
     finding_kinds=FINDING_KINDS,
     findings=work_findings,

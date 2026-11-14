@@ -85,7 +85,10 @@ Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die 
 Werkzeug und Material, das ein Nutzer für die Arbeit selbst gekauft hat; erfasst wird je Anschaffung ein Betrag als Nutzereingabe mit dem Steuerjahr, für das er gilt (Code: `WorkEquipment`).
 
 **Dienstreise**:
-Eine berufliche Fahrt mit dem privaten Pkw im Steuerjahr: Start, Ende (leer = Start), die Orte in Reihenfolge mit ausdrücklichem Rückweg (A → B → A), die km der ganzen Reise und eine Notiz (Code: `BusinessTrip`). Nur die Fahrtkosten zählen, die Summe der km mal dem km-Satz des Jahrs; Verpflegung, Übernachtung und Nebenkosten rechnet der Arbeitgeber ab. Die Reisen eines Jahrs bearbeitet man in einer Tabelle, in einem Vorgang. Der Nutzer bestätigt sie je Jahr als vollständig, auch wenn es keine gab (Code: `TripsConfirmation`); sie gilt für genau diesen Stand, jede Änderung an den Reisen hebt sie auf. Bis dahin gibt es einen Hinweis. Daraus kommen die Felder Nr. 66 und 69 der Anlage N.
+Eine berufliche Fahrt mit dem privaten Pkw im Steuerjahr: Start, Ende (leer = Start), die Orte in Reihenfolge mit ausdrücklichem Rückweg (A → B → A), die km der ganzen Reise und eine Notiz (Code: `BusinessTrip`). Nur die Fahrtkosten zählen, die Summe der km mal dem km-Satz des Jahrs; Verpflegung, Übernachtung und Nebenkosten rechnet der Arbeitgeber ab. Die Reisen eines Jahrs bearbeitet man in einer Tabelle, in einem Vorgang. Der Nutzer bestätigt sie je Jahr als vollständig, auch wenn es keine gab (Code: `TripsConfirmation`); sie gilt für genau diesen Stand, jede Änderung an den Reisen hebt sie auf. Bis dahin gibt es einen Hinweis. Daraus kommen die Felder Nr. 66 und 69 der Anlage N. Neben der Tabelle gibt es **Reiseaufstellungen**: Screenshots einer Reiseliste, aus denen Claude die Reisen als Vorschlag auslesen kann.
+
+**Reiseaufstellung**:
+Ein Screenshot einer Liste von Dienstreisen (z. B. aus dem Reisekostentool des Arbeitgebers), von Hand aufgenommen als Dokument der Dokumentart „Reiseaufstellung (Screenshot)“ des Moduls Arbeit mit Bezugszeitraum, nicht eingelesen, sondern von Claude ausgelesen: je Reise Start, Ende, Orte und km, dazu welche Felder unsicher gelesen sind und welche Spalten (Verpflegung, Übernachtung, Spesen) ausgelassen wurden; nie als km. Der Vorschlag erscheint als Tabelle auf der Seite Dienstreisen mit Markierungen (km fehlen, unsicher, mögliche Dublette mit gleichem Startdatum, außerhalb des Jahrs); der Nutzer übernimmt gewählte Reisen oder löscht den Vorschlag. Ohne km keine Übernahme.
 
 **Lohnsteuerbescheinigung**:
 Die Bescheinigung des Arbeitgebers über Bruttoarbeitslohn und einbehaltene Steuern eines Jahres; als eDaten-HTML aus „Meine Bescheinigungen“ in Mein ELSTER (`Belegart: VaSt_LStB`) Dokumentart des Moduls Arbeit mit Bezugszeitraum, je Nutzer und Jahr eindeutig. Sie wird exakt eingelesen; der Eintrag hält Steuerklasse, Bruttoarbeitslohn, Lohnsteuer und Solidaritätszuschlag in Cent, je mit Fundstelle im Dokument (Code: `WageTaxCertificate`). Was die Datei nicht nennt, bleibt leer und ist noch nicht berechenbar, nie 0. Daraus kommen die Felder Nr. 4 bis 7 der Anlage N.
@@ -246,7 +249,7 @@ Das Ergebnis einer Auslesung an einem Dokument: Felder mit Inhalt und Stelle im 
 _Avoid_: Entwurf, Vorschlagswert, unbestätigter Einzelposten
 
 **Auslese-Vorlage** _(geprägt)_:
-Was ein Modul für eine Dokumentart auslesen lassen will: Liste der Felder mit Einheit und Hinweis für Claude (Code: `ExtractionTemplate`).
+Was ein Modul für eine Dokumentart auslesen lassen will: Liste der Felder mit Einheit und Hinweis für Claude, auf Wunsch dazu eine Liste gleichartiger Zeilen (z. B. die Reisen einer Reiseaufstellung), deren Zellen im Vorschlag je ein Feld sind (Code: `ExtractionTemplate`).
 _Avoid_: Prompt, Schema, Formular, Vorlage (allein, das sind die Jinja-Vorlagen der Oberfläche)
 
 **Beleg**:

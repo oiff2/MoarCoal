@@ -69,4 +69,5 @@ form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
 /* Dienstreisen */
 .reisen input.ungueltig { outline: 2px solid crimson; }
 .reisen tr.mit-fehler td { background: color-mix(in srgb, crimson 8%, transparent); }
+.reisen td.unsicher { background: color-mix(in srgb, orange 18%, transparent); }
 .reisen tfoot td { font-weight: bold; }

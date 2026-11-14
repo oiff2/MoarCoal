@@ -93,7 +93,9 @@ def read_out(
         if tools and not _record_abort(store, state, user, document, aborted):
             return ReadOutRejected(f"{answer.message} {NOT_RECORDED}")
         return ReadOutRejected(answer.message)
-    proposal = _proposal(user, document, template.version, [f.key for f in template.fields], answer)
+    proposal = _proposal(
+        user, document, template.version, template.expected_keys(answer.fields), answer
+    )
     changes: list[Put | Delete] = [Put(proposal)]
     if aborted is not None:  # gelungen: die Abgebrochene Auslesung ist geklärt
         changes.append(Delete(aborted.address, expected=state.checksum(aborted.address) or ""))
@@ -160,7 +162,7 @@ def aborted_extraction_findings(state: State, user: str) -> list[Finding]:
 def _proposal(
     user: str, document: Document, version: int, keys: list[str], answer: Extracted
 ) -> Proposal:
-    """Nur Felder der Vorlage, in ihrer Reihenfolge; ein fehlendes Feld ist leer."""
+    """Nur Felder der Vorlage (und Zellen ihrer Liste), in ihrer Reihenfolge; Fehlendes ist leer."""
     fields = {
         key: ProposalField(value=given.value, location=given.location)
         for key in keys
