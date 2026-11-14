@@ -62,7 +62,7 @@ def test_header_shows_findings_summary_of_the_year_with_link(tmp_path: Path) -> 
     (site / "a.txt").write_text("a", encoding="utf-8")
     header = part(make_client(tmp_path / "daten", site).get("/").text, "header")
     assert 'href="/befunde?year=2025"' in header
-    assert "0 Fehler" in header and "0 Warnungen" in header and "2 Hinweise" in header
+    assert "2 Hinweise" in header and "Fehler" not in header and "Warnungen" not in header
     assert '<span class="wichtigster">' in header  # der wichtigste Befund als Zeile
 
 
