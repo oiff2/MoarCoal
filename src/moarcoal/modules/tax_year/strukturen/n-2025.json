@@ -1,0 +1,169 @@
+{
+ "schema": 1,
+ "form": "N",
+ "year": 2025,
+ "provisional": true,
+ "fields": [
+  {
+   "e_kennung": "E0200002",
+   "page": "",
+   "headings": [],
+   "line": "4",
+   "label": "Steuerklasse"
+  },
+  {
+   "e_kennung": "E0200201",
+   "page": "",
+   "headings": [],
+   "line": "5",
+   "label": "Bruttoarbeitslohn einschließlich Sachbezüge (Summe)"
+  },
+  {
+   "e_kennung": "E0200204",
+   "page": "",
+   "headings": [],
+   "line": "5",
+   "label": "Bruttoarbeitslohn einschließlich Sachbezüge (je Bescheinigung)"
+  },
+  {
+   "e_kennung": "E0200301",
+   "page": "",
+   "headings": [],
+   "line": "6",
+   "label": "Lohnsteuer (Summe)"
+  },
+  {
+   "e_kennung": "E0200304",
+   "page": "",
+   "headings": [],
+   "line": "6",
+   "label": "Lohnsteuer (je Bescheinigung)"
+  },
+  {
+   "e_kennung": "E0200401",
+   "page": "",
+   "headings": [],
+   "line": "7",
+   "label": "Solidaritätszuschlag (Summe)"
+  },
+  {
+   "e_kennung": "E0200404",
+   "page": "",
+   "headings": [],
+   "line": "7",
+   "label": "Solidaritätszuschlag (je Bescheinigung)"
+  },
+  {
+   "e_kennung": "E0203003",
+   "page": "",
+   "headings": [],
+   "line": "27",
+   "label": "Ziel des Weges"
+  },
+  {
+   "e_kennung": "E0203501",
+   "page": "",
+   "headings": [],
+   "line": "27",
+   "label": "PLZ, Ort und Straße"
+  },
+  {
+   "e_kennung": "E0203101",
+   "page": "",
+   "headings": [],
+   "line": "27",
+   "label": "vom - bis"
+  },
+  {
+   "e_kennung": "E0203508",
+   "page": "",
+   "headings": [],
+   "line": "28",
+   "label": "Arbeitstage je Woche"
+  },
+  {
+   "e_kennung": "E0203509",
+   "page": "",
+   "headings": [],
+   "line": "28",
+   "label": "Urlaubs-, Krankheits-, Heimarbeits- und Dienstreisetage"
+  },
+  {
+   "e_kennung": "E0203503",
+   "page": "",
+   "headings": [],
+   "line": "29",
+   "label": "aufgesucht an Tagen"
+  },
+  {
+   "e_kennung": "E0203504",
+   "page": "",
+   "headings": [],
+   "line": "30",
+   "label": "einfache Entfernung in Kilometern"
+  },
+  {
+   "e_kennung": "E0203505",
+   "page": "",
+   "headings": [],
+   "line": "31",
+   "label": "davon mit eigenem oder zur Nutzung überlassenem PKW zurückgelegt"
+  },
+  {
+   "e_kennung": "E0204103",
+   "page": "",
+   "headings": [],
+   "line": "51",
+   "label": "Arbeitgeberleistungen laut Nr. 17 der Lohnsteuerbescheinigung (steuerfrei ersetzt)"
+  },
+  {
+   "e_kennung": "E0203901",
+   "page": "",
+   "headings": [],
+   "line": "51",
+   "label": "Arbeitgeberleistungen laut Nr. 18 der Lohnsteuerbescheinigung (pauschal besteuert)"
+  },
+  {
+   "e_kennung": "E0204403",
+   "page": "",
+   "headings": [],
+   "line": "56",
+   "label": "Arbeitsmittel"
+  },
+  {
+   "e_kennung": "E0204507",
+   "page": "",
+   "headings": [],
+   "line": "58",
+   "label": "Kalendertage, an denen die berufliche Tätigkeit überwiegend in der häuslichen Wohnung ausgeübt wurde"
+  },
+  {
+   "e_kennung": "E0204901",
+   "page": "",
+   "headings": [],
+   "line": "65",
+   "label": "Fahrten mit Firmenwagen oder unentgeltlicher Sammelbeförderung"
+  },
+  {
+   "e_kennung": "E0205003",
+   "page": "",
+   "headings": [],
+   "line": "66",
+   "label": "Fahrtkosten (Art)"
+  },
+  {
+   "e_kennung": "E0205004",
+   "page": "",
+   "headings": [],
+   "line": "66",
+   "label": "Fahrtkosten (Betrag)"
+  },
+  {
+   "e_kennung": "E0205518",
+   "page": "",
+   "headings": [],
+   "line": "69",
+   "label": "Gesamtsumme der Aufwendungen für Reisekosten"
+  }
+ ]
+}

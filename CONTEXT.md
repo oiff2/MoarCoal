@@ -112,6 +112,9 @@ Ob ein Euro-Feld als Einnahme oder als Ausgabe zählt; sie bestimmt, wie sein We
 Die Kennung eines Felds in ELSTER (E und sieben Ziffern; Code: `ElsterId`); der verlässliche Schlüssel einer Zeile, den man aus dem Übertragungsprotokoll erfährt oder vorab aus einer von Hand gespeicherten Seite der Erklärung in Mein ELSTER (`tools/elster_page_fields.py`).
 _Avoid_: Feldnummer
 
+**Struktur**:
+Die Felder einer Anlage in einem Steuerjahr, wie Mein ELSTER sie zeigt: Seite, Überschriften, Bezeichnung, Nummer im Vordruck und E-Kennung, nie Werte. Das Werkzeug `tools/elster_page_fields.py` erzeugt sie aus gespeicherten Seiten als Datei je Jahr im Repo und meldet die Änderungen zum Vorjahr; solange die Seiten fehlen, ist eine Struktur vorläufig und aus dem Katalog abgeleitet. Die Bedeutung eines Felds (Wert, Richtung, Runden, EStB) bleibt im Katalog des Steuerjahrs und verweist per E-Kennung auf die Struktur; ändert sich die E-Kennung eines Felds gegenüber dem Vorjahr, braucht es eine ausdrückliche Zuordnung (Code: `FormStructure`).
+
 **Belegstand** _(geprägt)_:
 Ob ein Einzelposten durch einen Beleg gedeckt ist; er ergibt sich aus der Art der Fundstelle: belegt (Fundstelle ist eine Stelle in einem Dokument oder ein eDaten-Satz), ausstehend (Fundstelle ist ein Erwarteter Beleg, der Betrag gilt, bis der Beleg da ist) oder angenommen (Fundstelle ist eine Nutzereingabe, kein Beleg zu erwarten). Stützt sich ein Einzelposten auf einen anderen Ausgewiesenen Wert, erbt er dessen schwächsten Belegstand. Vom schwächsten zum stärksten: ausstehend, angenommen, belegt. Der Belegstand eines Ausgewiesenen Werts ist der schwächste seiner Einzelposten; ohne Einzelposten (z. B. ausdrücklich 0) ist er belegt (Code: `Backing`).
 _Avoid_: Gewissheit, Status, geschätzt, geplant, vorläufig
