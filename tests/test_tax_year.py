@@ -150,17 +150,19 @@ def test_read_in_stores_fields_from_the_fixture() -> None:
     assert reading.reader_version == READER_VERSION
 
 
-def test_read_in_names_the_document_kind_for_a_pdf() -> None:
-    with pytest.raises(
-        ReadInError,
-        match=r"keine HTML-Datei.*PDF.*Dokumentart Übertragungsprotokoll die Datei als HTML",
-    ):
+def test_read_in_reports_unexpected_format_with_the_document_kind() -> None:
+    pdf = r"Unerwartetes Format \(sieht nach einem PDF aus\).*Dokumentart Übertragungsprotokoll"
+    other = r"Unerwartetes Format \(keine HTML-Datei aus Mein ELSTER\).*Übertragungsprotokoll"
+    with pytest.raises(ReadInError, match=pdf):
         read_in_protocol(make_document(), b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n1 0 obj")
+    for content in (b"<p>nichts</p>", b"nur Text"):
+        with pytest.raises(ReadInError, match=other):
+            read_in_protocol(make_document(), content)
 
 
 def test_read_in_refuses_other_documents_and_year_mismatch() -> None:
     with pytest.raises(ReadInError, match="kein Übertragungsprotokoll"):
-        read_in_protocol(make_document(), b"<p>nichts</p>")
+        read_in_protocol(make_document(), b"<!-- Belegart: X --><p>nichts</p>")
     with pytest.raises(ReadInError, match="kein Feld mit E-Kennung"):
         read_in_protocol(make_document(), b"<!-- Belegart: E10 --><p>leer</p>")
     with pytest.raises(ReadInError, match="Steuerjahr 2025, eingetragen ist 2024"):

@@ -62,12 +62,18 @@ def read(content: str | bytes | None = None, year: int | None = 2025) -> WageTax
     return entry
 
 
-def test_pdf_instead_of_html_names_the_document_kind() -> None:
+def test_unexpected_format_names_the_document_kind() -> None:
     with pytest.raises(
         ReadInError,
-        match=r"keine HTML-Datei.*PDF.*Dokumentart Lohnsteuerbescheinigung die Datei als HTML",
+        match=r"Unerwartetes Format \(sieht nach einem PDF aus\).*Lohnsteuerbescheinigung",
     ):
         read(b"%PDF-1.7\n1 0 obj")
+    for content in ("<p>nichts</p>", "nur Text"):
+        with pytest.raises(
+            ReadInError,
+            match=r"Unerwartetes Format \(keine HTML-Datei.*Lohnsteuerbescheinigung",
+        ):
+            read(content)
     with pytest.raises(ReadInError, match="keine Lohnsteuerbescheinigung"):
         read("<!-- Belegart: E10 --><p>x</p>")
 

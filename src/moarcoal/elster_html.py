@@ -122,15 +122,19 @@ class _Parser(HTMLParser):
 
 def parse_elster_html(content: bytes, title: str) -> ParsedHtml:
     """Kopf und alle Felder mit `data-name`, in der Reihenfolge der Datei. `title` ist der Titel
-    der Dokumentart und steht in der Meldung, wenn die Datei kein HTML ist (heute: ein PDF)."""
-    if content.lstrip().startswith(PDF_START):
-        raise ReadInError(
-            "Das ist keine HTML-Datei aus Mein ELSTER (sieht nach einem PDF aus). "
-            f"Bitte für die Dokumentart {title} die Datei als HTML speichern und diese aufnehmen."
-        )
+    der Dokumentart und steht in der Meldung, wenn die Datei kein HTML aus Mein ELSTER ist: ein
+    PDF oder eine Datei ohne Kopfkommentar `Belegart` und ohne Feld mit `data-name`."""
+    is_pdf = content.lstrip().startswith(PDF_START)
     parser = _Parser()
-    parser.feed(content.decode("utf-8", errors="replace"))
-    parser.close()
+    if not is_pdf:
+        parser.feed(content.decode("utf-8", errors="replace"))
+        parser.close()
+    if is_pdf or ("Belegart" not in parser.header and not parser.fields):
+        hint = "sieht nach einem PDF aus" if is_pdf else "keine HTML-Datei aus Mein ELSTER"
+        raise ReadInError(
+            f"Unerwartetes Format ({hint}). "
+            f"Für die Dokumentart {title} wird die HTML-Datei aus Mein ELSTER gebraucht."
+        )
     belegversion = parser.header.get("Belegversion", "")
     year_text = next(
         (t for t in (parser.header.get("Veranlagungsjahr", ""), belegversion) if YEAR.fullmatch(t)),
