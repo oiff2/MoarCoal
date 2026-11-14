@@ -5,10 +5,10 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import Dismissal, EntryAddress, open_store
 from moarcoal.values.findings import Finding, Severity, split_findings
@@ -38,7 +38,7 @@ class Source:
         ]
 
 
-def make_app(root: Path, source: Source, user: str = "anna") -> httpx.Client:
+def make_client(root: Path, source: Source, user: str = "anna") -> httpx.Client:
     module = ModuleRegistration(
         key="demo",
         area_name="Demo",
@@ -48,7 +48,7 @@ def make_app(root: Path, source: Source, user: str = "anna") -> httpx.Client:
         kinds=(),
         findings=source,
     )
-    app = create_app(PORT, root, modules=[module], user=user)
+    app = make_app(PORT, root, modules=[module], user=user)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -74,7 +74,7 @@ def form(source: Source, **overrides: str) -> dict[str, str]:
 
 
 def test_dismissed_finding_is_gone_and_counted(tmp_path: Path, source: Source) -> None:
-    client = make_app(tmp_path, source)
+    client = make_client(tmp_path, source)
     assert "Etwas stimmt nicht." in client.get("/befunde?year=2025").text
 
     response = client.post("/befunde/ausblenden", data=form(source), headers=ORIGIN)
@@ -91,7 +91,7 @@ def test_dismissed_finding_is_gone_and_counted(tmp_path: Path, source: Source) -
 
 def test_hidden_errors_are_counted_separately(tmp_path: Path, source: Source) -> None:
     source.severity = Severity.ERROR
-    client = make_app(tmp_path, source)
+    client = make_client(tmp_path, source)
 
     client.post("/befunde/ausblenden", data=form(source), headers=ORIGIN)
 
@@ -101,7 +101,7 @@ def test_hidden_errors_are_counted_separately(tmp_path: Path, source: Source) ->
 def test_changed_fingerprint_brings_the_finding_back_with_the_old_note(
     tmp_path: Path, source: Source
 ) -> None:
-    client = make_app(tmp_path, source)
+    client = make_client(tmp_path, source)
     client.post("/befunde/ausblenden", data=form(source), headers=ORIGIN)
 
     source.state = "b"
@@ -115,7 +115,7 @@ def test_changed_fingerprint_brings_the_finding_back_with_the_old_note(
 def test_dismissal_without_note_is_rejected_and_keeps_the_input(
     tmp_path: Path, source: Source
 ) -> None:
-    client = make_app(tmp_path, source)
+    client = make_client(tmp_path, source)
 
     for note in ("", "   "):
         response = client.post("/befunde/ausblenden", data=form(source, note=note), headers=ORIGIN)
@@ -126,23 +126,23 @@ def test_dismissal_without_note_is_rejected_and_keeps_the_input(
 
 
 def test_dismissal_survives_restart(tmp_path: Path, source: Source) -> None:
-    make_app(tmp_path, source).post("/befunde/ausblenden", data=form(source), headers=ORIGIN)
+    make_client(tmp_path, source).post("/befunde/ausblenden", data=form(source), headers=ORIGIN)
 
-    restarted = make_app(tmp_path, source)
+    restarted = make_client(tmp_path, source)
 
     assert "Etwas stimmt nicht." not in restarted.get("/befunde?year=2025").text
 
 
 def test_dismissal_of_one_user_does_not_hide_for_another(tmp_path: Path, source: Source) -> None:
-    make_app(tmp_path, source).post("/befunde/ausblenden", data=form(source), headers=ORIGIN)
+    make_client(tmp_path, source).post("/befunde/ausblenden", data=form(source), headers=ORIGIN)
 
-    other = make_app(tmp_path, source, user="berta")
+    other = make_client(tmp_path, source, user="berta")
 
     assert "Etwas stimmt nicht." in other.get("/befunde?year=2025").text
 
 
 def test_unhide_deletes_the_dismissal(tmp_path: Path, source: Source) -> None:
-    client = make_app(tmp_path, source)
+    client = make_client(tmp_path, source)
     client.post("/befunde/ausblenden", data=form(source), headers=ORIGIN)
     (dismissal,) = stored(tmp_path)
 
@@ -156,9 +156,9 @@ def test_unhide_deletes_the_dismissal(tmp_path: Path, source: Source) -> None:
 
 
 def test_unhide_of_a_foreign_dismissal_is_404(tmp_path: Path, source: Source) -> None:
-    make_app(tmp_path, source).post("/befunde/ausblenden", data=form(source), headers=ORIGIN)
+    make_client(tmp_path, source).post("/befunde/ausblenden", data=form(source), headers=ORIGIN)
     (dismissal,) = stored(tmp_path)
-    other = make_app(tmp_path, source, user="berta")
+    other = make_client(tmp_path, source, user="berta")
 
     response = other.post(
         "/befunde/einblenden", data={"year": "2025", "id": dismissal.id}, headers=ORIGIN
@@ -169,7 +169,7 @@ def test_unhide_of_a_foreign_dismissal_is_404(tmp_path: Path, source: Source) ->
 
 
 def test_dismissal_of_a_stale_fingerprint_is_refused(tmp_path: Path, source: Source) -> None:
-    client = make_app(tmp_path, source)
+    client = make_client(tmp_path, source)
     stale = form(source)
     source.state = "b"
 
@@ -180,7 +180,7 @@ def test_dismissal_of_a_stale_fingerprint_is_refused(tmp_path: Path, source: Sou
 
 
 def test_page_offers_a_form_per_finding(tmp_path: Path, source: Source) -> None:
-    page = make_app(tmp_path, source).get("/befunde?year=2025").text
+    page = make_client(tmp_path, source).get("/befunde?year=2025").text
 
     assert 'action="/befunde/ausblenden"' in page
     assert 'name="note"' in page

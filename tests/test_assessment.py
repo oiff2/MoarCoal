@@ -8,31 +8,42 @@ import datetime
 import hashlib
 import json
 import shutil
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.links import document_url
 from moarcoal.modules.tax_year import ASSESSMENT, ProtocolReading, registration
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_n import (
     FORMS,
     N_EQUIPMENT,
+    WORK_ABSENCE_DAYS,
+    WORK_CAR_DISTANCE,
     WORK_DISTANCE_KM,
     WORK_EQUIPMENT,
+    WORK_GROSS_WAGES,
+    WORK_INCOME_TAX,
+    WORK_SOLI,
+    WORK_TAX_CLASS,
+    WORK_TRAVEL_FARE,
+    WORK_TRAVEL_TOTAL,
+    WORK_TRIP_DAYS,
     WORK_WORKDAYS,
+    WORK_WORKDAYS_PER_WEEK,
 )
 from moarcoal.modules.tax_year.assessment import (
     BUSINESS_TRAVEL,
     COMMUTE_DAYS,
     COMMUTE_KM,
+    EMPLOYEE_ALLOWANCE,
     GROSS_WAGES,
     MEAL_ALLOWANCE,
     TEMPLATE,
@@ -66,6 +77,22 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
         (WORK_WORKDAYS, PLACE, YEAR): fixed(Amount.of(workdays, Unit.DAYS)),
         (WORK_DISTANCE_KM, PLACE, YEAR): fixed(Amount.of(km, Unit.KM)),
         (WORK_EQUIPMENT, None, YEAR): fixed(Amount.eur_cents(cents)),
+        **{
+            (key, PLACE, YEAR): not_yet("keine Eingabe")
+            for key in (WORK_WORKDAYS_PER_WEEK, WORK_ABSENCE_DAYS, WORK_CAR_DISTANCE)
+        },
+        **{
+            (key, None, YEAR): not_yet("keine Lohnsteuerbescheinigung")
+            for key in (
+                WORK_TAX_CLASS,
+                WORK_GROSS_WAGES,
+                WORK_INCOME_TAX,
+                WORK_SOLI,
+                WORK_TRAVEL_FARE,
+                WORK_TRAVEL_TOTAL,
+                WORK_TRIP_DAYS,
+            )
+        },
     }
 
 
@@ -413,7 +440,7 @@ def test_a_newer_assessment_without_confirmed_positions_does_not_displace_the_ol
 
 def test_no_snapshot_note_only_for_a_field_that_could_be_compared() -> None:
     document = assessment()
-    uncomputed = [document, proposal(document, {GROSS_WAGES: "97.292"})]
+    uncomputed = [document, proposal(document, {EMPLOYEE_ALLOWANCE: "100"})]
 
     assert findings(uncomputed) == []
 
@@ -455,7 +482,7 @@ def app(tmp_path: Path, site: Path) -> FastAPI:
     (root / "common" / "sites.json").write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    return create_app(PORT, root, user="anna")
+    return make_app(PORT, root, user="anna")
 
 
 @pytest.fixture
@@ -477,7 +504,10 @@ def take(http: httpx.Client, path: Path, kind: str) -> None:
 
 
 def test_whole_flow_the_page_and_the_finding_list_show_the_assessment(
-    http: httpx.Client, app: FastAPI, site: Path
+    http: httpx.Client,
+    app: FastAPI,
+    site: Path,
+    anlage_n_text: Callable[[httpx.Client], str],
 ) -> None:
     form = {"year": "2025", "workdays": "219", "distance_km": "12", "description": "Büro"}
     http.post("/arbeit/erste-taetigkeitsstaette", data=form, headers=ORIGIN)
@@ -489,7 +519,7 @@ def test_whole_flow_the_page_and_the_finding_list_show_the_assessment(
         [Put(proposal(document, {COMMUTE_DAYS: "218", COMMUTE_KM: "12", GROSS_WAGES: "97.292"}))]
     )
 
-    page = http.get("/steuerjahr/anlage-n/2025").text
+    page = anlage_n_text(http)
     assert "Laut EStB" in page
     assert "<td>218 Tage</td>" in page and "<td>97.292 €</td>" in page
     assert "wird noch nicht berechnet" in page

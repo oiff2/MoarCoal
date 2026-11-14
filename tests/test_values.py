@@ -7,10 +7,10 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.modules.work import REGISTRATION, FirstWorkplace, UserInput, WorkEquipment
 from moarcoal.modules.work.values import DISTANCE_KM, EQUIPMENT, WORKDAYS
 from moarcoal.registration import ModuleRegistration
@@ -282,7 +282,7 @@ def test_period_helpers() -> None:
 
 
 def make_client(root: Path) -> httpx.Client:
-    app = create_app(PORT, root, user="anna")
+    app = make_app(PORT, root, user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -303,7 +303,7 @@ def test_page_shows_values_with_workings_and_backing(tmp_path: Path) -> None:
 
     assert "Ausgewiesene Werte 2025" in html
     assert "180 Tage" in html and "12 km" in html and "49,90 €" in html
-    assert "Belegstand: angenommen" in html
+    assert ">angenommen<" in html and "Belegstand:" not in html
     assert "<details>" in html and "Rechenweg" in html and "Einzelposten" in html
     assert "Summe der Arbeitsmittel" in html
     assert 'href="/arbeit/arbeitsmittel/' in html  # Fundstelle verlinkt die Nutzereingabe
@@ -311,7 +311,8 @@ def test_page_shows_values_with_workings_and_backing(tmp_path: Path) -> None:
 
 
 def test_page_without_entries_shows_no_value_section(tmp_path: Path) -> None:
-    assert "Ausgewiesene Werte" not in make_client(tmp_path).get("/arbeit").text
+    page = make_client(tmp_path).get("/arbeit").text
+    assert "Ausgewiesene Werte" not in page.split("<h2>Dienstreisen</h2>")[0]
 
 
 # --- Doppelte Fundstellen -----------------------------------------------------------------------

@@ -7,9 +7,9 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.links import document_url
 from moarcoal.storage import (
     COMMON_OWNER,
@@ -46,7 +46,7 @@ def client(tmp_path: Path, site: Path) -> httpx.Client:
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = create_app(PORT, tmp_path / "daten", user="anna")
+    app = make_app(PORT, tmp_path / "daten", user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -194,7 +194,8 @@ def test_detail_shows_form_with_preview_and_locks_when_something_hangs(
     protocol, bescheid = doc(two, "protokoll.html"), doc(two, "bescheid.txt")
     locked = main_of(two, f"/belege/dokumente?dokument={protocol.id}")
     assert "gesperrt" in locked and "Einlesung" in locked
-    assert 'name="kind" disabled' in locked and "Dokument löschen" not in locked
+    assert 'name="kind" disabled' in locked
+    assert "Dokument löschen" in locked  # Einlesung fällt mit weg, Schnappschuss sperrt nicht
     assert f"/dokumente/{protocol.id}/datei" in locked
     assert f'href="/dokumente/{protocol.id}">Dokument</a>' not in locked  # kein Link je Zeile
     assert "<h2>Aussteller</h2>" in locked  # der Kopf des Dokuments, im Reiter
@@ -340,8 +341,31 @@ def test_delete_removes_only_the_document_and_the_file_is_open_again(
     assert len(list(state_of(two).of_kind(Issuer))) == 1  # der Aussteller bleibt
 
 
-def test_delete_is_refused_while_something_points_at_the_document(two: httpx.Client) -> None:
+def test_delete_takes_the_reading_along_and_the_file_can_be_taken_in_again(
+    two: httpx.Client,
+) -> None:
     protocol = doc(two, "protokoll.html")
+    response = delete(two, protocol, entry_checksum(protocol))
+    assert response.status_code == 303
+    assert len(documents(two)) == 1
+    assert not any(type(e).__name__ == "ProtocolReading" for e in state_of(two).entries.values())
+    take(two, SHA)  # derselbe Inhalt, jetzt wieder frei
+    assert len(documents(two)) == 2
+
+
+def test_delete_is_refused_while_a_proposal_points_at_the_document(two: httpx.Client) -> None:
+    protocol = doc(two, "protokoll.html")
+    proposal = Proposal(
+        owner="anna",
+        document=protocol.address,
+        template_version=1,
+        fields={"x": ProposalField(value="1", location="S. 1")},
+        raw="{}",
+        created_at=datetime.datetime.now(datetime.UTC),
+    )
+    store_of(two).apply([Put(proposal)])
+    page = main_of(two, f"/belege/dokumente?dokument={protocol.id}")
+    assert "Dokument löschen" not in page and "Vorschlag" in page
     response = delete(two, protocol, entry_checksum(protocol))
     assert response.status_code == 409 and "Wird noch verwendet." in response.text
     assert len(documents(two)) == 2

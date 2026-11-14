@@ -6,12 +6,21 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.issuer_field import IssuerChoice, last_issuer, resolve_issuer, search_issuers
+from moarcoal.issuers import issuer_findings
 from moarcoal.links import document_url
-from moarcoal.storage import COMMON_OWNER, Document, Issuer, Put, State
+from moarcoal.storage import (
+    COMMON_OWNER,
+    Document,
+    Issuer,
+    PersonalDetails,
+    Put,
+    State,
+    entry_checksum,
+)
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PORT = 4711
@@ -29,7 +38,7 @@ def client(tmp_path: Path) -> httpx.Client:
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = create_app(PORT, tmp_path / "daten", user="anna")
+    app = make_app(PORT, tmp_path / "daten", user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -320,3 +329,48 @@ def test_change_issuer_needs_origin_and_known_document(client: httpx.Client) -> 
     document = taken_in(client)
     assert client.post(f"/dokumente/{document.id}/aendern", data={}).status_code == 403
     assert change(client, document.model_copy(update={"id": "ZZZZZZZZZZ"})).status_code == 404
+
+
+# --- Aussteller des Nutzers --------------------------------------------------------------------
+
+
+@pytest.fixture
+def own(client: httpx.Client) -> Issuer:
+    """Der Aussteller des Nutzers, angelegt über den echten Weg (Angaben zur Person)."""
+    [existing] = state_of(client).of_kind(PersonalDetails)  # legt make_app an, ohne Aussteller
+    person = {
+        "first_name": "Erika",
+        "last_name": "Musterfrau",
+        "checksum": entry_checksum(existing),
+    }
+    assert client.post("/person", data=person, headers=ORIGIN).status_code == 303
+    [created] = issuers(client)
+    return created
+
+
+def test_search_finds_own_issuer_by_first_or_last_name(client: httpx.Client, own: Issuer) -> None:
+    state = state_of(client)
+    assert search_issuers(state, "erika") == [own]
+    assert search_issuers(state, "Musterfrau") == [own]
+    html = client.get("/aussteller-suche", params={"issuer_text": "Musterfrau"}).text
+    assert f"id:{own.id}" in html
+
+
+def test_take_in_with_own_issuer_raises_no_finding(client: httpx.Client, own: Issuer) -> None:
+    assert take(client, issuer_choice=f"id:{own.id}").status_code == 303
+    assert only_document(client).issuer == own.address
+    assert issuer_findings(state_of(client), "anna") == []
+
+
+def test_own_issuer_can_be_chosen_when_changing_a_document(
+    client: httpx.Client, own: Issuer
+) -> None:
+    assert take(client).status_code == 303
+    document = only_document(client)
+    assert len(issuer_findings(state_of(client), "anna")) == 1
+    response = client.post(
+        f"/dokumente/{document.id}/aendern", data={"issuer_choice": f"id:{own.id}"}, headers=ORIGIN
+    )
+    assert response.status_code == 303
+    assert only_document(client).issuer == own.address
+    assert issuer_findings(state_of(client), "anna") == []

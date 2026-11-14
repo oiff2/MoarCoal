@@ -29,7 +29,9 @@ IBAN = make_iban("500105175407324931")
 TIN = make_steuer_id("4710815123")
 
 
-def kinds(text: str, allow: list[str] | None = None, deny: list[str] | None = None) -> list[str]:
+def kinds(
+    text: str, allow: list[str] | None = None, deny: list[tuple[str, str]] | None = None
+) -> list[str]:
     return [f.kind for f in pg.scan(text, "t", allow or [], deny or [])]
 
 
@@ -70,9 +72,30 @@ def test_allowlist_passes_values() -> None:
 
 
 def test_denylist_matches_ignoring_case_and_spaces_without_echoing() -> None:
-    findings = pg.scan("wohnt in der Musterweg 12", "t", [], ["musterweg12"])
+    findings = pg.scan(
+        "wohnt in der Musterweg 12", "t", [], [("musterweg12", "persönlicher Sperrliste")]
+    )
     assert [f.kind for f in findings] == ["Sperrliste"]
     assert "Musterweg" not in str(findings[0])
+    assert "persönlicher Sperrliste" in str(findings[0])
+
+
+def deny_hits(text: str, value: str, allow: list[str] | None = None) -> int:
+    return len(pg.scan(text, "t", allow or [], [(value, "abgeleiteter Sperrliste")]))
+
+
+def test_denylist_matches_whole_words_only() -> None:
+    assert deny_hits("Frau Mustermann kam", "Mustermann") == 1
+    assert deny_hits("Mustermann, Erika", "mustermann") == 1
+    assert deny_hits("Mustermannstraße", "Mustermann") == 0
+    assert deny_hits("Obermustermann", "Mustermann") == 0
+    assert deny_hits("Erika Mustermann", "Erika  Mustermann") == 1
+
+
+def test_allowlist_also_applies_to_denylist_hits() -> None:
+    assert deny_hits("Beispielweg 12", "Beispielweg", allow=["beispielweg"]) == 0
+    assert deny_hits("Beispielweg 12", "Beispielweg 12", allow=["Beispielweg12"]) == 0
+    assert deny_hits("Beispielweg 12", "Beispielweg") == 1
 
 
 def run_claude_hook(monkeypatch: pytest.MonkeyPatch, command: str, cwd: str = ".") -> int:

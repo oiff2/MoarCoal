@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
+from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.extraction_template import ExtractionTemplate
 from moarcoal.links import document_url
 from moarcoal.storage import (
@@ -27,15 +28,12 @@ from moarcoal.storage import (
     entry_checksum,
 )
 from moarcoal.storage.documents import exists_already, period_clash
-from moarcoal.storage.entries import referenced_addresses
 from moarcoal.values.findings import Finding, Severity
 
 if TYPE_CHECKING:
     from moarcoal.values.engine import Values
 
 DUPLICATE_DOCUMENT = "document_duplicate"
-MIN_YEAR = 2000
-MAX_YEAR = 2100
 
 
 class ReadInError(Exception):
@@ -210,17 +208,6 @@ def _already_taken_in(state: State, user: str, sha256: str) -> bool:
     return any(d.owner == user and d.sha256 == sha256 for d in state.of_kind(Document))
 
 
-def references_to(state: State, document: Document) -> list[Entry]:
-    """Die Einträge, die auf das Dokument verweisen (Einlesung, Vorschlag, Schnappschuss, …);
-    solange es welche gibt, hängt etwas daran: Art und Jahr sind gesperrt, Löschen weist ab."""
-    found = [
-        e
-        for e in state.entries.values()
-        if e.address != document.address and document.address in referenced_addresses(e)
-    ]
-    return sorted(found, key=lambda e: str(e.address))
-
-
 def change_document(
     store: Store,
     kinds: Mapping[str, DocumentKind],
@@ -240,7 +227,7 @@ def change_document(
     updated = document.model_copy(update={"issuer": issuer})
     changes: list[Change] = [*issuer_changes]
     if kind_key is not None:
-        if references_to(state, document):
+        if store.references_to(document.address, with_derived=True):
             return IntakeRejected(("An dem Dokument hängt etwas; Art und Jahr sind gesperrt.",))
         kind = kinds.get(kind_key)
         if kind_key and kind is None:

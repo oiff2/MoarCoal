@@ -9,6 +9,15 @@
 <label>Einfache Entfernung in km
   <input name="distance_km" inputmode="numeric" value="{{ values.get('distance_km', '') }}" required>
 </label>
+<label>Arbeitstage je Woche (optional)
+  <input name="workdays_per_week" inputmode="numeric" value="{{ values.get('workdays_per_week', '') }}">
+</label>
+<label>Urlaubs- und Krankheitstage (optional)
+  <input name="absence_days" inputmode="numeric" value="{{ values.get('absence_days', '') }}">
+</label>
+<label>Davon mit eigenem Pkw gefahrene km, einfach (optional)
+  <input name="car_distance_km" inputmode="numeric" value="{{ values.get('car_distance_km', '') }}">
+</label>
 <label>Beschreibung (optional)
   <input name="description" value="{{ values.get('description', '') }}">
 </label>

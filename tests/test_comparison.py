@@ -13,9 +13,9 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.documents import DUPLICATE_DOCUMENT
 from moarcoal.issuers import DOCUMENT_WITHOUT_ISSUER
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
@@ -23,16 +23,28 @@ from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registratio
 from moarcoal.modules.tax_year.anlage_n import (
     FORMS,
     N_EQUIPMENT,
+    WORK_ABSENCE_DAYS,
+    WORK_CAR_DISTANCE,
     WORK_DISTANCE_KM,
     WORK_EQUIPMENT,
+    WORK_GROSS_WAGES,
+    WORK_INCOME_TAX,
+    WORK_SOLI,
+    WORK_TAX_CLASS,
+    WORK_TRAVEL_FARE,
+    WORK_TRAVEL_TOTAL,
+    WORK_TRIP_DAYS,
     WORK_WORKDAYS,
+    WORK_WORKDAYS_PER_WEEK,
 )
 from moarcoal.modules.tax_year.comparison import (
     AMBIGUOUS,
     DEVIATION,
+    LINE_MISMATCH,
     MISSING,
     UNKNOWN_ELSTER_ID,
 )
+from moarcoal.modules.tax_year.reading import parse_protocol
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import Document, Entry, EntryAddress
 from moarcoal.values.engine import Foreign
@@ -85,6 +97,22 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
         (WORK_WORKDAYS, PLACE, YEAR): fixed(Amount.of(workdays, Unit.DAYS)),
         (WORK_DISTANCE_KM, PLACE, YEAR): fixed(Amount.of(km, Unit.KM)),
         (WORK_EQUIPMENT, None, YEAR): fixed(Amount.eur_cents(cents)),
+        **{
+            (key, PLACE, YEAR): not_yet("keine Eingabe")
+            for key in (WORK_WORKDAYS_PER_WEEK, WORK_ABSENCE_DAYS, WORK_CAR_DISTANCE)
+        },
+        **{
+            (key, None, YEAR): not_yet("keine Lohnsteuerbescheinigung")
+            for key in (
+                WORK_TAX_CLASS,
+                WORK_GROSS_WAGES,
+                WORK_INCOME_TAX,
+                WORK_SOLI,
+                WORK_TRAVEL_FARE,
+                WORK_TRAVEL_TOTAL,
+                WORK_TRIP_DAYS,
+            )
+        },
     }
 
 
@@ -118,6 +146,39 @@ def test_field_without_elster_id_gets_a_note() -> None:
 
     assert kinds(found) == [UNKNOWN_ELSTER_ID]
     assert found[0].severity is Severity.NOTE
+
+
+def structure_findings(lines: list[ProtocolLine], kind: str) -> list[Finding]:
+    return [f for f in findings(protocol(lines)) if f.kind == kind]
+
+
+def test_protocol_line_unknown_in_the_structure_names_the_page_before_it() -> None:
+    lines = [line(DAYS, "220"), line(KM, "12"), line("E0299999", "5")]
+
+    found = structure_findings(lines, UNKNOWN_ELSTER_ID)
+
+    assert len(found) == 1
+    assert found[0].severity is Severity.NOTE
+    assert "E0299999" in found[0].message and "Wege zwischen Wohnung" in found[0].message
+    assert found[0].href.endswith("#id-N-Beispiel-E0299999_usb1_1-1-1")
+
+
+def test_unknown_elster_id_is_reported_once_for_repeated_lines() -> None:
+    lines = [line("E0299999", "5", "1_1-1-1"), line("E0299999", "6", "2_1-1-1")]
+
+    assert len(structure_findings(lines, UNKNOWN_ELSTER_ID)) == 1
+
+
+def test_different_line_number_is_a_warning_and_empty_numbers_are_not_compared() -> None:
+    same = line(DAYS, "220").model_copy(update={"form_line": "29"})
+    other = line(KM, "12").model_copy(update={"form_line": "31"})
+    repeat = line(EQUIPMENT, "1,00", "2_1-1-1").model_copy(update={"form_line": ""})
+
+    found = structure_findings([same, other, repeat], LINE_MISMATCH)
+
+    assert len(found) == 1
+    assert found[0].severity is Severity.WARNING
+    assert "Nr. 31" in found[0].message and "Nr. 30" in found[0].message
 
 
 def test_deviation_is_a_warning_with_link_to_the_line() -> None:
@@ -187,8 +248,10 @@ def test_repeated_days_or_km_are_ambiguous_not_compared() -> None:
     assert next(f for f in found if f.kind == AMBIGUOUS).severity is Severity.WARNING
 
 
-def test_lines_without_field_in_the_catalog_are_ignored() -> None:
-    found = findings(protocol([line(DAYS, "220"), line(KM, "12"), line("E0100004", "Musterstadt")]))
+def test_lines_of_other_forms_are_ignored() -> None:
+    other = line("E0100004", "Musterstadt").model_copy(update={"form": "ESt1A"})
+
+    found = findings(protocol([line(DAYS, "220"), line(KM, "12"), other]))
 
     assert found == []
 
@@ -228,7 +291,7 @@ def test_without_protocol_there_is_no_comparison() -> None:
 def test_no_equipment_after_previous_year_matches_a_missing_field_and_keeps_the_note() -> None:
     from moarcoal.modules.work import REGISTRATION as WORK
     from moarcoal.modules.work import FirstWorkplace, UserInput, WorkEquipment
-    from moarcoal.modules.work.values import EQUIPMENT_GAP
+    from moarcoal.modules.work.values import EQUIPMENT_GAP, TRIPS_TO_FILL
 
     place = FirstWorkplace(owner="anna", year=2025, workdays=220, distance_km=12, description="x")
     bought_2024 = WorkEquipment(
@@ -240,7 +303,8 @@ def test_no_equipment_after_previous_year_matches_a_missing_field_and_keeps_the_
 
     found = evaluate([WORK, TAX_YEAR], items).finding_list("anna", 2025).visible
 
-    assert kinds(found) == [EQUIPMENT_GAP]  # Hinweis von Arbeit, kein Befund des Abgleichs
+    # Hinweise von Arbeit, kein Befund des Abgleichs
+    assert kinds(found) == [EQUIPMENT_GAP, TRIPS_TO_FILL]
 
 
 # --- Befundliste und Klick zur Stelle im Protokoll ----------------------------------------------
@@ -256,7 +320,7 @@ def http(tmp_path: Path) -> httpx.Client:
     (root / "common" / "sites.json").write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = create_app(PORT, root, user="anna")
+    app = make_app(PORT, root, user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -349,3 +413,14 @@ def test_unknown_elster_id_fingerprint_follows_the_field() -> None:
         return only(found, UNKNOWN_ELSTER_ID)
 
     assert unknown("Arbeitsmittel").fingerprint == unknown("Arbeitsmittel").fingerprint
+
+
+def test_fixture_protocol_matches_the_catalog_for_all_three_computed_fields() -> None:
+    lines = list(parse_protocol(FIXTURE.read_bytes()).lines)
+
+    found = findings(protocol(lines), work(cents=6990))
+
+    # Tage und km stimmen; Arbeitsmittel (69,90 € laut Protokoll) wird gefunden und weicht nur
+    # durch die Rundung des Felds ab. Kein Feld „fehlt“.
+    assert kinds(found) == [DEVIATION]
+    assert EQUIPMENT in found[0].message

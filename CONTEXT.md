@@ -40,7 +40,7 @@ Etwas aus einer Liste nehmen, ohne es zu löschen. Einen Befund blendet ein Nutz
 _Avoid_: quittieren, ignorieren, verwerfen
 
 **Nutzer**:
-Eine Person mit eigenen Daten, Belegen und Steuererklärungen; mehrere Nutzer sind möglich, ihre Daten bleiben getrennt.
+Eine Person mit eigenen Daten, Belegen und Steuererklärungen; mehrere Nutzer sind möglich, ihre Daten bleiben getrennt. Ein Nutzer entsteht mit seinen Angaben zur Person; ohne Nutzer zeigt MoarCoal nur die Startseite.
 _Avoid_: Account, Profil, Steuerpflichtiger
 
 **Ausgewiesener Wert** _(geprägt)_:
@@ -72,17 +72,30 @@ Der Kanal, über den Daten von außen in MoarCoal gelangen: eDaten-Abruf aus Mei
 _Avoid_: Herkunft, Import, Datenquelle
 
 **Nutzereingabe**:
-Ein von Hand erfasster Betrag mit Datum und Beschreibung, eingebettet in eine eigene Eintragsart des Moduls; als Fundstelle ergibt sie den Belegstand angenommen (Code: `UserInput`).
+Eine von Hand erfasste Angabe, eingebettet in eine eigene Eintragsart des Moduls: in Arbeit ein Betrag mit Datum und Beschreibung (Code: `UserInput`), im Steuerjahr der Inhalt eines einzelnen Felds der Anlage, direkt dort eingegeben (Code: `FormInput`). Als Fundstelle ergibt sie den Belegstand angenommen.
 _Avoid_: manuelle Buchung, Handeingabe
 
 **Arbeit**:
-Das Modul für die Angaben zur nichtselbständigen Arbeit (Anlage N), im Durchstich von Hand erfasst: erste Tätigkeitsstätte und Arbeitsmittel. Modulschlüssel `work`.
+Das Modul für die Angaben zur nichtselbständigen Arbeit (Anlage N), im Durchstich von Hand erfasst (erste Tätigkeitsstätte, Arbeitsmittel), dazu die eingelesene Lohnsteuerbescheinigung und die Dienstreisen. Modulschlüssel `work`.
 
 **Erste Tätigkeitsstätte**:
-Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die Arbeitstage und die einfache Entfernung in km von der Wohnung dorthin (Code: `FirstWorkplace`); sie ist das Bezugsobjekt der Ausgewiesenen Werte Arbeitstage und einfache Entfernung.
+Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die Arbeitstage und die einfache Entfernung in km von der Wohnung dorthin, freiwillig dazu Arbeitstage je Woche, Urlaubs- und Krankheitstage und die davon mit dem eigenen Pkw gefahrenen km (Code: `FirstWorkplace`); sie ist das Bezugsobjekt dieser Ausgewiesenen Werte. Daraus kommen die Felder Nr. 28 und 31 der Anlage N; Nr. 28 „Urlaubs-, Krankheits-, Heimarbeits- und Dienstreisetage“ ist die Summe aus den Urlaubs- und Krankheitstagen, den Homeoffice-Tagen (Nr. 58, Eingabe im Steuerjahr) und den Tagen der Dienstreisen. Nr. 27 (Ziel, Adresse, Zeitraum) berechnet MoarCoal noch nicht.
 
 **Arbeitsmittel**:
 Werkzeug und Material, das ein Nutzer für die Arbeit selbst gekauft hat; erfasst wird je Anschaffung ein Betrag als Nutzereingabe mit dem Steuerjahr, für das er gilt (Code: `WorkEquipment`).
+
+**Dienstreise**:
+Eine berufliche Fahrt mit dem privaten Pkw im Steuerjahr: Start, Ende (leer = Start), die Orte in Reihenfolge mit ausdrücklichem Rückweg (A → B → A), die km der ganzen Reise und eine Notiz (Code: `BusinessTrip`). Nur die Fahrtkosten zählen, die Summe der km mal dem km-Satz des Jahrs; Verpflegung, Übernachtung und Nebenkosten rechnet der Arbeitgeber ab. Die Reisen eines Jahrs bearbeitet man in einer Tabelle, in einem Vorgang. Der Nutzer bestätigt sie je Jahr als vollständig, auch wenn es keine gab (Code: `TripsConfirmation`); sie gilt für genau diesen Stand, jede Änderung an den Reisen hebt sie auf. Bis dahin gibt es einen Hinweis. Daraus kommen die Felder Nr. 66 und 69 der Anlage N. Neben der Tabelle gibt es **Reiseaufstellungen**: Screenshots einer Reiseliste, aus denen Claude die Reisen als Vorschlag auslesen kann.
+
+**Reiseaufstellung**:
+Ein Screenshot einer Liste von Dienstreisen (z. B. aus dem Reisekostentool des Arbeitgebers), von Hand aufgenommen als Dokument der Dokumentart „Reiseaufstellung (Screenshot)“ des Moduls Arbeit mit Bezugszeitraum, nicht eingelesen, sondern von Claude ausgelesen: je Reise Start, Ende, Orte und km, dazu welche Felder unsicher gelesen sind und welche Spalten (Verpflegung, Übernachtung, Spesen) ausgelassen wurden; nie als km. Der Vorschlag erscheint als Tabelle auf der Seite Dienstreisen mit Markierungen (km fehlen, unsicher, mögliche Dublette mit gleichem Startdatum, außerhalb des Jahrs); der Nutzer übernimmt gewählte Reisen oder löscht den Vorschlag. Ohne km keine Übernahme.
+
+**Ort**:
+Ein Name aus den Orten der Dienstreisen, wie dort geschrieben. Der erste Ort einer Reise ist ein **Startort**, jeder andere ein **Reiseziel** (je Reise einmal gezählt, ein am Ende wiederholter Startort ist keines). Ein Ort hat entweder eine Lage auf der Deutschlandkarte neben der Tabelle oder ist als „nicht zeigen“ markiert (Code: `Place`); beides gilt für alle Jahre, nicht je Steuerjahr. Die Lage kommt nie von selbst: erst der Klick auf „Suchen“ fragt bei OpenStreetMap nach dem Text im Feld, und der Nutzer wählt einen Treffer.
+
+**Lohnsteuerbescheinigung**:
+Die Bescheinigung des Arbeitgebers über Bruttoarbeitslohn und einbehaltene Steuern eines Jahres; als eDaten-HTML aus „Meine Bescheinigungen“ in Mein ELSTER (`Belegart: VaSt_LStB`) Dokumentart des Moduls Arbeit mit Bezugszeitraum, je Nutzer und Jahr eindeutig. Sie wird exakt eingelesen; der Eintrag hält Steuerklasse, Bruttoarbeitslohn, Lohnsteuer und Solidaritätszuschlag in Cent, je mit Fundstelle im Dokument (Code: `WageTaxCertificate`). Was die Datei nicht nennt, bleibt leer und ist noch nicht berechenbar, nie 0. Daraus kommen die Felder Nr. 4 bis 7 der Anlage N.
+_Avoid_: Lohnsteuerkarte, Lohnbescheinigung
 
 **Steuerjahr**:
 Das Modul für die Steuererklärung eines Jahres; im Durchstich nimmt es das Übertragungsprotokoll auf und liest es ein. Modulschlüssel `tax_year`.
@@ -111,6 +124,9 @@ Ob ein Euro-Feld als Einnahme oder als Ausgabe zählt; sie bestimmt, wie sein We
 **E-Kennung**:
 Die Kennung eines Felds in ELSTER (E und sieben Ziffern; Code: `ElsterId`); der verlässliche Schlüssel einer Zeile, den man aus dem Übertragungsprotokoll erfährt oder vorab aus einer von Hand gespeicherten Seite der Erklärung in Mein ELSTER (`tools/elster_page_fields.py`).
 _Avoid_: Feldnummer
+
+**Struktur**:
+Die Felder einer Anlage in einem Steuerjahr, wie Mein ELSTER sie zeigt: Seite, Überschriften, Bezeichnung, Nummer im Vordruck, E-Kennung und bei Auswahlfeldern die festen Optionen (bei einer Vorschlagsliste mit dem Vermerk, dass sie auch eigenen Text nimmt), nie Werte. Das Werkzeug `tools/elster_page_fields.py` erzeugt sie aus gespeicherten Seiten als Datei je Jahr im Repo und meldet die Änderungen zum Vorjahr; solange die Seiten fehlen, ist eine Struktur vorläufig und aus dem Katalog abgeleitet. Die Bedeutung eines Felds (Wert, Richtung, Runden, EStB) bleibt im Katalog des Steuerjahrs und verweist per E-Kennung auf die Struktur; ändert sich die E-Kennung eines Felds gegenüber dem Vorjahr, braucht es eine ausdrückliche Zuordnung (Code: `FormStructure`).
 
 **Belegstand** _(geprägt)_:
 Ob ein Einzelposten durch einen Beleg gedeckt ist; er ergibt sich aus der Art der Fundstelle: belegt (Fundstelle ist eine Stelle in einem Dokument oder ein eDaten-Satz), ausstehend (Fundstelle ist ein Erwarteter Beleg, der Betrag gilt, bis der Beleg da ist) oder angenommen (Fundstelle ist eine Nutzereingabe, kein Beleg zu erwarten). Stützt sich ein Einzelposten auf einen anderen Ausgewiesenen Wert, erbt er dessen schwächsten Belegstand. Vom schwächsten zum stärksten: ausstehend, angenommen, belegt. Der Belegstand eines Ausgewiesenen Werts ist der schwächste seiner Einzelposten; ohne Einzelposten (z. B. ausdrücklich 0) ist er belegt (Code: `Backing`).
@@ -145,7 +161,7 @@ Die Liste aller Schlüssel, die Module anmelden, mit Bedeutung, Einheit und Zeit
 _Avoid_: Registry, Verzeichnis, Katalog (allein)
 
 **Schnappschuss**:
-Die zu einem Anlass (z. B. Abgabe einer Steuererklärung) eingefrorenen Ausgewiesenen Werte samt Einzelposten, auch solche, die noch nicht berechenbar waren oder entfallen (mit Grund), und allen Werten, auf die sie sich stützen. Ein Schnappschuss ist unveränderlich und hängt nicht vom Ablageort ab, denn die Dokumente, auf die er verweist, werden beim Einfrieren ins Datenverzeichnis kopiert (gebaut ist das noch nicht: bisher steht nur Klartext im Schnappschuss); spätere Abweichungen von den aktuellen Werten werden sichtbar statt verhindert (Code: `Snapshot`; das Anlegen heißt einfrieren).
+Die zu einem Anlass (z. B. Abgabe einer Steuererklärung) eingefrorenen Ausgewiesenen Werte samt Einzelposten, auch solche, die noch nicht berechenbar waren oder entfallen (mit Grund), und allen Werten, auf die sie sich stützen. Ein Schnappschuss ist unveränderlich und hängt nicht vom Ablageort ab, denn die Dokumente, auf die er verweist, werden beim Einfrieren ins Datenverzeichnis kopiert (gebaut ist das noch nicht: bisher steht nur Klartext im Schnappschuss); spätere Abweichungen von den aktuellen Werten werden sichtbar statt verhindert (Code: `Snapshot`; das Anlegen heißt einfrieren). Er sperrt das Löschen seines Dokuments nicht und behält dessen Adresse; je Nutzer, Modul und Jahr gibt es höchstens einen Schnappschuss der Abgabe.
 _Avoid_: Sperre, Abgabestand, Festschreibung, Version
 
 **Anlass**:
@@ -156,8 +172,12 @@ _Avoid_: Trigger, Grund, Ereignis (allein)
 Der Unterschied zwischen dem eingefrorenen Stand eines Schnappschusses und dem aktuellen Stand, je Stufe der Kette: Betrag, Ergebnisart oder Einzelposten (hinzugekommen, weggefallen, geändert). Aus ihr macht das Modul, das den Schnappschuss ausgelöst hat, einen Befund; nicht zu verwechseln mit dem Abgleich mit dem Übertragungsprotokoll (Code: `Deviation`).
 _Avoid_: Differenz, Diff, Änderung (das ist ein Teil eines Vorgangs)
 
+**Angaben zur Person**:
+Vorname und Name eines Nutzers samt Verweis auf seinen eigenen Aussteller; ein Baustein der Datenebene, genau einer je Nutzer, ohne Löschen. Beim Speichern legt MoarCoal den Aussteller „Vorname Name“ als Privatperson an und hält ihn gleich; so gelangt der Name in die Sperrliste (Code: `PersonalDetails`).
+_Avoid_: Profil, Konto, Stammdaten
+
 **Aussteller**:
-Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Name und weiteren Namen (Aliasse), auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ob Unternehmen oder Behörde, spielt keine Rolle; nur wer als **Privatperson** gekennzeichnet ist (z. B. privater Vermieter), hat sensiblen Namen und sensible Anschrift. Ein anderer Name desselben Ausstellers wird als Alias hinzugefügt; Zusammenführen zweier Aussteller ist die bewusste Ausnahme (Code: `Issuer`).
+Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Name und weiteren Namen (Aliasse), auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ob Unternehmen oder Behörde, spielt keine Rolle; nur wer als **Privatperson** gekennzeichnet ist (z. B. privater Vermieter), hat sensiblen Namen und sensible Anschrift. Auch der Nutzer selbst ist Aussteller, für Unterlagen, die er selbst erzeugt (Screenshot, eigene Aufstellung, Notiz); dieser Aussteller kommt aus seinen Angaben zur Person. Ein anderer Name desselben Ausstellers wird als Alias hinzugefügt; Zusammenführen zweier Aussteller ist die bewusste Ausnahme (Code: `Issuer`).
 _Avoid_: Absender, Firma (im HGB der Handelsname), Gegenpartei
 
 **Eintrag**:
@@ -220,7 +240,7 @@ Eine Datei aus dem Eingang zum Dokument machen; danach wird sie je nach Dokument
 _Avoid_: importieren, einlesen (für diesen Schritt)
 
 **einlesen**:
-Felder eines Dokuments mit festem Aufbau exakt und ohne Claude übernehmen (z. B. Übertragungsprotokoll); das Ergebnis gilt ohne Bestätigung, wird nie von Hand korrigiert und beim Start neu eingelesen, wenn sich das Einlesen geändert hat.
+Felder eines Dokuments mit festem Aufbau exakt und ohne Claude übernehmen (z. B. Übertragungsprotokoll); das Ergebnis gilt ohne Bestätigung, wird nie von Hand korrigiert und fällt mit dem Dokument weg; neu eingelesen wird durch Löschen und erneutes Aufnehmen der Datei.
 _Avoid_: importieren, parsen
 
 **auslesen**:
@@ -236,7 +256,7 @@ Das Ergebnis einer Auslesung an einem Dokument: Felder mit Inhalt und Stelle im 
 _Avoid_: Entwurf, Vorschlagswert, unbestätigter Einzelposten
 
 **Auslese-Vorlage** _(geprägt)_:
-Was ein Modul für eine Dokumentart auslesen lassen will: Liste der Felder mit Einheit und Hinweis für Claude (Code: `ExtractionTemplate`).
+Was ein Modul für eine Dokumentart auslesen lassen will: Liste der Felder mit Einheit und Hinweis für Claude, auf Wunsch dazu eine Liste gleichartiger Zeilen (z. B. die Reisen einer Reiseaufstellung), deren Zellen im Vorschlag je ein Feld sind (Code: `ExtractionTemplate`).
 _Avoid_: Prompt, Schema, Formular, Vorlage (allein, das sind die Jinja-Vorlagen der Oberfläche)
 
 **Beleg**:
@@ -264,5 +284,5 @@ Eigenschaft eines Felds (nicht eines einzelnen Inhalts): sein Inhalt sind echte 
 _Avoid_: geheim, vertraulich, privat
 
 **Sperrliste**:
-Die Werte, die die Datenschutz-Prüfung vor git und GitHub abfängt: von Hand gepflegt oder aus den sensiblen Feldern der gespeicherten Daten abgeleitet.
+Die Werte, die die Datenschutz-Prüfung vor git und GitHub abfängt: von Hand gepflegt oder aus den sensiblen Feldern der gespeicherten Daten abgeleitet. Ein Wert trifft nur an Wortgrenzen (ohne Groß-/Kleinschreibung, Leerraum zählt nicht); die Meldung nennt die Quelle, nie den Wert.
 _Avoid_: Denylist, Blacklist, Filterliste

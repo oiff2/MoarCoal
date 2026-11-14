@@ -14,19 +14,36 @@ the catalogue. Rows of a list appear only once a row has been added in
 Mein ELSTER before saving.
 
 Usage: uv run --no-project python -I tools/elster_page_fields.py <page.htm>...
+
+Structure of a year: reads every page of a folder (in the order of Mein ELSTER: by the page
+number in the file name "ELSTER - ... - <Nr> - <Title>.htm", numerically;
+files without a number follow in file-name order, with a note) and writes the structure file of
+the year into the repo (page, headings, Zeile, label, E-Kennung per field; never values or names):
+
+    elster_page_fields.py structure <folder> --form N --year 2025 [--out <dir>]
+
+Diff against the previous year, as text without values (new fields, dropped fields, changed
+E-Kennung with the same label, changed label or Zeile):
+
+    elster_page_fields.py diff <previous.json> <current.json>
 """
 
 from __future__ import annotations
 
+import argparse
+import json
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from html.parser import HTMLParser
 from pathlib import Path
+from typing import Any
 
 E_KENNUNG_RE = re.compile(r"E\d{7}$")
 # `fields(name)` in label/for and ids, `fields[name]` in input/name.
 FIELD_NAME_RE = re.compile(r"fields[\[(]([A-Za-z0-9_]+)[\])]$")
+# The suggestion list of a field with free text: <ul id="..._fields(name)_suggestions">.
+SUGGESTIONS_ID_RE = re.compile(r"fields\(([A-Za-z0-9_]+)\)_suggestions$")
 LINE_TITLE_RE = re.compile(r"^Zeile\s+(\d+[a-z]?)$")
 # Screen-reader texts ELSTER puts into headings and labels.
 NOISE = ("Hilfe zum Begriff anzeigen", "Hinweis vorhanden.")
@@ -42,6 +59,10 @@ class PageField:
     line: str
     label: str
     headings: tuple[str, ...]
+    # Fixed choices of a selection field (texts, never the chosen one); `free_text`: the field
+    # is a suggestion list and also takes an own text.
+    options: tuple[str, ...] = ()
+    free_text: bool = False
 
 
 def field_name(attribute: str | None) -> str | None:
@@ -73,6 +94,11 @@ class _PageParser(HTMLParser):
         self._group_label: str = ""
         self._label: tuple[str, list[str]] | None = None
         self._label_depth = 0
+        self.options: dict[str, list[str]] = {}
+        self.free_text: set[str] = set()
+        self._select: str | None = None
+        self._suggestions: str | None = None
+        self._option: list[str] | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attributes = dict(attrs)
@@ -92,10 +118,29 @@ class _PageParser(HTMLParser):
             self._label, self._label_depth = (name, []), 0
         elif tag == "label" and self._label is not None:
             self._label_depth += 1
+        if tag == "select" and (name := field_name(attributes.get("name"))):
+            self._select = name
+            self.options.setdefault(name, [])
+        if tag == "ul" and (match := SUGGESTIONS_ID_RE.search(attributes.get("id") or "")):
+            suggested: str = match[1]
+            self._suggestions = suggested
+            self.options.setdefault(suggested, [])
+            self.free_text.add(suggested)
+        if tag in ("option", "li") and (self._select or self._suggestions):
+            self._option = []
         if tag in ("input", "select", "textarea") and (name := field_name(attributes.get("name"))):
             self._add(name, self._group_label)
 
     def handle_endtag(self, tag: str) -> None:
+        if tag in ("option", "li") and self._option is not None:
+            owner = self._select or self._suggestions
+            if owner and (text := _clean("".join(self._option))):
+                self.options[owner].append(text)
+            self._option = None
+        if tag == "select":
+            self._select = None
+        if tag == "ul":
+            self._suggestions = None
         if self._heading and tag == f"h{self._heading[0]}":
             level, parts = self._heading
             self._headings = {k: v for k, v in self._headings.items() if k < level}
@@ -119,6 +164,8 @@ class _PageParser(HTMLParser):
                 break
 
     def handle_data(self, data: str) -> None:
+        if self._option is not None:
+            self._option.append(data)
         if self._heading:
             self._heading[1].append(data)
         if self._label is not None:
@@ -143,7 +190,14 @@ def read_page(html: str) -> list[PageField]:
     parser = _PageParser()
     parser.feed(html)
     parser.close()
-    return list(parser.fields.values())
+    return [
+        replace(
+            item,
+            options=tuple(parser.options.get(item.name, ())),
+            free_text=item.name in parser.free_text,
+        )
+        for item in parser.fields.values()
+    ]
 
 
 def format_fields(fields: list[PageField]) -> list[str]:
@@ -158,10 +212,154 @@ def format_fields(fields: list[PageField]) -> list[str]:
     return lines
 
 
+SCHEMA = 1  # read by src/moarcoal/modules/tax_year/structure.py
+DEFAULT_OUT = Path(__file__).parents[1] / "src/moarcoal/modules/tax_year/strukturen"
+
+type Structure = dict[str, Any]
+
+
+PAGE_NUMBER_RE = re.compile(r" - (\d+) - ")
+
+
+def page_order(names: list[str]) -> tuple[list[str], list[str]]:
+    """File names in Mein-ELSTER order: numbered by page number, then the others by name.
+
+    Returns the ordered names and the ones without a recognisable page number.
+    """
+    numbered: list[tuple[int, str]] = []
+    unnumbered: list[str] = []
+    for name in names:
+        if match := PAGE_NUMBER_RE.search(Path(name).stem):
+            numbered.append((int(match.group(1)), name))
+        else:
+            unnumbered.append(name)
+    unnumbered.sort()
+    return [name for _, name in sorted(numbered)] + unnumbered, unnumbered
+
+
+def build_structure(pages: list[tuple[str, str]], form: str, year: int) -> Structure:
+    """The structure of a year from (file name, HTML) pages, in the order given.
+
+    The page is the first heading (Mein ELSTER's page title, else the file name); the other
+    headings follow. An E-Kennung appears once; a later page repeating it is ignored.
+    """
+    fields: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for name, html in pages:
+        for item in read_page(html):
+            if item.e_kennung in seen:
+                continue
+            seen.add(item.e_kennung)
+            page, *headings = item.headings or (Path(name).stem,)
+            entry: dict[str, Any] = {
+                "e_kennung": item.e_kennung,
+                "page": page,
+                "headings": headings,
+                "line": item.line,
+                "label": item.label,
+            }
+            if item.options:
+                entry["options"] = list(item.options)
+                if item.free_text:
+                    entry["free_text"] = True
+            fields.append(entry)
+    return {"schema": SCHEMA, "form": form, "year": year, "provisional": False, "fields": fields}
+
+
+def diff_structures(previous: Structure, current: Structure) -> list[str]:
+    """What changed from one year's structure to the next, as text without values.
+
+    Fields match by E-Kennung (then a changed label or Zeile is reported). The rest match by
+    page, headings and label when that is unambiguous on both sides (a changed E-Kennung);
+    whatever is left is dropped or new.
+    """
+    old = {f["e_kennung"]: f for f in previous["fields"]}
+    new = {f["e_kennung"]: f for f in current["fields"]}
+
+    def where(f: dict[str, Any]) -> str:
+        return f"{f['e_kennung']} (Nr. {f['line'] or '-'}, {f['label']})"
+
+    def identity(f: dict[str, Any]) -> tuple[Any, ...]:
+        return (f["page"], tuple(f["headings"]), f["label"])
+
+    lines: list[str] = []
+    for kennung in old.keys() & new.keys():
+        before, after = old[kennung], new[kennung]
+        if before["label"] != after["label"]:
+            lines.append(
+                f"Bezeichnung geändert: {kennung}: '{before['label']}' -> '{after['label']}'"
+            )
+        if before.get("options", []) != after.get("options", []):
+            lines.append(f"Auswahl geändert: {kennung} ({after['label']})")
+        if before["line"] != after["line"]:
+            lines.append(
+                f"Nr. im Vordruck geändert: {kennung} ({after['label']}): "
+                f"{before['line'] or '-'} -> {after['line'] or '-'}"
+            )
+    gone = [f for k, f in old.items() if k not in new]
+    added = [f for k, f in new.items() if k not in old]
+    for field in list(gone):
+        twins = [f for f in added if identity(f) == identity(field)]
+        same = [f for f in gone if identity(f) == identity(field)]
+        if len(twins) == 1 and len(same) == 1:
+            lines.append(
+                f"E-Kennung geändert: {field['e_kennung']} -> {twins[0]['e_kennung']} "
+                f"({field['label']})"
+            )
+            gone.remove(field)
+            added.remove(twins[0])
+    lines += [f"Entfallen: {where(f)}" for f in gone]
+    lines += [f"Neu: {where(f)}" for f in added]
+    return sorted(lines)
+
+
+def _structure_command(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="elster_page_fields.py structure")
+    parser.add_argument("folder", type=Path)
+    parser.add_argument("--form", required=True)
+    parser.add_argument("--year", type=int, required=True)
+    parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    args = parser.parse_args(argv)
+    files = [p.name for p in args.folder.iterdir() if p.suffix.lower() in (".htm", ".html")]
+    if not files:
+        print(f"Keine Seiten in {args.folder}", file=sys.stderr)
+        return 1
+    names, unnumbered = page_order(files)
+    for name in unnumbered:
+        print(f"Ohne Seitennummer, ans Ende gestellt: {name}", file=sys.stderr)
+    pages = [
+        (name, (args.folder / name).read_text(encoding="utf-8", errors="replace")) for name in names
+    ]
+    structure = build_structure(pages, args.form, args.year)
+    target = args.out / f"{args.form.lower()}-{args.year}.json"
+    target.write_text(json.dumps(structure, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"{target}: {len(structure['fields'])} Felder")
+    return 0
+
+
+def _diff_command(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="elster_page_fields.py diff")
+    parser.add_argument("previous", type=Path)
+    parser.add_argument("current", type=Path)
+    args = parser.parse_args(argv)
+    previous, current = (
+        json.loads(path.read_text(encoding="utf-8")) for path in (args.previous, args.current)
+    )
+    print("\n".join(diff_structures(previous, current)) or "Keine Änderungen.")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     if not argv:
-        print("Usage: elster_page_fields.py <page.htm>...", file=sys.stderr)
+        print(
+            "Usage: elster_page_fields.py <page.htm>... | structure ... | diff ...",
+            file=sys.stderr,
+        )
         return 2
+    if argv[0] == "structure":
+        return _structure_command(argv[1:])
+    if argv[0] == "diff":
+        return _diff_command(argv[1:])
     for path in argv:
         if len(argv) > 1:
             print(f"# {Path(path).name}")

@@ -4,25 +4,32 @@ import datetime
 import hashlib
 import json
 import shutil
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.documents import DocumentKind, IntakeRejected, TakenIn, take_in
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolReading
 from moarcoal.modules.tax_year.anlage_n import (
+    FIELDS_2025,
     N_EQUIPMENT,
     N_WORKPLACE_DAYS,
     N_WORKPLACE_DISTANCE,
     WORK_EQUIPMENT,
+    WORK_GROSS_WAGES,
+    WORK_INCOME_TAX,
+    WORK_SOLI,
+    WORK_TAX_CLASS,
+    WORK_TRAVEL_FARE,
+    WORK_TRAVEL_TOTAL,
     WORK_WORKDAYS,
 )
 from moarcoal.modules.tax_year.comparison import SNAPSHOT_DEVIATION, snapshot_on_filing
@@ -30,17 +37,24 @@ from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work.entries import FirstWorkplace, UserInput, WorkEquipment
 from moarcoal.registration import ModuleState
 from moarcoal.storage import (
+    AbortedExtraction,
+    Applied,
     Change,
+    Delete,
     Document,
     Entry,
     EntryAddress,
     FrozenTime,
     FrozenValue,
     Occasion,
+    Proposal,
+    ProposalField,
     Put,
+    Rejected,
     Snapshot,
     State,
     Store,
+    entry_checksum,
     open_store,
 )
 from moarcoal.values.engine import Foreign, ForeignResult, Values
@@ -148,7 +162,9 @@ def test_take_in_writes_document_reading_and_snapshot_in_one_vorgang(store: Stor
     assert snapshot.module == "tax_year"
     assert snapshot.document == taken.document.address
     assert snapshot.taken_at == taken.document.taken_in_at
-    assert [v.ref.key for v in snapshot.values if v.requested] == FIELD_KEYS
+    assert [v.ref.key for v in snapshot.values if v.requested] == [
+        f.key for f in FIELDS_2025 if f.computed
+    ]
     assert frozen(snapshot, N_WORKPLACE_DAYS).amount.value == 219  # type: ignore[union-attr]
     kinds = {type(e).__name__ for e in store.state().entries.values()}
     assert {"Document", "ProtocolReading", "Snapshot"} <= kinds
@@ -241,7 +257,10 @@ def test_value_not_yet_computable_is_frozen_with_reason_and_gives_an_error(store
     assert days.amount is None
     errors = [f for f in finding_list(store) if f.kind == SNAPSHOT_NOT_YET]
     assert {f.severity for f in errors} == {Severity.ERROR}
-    assert len(errors) == 2  # Tage und km, nicht die Werte, auf die sie sich stützen
+    # Tage, km und die sieben Felder der Lohnsteuerbescheinigung; Arbeitsmittel sind 0 €
+    assert {f.target.key for f in errors} == {  # type: ignore[union-attr]
+        k for k in (f.key for f in FIELDS_2025 if f.computed) if k != N_EQUIPMENT
+    }
     assert all("noch nicht berechenbar" in f.message for f in errors)
 
 
@@ -282,7 +301,7 @@ def test_added_input_deviates_on_the_amount_and_the_item(store: Store) -> None:
     assert "Betrag: eingefroren 87 €, jetzt 97 €" in finding.message
 
 
-def test_second_protocol_adds_a_second_snapshot_and_the_newest_is_compared(store: Store) -> None:
+def test_second_protocol_adds_no_second_snapshot_of_the_filing(store: Store) -> None:
     put(store, workplace(), equipment(8640))
     take(store)
     put(store, equipment(1000))
@@ -291,11 +310,9 @@ def test_second_protocol_adds_a_second_snapshot_and_the_newest_is_compared(store
     # Berichtigung mit dem neuen Stand; die Sperre je Jahr (#87) ist hier ausgeschaltet
     take(store, "berichtigt.html", unique=False)
 
-    first, second = snapshots(store)
-    assert first.taken_at <= second.taken_at
-    assert frozen(first, N_EQUIPMENT).amount.value == Decimal(87)  # type: ignore[union-attr]
-    assert frozen(second, N_EQUIPMENT).amount.value == Decimal(97)  # type: ignore[union-attr]
-    assert deviations(store) == []
+    (only,) = snapshots(store)  # kein zweiter Schnappschuss der Abgabe (#118)
+    assert frozen(only, N_EQUIPMENT).amount.value == Decimal(87)  # type: ignore[union-attr]
+    assert len(deviations(store)) == 1  # weiter gegen die erste Abgabe
 
 
 # --- Einfrieren und Vergleichen auf der Datenebene ---
@@ -328,6 +345,17 @@ def foreign(**given: ForeignResult) -> Foreign:
         (WORK_WORKDAYS, PLACE, YEAR): fixed(Amount.of(219, Unit.DAYS)),
         ("work.distance_km", PLACE, YEAR): fixed(Amount.of(12, Unit.KM)),
         (WORK_EQUIPMENT, None, YEAR): with_items(("Stuhl", 5000), ("Lampe", 3640)),
+        **{
+            (key, None, YEAR): not_yet("keine Lohnsteuerbescheinigung")
+            for key in (
+                WORK_TAX_CLASS,
+                WORK_GROSS_WAGES,
+                WORK_INCOME_TAX,
+                WORK_SOLI,
+                WORK_TRAVEL_FARE,
+                WORK_TRAVEL_TOTAL,
+            )
+        },
     }
     base.update({(k, None, YEAR): v for k, v in given.items()})
     return base
@@ -431,7 +459,7 @@ def app(tmp_path: Path, site: Path) -> FastAPI:
     (root / "common" / "sites.json").write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    return create_app(PORT, root, user=USER)
+    return make_app(PORT, root, user=USER)
 
 
 @pytest.fixture
@@ -440,11 +468,11 @@ def http(app: FastAPI) -> httpx.Client:
 
 
 def test_whole_flow_page_shows_frozen_next_to_current_and_finding_list_the_deviation(
-    http: httpx.Client, app: FastAPI
+    http: httpx.Client, app: FastAPI, anlage_n_text: Callable[[httpx.Client], str]
 ) -> None:
     form = {"year": "2025", "workdays": "219", "distance_km": "12", "description": "Büro"}
     http.post("/arbeit/erste-taetigkeitsstaette", data=form, headers=ORIGIN)
-    assert "Bei Abgabe" not in http.get("/steuerjahr/anlage-n/2025").text
+    assert "Bei Abgabe" not in anlage_n_text(http)
 
     store: Store = app.state.store
     put(store, equipment(8640))
@@ -459,7 +487,7 @@ def test_whole_flow_page_shows_frozen_next_to_current_and_finding_list_the_devia
     )
     assert taken.status_code == 303
 
-    page = http.get("/steuerjahr/anlage-n/2025").text
+    page = anlage_n_text(http)
     assert "Bei Abgabe" in page
     assert "219 Tage" in page
     assert "Abweichung zum Schnappschuss" not in http.get("/befunde?year=2025").text
@@ -474,13 +502,119 @@ def test_whole_flow_page_shows_frozen_next_to_current_and_finding_list_the_devia
         ]
     )
     assert "Abweichung zum Schnappschuss" in http.get("/befunde?year=2025").text
-    page = http.get("/steuerjahr/anlage-n/2025").text
+    page = anlage_n_text(http)
     assert "Abweichung zum Schnappschuss" in page
     # Befundtext und Spalte „Bei Abgabe“ zeigen den eingefrorenen Betrag gleich
     assert "eingefroren 219 Tage" in page
     assert "<td>219 Tage</td>" in page
     assert "<td>87 €</td>" in page
     store.apply([Put(equipment(1000))])
-    page = http.get("/steuerjahr/anlage-n/2025").text
+    page = anlage_n_text(http)
     assert "eingefroren 87 €, jetzt 97 €" in page
     assert "<td>87 €</td>" in page  # dieselbe Schreibweise in der Spalte „Bei Abgabe“
+
+
+# --- Löschen eines Protokolls und neu Aufnehmen (#118) ---
+
+
+def delete_document(store: Store, taken: TakenIn) -> Applied | Rejected:
+    return store.apply([Delete(taken.document.address, entry_checksum(taken.document))])
+
+
+def test_deleting_a_protocol_takes_its_reading_along_and_keeps_the_snapshot(store: Store) -> None:
+    put(store, workplace(), equipment(8640))
+    first = take(store)
+    (snapshot,) = snapshots(store)
+
+    result = delete_document(store, first)
+
+    assert isinstance(result, Applied)
+    assert sorted(str(c.address) for c in result.changes) == sorted(
+        str(a) for a in (first.document.address, *(e.address for e in first.entries))
+    )
+    assert store.state().of_kind(ProtocolReading) == []
+    assert snapshots(store) == [snapshot]
+    assert snapshot.document == first.document.address  # Adresse des gelöschten Dokuments
+
+
+def test_the_same_file_can_be_taken_in_again_with_a_new_reading_and_the_old_snapshot(
+    store: Store,
+) -> None:
+    put(store, workplace(), equipment(8640))
+    first = take(store)
+    (snapshot,) = snapshots(store)
+    delete_document(store, first)
+
+    second = take(store)
+
+    (reading,) = store.state().of_kind(ProtocolReading)
+    assert reading.document == second.document.address
+    assert reading.id != first.entries[0].id
+    assert snapshots(store) == [snapshot]  # genau einer, der alte
+
+
+def test_a_year_is_blocked_while_the_protocol_exists_and_free_after_deleting(
+    tmp_path: Path, site: Path
+) -> None:
+    once = {"transfer_protocol": "Übertragungsprotokoll"}
+    store = open_store(
+        tmp_path / "daten", [*WORK.kinds, *TAX_YEAR.kinds], {"Belege": site}, once_per_period=once
+    )
+    first = take(store)
+    with pytest.raises(AssertionError):  # `take` erwartet Erfolg
+        take(store, "berichtigt.html")
+
+    delete_document(store, first)
+
+    assert isinstance(take(store, "berichtigt.html"), TakenIn)
+
+
+def test_a_snapshot_whose_document_is_gone_loads_after_reopening(
+    store: Store, tmp_path: Path, site: Path
+) -> None:
+    put(store, workplace(), equipment(8640))
+    delete_document(store, take(store))
+
+    reopened = open_store(tmp_path / "daten", [*WORK.kinds, *TAX_YEAR.kinds], {"Belege": site})
+
+    assert len(snapshots(reopened)) == 1
+    assert Document not in {type(e) for e in reopened.state().entries.values()}
+
+
+def test_a_proposal_still_blocks_deleting_the_document(store: Store) -> None:
+    taken = take(store)
+    proposal = Proposal(
+        owner=USER,
+        document=taken.document.address,
+        template_version=1,
+        fields={"x": ProposalField(value=1, location="S. 1")},
+        raw="{}",
+        created_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+    )
+    put(store, proposal)
+
+    assert isinstance(delete_document(store, taken), Rejected)
+    assert store.state().get(taken.document.address) is not None
+    assert store.state().of_kind(ProtocolReading)  # nichts wurde mitgelöscht
+
+
+def test_an_aborted_extraction_goes_along_with_the_document(store: Store) -> None:
+    taken = take(store)
+    aborted = AbortedExtraction(
+        owner=USER,
+        document=taken.document.address,
+        aborted_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+    )
+    put(store, aborted)
+
+    assert isinstance(delete_document(store, taken), Applied)
+    assert store.state().of_kind(AbortedExtraction) == []
+
+
+def test_a_protocol_with_reading_and_snapshot_has_nothing_that_blocks_deleting(
+    store: Store,
+) -> None:
+    put(store, workplace(), equipment(8640))
+    taken = take(store)
+
+    assert store.references_to(taken.document.address) == []

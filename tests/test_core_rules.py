@@ -11,7 +11,14 @@ from moarcoal.storage import all_kinds, kind_collisions
 SRC = Path(__file__).parent.parent / "src" / "moarcoal"
 STORAGE_PACKAGE = "storage"
 # Der Claude-Aufruf legt nur sein leeres Wegwerfverzeichnis an, nie Nutzerdaten.
-ALLOWED = {"extraction.py": {"import tempfile"}}
+# Struktur und Deutschlandkarte lesen nur mitgelieferte Dateien des Repos, nie Nutzerdaten.
+ALLOWED = {
+    "extraction.py": {"import tempfile"},
+    # `webbrowser.open` öffnet die Startseite, keine Datei; die PID-Datei liegt in `storage`.
+    "__main__.py": {".open(...)"},
+    "modules/tax_year/structure.py": {".read_text(...)"},
+    "modules/work/germany_map.py": {".read_text(...)"},
+}
 
 FILE_METHODS = {
     "open",

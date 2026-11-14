@@ -13,13 +13,15 @@
   <header>
     <nav>
       <a href="/">MoarCoal</a>
+      {% if user_name %}
       {% for module in modules %}
       <a href="{{ module.nav_url }}">{{ module.nav_label }}</a>
       {% endfor %}
       <a href="/belege">Belege{% if open_files %} ({{ open_files }}){% endif %}</a>
       <a href="/aussteller">Aussteller</a>
       <a href="/befunde">Befunde</a>
-      <span>{{ user_name }}</span>
+      <a href="/person">{{ user_name }}</a>
+      {% endif %}
     </nav>
   </header>
   <main>

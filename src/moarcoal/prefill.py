@@ -8,7 +8,8 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from moarcoal.documents import MAX_YEAR, MIN_YEAR, DocumentKind
+from moarcoal.defaults import MAX_YEAR, MIN_YEAR
+from moarcoal.documents import DocumentKind
 from moarcoal.storage import Issuer, State, name_key
 
 MIN_NAME_LENGTH = 3  # kürzere Namen und Aliasse träfen zu oft zufällig

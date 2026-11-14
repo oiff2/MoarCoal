@@ -19,6 +19,8 @@ from typing import Any, Protocol, cast
 import jsonschema
 from pydantic import BaseModel, ConfigDict, ValidationError
 
+from moarcoal.extraction_template import row_key
+
 CLAUDE_TOOLS = "claude_tools"
 """Befundart „Claude-Aufruf meldet Werkzeuge oder MCP-Server“ (Fehler)."""
 
@@ -136,7 +138,14 @@ def check_answer(raw: str, schema: Mapping[str, Any]) -> Extracted | ExtractionF
     kept = {k: v for k, v in given.items() if k in known}
     try:
         jsonschema.validate(kept, schema)
-        fields = {name: ExtractedField.model_validate(item) for name, item in kept.items()}
+        fields: dict[str, ExtractedField] = {}
+        for name, item in kept.items():
+            if isinstance(item, list):  # Liste gleichartiger Zeilen: je Zelle ein Feld
+                for number, row in enumerate(cast(list[dict[str, Any]], item), 1):
+                    for column, cell in row.items():
+                        fields[row_key(name, number, column)] = ExtractedField.model_validate(cell)
+            else:
+                fields[name] = ExtractedField.model_validate(item)
     except (jsonschema.ValidationError, ValidationError) as error:
         return invalid(type(error).__name__)
     return Extracted(fields, raw)

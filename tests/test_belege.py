@@ -6,10 +6,10 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.documents import DocumentKind, IntakeRejected, take_in
 from moarcoal.incoming import (
     IntakeFilter,
@@ -57,7 +57,7 @@ def make_client(root: Path, site: Path, user: str = "anna") -> httpx.Client:
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = create_app(PORT, root, user=user)
+    app = make_app(PORT, root, user=user)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -249,7 +249,7 @@ def test_rejection_stays_in_the_row_with_422(root: Path, site: Path) -> None:
     assert "gehört zum Steuerjahr 2025, eingetragen ist 2024" in response.text
     assert "2025/protokoll.html" in response.text
     assert 'value="2024"' in response.text
-    assert not (root / "users").exists()
+    assert [p.name for p in (root / "users").rglob("*.json")] == ["personal_details.json"]
     assert take(client, year="abc").status_code == 422
     unknown = client.post(
         "/belege/aufnehmen", data={"sha256": SHA, "kind": "gibt.es.nicht"}, headers=ORIGIN
@@ -332,7 +332,8 @@ def test_finding_is_per_user(root: Path, site: Path) -> None:
 def test_finding_comes_back_when_the_set_of_files_changes(root: Path, site: Path) -> None:
     client = make_client(root, site)
     page = main_of(client, "/befunde?year=2025")
-    fingerprint = page.split('name="fingerprint" value="')[1].split('"')[0]
+    own = page.split('name="kind" value="incoming_files"')[1]
+    fingerprint = own.split('name="fingerprint" value="')[1].split('"')[0]
     dismissed = client.post(
         "/befunde/ausblenden",
         data={
@@ -368,7 +369,7 @@ def test_year_input_is_hidden_for_kinds_without_period(root: Path, site: Path) -
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = create_app(PORT, root, [REGISTRATION, demo], user="anna")
+    app = make_app(PORT, root, [REGISTRATION, demo], user="anna")
     client = TestClient(app, base_url=f"http://127.0.0.1:{PORT}")
     page = main_of(client, f"/belege?datei={SHA}")
     assert '<option value="demo.contract" data-ohne-zeitraum>' in page

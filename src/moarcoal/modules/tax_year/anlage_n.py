@@ -9,6 +9,7 @@ des Moduls Arbeit bleiben genau.
 """
 
 from collections.abc import Callable, Mapping
+from functools import partial
 
 from moarcoal.modules.tax_year.assessment import (
     BUSINESS_TRAVEL,
@@ -19,20 +20,46 @@ from moarcoal.modules.tax_year.assessment import (
     MEAL_ALLOWANCE,
     SOLI_WITHHELD,
 )
-from moarcoal.modules.tax_year.fields import Direction, FormField, Rounding
+from moarcoal.modules.tax_year.entries import FormInput
+from moarcoal.modules.tax_year.fields import Direction, FormField, Rounding, TypedInput
+from moarcoal.modules.tax_year.structure import FormStructure, load_structure
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
-from moarcoal.values.model import Amount, Unit, ValueKey
+from moarcoal.values.model import Amount, Unit, UserInputLocator, ValueKey
 
 FORM = "N"  # Anlage N (Person A)
+YES_NO = ("Ja", "Nein")  # Auswahl von Nr. 65; die Struktur nennt für Auswahlfelder ohne Liste keine
 
 WORK_WORKDAYS = ValueKey("work.workdays")
 WORK_DISTANCE_KM = ValueKey("work.distance_km")
 WORK_EQUIPMENT = ValueKey("work.equipment")
+WORK_TAX_CLASS = ValueKey("work.tax_class")
+WORK_GROSS_WAGES = ValueKey("work.gross_wages")
+WORK_INCOME_TAX = ValueKey("work.income_tax_withheld")
+WORK_SOLI = ValueKey("work.soli_withheld")
+WORK_WORKDAYS_PER_WEEK = ValueKey("work.workdays_per_week")
+WORK_ABSENCE_DAYS = ValueKey("work.absence_days")
+WORK_CAR_DISTANCE = ValueKey("work.car_distance_km")
+WORK_TRIP_DAYS = ValueKey("work.trip_days")
+WORK_TRAVEL_FARE = ValueKey("work.travel_fare")
+WORK_TRAVEL_TOTAL = ValueKey("work.travel_total")
 
 N_WORKPLACE_DAYS = ValueKey("tax_year.n_workplace_days")
 N_WORKPLACE_DISTANCE = ValueKey("tax_year.n_workplace_distance")
+N_WORKDAYS_PER_WEEK = ValueKey("tax_year.n_workdays_per_week")
+N_ABSENCE_DAYS = ValueKey("tax_year.n_absence_days")
+N_CAR_DISTANCE = ValueKey("tax_year.n_car_distance")
 N_EQUIPMENT = ValueKey("tax_year.n_equipment")
+N_HOMEOFFICE_DAYS = ValueKey("tax_year.n_homeoffice_days")
+N_TAX_CLASS = ValueKey("tax_year.n_tax_class")
+N_GROSS_WAGES = ValueKey("tax_year.n_gross_wages")
+N_GROSS_WAGES_SINGLE = ValueKey("tax_year.n_gross_wages_single")
+N_INCOME_TAX = ValueKey("tax_year.n_income_tax")
+N_INCOME_TAX_SINGLE = ValueKey("tax_year.n_income_tax_single")
+N_SOLI = ValueKey("tax_year.n_soli")
+N_SOLI_SINGLE = ValueKey("tax_year.n_soli_single")
+N_TRAVEL_FARE = ValueKey("tax_year.n_travel_fare")
+N_TRAVEL_TOTAL = ValueKey("tax_year.n_travel_total")
 
 
 def _rounded(calculation: Calculation, field: FormField, amount: Amount) -> Amount:
@@ -49,195 +76,211 @@ def _rounded(calculation: Calculation, field: FormField, amount: Amount) -> Amou
 # Quelle von E-Kennung, Nr. im Vordruck und Bezeichnung: das Übertragungsprotokoll der Abgabe 2025
 # (E-Kennung, Zeile, Bezeichnung; keine Beträge), für Arbeitsmittel die Seite „10 - Aufwendungen
 # für Arbeitsmittel“ in Mein ELSTER (Summe, tools/elster_page_fields.py). Der Katalog nimmt alle
-# bekannten Felder mit; berechnet werden bisher nur die drei mit Quelle im Modul Arbeit
+# bekannten Felder mit; berechnet werden bisher nur die mit Quelle im Modul Arbeit
 # (`computed`). Die Positionen des EStB (`assessment`) und welche er gerundet druckt, hat der
 # Mensch an einem echten EStB zugeordnet (#54).
+def _catalog_field(
+    structure: FormStructure,
+    key: ValueKey,
+    elster_id: str,
+    unit: Unit | None,
+    rounding: Rounding,
+    direction: Direction | None,
+    *,
+    computed: bool,
+    assessment: tuple[str, ...],
+    printed_rounded: bool,
+    previous: str | None,
+    typed: TypedInput | None,
+) -> FormField:
+    """Ein Feld des Katalogs: Bedeutung aus den Argumenten, Nr. und Bezeichnung aus der Struktur."""
+    described = structure.get(elster_id)
+    return FormField(
+        key,
+        elster_id,
+        described.line,
+        described.label,
+        unit,
+        rounding,
+        direction,
+        computed=computed,
+        assessment=assessment,
+        printed_rounded=printed_rounded,
+        previous=previous,
+        typed=typed,
+    )
+
+
 def _known(
+    structure: FormStructure,
     name: str,
     elster_id: str,
-    form_line: str,
-    label: str,
     unit: Unit | None,
     rounding: Rounding,
     direction: Direction | None = None,
     *,
     assessment: tuple[str, ...] = (),
     printed_rounded: bool = False,
+    previous: str | None = None,
+    typed: TypedInput | None = None,
 ) -> FormField:
     """Ein Feld des Katalogs, das MoarCoal bisher nicht berechnet."""
-    return FormField(
+    return _catalog_field(
+        structure,
         ValueKey(f"tax_year.n_{name}"),
         elster_id,
-        form_line,
-        label,
         unit,
         rounding,
         direction,
         computed=False,
         assessment=assessment,
         printed_rounded=printed_rounded,
+        previous=previous,
+        typed=typed,
     )
 
 
-FIELDS_2025: tuple[FormField, ...] = (
-    _known("tax_class", "E0200002", "4", "Steuerklasse", None, Rounding.NONE),
-    _known(
-        "gross_wages",
-        "E0200201",
-        "5",
-        "Bruttoarbeitslohn einschließlich Sachbezüge (Summe)",
-        Unit.EUR,
-        Rounding.WHOLE_EUROS,
-        Direction.INCOME,
-        assessment=(GROSS_WAGES,),
-    ),
-    _known(
-        "gross_wages_single",
-        "E0200204",
-        "5",
-        "Bruttoarbeitslohn einschließlich Sachbezüge (je Bescheinigung)",
-        Unit.EUR,
-        Rounding.EURO_CENTS,
-    ),
-    _known(
-        "income_tax",
-        "E0200301",
-        "6",
-        "Lohnsteuer (Summe)",
-        Unit.EUR,
-        Rounding.EURO_CENTS,
-        assessment=(INCOME_TAX_WITHHELD,),
-        printed_rounded=True,
-    ),
-    _known(
-        "income_tax_single",
-        "E0200304",
-        "6",
-        "Lohnsteuer (je Bescheinigung)",
-        Unit.EUR,
-        Rounding.EURO_CENTS,
-    ),
-    _known(
-        "soli",
-        "E0200401",
-        "7",
-        "Solidaritätszuschlag (Summe)",
-        Unit.EUR,
-        Rounding.EURO_CENTS,
-        assessment=(SOLI_WITHHELD,),
-    ),
-    _known(
-        "soli_single",
-        "E0200404",
-        "7",
-        "Solidaritätszuschlag (je Bescheinigung)",
-        Unit.EUR,
-        Rounding.EURO_CENTS,
-    ),
-    _known("workplace_target", "E0203003", "27", "Ziel des Weges", None, Rounding.NONE),
-    _known("workplace_address", "E0203501", "27", "PLZ, Ort und Straße", None, Rounding.NONE),
-    _known("workplace_period", "E0203101", "27", "vom - bis", None, Rounding.NONE),
-    _known("workdays_per_week", "E0203508", "28", "Arbeitstage je Woche", Unit.DAYS, Rounding.NONE),
-    _known(
-        "absence_days",
-        "E0203509",
-        "28",
-        "Urlaubs-, Krankheits-, Heimarbeits- und Dienstreisetage",
-        Unit.DAYS,
-        Rounding.NONE,
-    ),
-    FormField(
-        N_WORKPLACE_DAYS,
-        "E0203503",
-        "29",
-        "aufgesucht an Tagen",
-        Unit.DAYS,
-        Rounding.NONE,
-        assessment=(COMMUTE_DAYS,),
-    ),
-    FormField(
-        N_WORKPLACE_DISTANCE,
-        "E0203504",
-        "30",
-        "einfache Entfernung in Kilometern",
-        Unit.KM,
-        Rounding.WHOLE_KM,
-        assessment=(COMMUTE_KM,),
-    ),
-    _known(
-        "car_distance",
-        "E0203505",
-        "31",
-        "davon mit eigenem oder zur Nutzung überlassenem PKW zurückgelegt",
-        Unit.KM,
-        Rounding.WHOLE_KM,
-    ),
-    _known(
-        "refund_tax_free",
-        "E0204103",
-        "51",
-        "Arbeitgeberleistungen laut Nr. 17 der Lohnsteuerbescheinigung (steuerfrei ersetzt)",
-        Unit.EUR,
-        Rounding.WHOLE_EUROS,
-        Direction.INCOME,
-    ),
-    _known(
-        "refund_flat_taxed",
-        "E0203901",
-        "51",
-        "Arbeitgeberleistungen laut Nr. 18 der Lohnsteuerbescheinigung (pauschal besteuert)",
-        Unit.EUR,
-        Rounding.WHOLE_EUROS,
-        Direction.INCOME,
-    ),
-    FormField(
-        N_EQUIPMENT,
-        "E0204403",
-        "56",
-        "Arbeitsmittel",
-        Unit.EUR,
-        Rounding.WHOLE_EUROS,
-        Direction.EXPENSE,
-    ),
-    _known(
-        "homeoffice_days",
-        "E0204507",
-        "58",
-        "Kalendertage, an denen die berufliche Tätigkeit überwiegend in der häuslichen Wohnung "
-        "ausgeübt wurde",
-        Unit.DAYS,
-        Rounding.NONE,
-    ),
-    _known(
-        "company_car",
-        "E0204901",
-        "65",
-        "Fahrten mit Firmenwagen oder unentgeltlicher Sammelbeförderung",
-        None,
-        Rounding.NONE,
-    ),
-    _known("travel_fare_kind", "E0205003", "66", "Fahrtkosten (Art)", None, Rounding.NONE),
-    _known(
-        "travel_fare",
-        "E0205004",
-        "66",
-        "Fahrtkosten (Betrag)",
-        Unit.EUR,
-        Rounding.WHOLE_EUROS,
-        Direction.EXPENSE,
-        assessment=(BUSINESS_TRAVEL,),
-    ),
-    _known(
-        "travel_total",
-        "E0205518",
-        "69",
-        "Gesamtsumme der Aufwendungen für Reisekosten",
-        Unit.EUR,
-        Rounding.WHOLE_EUROS,
-        Direction.EXPENSE,
-        assessment=(MEAL_ALLOWANCE, BUSINESS_TRAVEL),
-    ),
-)
+def _computed(
+    structure: FormStructure,
+    key: ValueKey,
+    elster_id: str,
+    unit: Unit,
+    rounding: Rounding,
+    direction: Direction | None = None,
+    *,
+    assessment: tuple[str, ...] = (),
+    printed_rounded: bool = False,
+    previous: str | None = None,
+    typed: TypedInput | None = None,
+) -> FormField:
+    """Ein Feld des Katalogs, das MoarCoal berechnet."""
+    return _catalog_field(
+        structure,
+        key,
+        elster_id,
+        unit,
+        rounding,
+        direction,
+        computed=True,
+        assessment=assessment,
+        printed_rounded=printed_rounded,
+        previous=previous,
+        typed=typed,
+    )
+
+
+def fields_n(structure: FormStructure) -> tuple[FormField, ...]:
+    """Die Felder der Anlage N: Bedeutung aus dem Katalog, Bezeichnung und Nr. aus der Struktur."""
+    known = partial(_known, structure)
+    computed = partial(_computed, structure)
+    return (
+        computed(N_TAX_CLASS, "E0200002", Unit.TAX_CLASS, Rounding.NONE),
+        computed(
+            N_GROSS_WAGES,
+            "E0200201",
+            Unit.EUR,
+            Rounding.WHOLE_EUROS,
+            Direction.INCOME,
+            assessment=(GROSS_WAGES,),
+        ),
+        computed(
+            N_GROSS_WAGES_SINGLE,
+            "E0200204",
+            Unit.EUR,
+            Rounding.EURO_CENTS,
+        ),
+        computed(
+            N_INCOME_TAX,
+            "E0200301",
+            Unit.EUR,
+            Rounding.EURO_CENTS,
+            assessment=(INCOME_TAX_WITHHELD,),
+            printed_rounded=True,
+        ),
+        computed(
+            N_INCOME_TAX_SINGLE,
+            "E0200304",
+            Unit.EUR,
+            Rounding.EURO_CENTS,
+        ),
+        computed(
+            N_SOLI,
+            "E0200401",
+            Unit.EUR,
+            Rounding.EURO_CENTS,
+            assessment=(SOLI_WITHHELD,),
+        ),
+        computed(
+            N_SOLI_SINGLE,
+            "E0200404",
+            Unit.EUR,
+            Rounding.EURO_CENTS,
+        ),
+        known("workplace_target", "E0203003", None, Rounding.NONE),
+        known("workplace_address", "E0203501", None, Rounding.NONE),
+        known("workplace_period", "E0203101", None, Rounding.NONE),
+        computed(N_WORKDAYS_PER_WEEK, "E0203508", Unit.DAYS, Rounding.NONE),
+        computed(N_ABSENCE_DAYS, "E0203509", Unit.DAYS, Rounding.NONE),
+        computed(
+            N_WORKPLACE_DAYS,
+            "E0203503",
+            Unit.DAYS,
+            Rounding.NONE,
+            assessment=(COMMUTE_DAYS,),
+        ),
+        computed(
+            N_WORKPLACE_DISTANCE,
+            "E0203504",
+            Unit.KM,
+            Rounding.WHOLE_KM,
+            assessment=(COMMUTE_KM,),
+        ),
+        computed(N_CAR_DISTANCE, "E0203505", Unit.KM, Rounding.WHOLE_KM),
+        known(
+            "refund_tax_free",
+            "E0204103",
+            Unit.EUR,
+            Rounding.WHOLE_EUROS,
+            Direction.INCOME,
+        ),
+        known(
+            "refund_flat_taxed",
+            "E0203901",
+            Unit.EUR,
+            Rounding.WHOLE_EUROS,
+            Direction.INCOME,
+        ),
+        computed(
+            N_EQUIPMENT,
+            "E0204403",
+            Unit.EUR,
+            Rounding.WHOLE_EUROS,
+            Direction.EXPENSE,
+        ),
+        computed(N_HOMEOFFICE_DAYS, "E0204507", Unit.DAYS, Rounding.NONE, typed=TypedInput()),
+        known("company_car", "E0204901", None, Rounding.NONE, typed=TypedInput(YES_NO)),
+        known("travel_fare_kind", "E0205003", None, Rounding.NONE),
+        computed(
+            N_TRAVEL_FARE,
+            "E0205004",
+            Unit.EUR,
+            Rounding.WHOLE_EUROS,
+            Direction.EXPENSE,
+            assessment=(BUSINESS_TRAVEL,),
+        ),
+        computed(
+            N_TRAVEL_TOTAL,
+            "E0205518",
+            Unit.EUR,
+            Rounding.WHOLE_EUROS,
+            Direction.EXPENSE,
+            assessment=(MEAL_ALLOWANCE, BUSINESS_TRAVEL),
+        ),
+    )
+
+
+STRUCTURES: Mapping[int, FormStructure] = {2025: load_structure(FORM, 2025)}
+FIELDS_2025 = fields_n(STRUCTURES[2025])
 
 type Forms = Mapping[int, tuple[FormField, ...]]
 """Felder der Anlage N je Steuerjahr."""
@@ -280,18 +323,88 @@ def compute_workplace_distance(calculation: Calculation, field: FormField) -> Am
     return _work_value(calculation, field, WORK_DISTANCE_KM, "Einfache Entfernung")
 
 
-def compute_equipment(calculation: Calculation, field: FormField) -> Amount:
-    item = calculation.use(WORK_EQUIPMENT, label="Summe der Arbeitsmittel")
+def compute_workdays_per_week(calculation: Calculation, field: FormField) -> Amount:
+    return _work_value(calculation, field, WORK_WORKDAYS_PER_WEEK, "Arbeitstage je Woche")
+
+
+def compute_car_distance(calculation: Calculation, field: FormField) -> Amount:
+    return _work_value(calculation, field, WORK_CAR_DISTANCE, "Mit dem Pkw gefahrene km")
+
+
+def compute_homeoffice_days(calculation: Calculation, field: FormField) -> Amount:
+    """Nr. 58: die Tage, die der Nutzer im Steuerjahr eingegeben hat; ohne Eingabe noch nicht
+    berechenbar (nie 0)."""
+    year = calculation.year
+    entry = next(
+        (
+            e
+            for e in calculation.own.all(FormInput)
+            if (e.year, e.elster_id) == (year, field.elster_id)
+        ),
+        None,
+    )
+    if entry is None:
+        calculation.not_yet(f"Die Homeoffice-Tage (Nr. 58) sind für {year} noch nicht erfasst")
+    days = Amount.of(int(entry.content), Unit.DAYS)
+    calculation.item("Homeoffice-Tage", days, UserInputLocator(entry.address))
+    return calculation.step("Homeoffice-Tage laut Eingabe", days)
+
+
+def homeoffice_days(calculation: Calculation) -> Amount:
+    """Homeoffice-Tage (Nr. 58) als Summand von Nr. 28."""
+    item = calculation.use(N_HOMEOFFICE_DAYS, label="Homeoffice-Tage")
     if item is None:
-        calculation.not_applicable("Arbeitsmittel entfallen")
-    amount = calculation.step("Summe der Arbeitsmittel übernommen", item.amount)
+        calculation.not_applicable("Homeoffice-Tage entfallen")
+    return item.amount
+
+
+def compute_absence_days(calculation: Calculation, field: FormField) -> Amount:
+    """Nr. 28 „Urlaubs-, Krankheits-, Heimarbeits- und Dienstreisetage“: Summe aus den Urlaubs-
+    und Krankheitstagen der Tätigkeitsstätte, den Homeoffice-Tagen (Nr. 58) und den Tagen der
+    Dienstreisen. Fehlt ein Summand, ist das Feld noch nicht berechenbar (nie 0)."""
+    absence = _work_value(calculation, field, WORK_ABSENCE_DAYS, "Urlaubs- und Krankheitstage")
+    trips = calculation.use(WORK_TRIP_DAYS, label="Dienstreisetage")
+    if trips is None:
+        calculation.not_applicable("Dienstreisetage entfallen")
+    home = homeoffice_days(calculation)
+    total = Amount(absence.value + trips.amount.value + home.value, Unit.DAYS)
+    return calculation.step(
+        f"{absence.value} Urlaubs- und Krankheitstage + {home.value} Homeoffice-Tage "
+        f"+ {trips.amount.value} Dienstreisetage",
+        total,
+    )
+
+
+def _work_total(calculation: Calculation, field: FormField, source: ValueKey, label: str) -> Amount:
+    """Übernimmt den Wert des Jahrs aus dem Modul Arbeit; entfällt er, entfällt das Feld."""
+    item = calculation.use(source, label=label)
+    if item is None:
+        calculation.not_applicable(f"{label} entfällt")
+    amount = calculation.step(f"{label} übernommen", item.amount)
     return _rounded(calculation, field, amount)
+
+
+def compute_equipment(calculation: Calculation, field: FormField) -> Amount:
+    return _work_total(calculation, field, WORK_EQUIPMENT, "Summe der Arbeitsmittel")
 
 
 _COMPUTE: dict[ValueKey, Callable[[Calculation, FormField], Amount]] = {
     N_WORKPLACE_DAYS: compute_workplace_days,
     N_WORKPLACE_DISTANCE: compute_workplace_distance,
+    N_WORKDAYS_PER_WEEK: compute_workdays_per_week,
+    N_ABSENCE_DAYS: compute_absence_days,
+    N_CAR_DISTANCE: compute_car_distance,
+    N_HOMEOFFICE_DAYS: compute_homeoffice_days,
     N_EQUIPMENT: compute_equipment,
+    N_TAX_CLASS: partial(_work_total, source=WORK_TAX_CLASS, label="Steuerklasse"),
+    N_GROSS_WAGES: partial(_work_total, source=WORK_GROSS_WAGES, label="Bruttoarbeitslohn"),
+    N_GROSS_WAGES_SINGLE: partial(_work_total, source=WORK_GROSS_WAGES, label="Bruttoarbeitslohn"),
+    N_INCOME_TAX: partial(_work_total, source=WORK_INCOME_TAX, label="Lohnsteuer"),
+    N_INCOME_TAX_SINGLE: partial(_work_total, source=WORK_INCOME_TAX, label="Lohnsteuer"),
+    N_SOLI: partial(_work_total, source=WORK_SOLI, label="Solidaritätszuschlag"),
+    N_SOLI_SINGLE: partial(_work_total, source=WORK_SOLI, label="Solidaritätszuschlag"),
+    N_TRAVEL_FARE: partial(_work_total, source=WORK_TRAVEL_FARE, label="Fahrtkosten"),
+    N_TRAVEL_TOTAL: partial(_work_total, source=WORK_TRAVEL_TOTAL, label="Summe der Reisekosten"),
 }
 
 

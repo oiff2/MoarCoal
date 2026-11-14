@@ -4,9 +4,9 @@ import re
 from pathlib import Path
 
 import httpx
+from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.storage import COMMON_OWNER, Document, Issuer, Put, open_store
@@ -17,7 +17,7 @@ SHA = "b" * 64
 
 
 def make_client(root: Path, user: str = "anna") -> httpx.Client:
-    app = create_app(PORT, root, modules=[WORK, TAX_YEAR], user=user)
+    app = make_app(PORT, root, modules=[WORK, TAX_YEAR], user=user)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 

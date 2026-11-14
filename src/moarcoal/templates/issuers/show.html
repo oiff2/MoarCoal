@@ -9,16 +9,22 @@
 {% endif %}
 <form method="post" action="/aussteller/{{ issuer.id }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">
+  {% if from_details %}
+  <p>Name: {{ issuer.name }} (Privatperson). Das kommt aus <a href="/person">Angaben zur Person</a>.</p>
+  {% else %}
   <label>Name
     <input name="name" value="{{ values.get('name', '') }}" required>
   </label>
+  {% endif %}
   <label>Weitere Namen (einer pro Absatz, mit Enter getrennt)
     <textarea name="aliases" rows="3">{{ values.get('aliases', '') }}</textarea>
   </label>
+  {% if not from_details %}
   <label>
     <input type="checkbox" name="private_person"{% if values.get('private_person') %} checked{% endif %}>
     Privatperson (Name und Anschrift sind sensibel)
   </label>
+  {% endif %}
   <button type="submit">Speichern</button>
 </form>
 
@@ -58,7 +64,9 @@
 {% endif %}
 
 <h2>Löschen</h2>
-{% if documents or expected %}
+{% if from_details %}
+<p>Der Aussteller kommt aus <a href="/person">Angaben zur Person</a> und lässt sich nicht löschen.</p>
+{% elif documents or expected %}
 <p>Der Aussteller wird noch verwendet (siehe oben) und lässt sich erst löschen, wenn nichts mehr auf ihn verweist.</p>
 {% else %}
 <form method="post" action="/aussteller/{{ issuer.id }}/loeschen" class="inline">

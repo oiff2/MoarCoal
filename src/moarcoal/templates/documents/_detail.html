@@ -7,7 +7,7 @@
 <h2>Aussteller</h2>
 <p>{% if d.issuer %}{{ d.issuer.name }}{% else %}Kein Aussteller angegeben.{% endif %}</p>
 <h2>Ändern</h2>
-{{ document_form(document, d.kinds, d.references, d.checksum, d.labels, d.default_year, d.issuer_text, d.year) }}
+{{ document_form(document, d.kinds, d.references, d.bound, d.checksum, d.labels, d.default_year, d.issuer_text, d.year) }}
 
 {% if d.proposal %}
 <h2>Vorschlag bestätigen</h2>

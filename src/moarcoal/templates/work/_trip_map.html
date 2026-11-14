@@ -1,0 +1,82 @@
+{#- Karte der Dienstreisen: Startorte als Raute mit S, Reiseziele als Kreis mit der Zahl der Fahrten; der Name steht neben dem Punkt und im Tooltip. Die Lage eines Orts sucht nur der Klick auf „Suchen“ (ADR 0008). -#}
+{% macro place_button(place, action, label) -%}
+<form method="post" action="/arbeit/dienstreisen/{{ year }}/orte/{{ action }}" class="inline">
+  <input type="hidden" name="ort" value="{{ place }}"><button type="submit">{{ label }}</button>
+</form>
+{%- endmacro %}
+<section class="karte" id="karte">
+  <h3>Karte der Orte</h3>
+  <p>
+    {{ map_places.points | length }} {{ "Ort" if map_places.points | length == 1 else "Orte" }} auf der Karte{% if map_places.unplaced %}, {{ map_places.unplaced | length }} ohne Lage{% endif %}.
+    <span class="legende"><svg viewBox="-11 -11 22 22" aria-hidden="true"><path class="marke start" d="M0 -10L10 0L0 10L-10 0Z"/></svg> Startort (S)
+    <svg viewBox="-11 -11 22 22" aria-hidden="true"><circle class="marke ziel" r="9"/></svg> Reiseziel, Zahl = Fahrten</span>
+  </p>
+  <svg class="deutschlandkarte" viewBox="0 0 {{ germany.width }} {{ germany.height }}" role="img" aria-label="Karte von Deutschland mit den Orten der Dienstreisen {{ year }}">
+    <path class="land" d="{{ germany.outline }}"/>
+    <path class="grenzen" d="{{ germany.borders }}"/>
+    {% for point in map_places.points %}
+    <g class="pt" transform="translate({{ point.x }} {{ point.y }})" role="img" aria-label="{{ point.tooltip }}">
+      <title>{{ point.tooltip }}</title>
+      {% if point.use.is_start %}<path class="marke start" d="M0 -14L14 0L0 14L-14 0Z"/>{% else %}<circle class="marke ziel" r="11"/>{% endif %}
+      <text class="innen" y="4.2">{% if point.use.is_start %}S{% endif %}{{ point.use.destination_trips or "" }}</text>
+      <text class="name"{% if point.label_left %} text-anchor="end" x="-18"{% else %} x="18"{% endif %} y="4.5">{{ point.use.name }}</text>
+    </g>
+    {% endfor %}
+  </svg>
+
+  {% if map_places.unplaced %}
+  <h4 id="ohne-lage">Ohne Lage ({{ map_places.unplaced | length }})</h4>
+  <p>„Suchen“ fragt bei OpenStreetMap (Nominatim) nur nach dem Text im Feld, und nur auf diesen Klick. Die gewählte Lage gilt für alle Jahre.</p>
+  <ul class="orte">
+    {% for use in map_places.unplaced %}
+    <li>
+      <form method="post" action="/arbeit/dienstreisen/{{ year }}/orte/suche" class="inline">
+        <input type="hidden" name="ort" value="{{ use.name }}">
+        <label class="inline">{{ use.name }} <input name="suche" value="{% if search and search.place == use.name %}{{ search.text }}{% else %}{{ use.name }}{% endif %}" size="24"></label>
+        <button type="submit">Suchen</button>
+      </form>
+      {{ place_button(use.name, "ausblenden", "nicht auf der Karte zeigen") }}
+      {% if search and search.place == use.name %}
+      {% if search.message %}<p class="fehler">{{ search.message }}</p>{% endif %}
+      {% if search.hits %}
+      <ul class="treffer">
+        {% for hit in search.hits %}
+        <li>
+          <form method="post" action="/arbeit/dienstreisen/{{ year }}/orte/lage" class="inline">
+            <input type="hidden" name="ort" value="{{ use.name }}">
+            <input type="hidden" name="breite" value="{{ hit.latitude }}">
+            <input type="hidden" name="laenge" value="{{ hit.longitude }}">
+            <input type="hidden" name="name" value="{{ hit.name }}">
+            <button type="submit">wählen</button> {{ hit.name }}{% if hit.state %} · {{ hit.state }}{% endif %}
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if map_places.points %}
+  <details>
+    <summary>Orte auf der Karte ({{ map_places.points | length }})</summary>
+    <ul class="orte">
+      {% for point in map_places.points %}
+      <li>{{ point.use.name }} · {{ point.place.found_as }} {{ place_button(point.use.name, "vergessen", "Lage vergessen") }}</li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+  {% if map_places.hidden %}
+  <details>
+    <summary>Nicht auf der Karte gezeigt ({{ map_places.hidden | length }})</summary>
+    <ul class="orte">
+      {% for use in map_places.hidden %}
+      <li>{{ use.name }} {{ place_button(use.name, "vergessen", "wieder zeigen") }}</li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</section>

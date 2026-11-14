@@ -8,3 +8,7 @@ DE02 1203 0000 0000 2020 51
 
 # Beispiel-Steuer-ID aus Dokumentationen
 86095742719
+
+# Teile von Paket-Hashes in uv.lock, keine Steuer-IDs
+62525794411
+35564556999

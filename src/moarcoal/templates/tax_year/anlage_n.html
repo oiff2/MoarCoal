@@ -1,11 +1,19 @@
 {% extends "base.html" %}
 {% from "_value.html" import value_view %}
+{% from "tax_year/_eingabe.html" import input_cell %}
 {% from "_findings.html" import finding_list %}
 {% block title %}Anlage N {{ year }} – MoarCoal{% endblock %}
 {% block main %}
 <h1>Anlage N {{ year }}</h1>
 <p><a href="/steuerjahr">Steuerjahr</a></p>
-<p>Die Angaben aus dem Modul Arbeit, geordnet nach den Feldern der Anlage N. Aufgeführt sind alle Felder der Anlage N, die MoarCoal kennt; ein Betrag wird bisher nur für die Felder berechnet, die aus dem Modul Arbeit kommen.</p>
+<p>Die Angaben aus dem Modul Arbeit und die Eingaben direkt am Feld, aufgeteilt wie die Seiten der Anlage N in Mein ELSTER. Aufgeführt sind die Felder, die MoarCoal kennt; ein Betrag wird bisher nur für die Felder berechnet, die aus dem Modul Arbeit kommen.</p>
+
+<nav class="seiten" aria-label="Seiten der Anlage N">
+  {% for p in pages %}
+  <a href="/steuerjahr/anlage-n/{{ year }}/{{ p.slug }}"{% if p.slug == page.slug %} aria-current="page"{% endif %}>{{ p.title }}</a>
+  {% endfor %}
+</nav>
+<h2>{{ page.title }}</h2>
 
 {% if findings.visible %}
 <h2>Befunde</h2>
@@ -21,13 +29,15 @@
 {% endif %}
 
 <table class="felder">
-  <tr><th>Nr. im Vordruck</th><th>E-Kennung</th><th>Bezeichnung</th><th>Betrag und Rechenweg</th>{% if snapshot %}<th>Bei Abgabe</th>{% endif %}{% if printed %}<th>Laut EStB</th>{% endif %}</tr>
-  {% for field, result in rows %}
+  <tr><th>Bezeichnung</th><th>Betrag und Rechenweg</th>{% if snapshot %}<th>Bei Abgabe</th>{% endif %}{% if printed %}<th>Laut EStB</th>{% endif %}</tr>
+  {% for row, result in rows %}
+  {% set field = row.field %}
+  {% for heading in row.headings %}
+  <tr><th colspan="{{ 2 + (1 if snapshot else 0) + (1 if printed else 0) }}">{{ heading }}</th></tr>
+  {% endfor %}
   <tr>
-    <td>{{ field.form_line or "–" }}</td>
-    <td>{% if field.elster_id %}{{ field.elster_id }}{% else %}noch unbekannt{% endif %}</td>
-    <td>{{ field.label }}</td>
-    <td>{% if field.computed %}{{ value_view("Angabe", result, whole=field.whole_euros) }}{% else %}wird noch nicht berechnet{% endif %}</td>
+    <td>{{ field.label }} <small>Nr. {{ field.form_line or "–" }}, {{ field.elster_id }}</small></td>
+    <td>{% if field.typed %}{{ input_cell(year, field, result, inputs.get(field.elster_id), none) }}{% elif field.computed %}{{ value_view("Angabe", result, whole=field.whole_euros) }}{% else %}wird noch nicht berechnet{% endif %}</td>
     {% if snapshot %}<td>{{ frozen.get(field.key, "–") }}</td>{% endif %}
     {% if printed %}<td>{% if field.key in printed %}{{ field.show(printed[field.key]) }}{% else %}–{% endif %}</td>{% endif %}
   </tr>

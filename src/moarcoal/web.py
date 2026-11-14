@@ -3,13 +3,15 @@
 from typing import Any
 from urllib.parse import parse_qs
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.documents import DocumentKind
 from moarcoal.incoming import all_site_files, incoming_files
 from moarcoal.links import document_url, issuer_url
+from moarcoal.personal_details import details_of
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import Document, EntryAddress, ExpectedDocument, Issuer, State, Store
 from moarcoal.values.engine import Values
@@ -21,12 +23,14 @@ def format_eur(cents: int) -> str:
     return format_amount(Amount.eur_cents(cents))
 
 
-def year_of(text: str) -> int | None:
-    """Das Jahr als ganze Zahl (Randleerzeichen egal); `None`, wenn `text` keine ist."""
+def year_of(text: str, *, in_range: bool = False) -> int | None:
+    """Das Jahr als ganze Zahl (Randleerzeichen egal); `None`, wenn `text` keine ist, mit
+    `in_range` auch, wenn sie außerhalb von `MIN_YEAR` bis `MAX_YEAR` liegt."""
     try:
-        return int(text.strip())
+        year = int(text.strip())
     except ValueError:
         return None
+    return year if not in_range or MIN_YEAR <= year <= MAX_YEAR else None
 
 
 def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) -> str | None:
@@ -65,6 +69,27 @@ def user_of(request: Request) -> str:
     return request.app.state.user
 
 
+def user_name_of(request: Request) -> str | None:
+    """Der Name des Nutzers aus seinen Angaben zur Person; `None`, solange es den Nutzer nicht
+    gibt."""
+    details = details_of(store_of(request).state(), user_of(request))
+    return None if details is None else details.display_name
+
+
+PAGES_WITHOUT_USER = frozenset({"/", "/person"})  # und /static (eigene Anwendung, keine Route)
+
+
+def require_user(request: Request) -> None:
+    """Ohne Nutzer (ohne Angaben zur Person) führt jede Seite außer der Startseite und den Angaben
+    zur Person mit 303 auf die Startseite."""
+    if request.url.path in PAGES_WITHOUT_USER:
+        return  # diese Seiten können den Nutzer anlegen; `render` ermittelt den Namen dann selbst
+    user_name = user_name_of(request)
+    if user_name is None:
+        raise HTTPException(303, headers={"Location": "/"})
+    request.state.user_name = user_name  # `render` liest ihn hier, statt ihn neu zu ermitteln
+
+
 def module_state(request: Request, key: str) -> ModuleState:
     """Der Stand der Anfrage, eingegrenzt auf das Modul `key` und den Nutzer."""
     registrations: tuple[ModuleRegistration, ...] = request.app.state.modules
@@ -82,14 +107,17 @@ async def form_fields(request: Request) -> dict[str, str]:
 def render(request: Request, name: str, status_code: int = 200, **context: Any) -> HTMLResponse:
     templates: Jinja2Templates = request.app.state.templates
     registrations: tuple[ModuleRegistration, ...] = request.app.state.modules
+    user_name = getattr(request.state, "user_name", None) or user_name_of(request)
     if "open_files" not in context:  # Zähler der Seitenleiste; die Belege-Seite kennt ihn schon
         store = store_of(request)
-        context["open_files"] = len(
-            incoming_files(all_site_files(store), store.state(), user_of(request))
+        context["open_files"] = (
+            0
+            if user_name is None
+            else len(incoming_files(all_site_files(store), store.state(), user_of(request)))
         )
     return templates.TemplateResponse(
         request,
         name,
-        {"modules": registrations, "user_name": request.app.state.user_name, **context},
+        {"modules": registrations, "user_name": user_name, **context},
         status_code=status_code,
     )

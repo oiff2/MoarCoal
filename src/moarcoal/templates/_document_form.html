@@ -1,9 +1,10 @@
 {# Formular zum Ändern eines Dokuments (Aussteller, Art, Jahr) und Löschen; wie beim Aufnehmen.
-   `references` sind die Einträge, die auf das Dokument verweisen: solange es welche gibt, sind
-   Art und Jahr gesperrt und Löschen ist nicht möglich. #}
+   `bound` sind alle Einträge, die am Dokument hängen: solange es welche gibt, sind Art und Jahr
+   gesperrt. `references` sind die, die das Löschen sperren (was mit dem Dokument wegfällt oder nur
+   schwach verweist, zählt nicht): solange es welche gibt, ist Löschen nicht möglich. #}
 {% from "_issuer_field.html" import issuer_field %}
-{% macro document_form(document, kinds, references, checksum, labels, default_year, issuer_text="", year="") %}
-{% set locked = references | length > 0 %}
+{% macro document_form(document, kinds, references, bound, checksum, labels, default_year, issuer_text="", year="") %}
+{% set locked = bound | length > 0 %}
 <form method="post" action="/dokumente/{{ document.id }}/aendern">
   {{ issuer_field(default=document.issuer.id if document.issuer else "", text=issuer_text) }}
   <label>Dokumentart
@@ -16,12 +17,16 @@
   <button type="submit">Ändern</button>
 </form>
 {% if locked %}
-<p>Daran hängt etwas, deshalb sind Art und Jahr gesperrt und das Dokument lässt sich nicht löschen:
+<p>Daran hängt etwas, deshalb sind Art und Jahr gesperrt:
+  {% for ref in bound %}{% set url = entry_url(ref.address) %}{% if url %}<a href="{{ url }}">{{ labels.get(ref.address.kind, ref.address.kind) }}</a>{% else %}{{ labels.get(ref.address.kind, ref.address.kind) }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}.</p>
+{% endif %}
+{% if references %}
+<p>Das Dokument lässt sich nicht löschen, solange daran hängt:
   {% for ref in references %}{% set url = entry_url(ref.address) %}{% if url %}<a href="{{ url }}">{{ labels.get(ref.address.kind, ref.address.kind) }}</a>{% else %}{{ labels.get(ref.address.kind, ref.address.kind) }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}.</p>
 {% else %}
 <form method="post" action="/dokumente/{{ document.id }}/loeschen">
   <input type="hidden" name="checksum" value="{{ checksum }}">
-  <button type="submit">Dokument löschen</button> <small>Die Datei bleibt liegen und ist danach wieder offen.</small>
+  <button type="submit">Dokument löschen</button> <small>Die Datei bleibt liegen und ist danach wieder offen.{% if bound %} Was daraus eingelesen wurde, fällt mit dem Dokument weg.{% endif %}</small>
 </form>
 {% endif %}
 {% endmacro %}

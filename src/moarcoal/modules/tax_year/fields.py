@@ -5,7 +5,7 @@ Die Werte der Felder sind gesetzlich gerundet, je nach Einheit und Richtung des 
 das Feld aus derselben Angabe ab: bei Euro die Richtung, km zählen wie eine Ausgabe, Tage ohne.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from enum import StrEnum
@@ -28,6 +28,27 @@ class Rounding(StrEnum):
     EURO_CENTS = "Euro mit Cent"  # exakt
     WHOLE_KM = "volle km"  # abgerundet
     NONE = "ganzzahlig"  # Tage: schon ganzzahlig
+
+
+NEW_FIELD = "neu"
+MAX_DAYS = 366
+
+
+@dataclass(frozen=True)
+class TypedInput:
+    """Ein Eintippfeld: der Nutzer gibt es im Steuerjahr ein. Mit `choices` nimmt es genau einen
+    dieser Texte, sonst eine ganze Zahl (Tage) von 0 bis `maximum`."""
+
+    choices: tuple[str, ...] = ()
+    maximum: int = MAX_DAYS
+
+    def check(self, text: str) -> str | None:
+        """Der Grund, warum `text` nicht passt; `None`, wenn er passt."""
+        if self.choices:
+            return None if text in self.choices else "Wähle eine der Möglichkeiten."
+        if not (text.isascii() and text.isdigit()) or int(text) > self.maximum:
+            return f"Gib eine ganze Zahl von 0 bis {self.maximum} ein."
+        return None
 
 
 @dataclass(frozen=True)
@@ -56,6 +77,12 @@ class FormField:
     `assessment` nennt die Positionen der Auslese-Vorlage des EStB, deren Summe
     dem Feld entspricht (leer: der EStB druckt das Feld nicht). `printed_rounded` heißt: der
     EStB druckt die Position in ganzen Euro, auch wo das Feld Cent hat.
+
+    `typed` heißt: ein Eintippfeld, das der Nutzer im Steuerjahr eingibt (`TypedInput`).
+
+    `previous` ordnet das Feld dem Vorjahr zu, wo seine E-Kennung sich ändert: die E-Kennung des
+    Vorjahrs oder `NEW_FIELD` (gibt es im Vorjahr nicht). Leer heißt: dieselbe E-Kennung wie im
+    Vorjahr (`check_previous_years`).
     """
 
     key: ValueKey
@@ -68,6 +95,8 @@ class FormField:
     computed: bool = True
     assessment: tuple[str, ...] = ()
     printed_rounded: bool = False
+    previous: str | None = None
+    typed: TypedInput | None = None
 
     def __post_init__(self) -> None:
         if (self.rounding is Rounding.WHOLE_EUROS) != (self.direction is not None):
@@ -167,3 +196,36 @@ class FormField:
         how = "aufgerundet" if difference > 0 else "abgerundet"
         side = "Gunsten" if (difference > 0) == favourable else "Ungunsten"
         return f"um {self.show(abs(difference))} {how}, zu deinen {side} (Wert {shown})."
+
+
+def check_previous_years(forms: Mapping[int, Sequence[FormField]]) -> list[str]:
+    """Strenge Vorjahres-Zuordnung: Probleme, wo ein Jahr nicht zum Vorjahr passt (leer: passt).
+
+    Gibt es das Vorjahr, setzt jedes Feld die Zuordnung fort: dieselbe E-Kennung wie im Vorjahr,
+    oder ausdrücklich `previous` (E-Kennung des Vorjahrs oder `NEW_FIELD`). Jedes Feld des
+    Vorjahrs hat höchstens einen Nachfolger. Jahre ohne Vorjahr werden nicht geprüft.
+    """
+    problems: list[str] = []
+    for year in sorted(forms):
+        if year - 1 not in forms:
+            continue
+        before = {f.elster_id for f in forms[year - 1] if f.elster_id}
+        claimed: dict[str, FormField] = {}
+        for field in forms[year]:
+            if field.elster_id is None or field.previous == NEW_FIELD:
+                continue
+            target = field.previous or field.elster_id
+            where = f"{year}, {field.label} ({field.elster_id})"
+            if target not in before:
+                problems.append(
+                    f"{where}: {target} gibt es {year - 1} nicht. "
+                    f"Setze previous auf {NEW_FIELD!r} (neues Feld) oder die ersetzte E-Kennung."
+                )
+            elif target in claimed:
+                problems.append(
+                    f"{where}: verweist wie {claimed[target].elster_id} auf {target} "
+                    f"von {year - 1}."
+                )
+            else:
+                claimed[target] = field
+    return problems

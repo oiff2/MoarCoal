@@ -9,9 +9,9 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.documents import DocumentKind, IntakeRejected, ReadInError, TakenIn
 from moarcoal.documents import take_in as take_in_with
 from moarcoal.modules.tax_year import (
@@ -85,7 +85,7 @@ def make_client(root: Path, site: Path) -> httpx.Client:
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = create_app(PORT, root, user="anna")
+    app = make_app(PORT, root, user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -101,10 +101,10 @@ def test_parse_protocol_reads_header_and_fields_as_printed() -> None:
         for line in parsed.lines
     ]
     assert fields == [
-        ("E0203503", "N", "5", "Arbeitstage", "220", "1_1-1-1"),
-        ("E0203504", "N", "6", "Einfache Entfernung in km", "12", "1_1-1-1"),
-        ("E0107601", "N", "12", "Arbeitsmittel (Art & Anschaffung)", "49,90", "1_1-1-1"),
-        ("E0107601", "N", "", "Weiteres Arbeitsmittel", "20,00", "2_1-1-1"),
+        ("E0203503", "N", "29", "aufgesucht an Tagen", "220", "1_1-1-1"),
+        ("E0203504", "N", "30", "einfache Entfernung in Kilometern", "12", "1_1-1-1"),
+        ("E0204403", "N", "56", "Arbeitsmittel", "49,90", "1_1-1-1"),
+        ("E0204403", "N", "", "Weiteres Arbeitsmittel", "20,00", "2_1-1-1"),
         ("E0100004", "ESt1A", "", "Ort", "Musterstadt", "1_1-1-1"),
     ]
 
@@ -112,7 +112,7 @@ def test_parse_protocol_reads_header_and_fields_as_printed() -> None:
 def test_fundstelle_is_the_full_data_name_and_repeated_elster_id_stay_separate() -> None:
     lines = parse_protocol(FIXTURE.read_bytes()).lines
     assert lines[0].data_name == "id-N-Werbungskosten-Fahrten-E0203503_usb1_1-1-1"
-    repeated = [line for line in lines if line.elster_id == "E0107601"]
+    repeated = [line for line in lines if line.elster_id == "E0204403"]
     assert [line.content for line in repeated] == ["49,90", "20,00"]  # nicht summiert
     assert len({line.data_name for line in repeated}) == 2
 
@@ -150,9 +150,19 @@ def test_read_in_stores_fields_from_the_fixture() -> None:
     assert reading.reader_version == READER_VERSION
 
 
+def test_read_in_reports_unexpected_format_with_the_document_kind() -> None:
+    pdf = r"Unerwartetes Format \(sieht nach einem PDF aus\).*Dokumentart Übertragungsprotokoll"
+    other = r"Unerwartetes Format \(keine HTML-Datei aus Mein ELSTER\).*Übertragungsprotokoll"
+    with pytest.raises(ReadInError, match=pdf):
+        read_in_protocol(make_document(), b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n1 0 obj")
+    for content in (b"<p>nichts</p>", b"nur Text"):
+        with pytest.raises(ReadInError, match=other):
+            read_in_protocol(make_document(), content)
+
+
 def test_read_in_refuses_other_documents_and_year_mismatch() -> None:
     with pytest.raises(ReadInError, match="kein Übertragungsprotokoll"):
-        read_in_protocol(make_document(), b"<p>nichts</p>")
+        read_in_protocol(make_document(), b"<!-- Belegart: X --><p>nichts</p>")
     with pytest.raises(ReadInError, match="kein Feld mit E-Kennung"):
         read_in_protocol(make_document(), b"<!-- Belegart: E10 --><p>leer</p>")
     with pytest.raises(ReadInError, match="Steuerjahr 2025, eingetragen ist 2024"):
@@ -382,7 +392,7 @@ def test_pages_take_in_and_show_document_and_lines(root: Path, site: Path) -> No
     assert hashlib.sha256(FIXTURE.read_bytes()).hexdigest() in detail
     assert "E0203504" in detail
     assert "49,90" in detail
-    assert "Arbeitsmittel (Art &amp; Anschaffung)" in detail
+    assert "einfache Entfernung in Kilometern" in detail
     assert 'id="id-N-Werbungskosten-Fahrten-E0203503_usb1_1-1-1"' in detail
     assert "01.03.2026" in detail
     overview = client.get("/steuerjahr").text
@@ -408,7 +418,7 @@ def test_page_rejects_year_that_contradicts_the_head(root: Path, site: Path) -> 
     response = take_in_via_page(client, year="2024")
     assert response.status_code == 422
     assert "gehört zum Steuerjahr 2025, eingetragen ist 2024" in response.text
-    assert not (root / "users").exists()
+    assert [p.name for p in (root / "users").rglob("*.json")] == ["personal_details.json"]
 
 
 def test_protocol_line_is_stored_as_elster_id() -> None:

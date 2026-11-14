@@ -8,14 +8,16 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
-from moarcoal.defaults import DEFAULT_YEAR
+from moarcoal.defaults import DEFAULT_YEAR, MAX_YEAR, MIN_YEAR
 from moarcoal.modules.work.entries import (
     DEFAULT_WORKDAYS,
     MAX_WORKDAYS,
+    MODULE_KEY,
     FirstWorkplace,
     UserInput,
     WorkEquipment,
 )
+from moarcoal.modules.work.trip_view import chosen_year, trip_years, trips_context
 from moarcoal.modules.work.values import DISTANCE_KM, EQUIPMENT, WORKDAYS
 from moarcoal.registration import ModuleState
 from moarcoal.storage import (
@@ -31,7 +33,6 @@ from moarcoal.storage import (
 from moarcoal.values.model import Period
 from moarcoal.web import form_fields, module_state, render, store_of, user_of, values_of
 
-MODULE_KEY = "work"
 router = APIRouter(prefix="/arbeit")
 
 type Fields = dict[str, str]
@@ -39,9 +40,13 @@ type Build = Callable[[Fields, str, str], tuple[Entry | None, list[str]]]
 
 # Hinweis je Feld, wenn die Prüfung es ablehnt (Pydantic liefert nur englische Meldungen).
 HINTS = {
-    "year": "Steuerjahr: Jahr zwischen 2000 und 2100",
+    "year": f"Steuerjahr: Jahr zwischen {MIN_YEAR} und {MAX_YEAR}",
     "workdays": f"Arbeitstage: ganze Zahl von 0 bis {MAX_WORKDAYS}",
     "distance_km": "Einfache Entfernung: ganze Zahl von 0 bis 1000 km",
+    "workdays_per_week": "Arbeitstage je Woche: ganze Zahl von 1 bis 7, oder leer",
+    "absence_days": "Urlaubs- und Krankheitstage: ganze Zahl von 0 bis 366, oder leer",
+    "car_distance_km": "Mit dem Pkw gefahrene km: ganze Zahl, höchstens die einfache Entfernung, "
+    "oder leer",
     "description": "Beschreibung: höchstens 200 Zeichen",
     "amount_cents": "Betrag: größer als 0, mit höchstens zwei Nachkommastellen, z. B. 49,90",
     "date": "Datum: gültiges Datum",
@@ -70,6 +75,9 @@ def _errors(error: ValidationError, required_description: bool) -> list[str]:
     return messages
 
 
+OPTIONAL_WORKPLACE = ("workdays_per_week", "absence_days", "car_distance_km")
+
+
 def build_workplace(fields: Fields, owner: str, entry_id: str) -> tuple[Entry | None, list[str]]:
     try:
         entry = FirstWorkplace.model_validate(
@@ -80,6 +88,7 @@ def build_workplace(fields: Fields, owner: str, entry_id: str) -> tuple[Entry | 
                 "workdays": fields.get("workdays", ""),
                 "distance_km": fields.get("distance_km", ""),
                 "description": fields.get("description", "").strip(),
+                **{name: fields.get(name, "").strip() or None for name in OPTIONAL_WORKPLACE},
             }
         )
     except ValidationError as error:
@@ -170,6 +179,10 @@ def _prefill_from(entry: Entry | None) -> Fields:
                 "workdays": str(entry.workdays),
                 "distance_km": str(entry.distance_km),
                 "description": entry.description,
+                **{
+                    name: "" if getattr(entry, name) is None else str(getattr(entry, name))
+                    for name in OPTIONAL_WORKPLACE
+                },
             }
         case WorkEquipment():
             euros, cents = divmod(entry.input.amount_cents, 100)
@@ -236,6 +249,7 @@ def _overview(
         kinds=KINDS,
         errors=errors,
         values=values,
+        **trips_context(request, chosen_year(request, trip_years(request))),
     )
 
 

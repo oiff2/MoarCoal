@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Angaben zur Person – MoarCoal{% endblock %}
+{% block main %}
+<h1>Angaben zur Person</h1>
+{% with button = "Speichern" %}{% include "person/_form.html" %}{% endwith %}
+{% endblock %}

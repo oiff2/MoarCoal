@@ -5,24 +5,36 @@ Die Werte von Arbeit sind fest vorgegeben (`foreign`); nur die Seiten laufen mit
 
 from collections.abc import Callable
 from dataclasses import replace
+from decimal import Decimal
 from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
+from moarcoal.modules.tax_year import anlage_n
 from moarcoal.modules.tax_year.anlage_n import (
     FIELDS_2025,
+    FORMS,
+    N_ABSENCE_DAYS,
+    N_CAR_DISTANCE,
     N_EQUIPMENT,
+    N_WORKDAYS_PER_WEEK,
     N_WORKPLACE_DAYS,
     N_WORKPLACE_DISTANCE,
+    STRUCTURES,
+    WORK_ABSENCE_DAYS,
+    WORK_CAR_DISTANCE,
     WORK_DISTANCE_KM,
     WORK_EQUIPMENT,
+    WORK_TRIP_DAYS,
     WORK_WORKDAYS,
+    WORK_WORKDAYS_PER_WEEK,
 )
+from moarcoal.modules.tax_year.structure import form_pages
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import EntryAddress
 from moarcoal.values.calculation import Calculation, Missing
@@ -42,7 +54,7 @@ from moarcoal.values.model import (
     ValueKey,
     ValueLocator,
 )
-from moarcoal.values.testing import evaluate, fixed, not_applicable
+from moarcoal.values.testing import evaluate, fixed, not_applicable, not_yet
 
 PORT = 4711
 YEAR = Period.year(2025)
@@ -82,6 +94,11 @@ def place(subject: Subject = PLACE, workdays: int = 180, km: int = 12) -> Foreig
     return {
         (WORK_WORKDAYS, subject, YEAR): fixed(Amount.of(workdays, Unit.DAYS)),
         (WORK_DISTANCE_KM, subject, YEAR): fixed(Amount.of(km, Unit.KM)),
+        **{
+            (key, subject, YEAR): not_yet("keine Eingabe")
+            for key in (WORK_WORKDAYS_PER_WEEK, WORK_ABSENCE_DAYS, WORK_CAR_DISTANCE)
+        },
+        (WORK_TRIP_DAYS, None, YEAR): not_yet("keine Dienstreisen"),
     }
 
 
@@ -156,7 +173,24 @@ def test_catalog_has_every_known_field_but_values_only_for_the_computed_ones() -
     tax_keys = {e.key for e in values.catalog.entries()}
 
     assert tax_keys == {f.key for f in FIELDS_2025 if f.computed}
-    assert {f.elster_id for f in FIELDS_2025 if f.computed} == {"E0203503", "E0203504", "E0204403"}
+    assert {f.elster_id for f in FIELDS_2025 if f.computed} == {
+        "E0200002",
+        "E0200201",
+        "E0200204",
+        "E0200301",
+        "E0200304",
+        "E0200401",
+        "E0200404",
+        "E0203503",
+        "E0203504",
+        "E0203505",
+        "E0203508",
+        "E0203509",
+        "E0204403",
+        "E0204507",
+        "E0205004",
+        "E0205518",
+    }
     assert len(FIELDS_2025) == len({f.key for f in FIELDS_2025}) == 23
     assert len({f.elster_id for f in FIELDS_2025}) == 23
     assert {"E0200201", "E0205518", "E0204901"} <= {f.elster_id for f in FIELDS_2025}
@@ -166,9 +200,8 @@ def test_fields_without_amount_or_computation_are_marked_and_consistent() -> Non
     uncomputed = [f for f in FIELDS_2025 if not f.computed]
     no_amount = [f for f in FIELDS_2025 if f.unit is None]
 
-    assert len(uncomputed) == 20
+    assert len(uncomputed) == 7
     assert {f.elster_id for f in no_amount} == {
-        "E0200002",
         "E0203003",
         "E0203501",
         "E0203101",
@@ -385,11 +418,13 @@ def test_no_cycle_no_finding_and_diamond_is_no_cycle() -> None:
 
 
 def client(root: Path) -> httpx.Client:
-    app = create_app(PORT, root, user="anna")
+    app = make_app(PORT, root, user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
-def test_page_shows_values_with_expandable_chains(tmp_path: Path) -> None:
+def test_page_shows_values_with_expandable_chains(
+    tmp_path: Path, anlage_n_text: Callable[[httpx.Client], str]
+) -> None:
     http = client(tmp_path)
     origin = {"Origin": f"http://127.0.0.1:{PORT}"}
     http.post(
@@ -408,10 +443,8 @@ def test_page_shows_values_with_expandable_chains(tmp_path: Path) -> None:
         headers=origin,
     )
 
-    page = http.get("/steuerjahr/anlage-n/2025")
+    html = anlage_n_text(http)
 
-    assert page.status_code == 200
-    html = page.text
     assert "E0203503" in html and "E0203504" in html and "E0204403" in html
     assert "180 Tage" in html and "12 km" in html and "50 €" in html and "50,00 €" not in html
     assert html.count("<details>") >= 6  # je Feld aufklappbar, dazu der Posten des Arbeit-Werts
@@ -420,7 +453,9 @@ def test_page_shows_values_with_expandable_chains(tmp_path: Path) -> None:
     assert "49,90 € → 50 € (aufgerundet, Ausgabe)" in html  # Rundungsschritt im Rechenweg
 
 
-def test_page_shows_whole_euro_field_without_cents_but_work_keeps_them(tmp_path: Path) -> None:
+def test_page_shows_whole_euro_field_without_cents_but_work_keeps_them(
+    tmp_path: Path, anlage_n_text: Callable[[httpx.Client], str]
+) -> None:
     http = client(tmp_path)
     origin = {"Origin": f"http://127.0.0.1:{PORT}"}
     http.post(
@@ -434,19 +469,52 @@ def test_page_shows_whole_euro_field_without_cents_but_work_keeps_them(tmp_path:
         headers=origin,
     )
 
-    html = http.get("/steuerjahr/anlage-n/2025").text
+    html = anlage_n_text(http)
 
     assert '<strong class="betrag">87 €</strong>' in html
     assert "87,00 €" not in html
     assert "86,40 €" in html  # Posten des Moduls Arbeit bleibt genau
 
 
-def test_page_shows_not_yet_computable_with_chain(tmp_path: Path) -> None:
-    page = client(tmp_path).get("/steuerjahr/anlage-n/2025")
+def test_page_shows_not_yet_computable_with_chain(
+    tmp_path: Path, anlage_n_text: Callable[[httpx.Client], str]
+) -> None:
+    text = anlage_n_text(client(tmp_path))
 
-    assert page.status_code == 200
-    assert "noch nicht berechenbar" in page.text
-    assert "keine erste Tätigkeitsstätte" in page.text
+    assert "noch nicht berechenbar" in text
+    assert "keine erste Tätigkeitsstätte" in text
+
+
+def test_pages_follow_mein_elster_and_show_only_catalog_fields() -> None:
+    pages = form_pages(STRUCTURES[2025], FORMS[2025])
+
+    assert [p.slug for p in pages][:2] == ["1", "8"]
+    assert len({p.slug for p in pages}) == len(pages)
+    shown = [row.field.elster_id for p in pages for row in p.rows]
+    assert sorted(str(e) for e in shown) == sorted(str(f.elster_id) for f in FORMS[2025])
+    first = pages[0].rows
+    assert first[0].headings == () and first[1].headings != ()
+    assert first[1].headings == first[2].headings or first[2].headings == ()  # Überschrift einmal
+
+
+def test_each_page_has_its_own_url_with_label_line_and_e_kennung(tmp_path: Path) -> None:
+    http = client(tmp_path)
+    pages = form_pages(STRUCTURES[2025], FORMS[2025])
+
+    for page in pages:
+        html = http.get(f"/steuerjahr/anlage-n/2025/{page.slug}").text
+        assert page.title in html
+        for row in page.rows:
+            assert row.field.label in html
+            assert f"Nr. {row.field.form_line or '–'}, {row.field.elster_id}" in html
+        other = {r.field.elster_id for p in pages if p is not page for r in p.rows}
+        assert not any(str(e) in html for e in other)
+    assert (
+        http.get("/steuerjahr/anlage-n/2025").text
+        == http.get(f"/steuerjahr/anlage-n/2025/{pages[0].slug}").text
+    )
+    assert http.get("/steuerjahr/anlage-n/2025/gibt-es-nicht").status_code == 404
+    assert http.get("/steuerjahr/anlage-n/2019/1").status_code == 404
 
 
 def test_page_of_unknown_year_is_404_and_get_writes_nothing(tmp_path: Path) -> None:
@@ -469,3 +537,64 @@ def test_cycle_fingerprint_follows_the_members() -> None:
     base = cycle("demo.a", "demo.b")
 
     assert cycle("demo.a", "demo.b").fingerprint == base.fingerprint
+
+
+# --- Nr. 28 und 31: Tage je Woche, Abwesenheit, Pkw-km -----------------------------------------
+
+
+def test_workdays_per_week_and_car_distance_come_from_the_workplace() -> None:
+    value = tax_year(
+        {
+            **place(),
+            (WORK_WORKDAYS_PER_WEEK, PLACE, YEAR): fixed(Amount.of(5, Unit.DAYS)),
+            (WORK_CAR_DISTANCE, PLACE, YEAR): fixed(Amount.of(Decimal("11.9"), Unit.KM)),
+        }
+    )
+
+    assert exposed(value(N_WORKDAYS_PER_WEEK, YEAR)).amount == Amount.of(5, Unit.DAYS)
+    km = exposed(value(N_CAR_DISTANCE, YEAR))
+    assert km.amount == Amount.of(11, Unit.KM)  # abgerundet
+    assert "abgerundet" in km.workings.steps[-1].text
+
+
+def test_workplace_inputs_that_are_missing_are_not_yet_computable() -> None:
+    value = tax_year(place())  # Arbeit liefert die Werte nicht (Eingabe fehlt)
+
+    for key in (N_WORKDAYS_PER_WEEK, N_CAR_DISTANCE, N_ABSENCE_DAYS):
+        assert not isinstance(value(key, YEAR), ExposedValue)
+
+
+def absence(trip_days: int = 3, vacation: int = 30) -> Foreign:
+    return {
+        **place(),
+        (WORK_ABSENCE_DAYS, PLACE, YEAR): fixed(Amount.of(vacation, Unit.DAYS)),
+        (WORK_TRIP_DAYS, None, YEAR): fixed(Amount.of(trip_days, Unit.DAYS)),
+    }
+
+
+def test_absence_days_are_not_yet_computable_without_homeoffice_days() -> None:
+    result = tax_year(absence())(N_ABSENCE_DAYS, YEAR)  # ohne Eingabe zu Nr. 58
+
+    assert isinstance(result, NotYetComputable)
+    assert "Homeoffice-Tage" in result.reason
+
+
+def test_absence_days_sum_the_three_parts_with_working(monkeypatch: pytest.MonkeyPatch) -> None:
+    def home(calculation: Calculation) -> Amount:
+        return calculation.step("Homeoffice-Tage", Amount.of(20, Unit.DAYS))
+
+    monkeypatch.setattr(anlage_n, "homeoffice_days", home)
+
+    field = exposed(tax_year(absence())(N_ABSENCE_DAYS, YEAR))
+
+    assert field.amount == Amount.of(53, Unit.DAYS)
+    assert (
+        field.workings.steps[-1].text
+        == "30 Urlaubs- und Krankheitstage + 20 Homeoffice-Tage + 3 Dienstreisetage"
+    )
+
+
+def test_absence_days_need_the_trip_days() -> None:
+    foreign = {**absence(), (WORK_TRIP_DAYS, None, YEAR): not_yet("keine Dienstreisen")}
+
+    assert not isinstance(tax_year(foreign)(N_ABSENCE_DAYS, YEAR), ExposedValue)

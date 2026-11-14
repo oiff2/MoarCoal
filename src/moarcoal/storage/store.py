@@ -29,13 +29,15 @@ from moarcoal.storage.entries import (
     EntryAddress,
     EntryKind,
     entry_checksum,
+    falls_with,
     kind_collisions,
-    referenced_addresses,
+    strong_references,
     with_reference_moved,
 )
 from moarcoal.storage.expected_documents import EXPECTED_DOCUMENT_KIND
 from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND, HIDDEN_FOLDER_KIND
 from moarcoal.storage.issuers import ISSUER_KIND
+from moarcoal.storage.personal_details import PERSONAL_DETAILS_KIND
 from moarcoal.storage.proposals import PROPOSAL_KIND
 from moarcoal.storage.snapshots import SNAPSHOT_KIND
 
@@ -189,16 +191,18 @@ def _sort_key(entry: Entry) -> str:
 
 
 def _reference_problems(
-    changes: Sequence[Change], new_entries: Mapping[EntryAddress, Entry]
+    changes: Sequence[Change],
+    new_entries: Mapping[EntryAddress, Entry],
+    kinds: Mapping[str, EntryKind],
 ) -> dict[EntryAddress, str]:
-    """Verweise nach dem Vorgang: Gelöschtes wird nicht mehr verwendet."""
+    """Verweise nach dem Vorgang: Gelöschtes wird nicht mehr verwendet (schwache Verweise der
+    Art ausgenommen)."""
     problems: dict[EntryAddress, str] = {}
-    deleted: set[EntryAddress] = set()
-    deleted.update(c.address for c in changes if isinstance(c, Delete | Merge))
-    if deleted:
-        for entry in new_entries.values():
-            for address in referenced_addresses(entry) & deleted:
-                problems[address] = "Wird noch verwendet."
+    for change in changes:
+        if isinstance(change, Delete | Merge) and strong_references(
+            new_entries.values(), change.address, kinds
+        ):
+            problems[change.address] = "Wird noch verwendet."
     return problems
 
 
@@ -455,8 +459,10 @@ class Store:
                     seen.add(into)
             if current is not None:
                 touch(self._path_of(current), address)
+        along = self._fall_along(changes, new_entries, seen, touch)
+        changes = (*changes, *along)
         if not reasons:
-            reasons.update(_reference_problems(changes, new_entries))
+            reasons.update(_reference_problems(changes, new_entries, self._kinds))
             reasons.update(self._kind_problems(changes, new_entries))
         if reasons:
             return Rejected(reasons)
@@ -469,6 +475,39 @@ class Store:
         entries = MappingProxyType(new_entries)
         self._state = self._state_of(entries, denylist_failed=not self._write_denylist(entries))
         return Applied(changes)
+
+    def _fall_along(
+        self,
+        changes: Sequence[Change],
+        new_entries: dict[EntryAddress, Entry],
+        seen: set[EntryAddress],
+        touch: Callable[[str, EntryAddress], None],
+    ) -> list[Delete]:
+        """Folge eines Löschens: Einträge, die mit dem gelöschten wegfallen
+        (`EntryKind.falls_with`), auch über mehrere Stufen. Ein Eintrag, den der Vorgang selbst
+        ändert, fällt nicht weg."""
+        pending = [
+            c.address for c in changes if isinstance(c, Delete) and c.address not in new_entries
+        ]
+        along: list[Delete] = []
+        while pending:
+            target = pending.pop()
+            for address, entry in list(new_entries.items()):
+                if address not in seen and falls_with(entry, target, self._kinds):
+                    del new_entries[address]
+                    touch(self._path_of(entry), address)
+                    along.append(Delete(address, entry_checksum(entry)))
+                    pending.append(address)
+        return along
+
+    def references_to(self, address: EntryAddress, *, with_derived: bool = False) -> list[Entry]:
+        """Die Einträge, die das Löschen von `address` sperren: sie verwenden es, ohne mit ihm
+        wegzufallen (schwache Verweise zählen nicht); nach Adresse sortiert. Mit `with_derived`
+        auch die, die mit ihm wegfallen: alles, was an `address` hängt."""
+        found = strong_references(self._state.entries.values(), address, self._kinds)
+        if with_derived:
+            return found
+        return [e for e in found if not falls_with(e, address, self._kinds)]
 
     def _kind_problems(
         self, changes: Sequence[Change], new_entries: Mapping[EntryAddress, Entry]
@@ -647,6 +686,7 @@ def open_store(
         HIDDEN_FILE_KIND,
         HIDDEN_FOLDER_KIND,
         ISSUER_KIND,
+        PERSONAL_DETAILS_KIND,
         EXPECTED_DOCUMENT_KIND,
         PROPOSAL_KIND,
         ABORTED_EXTRACTION_KIND,
