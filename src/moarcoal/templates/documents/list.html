@@ -25,6 +25,12 @@
         {% for i in issuer_list %}<option value="{{ i.id }}"{% if filters.aussteller == i.id %} selected{% endif %}>{{ i.name }}</option>{% endfor %}
       </select>
     </label>
+    <label>Zustand
+      <select name="zustand">
+        <option value="">alle</option>
+        {% for name in document_states %}<option value="{{ name }}"{% if filters.zustand == name %} selected{% endif %}>{{ name }}</option>{% endfor %}
+      </select>
+    </label>
     <button type="submit">Filtern</button>
   </form>
   <p>{{ documents | length }} Dokumente</p>

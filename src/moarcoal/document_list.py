@@ -40,13 +40,20 @@ REFERENCE_LABELS = {
 """Bezeichnungen für die Einträge, die auf ein Dokument verweisen; sonst gilt der Name im Code."""
 
 
-def document_state(state: State, document: Document) -> str:
-    """„zu bestätigen“ (der neueste Vorschlag hat offene Felder), „fertig“ oder, ohne Art,
-    „Beleg“ (neutral)."""
+DOCUMENT_STATES = ("zu bestätigen", "auszulesen", "fertig")
+"""Die Zustände eines Dokuments mit Art, in der Reihenfolge des Filters; ohne Art „Beleg“."""
+
+
+def document_state(state: State, kinds: Mapping[str, DocumentKind], document: Document) -> str:
+    """„zu bestätigen“ (der neueste Vorschlag hat offene Felder), „auszulesen“ (die Art hat eine
+    Auslese-Vorlage, aber es gibt keinen Vorschlag), „fertig“ oder, ohne Art, „Beleg“ (neutral)."""
     if not document.document_kind:
         return "Beleg"
     proposals = proposals_of(state, document)
-    return "zu bestätigen" if proposals and proposals[-1].open_keys else "fertig"
+    if proposals:
+        return "zu bestätigen" if proposals[-1].open_keys else "fertig"
+    kind = kinds.get(document.document_kind)
+    return "auszulesen" if kind is not None and kind.extraction_template else "fertig"
 
 
 def filter_documents(
@@ -58,13 +65,14 @@ def filter_documents(
     year: int | None = None,
     issuer: str = "",
     query: str = "",
+    status: str = "",
 ) -> list[Document]:
     """Die Dokumente von `user`, die alle gesetzten Filter erfüllen, nach Pfad sortiert.
 
     `kind` ist ein Schlüssel oder `WITHOUT_KIND`, `issuer` eine Kennung oder `WITHOUT_ISSUER`,
-    leer jeweils für alle; `year` trifft Dokumente, deren Bezugszeitraum das Jahr berührt;
-    `query` sucht ohne Groß-/Kleinschreibung in Pfad, Ablageort, Art und Namen und Aliassen des
-    Ausstellers.
+    `status` ein Zustand aus `document_state`, leer jeweils für alle; `year` trifft Dokumente,
+    deren Bezugszeitraum das Jahr berührt; `query` sucht ohne Groß-/Kleinschreibung in Pfad,
+    Ablageort, Art und Namen und Aliassen des Ausstellers.
     """
     issuers = {i.address: i for i in state.of_kind(Issuer)}
     needle = name_key(query)
@@ -77,6 +85,8 @@ def filter_documents(
         if issuer and (document.issuer.id if document.issuer else WITHOUT_ISSUER) != issuer:
             continue
         if year is not None and not document.touches_year(year):
+            continue
+        if status and document_state(state, kinds, document) != status:
             continue
         owner = issuers.get(document.issuer) if document.issuer else None
         kind_entry = kinds.get(document.document_kind or "")
@@ -162,9 +172,10 @@ def index(
     art: str = "",
     jahr: str = "",
     aussteller: str = "",
+    zustand: str = "",
     dokument: str = "",
 ) -> HTMLResponse:
-    filters = {"q": q, "art": art, "jahr": jahr, "aussteller": aussteller}
+    filters = {"q": q, "art": art, "jahr": jahr, "aussteller": aussteller, "zustand": zustand}
     return documents_page(request, filters=filters, selected=dokument)
 
 
@@ -182,7 +193,7 @@ def documents_page(
     """Der Reiter Dokumente mit dem Dokument `selected` (Kennung) rechts. `notice` ist eine
     Abweisung (mit `existing`, dem vorhandenen Dokument bei „Existiert bereits“); `issuer_text`
     und `year` stellen die abgewiesene Eingabe wieder her."""
-    filters = filters or {"q": "", "art": "", "jahr": "", "aussteller": ""}
+    filters = filters or dict.fromkeys(("q", "art", "jahr", "aussteller", "zustand"), "")
     store = store_of(request)
     state = store.state()
     kinds = document_kinds(request)
@@ -194,6 +205,7 @@ def documents_page(
         year=_year_of(filters["jahr"]),
         issuer=filters["aussteller"],
         query=filters["q"],
+        status=filters["zustand"],
     )
     chosen = next((d for d in documents if d.id == selected), None)
     issuers = {i.id: i for i in state.of_kind(Issuer)}
@@ -202,7 +214,8 @@ def documents_page(
         "documents/list.html",
         status_code,
         documents=documents,
-        states={d.id: document_state(state, d) for d in documents},
+        states={d.id: document_state(state, kinds, d) for d in documents},
+        document_states=DOCUMENT_STATES,
         selected=chosen,
         detail=document_detail(request, chosen, issuer_text, year) if chosen else None,
         issuer_names={i.id: i.name for i in issuers.values()},

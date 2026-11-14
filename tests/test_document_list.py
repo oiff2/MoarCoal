@@ -112,7 +112,8 @@ def test_tab_lists_all_documents_with_state_and_get_writes_nothing(two: httpx.Cl
     page = main_of(two, "/belege/dokumente")
     assert "protokoll.html" in page and "bescheid.txt" in page
     assert "2 Dokumente" in page
-    assert page.count('<span class="stand">fertig</span>') == 2
+    assert page.count('<span class="stand">fertig</span>') == 1  # das eingelesene Protokoll
+    assert page.count('<span class="stand">auszulesen</span>') == 1  # der Bescheid
     assert state_of(two) == before
 
 
@@ -132,6 +133,29 @@ def test_filters_and_search_combine(two: httpx.Client) -> None:
     assert names("art=none") == []
 
 
+def test_kind_with_template_and_no_proposal_is_to_extract(two: httpx.Client) -> None:
+    """Ein nie ausgelesener Bescheid ist nicht „fertig“, sondern „auszulesen“; das Protokoll hat
+    keine Auslese-Vorlage und ist fertig."""
+    rows = main_of(two, "/belege/dokumente").split('<div class="datei"')[1:]
+    [bescheid] = [r for r in rows if "bescheid.txt" in r]
+    [protocol] = [r for r in rows if "protokoll.html" in r]
+    assert '<span class="stand">auszulesen</span>' in bescheid
+    assert '<span class="stand">fertig</span>' in protocol
+
+
+def test_state_filter(two: httpx.Client) -> None:
+    def names(query: str) -> list[str]:
+        page = main_of(two, f"/belege/dokumente?{query}")
+        return [n for n in ("protokoll.html", "bescheid.txt") if n in page.split("Filtern")[1]]
+
+    assert names("zustand=auszulesen") == ["bescheid.txt"]
+    assert names("zustand=fertig") == ["protokoll.html"]
+    assert names("zustand=zu+bestätigen") == []
+    assert names("zustand=") == ["protokoll.html", "bescheid.txt"]
+    page = main_of(two, "/belege/dokumente?zustand=fertig")
+    assert '<option value="fertig" selected>fertig</option>' in page
+
+
 def test_state_is_to_confirm_while_a_proposal_has_open_fields(two: httpx.Client) -> None:
     bescheid = doc(two, "bescheid.txt")
     proposal = Proposal(
@@ -148,7 +172,9 @@ def test_state_is_to_confirm_while_a_proposal_has_open_fields(two: httpx.Client)
         update={"fields": {"x": proposal.fields["x"].model_copy(update={"confirmed": True})}}
     )
     store_of(two).apply([Put(confirmed, entry_checksum(proposal))])
-    assert "zu bestätigen" not in main_of(two, "/belege/dokumente")
+    page = main_of(two, "/belege/dokumente")
+    assert '<span class="stand">zu bestätigen</span>' not in page
+    assert page.count('<span class="stand">fertig</span>') == 2
 
 
 def test_document_without_kind_is_neutral(two: httpx.Client) -> None:
