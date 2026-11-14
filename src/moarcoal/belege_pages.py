@@ -52,6 +52,9 @@ moved_router = APIRouter()  # alte Adressen /eingang…
 
 type Fields = dict[str, str]
 
+GONE = "Die Datei ist nicht mehr in der Ablage."
+"""Meldung, wenn die gewählte Datei nicht mehr offen ist (aufgenommen, ausgeblendet, fort)."""
+
 
 def _waiting(request: Request) -> list[SiteFile]:
     store = store_of(request)
@@ -161,7 +164,7 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
     sha256 = fields.get("sha256", "")
     file = _find(request, sha256)
     if file is None:
-        return _page(request, 409, "Die Datei ist nicht mehr im Eingang.")
+        return _page(request, 409, GONE)
 
     following = _after(request, sha256)
 
@@ -217,7 +220,7 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
 def hide(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
     file = _find(request, fields.get("sha256", ""))
     if file is None:
-        return _page(request, 409, "Die Datei ist nicht mehr im Eingang.")
+        return _page(request, 409, GONE)
     following = _after(request, file.sha256)
     result = hide_file(store_of(request), file, fields.get("note", ""))
     if not isinstance(result, Applied):
@@ -234,7 +237,7 @@ def hide_directly(request: Request, fields: Annotated[Fields, Depends(form_field
     if "sha256" in fields:
         file = _find(request, fields["sha256"])
         if file is None:
-            return _page(request, 409, "Die Datei ist nicht mehr im Eingang.")
+            return _page(request, 409, GONE)
         result = hide_file(store, file, "")
     else:
         site, path = fields.get("site", ""), fields.get("path", "")

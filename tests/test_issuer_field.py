@@ -160,7 +160,7 @@ def test_take_in_new_issuer_is_not_private_by_default(client: httpx.Client) -> N
 def test_rejected_take_in_leaves_no_new_issuer(client: httpx.Client) -> None:
     assert take(client).status_code == 303  # die Datei ist danach aufgenommen
     again = take(client, issuer_choice="new", issuer_text="Beispiel GmbH")
-    assert again.status_code == 409  # nicht mehr im Eingang
+    assert again.status_code == 409  # nicht mehr offen
     assert issuers(client) == []
 
 

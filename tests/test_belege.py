@@ -137,7 +137,8 @@ def test_taking_in_is_per_user_hiding_is_for_all(root: Path, site: Path) -> None
     ben = make_client(root, site, "ben")
     assert "2025/protokoll.html" in ben.get("/belege").text  # Ben hat sie nicht aufgenommen
     hidden = anna.post("/belege/ausblenden", data={"sha256": SHA}, headers=ORIGIN)
-    assert hidden.status_code == 409  # für Anna schon aufgenommen, nicht mehr im Eingang
+    assert hidden.status_code == 409  # für Anna schon aufgenommen, nicht mehr offen
+    assert "Die Datei ist nicht mehr in der Ablage." in hidden.text
     assert ben.post("/belege/ausblenden", data={"sha256": SHA}, headers=ORIGIN).status_code == 303
     assert "2025/protokoll.html" not in waiting(make_client(root, site, "carla"))
 
@@ -533,7 +534,7 @@ def test_one_click_hides_a_file_in_its_row(root: Path, site: Path) -> None:
     response = hide_directly(client, sha256=SHA, stand="alle")
     assert response.status_code == 303 and response.headers["location"] == "/belege?stand=alle"
     assert "Ausgeblendet (1)" in main_of(client, "/belege?stand=alle")
-    assert hide_directly(client, sha256=SHA).status_code == 409  # nicht mehr im Eingang
+    assert hide_directly(client, sha256=SHA).status_code == 409  # nicht mehr offen
 
 
 def test_hiding_a_folder_takes_its_content_with_it_also_later_files(root: Path, site: Path) -> None:
