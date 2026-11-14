@@ -107,3 +107,26 @@ def test_year_choices_newest_first_with_the_chosen_year() -> None:
     assert year_choices({2023, 2025}, 2025) == [2025, 2023]
     assert year_choices({2025}, 2019) == [2025, 2019]
     assert len(year_choices(set(range(2000, 2030)), 2001)) == 11
+
+
+def test_user_menu_offers_light_and_dark_with_system_as_default(tmp_path: Path) -> None:
+    menu = part(part(make_client(tmp_path).get("/").text, "header"), "details")
+    assert 'class="darstellung"' in menu
+    options = re.findall(r'<option value="(\w*)"[^>]*>([^<]+)</option>', menu)
+    assert options == [("", "System"), ("dunkel", "Dunkel"), ("hell", "Hell")]
+
+
+COLOR = re.compile(
+    r"#[0-9a-fA-F]{3,8}\b|\b(?:rgb|hsl)a?\(|\b(?:white|black|gray|grey|crimson|orange"
+    r"|darkorange|dodgerblue|green|red|blue|Canvas|CanvasText)\b"
+)
+
+
+def test_colors_live_only_in_the_tokens_of_the_stylesheet() -> None:
+    src = Path(__file__).parents[1] / "src" / "moarcoal"
+    css = (src / "static" / "app.css").read_text(encoding="utf-8")
+    tokens, rest = css.split("/* Ende der Farb-Tokens */", 1)
+    assert "light-dark(" in tokens
+    assert COLOR.findall(rest) == []
+    for template in (src / "templates").rglob("*.html"):
+        assert COLOR.findall(template.read_text(encoding="utf-8")) == [], template

@@ -40,7 +40,11 @@
       <summary title="{{ user_name }}" aria-label="Nutzer-Menü">{% include "icons/nutzer.svg" %}</summary>
       <div class="menue">
         <a href="/person">{{ user_name }}</a>
-        {#- Platz für Hell/Dunkel (Ticket „Hell und Dunkel über CSS-Variablen“) -#}
+        <label class="darstellung">Darstellung <select>
+          <option value="">System</option>
+          <option value="dunkel">Dunkel</option>
+          <option value="hell">Hell</option>
+        </select></label>
       </div>
     </details>
     {% endif %}

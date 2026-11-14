@@ -1,54 +1,72 @@
-:root { color-scheme: light dark; }
+/* Farb-Tokens: jede Farbe nur hier, je Wert light-dark(hell, dunkel). Vorgabe folgt dem System,
+   die Wahl im Nutzer-Menü setzt data-darstellung am <html> (rahmen.js, im Browser gemerkt). */
+:root {
+  color-scheme: light dark;
+  --grund: light-dark(#f7f7f5, #16181b);
+  --flaeche: light-dark(#ffffff, #1f2226);
+  --text: light-dark(#1d1f22, #dcdfe3);
+  --linie: light-dark(#c9ccd1, #3a3f46);
+  --akzent: light-dark(#1f6fd1, #4c9bf0);
+  --auf-akzent: light-dark(#ffffff, #0d1117);
+  --fehler: light-dark(#c0283c, #f0687a);
+  --warnung: light-dark(#b85c00, #f0a040);
+  --gut: light-dark(#2a7d3a, #5cc46e);
+}
+:root[data-darstellung="hell"] { color-scheme: light; }
+:root[data-darstellung="dunkel"] { color-scheme: dark; }
+a { color: var(--akzent); }
+/* Ende der Farb-Tokens */
 html, body { height: 100%; }
 /* Rahmen: Seitenleiste links über die ganze Höhe, Kopfleiste oben, nur der Inhalt scrollt */
 body {
-  font: 15px/1.4 system-ui, sans-serif; margin: 0; overflow: hidden;
+  font: 15px/1.4 system-ui, sans-serif; margin: 0; background: var(--grund); color: var(--text); overflow: hidden;
   display: grid; grid-template-columns: var(--seitenleiste, 13rem) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
 }
 main { padding: 1rem 1.5rem; min-height: 0; overflow: auto; }
 .icon { width: 1.4rem; height: 1.4rem; flex: none; }
-.seitenleiste { grid-row: 1 / 3; position: relative; display: flex; flex-direction: column; gap: 0.1rem; padding: 0.4rem 0.3rem; border-right: 1px solid gray; overflow: hidden; }
-.seitenleiste a { position: relative; display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0.6rem; border-radius: 5px; color: inherit; text-decoration: none; white-space: nowrap; }
+.seitenleiste { grid-row: 1 / 3; position: relative; display: flex; flex-direction: column; gap: 0.1rem; padding: 0.4rem 0.3rem; border-right: 1px solid var(--linie); overflow: hidden; }
+.seitenleiste a { position: relative; display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0.6rem; border-radius: 5px; color: inherit; text-decoration: none; var(--auf-akzent)-space: nowrap; }
 .seitenleiste a:hover, .seitenleiste a[aria-current] { background: color-mix(in srgb, currentColor 12%, transparent); }
 .seitenleiste a[aria-current] { font-weight: 600; }
 .seitenleiste .logo { font-weight: 700; margin-bottom: 0.3rem; }
 .seitenleiste .marke { width: 1.4rem; text-align: center; flex: none; }
-.seitenleiste .anzahl { margin-left: auto; padding: 0 0.4rem; border-radius: 9px; font-size: 0.75em; background: dodgerblue; color: white; }
+.seitenleiste .anzahl { margin-left: auto; padding: 0 0.4rem; border-radius: 9px; font-size: 0.75em; background: var(--akzent); color: var(--auf-akzent); }
 .gruppe { display: flex; align-items: center; gap: 0.5rem; margin: 0.7rem 0.6rem 0.15rem; font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; }
-.gruppe hr { flex: 1; border: 0; border-top: 1px solid gray; margin: 0; }
+.gruppe hr { flex: 1; border: 0; border-top: 1px solid var(--linie); margin: 0; }
 .griff { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; }
-.griff:hover { background: dodgerblue; }
+.griff:hover { background: var(--akzent); }
 /* Schmal: nur Icons, der Zähler sitzt am Icon */
 html.schmal .seitenleiste .lbl { display: none; }
 html.schmal .seitenleiste a { justify-content: center; padding: 0.4rem 0; }
 html.schmal .seitenleiste .anzahl { position: absolute; top: 0; right: 0.1rem; }
 html.schmal .gruppe { margin: 0.5rem 0.3rem; }
-.kopfleiste { display: flex; align-items: center; gap: 1.25rem; padding: 0.3rem 1rem; border-bottom: 1px solid gray; min-height: 2.2rem; }
+.kopfleiste { display: flex; align-items: center; gap: 1.25rem; padding: 0.3rem 1rem; border-bottom: 1px solid var(--linie); min-height: 2.2rem; }
 .kopfleiste label { display: inline; margin: 0; }
 html.js .ohne-js { display: none; }
+html:not(.js) .darstellung { display: none; }
 .befunde-kopf { display: flex; align-items: center; gap: 0.75rem; min-width: 0; color: inherit; text-decoration: none; }
-.befunde-kopf .wichtigster { max-width: 28rem; margin-left: 0.5rem; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.befunde-kopf .schweregrad-error { color: crimson; }
-.befunde-kopf .schweregrad-warning { color: darkorange; }
+.befunde-kopf .wichtigster { max-width: 28rem; margin-left: 0.5rem; opacity: 0.75; var(--auf-akzent)-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.befunde-kopf .schweregrad-error { color: var(--fehler); }
+.befunde-kopf .schweregrad-warning { color: var(--warnung); }
 .befunde-kopf .keine { color: inherit; opacity: 0.5; }
 .nutzer { margin-left: auto; position: relative; }
 .nutzer summary { list-style: none; cursor: pointer; display: flex; }
-.nutzer .menue { position: absolute; right: 0; top: 2rem; z-index: 20; min-width: 14rem; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem 0.75rem; background: Canvas; border: 1px solid gray; border-radius: 6px; }
+.nutzer .menue { position: absolute; right: 0; top: 2rem; z-index: 20; min-width: 14rem; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem 0.75rem; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 6px; }
 table { border-collapse: collapse; }
-th, td { text-align: left; padding: 0.25rem 0.75rem; border-bottom: 1px solid gray; }
+th, td { text-align: left; padding: 0.25rem 0.75rem; border-bottom: 1px solid var(--linie); }
 label { display: block; margin: 0.25rem 0; }
-.fehler { color: crimson; }
+.fehler { color: var(--fehler); }
 form.inline { display: inline; }
 .ausgewiesen { margin: 0.25rem 0; }
 .ausgewiesen summary { cursor: pointer; }
-.belegstand { margin-left: 0.75rem; padding: 0 0.4rem; border: 1px solid gray; border-radius: 0.25rem; font-size: 0.85em; }
-.belegstand-pending { border-color: orange; }
-.belegstand-proven { border-color: green; }
+.belegstand { margin-left: 0.75rem; padding: 0 0.4rem; border: 1px solid var(--linie); border-radius: 0.25rem; font-size: 0.85em; }
+.belegstand-pending { border-color: var(--warnung); }
+.belegstand-proven { border-color: var(--gut); }
 .rechenweg { margin: 0.25rem 0; }
 .befunde { padding-left: 1.25rem; }
-.schweregrad-error strong { color: crimson; }
-.schweregrad-warning strong { color: darkorange; }
-tr:target { outline: 2px solid darkorange; }
+.schweregrad-error strong { color: var(--fehler); }
+.schweregrad-warning strong { color: var(--warnung); }
+tr:target { outline: 2px solid var(--warnung); }
 /* Belege, Ablage: kein Seiten-Scrollen, der Baum scrollt in sich */
 main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
 .reiter { display: flex; gap: 1rem; margin-bottom: 0.5rem; }
@@ -56,7 +74,7 @@ main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
 .baum { flex: 1; min-height: 0; overflow: auto; }
 .ordner .ordner, .ordner .datei { margin-left: 1.25rem; }
 .ordner > summary { cursor: pointer; }
-.zaehler { padding: 0 0.4rem; border: 1px solid gray; border-radius: 0.25rem; font-size: 0.85em; }
+.zaehler { padding: 0 0.4rem; border: 1px solid var(--linie); border-radius: 0.25rem; font-size: 0.85em; }
 .datei { display: flex; flex-wrap: wrap; gap: 0 0.75rem; align-items: baseline; padding: 0.15rem 0; }
 form.direkt { display: inline; margin-left: auto; }
 button.auge { padding: 0 0.25rem; line-height: 1; vertical-align: middle; }
@@ -70,7 +88,7 @@ button.auge svg { display: block; }
 .aussteller-feld { max-width: 32rem; }
 /* Vorschlag: je Feld eine Zeile */
 .vorschlag { list-style: none; margin: 0; padding: 0; }
-.vorschlag li { display: flex; flex-wrap: wrap; gap: 0 0.75rem; align-items: baseline; padding: 0.2rem 0; border-bottom: 1px solid gray; }
+.vorschlag li { display: flex; flex-wrap: wrap; gap: 0 0.75rem; align-items: baseline; padding: 0.2rem 0; border-bottom: 1px solid var(--linie); }
 .vorschlag .feld { min-width: 10rem; }
 .vorschlag .wert { min-width: 6rem; }
 .vorschlag form { margin-left: auto; }
@@ -91,28 +109,28 @@ form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
 .aussteller-feld legend { padding: 0; }
 .aussteller-feld .zeile { display: flex; gap: 1rem; align-items: center; }
 .aussteller-feld .suche { flex: 1; }
-.aussteller-feld .privat { display: none; white-space: nowrap; }
+.aussteller-feld .privat { display: none; var(--auf-akzent)-space: nowrap; }
 .aussteller-feld:has(.suche:not(:placeholder-shown)):not(:has(.gewaehlt input)) .privat { display: inline; }
 /* Trefferliste klappt unter dem Feld auf, ohne den Seitenaufbau zu verschieben */
-.aussteller-feld .treffer { list-style: none; margin: 0.15rem 0 0; padding: 0; position: absolute; left: 0; right: 0; z-index: 10; background: Canvas; border: 1px solid gray; border-radius: 0.25rem; }
+.aussteller-feld .treffer { list-style: none; margin: 0.15rem 0 0; padding: 0; position: absolute; left: 0; right: 0; z-index: 10; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 0.25rem; }
 .aussteller-feld .treffer:empty { display: none; }
 .aussteller-feld .treffer button { font: inherit; display: block; width: 100%; text-align: left; border: 0; background: none; padding: 0.3rem 0.5rem; cursor: pointer; }
 .aussteller-feld .treffer button:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
 
 /* Dienstreisen */
-.reisen input.ungueltig { outline: 2px solid crimson; }
-.reisen tr.mit-fehler td { background: color-mix(in srgb, crimson 8%, transparent); }
-.reisen td.unsicher { background: color-mix(in srgb, orange 18%, transparent); }
+.reisen input.ungueltig { outline: 2px solid var(--fehler); }
+.reisen tr.mit-fehler td { background: color-mix(in srgb, var(--fehler) 8%, transparent); }
+.reisen td.unsicher { background: color-mix(in srgb, var(--warnung) 18%, transparent); }
 .reisen tfoot td { font-weight: bold; }
 
 /* Dienstreisen: Karte von Deutschland (Farben aus dem Seitenschema, kein Inline-Style wegen der CSP) */
 .deutschlandkarte { width: 100%; max-width: 28rem; height: auto; }
-.deutschlandkarte .land { fill: color-mix(in srgb, currentColor 6%, Canvas); stroke: currentColor; stroke-width: 1.2; }
-.deutschlandkarte .grenzen { fill: none; stroke: gray; stroke-width: 0.6; }
-.marke.ziel { fill: color-mix(in srgb, dodgerblue 25%, Canvas); stroke: dodgerblue; stroke-width: 2; }
-.marke.start { fill: color-mix(in srgb, orange 30%, Canvas); stroke: darkorange; stroke-width: 2.4; stroke-linejoin: round; }
+.deutschlandkarte .land { fill: color-mix(in srgb, currentColor 6%, var(--flaeche)); stroke: currentColor; stroke-width: 1.2; }
+.deutschlandkarte .grenzen { fill: none; stroke: var(--linie); stroke-width: 0.6; }
+.marke.ziel { fill: color-mix(in srgb, var(--akzent) 25%, var(--flaeche)); stroke: var(--akzent); stroke-width: 2; }
+.marke.start { fill: color-mix(in srgb, var(--warnung) 30%, var(--flaeche)); stroke: var(--warnung); stroke-width: 2.4; stroke-linejoin: round; }
 .deutschlandkarte .pt .innen { text-anchor: middle; font-size: 11px; font-weight: 700; fill: currentColor; }
-.deutschlandkarte .pt .name { font-size: 13px; fill: currentColor; paint-order: stroke; stroke: Canvas; stroke-width: 3px; }
+.deutschlandkarte .pt .name { font-size: 13px; fill: currentColor; paint-order: stroke; stroke: var(--flaeche); stroke-width: 3px; }
 .karte .legende { margin-left: 1rem; }
 .karte .legende svg { width: 1rem; height: 1rem; vertical-align: middle; }
 .karte .orte { list-style: none; padding-left: 0; }

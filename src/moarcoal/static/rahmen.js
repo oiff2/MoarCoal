@@ -1,5 +1,5 @@
 // Rahmen der Oberfläche: Seitenleiste stufenlos ziehen, „[“ klappt um, Breite im Browser gemerkt;
-// das Jahr der Kopfleiste schickt sich bei Wahl selbst ab. Ohne Inline-Skript (CSP).
+// das Jahr der Kopfleiste schickt sich bei Wahl selbst ab; Hell/Dunkel aus dem Nutzer-Menü, im Browser gemerkt. Ohne Inline-Skript (CSP).
 (function () {
   "use strict";
   var KEY = "seitenleiste", MIN = 52, MAX = 380, WIDE = 208, NARROW_BELOW = 110;
@@ -19,6 +19,16 @@
   var saved = null;
   try { saved = parseInt(localStorage.getItem(KEY) || "", 10); } catch (e) { saved = null; }
   if (saved) setWidth(saved, false);
+
+  // Darstellung: leer folgt dem System, sonst "hell" oder "dunkel" (app.css, Farb-Tokens).
+  var THEME = "darstellung";
+  function setTheme(value) {
+    if (value === "hell" || value === "dunkel") root.setAttribute("data-darstellung", value);
+    else root.removeAttribute("data-darstellung");
+  }
+  var theme = "";
+  try { theme = localStorage.getItem(THEME) || ""; } catch (e) { theme = ""; }
+  setTheme(theme);
 
   document.addEventListener("DOMContentLoaded", function () {
     var grip = document.querySelector(".griff");
@@ -42,5 +52,15 @@
     });
     var year = document.querySelector(".jahrwahl select");
     if (year) year.addEventListener("change", function () { year.form.requestSubmit(); });
+    var choice = document.querySelector(".darstellung select");
+    if (choice) {
+      choice.value = root.getAttribute("data-darstellung") || "";
+      choice.addEventListener("change", function () {
+        setTheme(choice.value);
+        try {
+          if (choice.value) localStorage.setItem(THEME, choice.value); else localStorage.removeItem(THEME);
+        } catch (e) { /* ohne Speicher: nur jetzt */ }
+      });
+    }
   });
 })();
