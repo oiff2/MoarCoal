@@ -11,9 +11,9 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_n import N_TRAVEL_FARE, N_TRAVEL_TOTAL
 from moarcoal.modules.work import REGISTRATION as WORK
@@ -277,7 +277,7 @@ def test_confirmation_is_checked_by_the_write_path(tmp_path: Path) -> None:
 
 
 def make_client(root: Path, user: str = USER) -> httpx.Client:
-    app = create_app(PORT, root, user=user)
+    app = make_app(PORT, root, user=user)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 

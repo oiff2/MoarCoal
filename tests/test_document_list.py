@@ -7,9 +7,9 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.links import document_url
 from moarcoal.storage import (
     COMMON_OWNER,
@@ -46,7 +46,7 @@ def client(tmp_path: Path, site: Path) -> httpx.Client:
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = create_app(PORT, tmp_path / "daten", user="anna")
+    app = make_app(PORT, tmp_path / "daten", user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 

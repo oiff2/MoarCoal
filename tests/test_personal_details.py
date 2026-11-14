@@ -6,10 +6,10 @@ from typing import Any
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from moarcoal.app import create_app
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.personal_details import (
     PersonalDetailsInvalid,
@@ -49,9 +49,9 @@ def details(
 
 
 def make_client(root: Path, with_user: bool = False) -> httpx.Client:
-    # `with_user` kennt die Fassung von `create_app` aus conftest.py
+    # `with_user` kennt `make_app` aus app_helper.py
     options: dict[str, Any] = {"with_user": with_user}
-    app = create_app(PORT, root, modules=[WORK], user=USER, **options)
+    app = make_app(PORT, root, modules=[WORK], user=USER, **options)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 

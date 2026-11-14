@@ -6,10 +6,10 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.documents import DocumentKind, IntakeRejected, take_in
 from moarcoal.incoming import (
     IntakeFilter,
@@ -57,7 +57,7 @@ def make_client(root: Path, site: Path, user: str = "anna") -> httpx.Client:
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = create_app(PORT, root, user=user)
+    app = make_app(PORT, root, user=user)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -369,7 +369,7 @@ def test_year_input_is_hidden_for_kinds_without_period(root: Path, site: Path) -
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = create_app(PORT, root, [REGISTRATION, demo], user="anna")
+    app = make_app(PORT, root, [REGISTRATION, demo], user="anna")
     client = TestClient(app, base_url=f"http://127.0.0.1:{PORT}")
     page = main_of(client, f"/belege?datei={SHA}")
     assert '<option value="demo.contract" data-ohne-zeitraum>' in page

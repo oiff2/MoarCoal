@@ -7,10 +7,10 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.modules.work import REGISTRATION, FirstWorkplace, UserInput, WorkEquipment
 from moarcoal.modules.work.values import DISTANCE_KM, EQUIPMENT, WORKDAYS
 from moarcoal.registration import ModuleRegistration
@@ -282,7 +282,7 @@ def test_period_helpers() -> None:
 
 
 def make_client(root: Path) -> httpx.Client:
-    app = create_app(PORT, root, user="anna")
+    app = make_app(PORT, root, user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 

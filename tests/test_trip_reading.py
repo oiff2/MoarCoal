@@ -11,9 +11,9 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.extraction import Extracted, FakeExtractor, check_answer
 from moarcoal.extraction_template import ExtractionTemplate, TemplateField, row_key, split_row_key
 from moarcoal.modules import ModuleState
@@ -248,7 +248,7 @@ class Setup:
         )
         self.root = root / "data"
         self.fake = fake
-        self.app = create_app(PORT, self.root, [WORK], user=USER, extractor=fake)
+        self.app = make_app(PORT, self.root, [WORK], user=USER, extractor=fake)
         self.client: httpx.Client = TestClient(
             self.app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False
         )

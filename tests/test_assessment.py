@@ -15,10 +15,10 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.links import document_url
 from moarcoal.modules.tax_year import ASSESSMENT, ProtocolReading, registration
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
@@ -482,7 +482,7 @@ def app(tmp_path: Path, site: Path) -> FastAPI:
     (root / "common" / "sites.json").write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    return create_app(PORT, root, user="anna")
+    return make_app(PORT, root, user="anna")
 
 
 @pytest.fixture

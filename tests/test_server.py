@@ -8,10 +8,10 @@ from pathlib import Path
 import httpx
 import pytest
 import uvicorn
+from app_helper import make_app
 from fastapi.testclient import TestClient
 
 from moarcoal.__main__ import DEFAULT_PORT, main, read_data_dir, read_port
-from moarcoal.app import create_app
 from moarcoal.storage import default_data_dir
 
 PORT = 4711
@@ -26,7 +26,7 @@ def _data_dir(tmp_path: Path) -> Iterator[None]:  # pyright: ignore[reportUnused
 
 
 def client(host: str = "127.0.0.1") -> httpx.Client:
-    return TestClient(create_app(PORT, DATA_DIR[0]), base_url=f"http://{host}:{PORT}")
+    return TestClient(make_app(PORT, DATA_DIR[0]), base_url=f"http://{host}:{PORT}")
 
 
 def test_start_page_ok_and_loads_local_htmx() -> None:

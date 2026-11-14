@@ -12,10 +12,10 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from moarcoal.app import create_app
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import BusinessTrip
 from moarcoal.modules.work.germany_map import germany_map
@@ -226,7 +226,7 @@ class Setup:
     def __init__(self, root: Path, search: FakePlaceSearch) -> None:
         self.root = root / "data"
         self.search = search
-        self.app = create_app(PORT, self.root, [WORK], user=USER, place_search=search)
+        self.app = make_app(PORT, self.root, [WORK], user=USER, place_search=search)
         self.client: httpx.Client = TestClient(
             self.app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False
         )

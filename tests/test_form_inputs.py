@@ -5,9 +5,9 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_n import (
     FIELDS_2025,
@@ -47,7 +47,7 @@ def entered(elster_id: str, content: str, year: int = 2025) -> FormInput:
 
 
 def make_client(root: Path) -> httpx.Client:
-    app = create_app(PORT, root, user="anna")
+    app = make_app(PORT, root, user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 

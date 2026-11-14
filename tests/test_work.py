@@ -8,9 +8,9 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.modules import MODULES, ModuleState
 from moarcoal.modules.work import (
     REGISTRATION,
@@ -44,7 +44,7 @@ EQUIPMENT = {
 
 
 def make_client(root: Path, user: str = "anna") -> httpx.Client:
-    app = create_app(PORT, root, user=user)
+    app = make_app(PORT, root, user=user)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 

@@ -5,10 +5,10 @@ import re
 from pathlib import Path
 
 import httpx
+from app_helper import make_app
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.documents import DocumentKind
 from moarcoal.expected_documents import DUPLICATE, PENDING, matching_documents, previous_year_issuer
 from moarcoal.links import issuer_url
@@ -184,7 +184,7 @@ def test_a_value_with_expected_document_locator_is_pending() -> None:
 
 
 def make_client(root: Path, user: str = "anna") -> httpx.Client:
-    app = create_app(PORT, root, modules=[WORK, TAX_YEAR], user=user)
+    app = make_app(PORT, root, modules=[WORK, TAX_YEAR], user=user)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 

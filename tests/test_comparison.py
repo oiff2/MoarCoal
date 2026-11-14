@@ -13,9 +13,9 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.documents import DUPLICATE_DOCUMENT
 from moarcoal.issuers import DOCUMENT_WITHOUT_ISSUER
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
@@ -320,7 +320,7 @@ def http(tmp_path: Path) -> httpx.Client:
     (root / "common" / "sites.json").write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = create_app(PORT, root, user="anna")
+    app = make_app(PORT, root, user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 

@@ -22,7 +22,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["tools"]
+pythonpath = ["tools", "tests"]
 
 [project.scripts]
 moarcoal = "moarcoal.__main__:main"
@@ -35,7 +35,7 @@ build-backend = "uv_build"
 include = ["src", "tests", "tools"]
 typeCheckingMode = "strict"
 pythonVersion = "3.13"
-extraPaths = ["tools", "src"]
+extraPaths = ["tools", "src", "tests"]
 
 [tool.ruff]
 line-length = 100

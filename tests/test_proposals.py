@@ -9,10 +9,10 @@ from typing import Any
 
 import httpx
 import pytest
+from app_helper import make_app
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
-from moarcoal.app import create_app
 from moarcoal.documents import DocumentKind
 from moarcoal.extraction import (
     Extracted,
@@ -74,7 +74,7 @@ class Setup:
         sites.write_text(
             json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
         )
-        self.app = create_app(PORT, root, [REGISTRATION], user="anna", extractor=fake)
+        self.app = make_app(PORT, root, [REGISTRATION], user="anna", extractor=fake)
         self.client: httpx.Client = TestClient(
             self.app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False
         )
