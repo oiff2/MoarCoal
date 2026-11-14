@@ -20,6 +20,14 @@ def format_eur(cents: int) -> str:
     return format_amount(Amount.eur_cents(cents))
 
 
+def year_of(text: str) -> int | None:
+    """Das Jahr als ganze Zahl (Randleerzeichen egal); `None`, wenn `text` keine ist."""
+    try:
+        return int(text.strip())
+    except ValueError:
+        return None
+
+
 def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) -> str | None:
     """Link zum Eintrag, wie das besitzende Modul ihn nennt; unbekannte Art: kein Link."""
     if address.kind == ExpectedDocument.__name__:  # Baustein der Datenebene

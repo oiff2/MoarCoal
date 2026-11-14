@@ -218,7 +218,7 @@ def _unhide(request: Request, hidden: HiddenFile | HiddenFolder | None, checksum
 
 
 @router.post("/einblenden-ordner")
-def show_dir(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
+def show_folder(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
     site, path = fields.get("site", ""), fields.get("path", "")
     folders = store_of(request).state().of_kind(HiddenFolder)
     hidden = next((h for h in folders if (h.site, h.path) == (site, path)), None)

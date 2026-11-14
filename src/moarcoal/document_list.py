@@ -7,6 +7,7 @@ zeigt `documents_page` hier im Reiter.
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 from urllib.parse import urlencode
 
@@ -19,7 +20,7 @@ from moarcoal.issuer_field import IssuerChoice, resolve_issuer
 from moarcoal.previews import preview_kind
 from moarcoal.proposals import proposals_of
 from moarcoal.storage import Document, Issuer, State, entry_checksum, name_key
-from moarcoal.web import document_kinds, render, store_of, user_of
+from moarcoal.web import document_kinds, render, store_of, user_of, year_of
 
 router = APIRouter(prefix="/belege/dokumente")
 
@@ -40,20 +41,29 @@ REFERENCE_LABELS = {
 """Bezeichnungen für die Einträge, die auf ein Dokument verweisen; sonst gilt der Name im Code."""
 
 
-DOCUMENT_STATES = ("zu bestätigen", "auszulesen", "fertig")
-"""Die Zustände eines Dokuments mit Art, in der Reihenfolge des Filters; ohne Art „Beleg“."""
+class DocumentState(StrEnum):
+    """Der abgeleitete Zustand eines Dokuments, in der Reihenfolge des Filters; ohne Art `BELEG`."""
+
+    TO_CONFIRM = "zu bestätigen"
+    TO_EXTRACT = "auszulesen"
+    DONE = "fertig"
+    BELEG = "Beleg"
 
 
-def document_state(state: State, kinds: Mapping[str, DocumentKind], document: Document) -> str:
+def document_state(
+    state: State, kinds: Mapping[str, DocumentKind], document: Document
+) -> DocumentState:
     """„zu bestätigen“ (der neueste Vorschlag hat offene Felder), „auszulesen“ (die Art hat eine
     Auslese-Vorlage, aber es gibt keinen Vorschlag), „fertig“ oder, ohne Art, „Beleg“ (neutral)."""
     if not document.document_kind:
-        return "Beleg"
+        return DocumentState.BELEG
     proposals = proposals_of(state, document)
     if proposals:
-        return "zu bestätigen" if proposals[-1].open_keys else "fertig"
+        return DocumentState.TO_CONFIRM if proposals[-1].open_keys else DocumentState.DONE
     kind = kinds.get(document.document_kind)
-    return "auszulesen" if kind is not None and kind.extraction_template else "fertig"
+    if kind is not None and kind.extraction_template:
+        return DocumentState.TO_EXTRACT
+    return DocumentState.DONE
 
 
 def filter_documents(
@@ -124,13 +134,6 @@ def document_detail(
     }
 
 
-def _year_of(text: str) -> int | None:
-    try:
-        return int(text.strip())
-    except ValueError:
-        return None
-
-
 @dataclass(frozen=True)
 class DocumentChoice:
     """Aussteller, Art und Jahr aus dem Formular eines Dokuments (Aufnehmen oder Ändern).
@@ -155,7 +158,7 @@ def read_document_choice(
         return IntakeRejected(("Bitte eine Dokumentart wählen.",))
     year = DEFAULT_YEAR
     if kind is not None and kind.has_period:
-        given = _year_of(fields.get("year", ""))
+        given = year_of(fields.get("year", ""))
         if given is None:
             return IntakeRejected((YEAR_NOT_A_NUMBER,))
         year = given
@@ -202,7 +205,7 @@ def documents_page(
         user_of(request),
         kinds,
         kind=filters["art"],
-        year=_year_of(filters["jahr"]),
+        year=year_of(filters["jahr"]),
         issuer=filters["aussteller"],
         query=filters["q"],
         status=filters["zustand"],
@@ -215,7 +218,7 @@ def documents_page(
         status_code,
         documents=documents,
         states={d.id: document_state(state, kinds, d) for d in documents},
-        document_states=DOCUMENT_STATES,
+        document_states=[s for s in DocumentState if s is not DocumentState.BELEG],
         selected=chosen,
         detail=document_detail(request, chosen, issuer_text, year) if chosen else None,
         issuer_names={i.id: i.name for i in issuers.values()},

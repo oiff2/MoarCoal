@@ -193,7 +193,7 @@ Alle geladenen Einträge im Arbeitsspeicher, unveränderlich; jede Anfrage hält
 _Avoid_: Cache, Snapshot (das ist der Schnappschuss), Kontext
 
 **Dokument**:
-Eine aufgenommene Datei, auf die MoarCoal an einem Ablageort verweist oder die es ins Datenverzeichnis übernommen hat (z. B. Rechnung, Kontoauszug, Bescheid, Mietvertrag), mit Aussteller, Datum und höchstens einer Dokumentart; vor dem Aufnehmen heißt sie Datei (Code: `Document`). Im Reiter Dokumente zeigt es einen bei jeder Anfrage abgeleiteten, nicht gespeicherten Zustand: „zu bestätigen“ (der neueste Vorschlag hat offene Felder), „auszulesen“ (die Dokumentart hat eine Auslese-Vorlage, aber es gibt noch keinen Vorschlag) oder „fertig“; ein Dokument ohne Dokumentart zeigt statt eines Zustands „Beleg“, kein Mangel.
+Eine aufgenommene Datei, auf die MoarCoal an einem Ablageort verweist oder die es ins Datenverzeichnis übernommen hat (z. B. Rechnung, Kontoauszug, Bescheid, Mietvertrag), mit Aussteller, Datum und höchstens einer Dokumentart; vor dem Aufnehmen heißt sie Datei (Code: `Document`). Im Reiter Dokumente zeigt es einen bei jeder Anfrage abgeleiteten, nicht gespeicherten Zustand: „zu bestätigen“ (der neueste Vorschlag hat offene Felder), „auszulesen“ (die Dokumentart hat eine Auslese-Vorlage, aber es gibt noch keinen Vorschlag) oder „fertig“; ein Dokument ohne Dokumentart zeigt statt eines Zustands „Beleg“, kein Mangel (Code: `DocumentState`).
 _Avoid_: Unterlage, Anhang
 
 **Datenverzeichnis**:
@@ -213,7 +213,7 @@ Ein Teil einer Seite mit eigener URL, zwischen dem man oben auf der Seite wechse
 _Avoid_: Tab, Registerkarte
 
 **Ablage**:
-Der Reiter der Belege-Seite, der die Ablageorte als Baum zeigt, eine Zeile je Datei mit Stand offen oder aufgenommen; voreingestellt ist der Filter „offen“, also der Eingang. Dort nimmt man Dateien auf und blendet sie aus. Nicht zu verwechseln mit dem Ablageort, einem einzelnen Ordner.
+Der Reiter der Belege-Seite, der die Ablageorte als Baum zeigt, eine Zeile je Datei mit Stand offen oder aufgenommen; voreingestellt ist der Filter „offen“, also der Eingang. Dort nimmt man Dateien auf und blendet sie aus. Nicht zu verwechseln mit dem Ablageort, einem einzelnen Ordner (Code: `SiteListing`, der Filter nach Stand `IntakeFilter`).
 
 **aufnehmen**:
 Eine Datei aus dem Eingang zum Dokument machen; danach wird sie je nach Dokumentart eingelesen, ausgelesen oder beides. Gegenstück: **ausblenden** (die Datei erscheint nicht mehr im Eingang).

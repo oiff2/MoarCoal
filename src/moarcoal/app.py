@@ -34,6 +34,7 @@ from moarcoal.web import (
     store_of,
     user_of,
     values_of,
+    year_of,
 )
 
 PACKAGE_DIR = Path(__file__).parent
@@ -44,11 +45,11 @@ DEFAULT_USER = "ich"
 DEFAULT_USER_NAME = "Max Mustermann"
 
 
-def _year_of(fields: dict[str, str]) -> int:
-    try:
-        return int(fields.get("year", ""))
-    except ValueError:
-        raise HTTPException(422, "Jahr fehlt oder ist keine Zahl.") from None
+def _required_year(fields: dict[str, str]) -> int:
+    year = year_of(fields.get("year", ""))
+    if year is None:
+        raise HTTPException(422, "Jahr fehlt oder ist keine Zahl.")
+    return year
 
 
 def create_app(
@@ -121,7 +122,7 @@ def create_app(
     def dismiss_finding(  # pyright: ignore[reportUnusedFunction]
         request: Request, fields: Annotated[dict[str, str], Depends(form_fields)]
     ) -> Response:
-        year = _year_of(fields)
+        year = _required_year(fields)
         user = user_of(request)
         identity = (fields.get("kind", ""), fields.get("target", ""))
         found = values_of(request).finding_list(user, year)
@@ -154,7 +155,7 @@ def create_app(
     def undismiss_finding(  # pyright: ignore[reportUnusedFunction]
         request: Request, fields: Annotated[dict[str, str], Depends(form_fields)]
     ) -> Response:
-        year = _year_of(fields)
+        year = _required_year(fields)
         result = undismiss(store_of(request), user_of(request), fields.get("id", ""))
         if result is None:
             raise HTTPException(404)
