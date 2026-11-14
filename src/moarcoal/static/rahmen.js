@@ -1,5 +1,5 @@
 // Rahmen der Oberfläche: Seitenleiste stufenlos ziehen, „[“ klappt um, Breite im Browser gemerkt;
-// das Jahr der Kopfleiste schickt sich bei Wahl selbst ab; Hell/Dunkel aus dem Nutzer-Menü, im Browser gemerkt. Ohne Inline-Skript (CSP).
+// das Jahr der Kopfleiste schickt sich bei Wahl selbst ab; Hell/Dunkel über das Sonnen-Symbol, im Browser gemerkt. Ohne Inline-Skript (CSP).
 (function () {
   "use strict";
   var KEY = "seitenleiste", MIN = 52, MAX = 380, WIDE = 208, NARROW_BELOW = 110;
@@ -52,14 +52,15 @@
     });
     var year = document.querySelector(".jahrwahl select");
     if (year) year.addEventListener("change", function () { year.form.requestSubmit(); });
-    var choice = document.querySelector(".darstellung select");
-    if (choice) {
-      choice.value = root.getAttribute("data-darstellung") || "";
-      choice.addEventListener("change", function () {
-        setTheme(choice.value);
-        try {
-          if (choice.value) localStorage.setItem(THEME, choice.value); else localStorage.removeItem(THEME);
-        } catch (e) { /* ohne Speicher: nur jetzt */ }
+    var toggle = document.querySelector("button.darstellung");
+    if (toggle) {
+      toggle.addEventListener("click", function () {
+        // Umschalten gegen das, was gerade zu sehen ist (auch wenn noch das System bestimmt).
+        var current = root.getAttribute("data-darstellung") ||
+          (matchMedia("(prefers-color-scheme: dark)").matches ? "dunkel" : "hell");
+        var next = current === "dunkel" ? "hell" : "dunkel";
+        setTheme(next);
+        try { localStorage.setItem(THEME, next); } catch (e) { /* ohne Speicher: nur jetzt */ }
       });
     }
   });

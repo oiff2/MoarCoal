@@ -1,5 +1,5 @@
 /* Farb-Tokens: jede Farbe nur hier, je Wert light-dark(hell, dunkel). Vorgabe folgt dem System,
-   die Wahl im Nutzer-Menü setzt data-darstellung am <html> (rahmen.js, im Browser gemerkt). */
+   das Sonnen-Symbol der Kopfleiste setzt data-darstellung am <html> (rahmen.js, im Browser gemerkt). */
 :root {
   color-scheme: light dark;
   --grund: light-dark(#f7f7f5, #16181b);
@@ -49,6 +49,8 @@ html:not(.js) .darstellung { display: none; }
 .befunde-kopf .schweregrad-error { color: var(--fehler); }
 .befunde-kopf .schweregrad-warning { color: var(--warnung); }
 .befunde-kopf .keine { color: inherit; opacity: 0.5; }
+.darstellung { margin-left: auto; display: flex; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; }
+.darstellung + .nutzer { margin-left: 0; }
 .nutzer { margin-left: auto; position: relative; }
 .nutzer summary { list-style: none; cursor: pointer; display: flex; }
 .nutzer .menue { position: absolute; right: 0; top: 2rem; z-index: 20; min-width: 14rem; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem 0.75rem; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 6px; }

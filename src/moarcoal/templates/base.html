@@ -36,15 +36,11 @@
       {% for severity, n in summary.counts.items() if n %}<span class="schweregrad-{{ severity.name | lower }}">{{ n }} {{ severity.value if n == 1 else plural[severity.value] }}</span>{% else %}<span class="keine">Keine Befunde</span>{% endfor %}
       {% if summary.top %}<span class="wichtigster">{{ summary.top.message }}</span>{% endif %}
     </a>
+    <button type="button" class="darstellung" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">{% include "icons/sonne.svg" %}</button>
     <details class="nutzer">
       <summary title="{{ user_name }}" aria-label="Nutzer-Menü">{% include "icons/nutzer.svg" %}</summary>
       <div class="menue">
         <a href="/person">{{ user_name }}</a>
-        <label class="darstellung">Darstellung <select>
-          <option value="">System</option>
-          <option value="dunkel">Dunkel</option>
-          <option value="hell">Hell</option>
-        </select></label>
       </div>
     </details>
     {% endif %}

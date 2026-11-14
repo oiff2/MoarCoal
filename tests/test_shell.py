@@ -109,11 +109,14 @@ def test_year_choices_newest_first_with_the_chosen_year() -> None:
     assert len(year_choices(set(range(2000, 2030)), 2001)) == 11
 
 
-def test_user_menu_offers_light_and_dark_with_system_as_default(tmp_path: Path) -> None:
-    menu = part(part(make_client(tmp_path).get("/").text, "header"), "details")
-    assert 'class="darstellung"' in menu
-    options = re.findall(r'<option value="(\w*)"[^>]*>([^<]+)</option>', menu)
-    assert options == [("", "System"), ("dunkel", "Dunkel"), ("hell", "Hell")]
+def test_header_has_sun_button_for_light_and_dark_next_to_the_user_icon(tmp_path: Path) -> None:
+    header = part(make_client(tmp_path).get("/").text, "header")
+    button = re.search(
+        r'<button type="button" class="darstellung"[^>]*>(.*?)</button>\s*<details class="nutzer">',
+        header,
+        re.S,
+    )
+    assert button is not None and "<svg" in button.group(1)
 
 
 COLOR = re.compile(
