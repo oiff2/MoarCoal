@@ -120,8 +120,8 @@ def test_header_has_sun_button_for_light_and_dark_next_to_the_user_icon(tmp_path
 
 
 COLOR = re.compile(
-    r"#[0-9a-fA-F]{3,8}\b|\b(?:rgb|hsl)a?\(|\b(?:white|black|gray|grey|crimson|orange"
-    r"|darkorange|dodgerblue|green|red|blue|Canvas|CanvasText)\b"
+    r"#[0-9a-fA-F]{3,8}\b|\b(?:rgb|hsl)a?\(|(?<![\w-])(?:white|black|gray|grey|crimson|orange"
+    r"|darkorange|dodgerblue|green|red|blue|Canvas|CanvasText)(?![\w-])"
 )
 
 
@@ -131,5 +131,6 @@ def test_colors_live_only_in_the_tokens_of_the_stylesheet() -> None:
     tokens, rest = css.split("/* Ende der Farb-Tokens */", 1)
     assert "light-dark(" in tokens
     assert COLOR.findall(rest) == []
+    assert re.findall(r"var\(--[\w-]+\)[\w-]", css) == []  # kein Token mitten in einem Namen
     for template in (src / "templates").rglob("*.html"):
         assert COLOR.findall(template.read_text(encoding="utf-8")) == [], template
