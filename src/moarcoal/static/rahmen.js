@@ -1,5 +1,5 @@
 // Rahmen der Oberfläche: Seitenleiste stufenlos ziehen, „[“ klappt um, Breite im Browser gemerkt;
-// das Jahr der Kopfleiste schickt sich bei Wahl selbst ab. Ohne Inline-Skript (CSP).
+// das Jahr der Kopfleiste schickt sich bei Wahl selbst ab; Hell/Dunkel über das Sonnen-Symbol, im Browser gemerkt. Ohne Inline-Skript (CSP).
 (function () {
   "use strict";
   var KEY = "seitenleiste", MIN = 52, MAX = 380, WIDE = 208, NARROW_BELOW = 110;
@@ -19,6 +19,16 @@
   var saved = null;
   try { saved = parseInt(localStorage.getItem(KEY) || "", 10); } catch (e) { saved = null; }
   if (saved) setWidth(saved, false);
+
+  // Darstellung: leer folgt dem System, sonst "hell" oder "dunkel" (app.css, Farb-Tokens).
+  var THEME = "darstellung";
+  function setTheme(value) {
+    if (value === "hell" || value === "dunkel") root.setAttribute("data-darstellung", value);
+    else root.removeAttribute("data-darstellung");
+  }
+  var theme = "";
+  try { theme = localStorage.getItem(THEME) || ""; } catch (e) { theme = ""; }
+  setTheme(theme);
 
   document.addEventListener("DOMContentLoaded", function () {
     var grip = document.querySelector(".griff");
@@ -42,5 +52,16 @@
     });
     var year = document.querySelector(".jahrwahl select");
     if (year) year.addEventListener("change", function () { year.form.requestSubmit(); });
+    var toggle = document.querySelector("button.darstellung");
+    if (toggle) {
+      toggle.addEventListener("click", function () {
+        // Umschalten gegen das, was gerade zu sehen ist (auch wenn noch das System bestimmt).
+        var current = root.getAttribute("data-darstellung") ||
+          (matchMedia("(prefers-color-scheme: dark)").matches ? "dunkel" : "hell");
+        var next = current === "dunkel" ? "hell" : "dunkel";
+        setTheme(next);
+        try { localStorage.setItem(THEME, next); } catch (e) { /* ohne Speicher: nur jetzt */ }
+      });
+    }
   });
 })();

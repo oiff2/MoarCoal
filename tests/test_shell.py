@@ -107,3 +107,30 @@ def test_year_choices_newest_first_with_the_chosen_year() -> None:
     assert year_choices({2023, 2025}, 2025) == [2025, 2023]
     assert year_choices({2025}, 2019) == [2025, 2019]
     assert len(year_choices(set(range(2000, 2030)), 2001)) == 11
+
+
+def test_header_has_sun_button_for_light_and_dark_next_to_the_user_icon(tmp_path: Path) -> None:
+    header = part(make_client(tmp_path).get("/").text, "header")
+    button = re.search(
+        r'<button type="button" class="darstellung"[^>]*>(.*?)</button>\s*<details class="nutzer">',
+        header,
+        re.S,
+    )
+    assert button is not None and "<svg" in button.group(1)
+
+
+COLOR = re.compile(
+    r"#[0-9a-fA-F]{3,8}\b|\b(?:rgb|hsl)a?\(|(?<![\w-])(?:white|black|gray|grey|crimson|orange"
+    r"|darkorange|dodgerblue|green|red|blue|Canvas|CanvasText)(?![\w-])"
+)
+
+
+def test_colors_live_only_in_the_tokens_of_the_stylesheet() -> None:
+    src = Path(__file__).parents[1] / "src" / "moarcoal"
+    css = (src / "static" / "app.css").read_text(encoding="utf-8")
+    tokens, rest = css.split("/* Ende der Farb-Tokens */", 1)
+    assert "light-dark(" in tokens
+    assert COLOR.findall(rest) == []
+    assert re.findall(r"var\(--[\w-]+\)[\w-]", css) == []  # kein Token mitten in einem Namen
+    for template in (src / "templates").rglob("*.html"):
+        assert COLOR.findall(template.read_text(encoding="utf-8")) == [], template
