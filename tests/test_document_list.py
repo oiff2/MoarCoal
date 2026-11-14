@@ -232,9 +232,14 @@ def test_refused_change_shows_the_tab_with_the_document_reason_and_input(
     assert 'value="zwanzig"' in right
 
 
-def test_refused_change_links_the_existing_document_in_the_tab(two: httpx.Client) -> None:
-    protocol, bescheid = doc(two, "protokoll.html"), doc(two, "bescheid.txt")
-    response = change(two, bescheid, issuer_choice="", kind="transfer_protocol", year="2025")
+def test_refused_change_links_the_existing_document_in_the_tab(
+    two: httpx.Client, site: Path
+) -> None:
+    other = FIXTURE.read_bytes() + b"\n<!-- zweite Datei -->\n"  # lesbar als Protokoll
+    (site / "zweites.html").write_bytes(other)
+    take(two, hashlib.sha256(other).hexdigest(), kind="assessment", year="2024")
+    protocol, second = doc(two, "protokoll.html"), doc(two, "zweites.html")
+    response = change(two, second, issuer_choice="", kind="transfer_protocol", year="2025")
     assert response.status_code == 422
     right = tab_of(response)
     assert "Existiert bereits: Übertragungsprotokoll 2025" in right

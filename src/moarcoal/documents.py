@@ -25,6 +25,7 @@ from moarcoal.storage import (
     Store,
     entry_checksum,
 )
+from moarcoal.storage.documents import exists_already, period_clash
 from moarcoal.storage.entries import referenced_addresses
 from moarcoal.values.findings import Finding, Severity
 
@@ -56,8 +57,9 @@ class DocumentKind:
     ablehnen; beim Neu-Einlesen läuft sie nicht erneut.
 
     `unique_per_period` (nur mit Bezugszeitraum): je Nutzer und Jahr höchstens ein Dokument dieser
-    Art; Aufnehmen und Ändern von Art oder Jahr weisen ein zweites ab, vorhandene Dubletten
-    bleiben und ergeben einen Hinweis.
+    Art; der Schreibweg (`EntryKind.check` des Dokuments, `open_store(once_per_period=...)`) weist
+    beim Aufnehmen und beim Ändern von Art oder Jahr ein zweites ab, vorhandene Dubletten bleiben
+    und ergeben einen Hinweis.
     """
 
     key: str
@@ -99,26 +101,22 @@ def _period(
     return datetime.date(year, 1, 1), datetime.date(year, 12, 31)
 
 
-def _existing(state: State, kind: DocumentKind | None, document: Document) -> Document | None:
-    """Das andere Dokument desselben Nutzers mit derselben Art und demselben Jahr, wenn die Art
-    je Bezugszeitraum nur eines erlaubt."""
-    if kind is None or not kind.unique_per_period or document.period_start is None:
-        return None
-    return next(
-        (
-            d
-            for d in state.of_kind(Document)
-            if d.address != document.address
-            and (d.owner, d.document_kind, d.period_start)
-            == (document.owner, kind.key, document.period_start)
-        ),
-        None,
-    )
-
-
-def _exists_already(kind: DocumentKind, existing: Document) -> IntakeRejected:
-    year = existing.period_start.year if existing.period_start else ""
-    return IntakeRejected((f"Existiert bereits: {kind.title} {year}",), existing)
+def _rejected(
+    reasons: Mapping[EntryAddress, str],
+    state: State,
+    kinds: Mapping[str, DocumentKind],
+    document: Document,
+) -> IntakeRejected:
+    """Die Abweisung des Schreibwegs; bei „Existiert bereits“ mit dem vorhandenen Dokument."""
+    kind = kinds.get(document.document_kind or "")
+    existing = period_clash(state.entries, document, {kind.key} if kind else ())
+    if (
+        kind is not None
+        and existing is not None
+        and reasons.get(document.address) == exists_already(kind.title, existing)
+    ):
+        return IntakeRejected(tuple(reasons.values()), existing)
+    return IntakeRejected(tuple(reasons.values()))
 
 
 def duplicate_findings(state: State, user: str, kinds: Mapping[str, DocumentKind]) -> list[Finding]:
@@ -127,7 +125,11 @@ def duplicate_findings(state: State, user: str, kinds: Mapping[str, DocumentKind
     found: list[Finding] = []
     for d in sorted(state.of_kind(Document), key=lambda d: str(d.address)):
         kind = kinds.get(d.document_kind or "")
-        if d.owner == user and kind is not None and _existing(state, kind, d) is not None:
+        if (
+            d.owner == user
+            and kind is not None
+            and period_clash(state.entries, d, {kind.key}) is not None
+        ):
             year = d.period_start.year if d.period_start else ""
             found.append(
                 Finding(
@@ -186,8 +188,6 @@ def take_in(
         )
     except ValidationError:
         return IntakeRejected(("Ablageort und Pfad müssen angegeben werden.",))
-    if kind is not None and (existing := _existing(store.state(), kind, document)) is not None:
-        return _exists_already(kind, existing)
     try:
         entries = tuple(kind.read_in(document, content)) if kind else ()
     except ReadInError as error:
@@ -201,7 +201,7 @@ def take_in(
         changes.extend(kind.after_take_in(document, entries, values_on(provisional)))
     result = store.apply(changes)
     if not isinstance(result, Applied):
-        return IntakeRejected(tuple(result.reasons.values()))
+        return _rejected(result.reasons, store.state(), kinds, document)
     return TakenIn(document, entries)
 
 
@@ -250,8 +250,6 @@ def change_document(
         updated = updated.model_copy(
             update={"document_kind": kind_key or None, "period_start": start, "period_end": end}
         )
-        if kind is not None and (existing := _existing(state, kind, updated)) is not None:
-            return _exists_already(kind, existing)
         if kind is not None and kind_key != document.document_kind:
             try:
                 content = store.read_site_file(document.site, document.path)
@@ -263,5 +261,5 @@ def change_document(
     changes.append(Put(updated, entry_checksum(document)))
     result = store.apply(changes)
     if not isinstance(result, Applied):
-        return IntakeRejected(tuple(result.reasons.values()))
+        return _rejected(result.reasons, state, kinds, updated)
     return result

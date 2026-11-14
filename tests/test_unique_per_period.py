@@ -14,7 +14,16 @@ from moarcoal.documents import (
     take_in,
 )
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
-from moarcoal.storage import Applied, Delete, Document, Put, Store, entry_checksum, open_store
+from moarcoal.storage import (
+    Applied,
+    Delete,
+    Document,
+    Put,
+    Rejected,
+    Store,
+    entry_checksum,
+    open_store,
+)
 
 ONCE = DocumentKind("once", "Einmalart", True, lambda d, c: [], unique_per_period=True)
 FREE = DocumentKind("free", "Freie Art", True, lambda d, c: [])
@@ -30,7 +39,7 @@ def store(tmp_path: Path) -> Store:
     sites = tmp_path / "daten" / "common" / "sites.json"
     sites.parent.mkdir(parents=True)
     sites.write_text(f'{{"schema": "ablageorte/1", "sites": {{"Belege": "{site}"}}}}')
-    return open_store(tmp_path / "daten", [])
+    return open_store(tmp_path / "daten", [], once_per_period={"once": "Einmalart"})
 
 
 def take(
@@ -124,8 +133,10 @@ def test_existing_duplicates_stay_and_give_a_note_each(store: Store) -> None:
         period_start=first.document.period_start,
         period_end=first.document.period_end,
     )
-    # Altbestand: der Schreibweg selbst kennt die Dokumentart nicht
-    assert isinstance(store.apply([Put(later)]), Applied)
+    # Altbestand: ein Store ohne die Regel (vor ihrer Einführung geschrieben)
+    old = open_store(store.root, [])
+    assert isinstance(old.apply([Put(later)]), Applied)
+    store = open_store(store.root, [], once_per_period={"once": "Einmalart"})
 
     found = duplicate_findings(store.state(), "anna", KINDS)
 
@@ -141,3 +152,15 @@ def test_transfer_protocol_and_assessment_are_registered_as_unique() -> None:
     kinds = {k.key: k for k in TAX_YEAR.document_kinds}
     assert len(kinds) == 2
     assert all(k.unique_per_period for k in kinds.values())
+
+
+def test_every_write_path_is_checked_not_only_take_in_and_change(store: Store) -> None:
+    first = take(store, "a")
+    assert isinstance(first, TakenIn)
+    second = first.document.model_copy(update={"id": "ABCDEFGHJK", "path": "b.txt"})
+
+    result = store.apply([Put(second)])
+
+    assert isinstance(result, Rejected)
+    assert list(result.reasons.values()) == ["Existiert bereits: Einmalart 2025"]
+    assert documents(store) == [first.document]

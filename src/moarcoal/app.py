@@ -75,7 +75,16 @@ def create_app(
     app.state.user_name = user_name
     # Die App bekommt den echten Baustein, Tests einen Fake; aufgerufen wird nur auf Wunsch.
     app.state.extractor = extractor if extractor is not None else ClaudeExtractor()
-    app.state.store = open_store(data_dir, [kind for module in modules for kind in module.kinds])
+    app.state.store = open_store(
+        data_dir,
+        [kind for module in modules for kind in module.kinds],
+        once_per_period={
+            kind.key: kind.title
+            for module in modules
+            for kind in module.document_kinds
+            if kind.unique_per_period
+        },
+    )
     for module in modules:
         app.include_router(module.router)
     app.include_router(belege_router)

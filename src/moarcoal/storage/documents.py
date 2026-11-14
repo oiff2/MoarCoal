@@ -1,7 +1,7 @@
 """Baustein Dokument: Verweis auf eine Datei an einem Ablageort (docs/grundgeruest.md, 3.2)."""
 
 import datetime
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from typing import Self
 
 from pydantic import Field, model_validator
@@ -65,13 +65,44 @@ def document_path(entry: Document) -> str:
     return f"users/{entry.owner}/documents.json"
 
 
-def check_document(document: Document, entries: Mapping[EntryAddress, Entry]) -> str | None:
-    """Prüfung im Schreibweg: der Aussteller am Dokument existiert nach dem Vorgang."""
-    if document.issuer is not None and document.issuer not in entries:
-        return "Aussteller existiert nicht."
-    return None
+def period_clash(
+    entries: Mapping[EntryAddress, Entry], document: Document, once_per_period: Collection[str]
+) -> Document | None:
+    """Das andere Dokument desselben Nutzers mit derselben Art und demselben Bezugszeitraum, wenn
+    die Art (Schlüssel in `once_per_period`) je Bezugszeitraum nur eines erlaubt."""
+    if document.document_kind not in once_per_period or document.period_start is None:
+        return None
+    return next(
+        (
+            e
+            for e in entries.values()
+            if isinstance(e, Document)
+            and e.address != document.address
+            and (e.owner, e.document_kind, e.period_start)
+            == (document.owner, document.document_kind, document.period_start)
+        ),
+        None,
+    )
 
 
-DATA_LAYER_KINDS: tuple[EntryKind, ...] = (
-    entry_kind(Document, DOCUMENT_SCHEMA, document_path, check=check_document),
-)
+def exists_already(title: str, document: Document) -> str:
+    year = document.period_start.year if document.period_start else ""
+    return f"Existiert bereits: {title} {year}"
+
+
+def document_entry_kind(once_per_period: Mapping[str, str] | None = None) -> EntryKind:
+    """Die Eintragsart Dokument. `once_per_period` (Schlüssel -> Name der Dokumentarten, die je
+    Bezugszeitraum und Nutzer nur ein Dokument erlauben) kommt aus den Modulanmeldungen; die
+    Prüfung läuft im Schreibweg gegen den Stand nach dem Vorgang."""
+    once = once_per_period or {}
+
+    def check(document: Document, entries: Mapping[EntryAddress, Entry]) -> str | None:
+        """Aussteller existiert; je Bezugszeitraum nur ein Dokument, wo verlangt."""
+        if document.issuer is not None and document.issuer not in entries:
+            return "Aussteller existiert nicht."
+        other = period_clash(entries, document, once)
+        if other is not None and document.document_kind is not None:
+            return exists_already(once[document.document_kind], other)
+        return None
+
+    return entry_kind(Document, DOCUMENT_SCHEMA, document_path, check=check)
