@@ -82,8 +82,12 @@ PAGES_WITHOUT_USER = frozenset({"/", "/person"})  # und /static (eigene Anwendun
 def require_user(request: Request) -> None:
     """Ohne Nutzer (ohne Angaben zur Person) führt jede Seite außer der Startseite und den Angaben
     zur Person mit 303 auf die Startseite."""
-    if request.url.path not in PAGES_WITHOUT_USER and user_name_of(request) is None:
+    if request.url.path in PAGES_WITHOUT_USER:
+        return  # diese Seiten können den Nutzer anlegen; `render` ermittelt den Namen dann selbst
+    user_name = user_name_of(request)
+    if user_name is None:
         raise HTTPException(303, headers={"Location": "/"})
+    request.state.user_name = user_name  # `render` liest ihn hier, statt ihn neu zu ermitteln
 
 
 def module_state(request: Request, key: str) -> ModuleState:
@@ -103,7 +107,7 @@ async def form_fields(request: Request) -> dict[str, str]:
 def render(request: Request, name: str, status_code: int = 200, **context: Any) -> HTMLResponse:
     templates: Jinja2Templates = request.app.state.templates
     registrations: tuple[ModuleRegistration, ...] = request.app.state.modules
-    user_name = user_name_of(request)
+    user_name = getattr(request.state, "user_name", None) or user_name_of(request)
     if "open_files" not in context:  # Zähler der Seitenleiste; die Belege-Seite kennt ihn schon
         store = store_of(request)
         context["open_files"] = (
