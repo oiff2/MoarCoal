@@ -13,13 +13,17 @@ from jinja2 import Environment, FileSystemLoader
 
 from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.dismissals import NoteMissing, dismiss, undismiss
+from moarcoal.document_list import router as document_list_router
 from moarcoal.document_pages import router as document_router
 from moarcoal.expected_documents_pages import router as expected_documents_router
 from moarcoal.extraction import ClaudeExtractor, Extractor
-from moarcoal.incoming_pages import router as incoming_router
+from moarcoal.issuer_field import router as issuer_field_router
+from moarcoal.issuer_pages import router as issuer_router
 from moarcoal.modules import MODULES
 from moarcoal.registration import ModuleRegistration
 from moarcoal.security import SecurityMiddleware
+from moarcoal.site_pages import moved_router
+from moarcoal.site_pages import router as belege_router
 from moarcoal.storage import Applied, open_store
 from moarcoal.values.model import format_amount
 from moarcoal.web import (
@@ -30,6 +34,7 @@ from moarcoal.web import (
     store_of,
     user_of,
     values_of,
+    year_of,
 )
 
 PACKAGE_DIR = Path(__file__).parent
@@ -40,11 +45,11 @@ DEFAULT_USER = "ich"
 DEFAULT_USER_NAME = "Max Mustermann"
 
 
-def _year_of(fields: dict[str, str]) -> int:
-    try:
-        return int(fields.get("year", ""))
-    except ValueError:
-        raise HTTPException(422, "Jahr fehlt oder ist keine Zahl.") from None
+def _required_year(fields: dict[str, str]) -> int:
+    year = year_of(fields.get("year", ""))
+    if year is None:
+        raise HTTPException(422, "Jahr fehlt oder ist keine Zahl.")
+    return year
 
 
 def create_app(
@@ -70,12 +75,25 @@ def create_app(
     app.state.user_name = user_name
     # Die App bekommt den echten Baustein, Tests einen Fake; aufgerufen wird nur auf Wunsch.
     app.state.extractor = extractor if extractor is not None else ClaudeExtractor()
-    app.state.store = open_store(data_dir, [kind for module in modules for kind in module.kinds])
+    app.state.store = open_store(
+        data_dir,
+        [kind for module in modules for kind in module.kinds],
+        once_per_period={
+            kind.key: kind.title
+            for module in modules
+            for kind in module.document_kinds
+            if kind.unique_per_period
+        },
+    )
     for module in modules:
         app.include_router(module.router)
-    app.include_router(incoming_router)
+    app.include_router(belege_router)
+    app.include_router(moved_router)
+    app.include_router(document_list_router)
     app.include_router(document_router)
     app.include_router(expected_documents_router)
+    app.include_router(issuer_router)
+    app.include_router(issuer_field_router)
 
     @app.get("/", response_class=HTMLResponse)
     def start(request: Request) -> HTMLResponse:  # pyright: ignore[reportUnusedFunction]
@@ -113,7 +131,7 @@ def create_app(
     def dismiss_finding(  # pyright: ignore[reportUnusedFunction]
         request: Request, fields: Annotated[dict[str, str], Depends(form_fields)]
     ) -> Response:
-        year = _year_of(fields)
+        year = _required_year(fields)
         user = user_of(request)
         identity = (fields.get("kind", ""), fields.get("target", ""))
         found = values_of(request).finding_list(user, year)
@@ -146,7 +164,7 @@ def create_app(
     def undismiss_finding(  # pyright: ignore[reportUnusedFunction]
         request: Request, fields: Annotated[dict[str, str], Depends(form_fields)]
     ) -> Response:
-        year = _year_of(fields)
+        year = _required_year(fields)
         result = undismiss(store_of(request), user_of(request), fields.get("id", ""))
         if result is None:
             raise HTTPException(404)

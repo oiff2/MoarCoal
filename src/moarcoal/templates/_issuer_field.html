@@ -1,0 +1,18 @@
+{# Aussteller-Feld mit Suche (htmx), wiederverwendbar. Einbinden:
+   {% from "_issuer_field.html" import issuer_field %} und im <form> {{ issuer_field() }}.
+   `default` ist die Kennung der Vorbelegung; ohne sie gilt der zuletzt für die Dokumentart
+   (Feld `kind` des Formulars) verwendete. `text` stellt den Suchtext einer abgewiesenen Eingabe
+   wieder her. `from_name` kennzeichnet `default` als aus dem Dateinamen vorbelegt.
+   Das Feld ist das einzige Bedienelement: darunter klappt die Trefferliste (`.auswahl`) auf; ein Klick auf einen Treffer setzt dessen Namen ins Feld, daneben das
+   Häkchen Privatperson (per CSS nur bei Text ohne Wahl sichtbar). Ohne Wahl gilt beim Speichern
+   „neu anlegen“, leer heißt „kein Aussteller“. #}
+{% macro issuer_field(default="", text="", from_name=false) %}
+<fieldset class="aussteller-feld" hx-get="/aussteller-suche" hx-trigger="intersect once, change from:closest form, input from:find .suche delay:200ms" hx-include="closest form" hx-target="find .auswahl" hx-vals='{"default": "{{ default }}"}'>
+  <legend>Aussteller{% if from_name %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %}</legend>
+  <div class="zeile">
+    <input class="suche" type="search" name="issuer_text" value="{{ text }}" placeholder="Name suchen oder neu eingeben" autocomplete="off">
+    <label class="privat"><input type="checkbox" name="issuer_private" value="1"> Privatperson</label>
+  </div>
+  <div class="auswahl"></div>
+</fieldset>
+{% endmacro %}

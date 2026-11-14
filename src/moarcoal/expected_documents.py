@@ -8,12 +8,12 @@ bestätigt ist, spielt keine Rolle (3.6, Punkt 7).
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from moarcoal.storage import Document, ExpectedDocument, State
+from moarcoal.storage import Document, EntryAddress, ExpectedDocument, State
 from moarcoal.values.findings import Finding, Severity, fingerprint
 
 PENDING = "expected_document_pending"
 DUPLICATE = "expected_document_duplicate"
-HREF = "/erwartete-belege"
+HREF = "/belege/erwartet"
 
 
 def matching_documents(
@@ -21,12 +21,7 @@ def matching_documents(
 ) -> list[Document]:
     """Dokumente der Dokumentart, deren Bezugszeitraum das Jahr berührt; nach Adresse sortiert."""
     found = [
-        d
-        for d in documents
-        if d.document_kind == expected.document_kind
-        and d.period_start is not None
-        and d.period_end is not None
-        and d.period_start.year <= year <= d.period_end.year
+        d for d in documents if d.document_kind == expected.document_kind and d.touches_year(year)
     ]
     return sorted(found, key=lambda d: str(d.address))
 
@@ -54,7 +49,22 @@ def statuses(
     ]
 
 
-def _name(expected: ExpectedDocument, titles: Mapping[str, str]) -> str:
+def previous_year_issuer(
+    documents: list[Document], expected: ExpectedDocument, year: int
+) -> EntryAddress | None:
+    """Vorschlag: Aussteller des Dokuments, das den Beleg im Vorjahr erfüllt (gleiche Regel).
+
+    Berechnet, nicht gespeichert, und ohne Einfluss auf die Erfüllung. Kein Vorschlag, wenn das
+    Vorjahr vor dem Beginn liegt, offen ist oder kein erfüllendes Dokument einen Aussteller trägt.
+    """
+    if year - 1 < expected.start_year:
+        return None
+    return next(
+        (d.issuer for d in matching_documents(documents, expected, year - 1) if d.issuer), None
+    )
+
+
+def expected_name(expected: ExpectedDocument, titles: Mapping[str, str]) -> str:
     title = titles.get(expected.document_kind, expected.document_kind)
     return f"{title} ({expected.description})" if expected.description else title
 
@@ -75,7 +85,7 @@ def expected_document_findings(
         if expected.owner != user or not expected.due_in(year):
             continue
         matching = matching_documents(documents, expected, year)
-        name = _name(expected, titles)
+        name = expected_name(expected, titles)
         target = f"{expected.address}@{year}"  # je Jahr ein eigener Befund
         if not matching:
             text = f"Erwarteter Beleg für {year} ausstehend: {name}"

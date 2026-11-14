@@ -10,12 +10,22 @@ from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
 from moarcoal.documents import DocumentKind
-from moarcoal.expected_documents import DUPLICATE, PENDING
+from moarcoal.expected_documents import DUPLICATE, PENDING, matching_documents, previous_year_issuer
+from moarcoal.links import issuer_url
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import TRANSFER_PROTOCOL
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.registration import ModuleRegistration
-from moarcoal.storage import Document, EntryAddress, ExpectedDocument, Put, open_store
+from moarcoal.storage import (
+    COMMON_OWNER,
+    Document,
+    EntryAddress,
+    ExpectedDocument,
+    Issuer,
+    Merge,
+    Put,
+    open_store,
+)
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
 from moarcoal.values.model import (
@@ -77,6 +87,15 @@ def test_due_in_respects_start_and_open_end() -> None:
     entry = expected(2024)
     assert not entry.due_in(2023) and entry.due_in(2024) and entry.due_in(2040)
     assert not expected(2024, 2024).due_in(2025)
+
+
+def test_touches_year_needs_a_period_that_reaches_into_the_year() -> None:
+    spanning = document().model_copy(
+        update={"period_start": datetime.date(2024, 7, 1), "period_end": datetime.date(2025, 6, 30)}
+    )
+    assert spanning.touches_year(2024) and spanning.touches_year(2025)
+    assert not spanning.touches_year(2023) and not spanning.touches_year(2026)
+    assert not document(None).touches_year(2025)
 
 
 # --- Befunde ----------------------------------------------------------------------------------
@@ -179,25 +198,25 @@ FORM = {"document_kind": KIND, "start_year": "2025", "end_year": "", "descriptio
 def test_create_lists_status_per_year(tmp_path: Path) -> None:
     client = make_client(tmp_path)
 
-    response = client.post("/erwartete-belege", data=FORM, headers=ORIGIN)
+    response = client.post("/belege/erwartet", data=FORM, headers=ORIGIN)
 
     assert response.status_code == 303
     (entry,) = stored(tmp_path)
     assert entry.end_year is None and entry.owner == "anna"
-    page = client.get("/erwartete-belege").text
+    page = client.get("/belege/erwartet").text
     assert "Übertragungsprotokoll" in page and "ausstehend" in page
     open_store(tmp_path, []).apply([Put(document(2025))])
-    assert "erfüllt durch" in make_client(tmp_path).get("/erwartete-belege").text
+    assert "erfüllt durch" in make_client(tmp_path).get("/belege/erwartet").text
 
 
 def test_pending_note_shows_on_findings_page_with_link(tmp_path: Path) -> None:
     client = make_client(tmp_path)
-    client.post("/erwartete-belege", data=FORM, headers=ORIGIN)
+    client.post("/belege/erwartet", data=FORM, headers=ORIGIN)
 
     page = client.get("/befunde?year=2025").text
 
     assert "Erwarteter Beleg für 2025 ausstehend" in page
-    assert 'href="/erwartete-belege"' in page
+    assert 'href="/belege/erwartet"' in page
 
 
 def test_invalid_input_is_rejected_with_hints(tmp_path: Path) -> None:
@@ -207,50 +226,49 @@ def test_invalid_input_is_rejected_with_hints(tmp_path: Path) -> None:
         {**FORM, "start_year": "abc"},
         {**FORM, "end_year": "2024"},
     ):
-        response = client.post("/erwartete-belege", data=bad, headers=ORIGIN)
+        response = client.post("/belege/erwartet", data=bad, headers=ORIGIN)
         assert response.status_code == 422 and 'class="fehler"' in response.text
     assert stored(tmp_path) == []
 
 
 def test_update_and_delete_use_the_checksum(tmp_path: Path) -> None:
     client = make_client(tmp_path)
-    client.post("/erwartete-belege", data=FORM, headers=ORIGIN)
+    client.post("/belege/erwartet", data=FORM, headers=ORIGIN)
     (entry,) = stored(tmp_path)
-    edit = client.get(f"/erwartete-belege/{entry.id}").text
+    edit = client.get(f"/belege/erwartet/{entry.id}").text
     checksum = re.search(r'name="checksum" value="([0-9a-f]+)"', edit)
     assert checksum
 
     changed = {**FORM, "end_year": "2027", "checksum": checksum.group(1)}
     assert (
-        client.post(f"/erwartete-belege/{entry.id}", data=changed, headers=ORIGIN).status_code
-        == 303
+        client.post(f"/belege/erwartet/{entry.id}", data=changed, headers=ORIGIN).status_code == 303
     )
     assert stored(tmp_path)[0].end_year == 2027
 
-    stale = client.post(f"/erwartete-belege/{entry.id}", data=changed, headers=ORIGIN)
+    stale = client.post(f"/belege/erwartet/{entry.id}", data=changed, headers=ORIGIN)
     assert stale.status_code == 409 and stored(tmp_path)[0].end_year == 2027
     gone = client.post(
-        f"/erwartete-belege/{entry.id}/loeschen", data={"checksum": "alt"}, headers=ORIGIN
+        f"/belege/erwartet/{entry.id}/loeschen", data={"checksum": "alt"}, headers=ORIGIN
     )
     assert gone.status_code == 409 and len(stored(tmp_path)) == 1
 
     fresh = re.search(
-        r'name="checksum" value="([0-9a-f]+)"', client.get(f"/erwartete-belege/{entry.id}").text
+        r'name="checksum" value="([0-9a-f]+)"', client.get(f"/belege/erwartet/{entry.id}").text
     )
     assert fresh
     done = client.post(
-        f"/erwartete-belege/{entry.id}/loeschen", data={"checksum": fresh.group(1)}, headers=ORIGIN
+        f"/belege/erwartet/{entry.id}/loeschen", data={"checksum": fresh.group(1)}, headers=ORIGIN
     )
     assert done.status_code == 303 and stored(tmp_path) == []
 
 
 def test_another_user_cannot_open_the_entry(tmp_path: Path) -> None:
-    make_client(tmp_path).post("/erwartete-belege", data=FORM, headers=ORIGIN)
+    make_client(tmp_path).post("/belege/erwartet", data=FORM, headers=ORIGIN)
     (entry,) = stored(tmp_path)
 
     other = make_client(tmp_path, user="berta")
 
-    assert other.get(f"/erwartete-belege/{entry.id}").status_code == 404
+    assert other.get(f"/belege/erwartet/{entry.id}").status_code == 404
     assert EntryAddress.parse(str(entry.address)) == entry.address
 
 
@@ -261,7 +279,7 @@ def test_kinds_without_period_are_not_offered() -> None:
 
 def test_hiding_pending_2025_leaves_2026_a_separate_finding(tmp_path: Path) -> None:
     client = make_client(tmp_path)
-    client.post("/erwartete-belege", data=FORM, headers=ORIGIN)
+    client.post("/belege/erwartet", data=FORM, headers=ORIGIN)
     (entry,) = stored(tmp_path)
     found = findings([entry], 2025)[0]
     form = {
@@ -287,7 +305,7 @@ def test_hiding_pending_2025_leaves_2026_a_separate_finding(tmp_path: Path) -> N
 
 def test_changing_the_description_brings_a_hidden_pending_finding_back(tmp_path: Path) -> None:
     client = make_client(tmp_path)
-    client.post("/erwartete-belege", data=FORM, headers=ORIGIN)
+    client.post("/belege/erwartet", data=FORM, headers=ORIGIN)
     (entry,) = stored(tmp_path)
     found = findings([entry], 2025)[0]
     form = {
@@ -305,3 +323,63 @@ def test_changing_the_description_brings_a_hidden_pending_finding_back(tmp_path:
     state = open_store(tmp_path, []).state()
     listed = evaluate([WORK, TAX_YEAR], list(state.entries.values())).finding_list("anna", 2025)
     assert [f.kind for f in listed.visible if f.kind == PENDING] == [PENDING]
+
+
+# --- Aussteller des Vorjahres als Vorschlag ---------------------------------------------------
+
+
+def issued_by(at: Issuer, year: int = 2024, sha: str = SHA) -> Document:
+    return document(year, sha=sha).model_copy(update={"issuer": at.address})
+
+
+def test_suggestion_is_issuer_of_the_document_fulfilling_the_previous_year() -> None:
+    bank = Issuer(owner=COMMON_OWNER, name="Beispielbank")
+    entry = expected(start=2024)
+
+    assert previous_year_issuer([issued_by(bank)], entry, 2025) == bank.address
+    assert previous_year_issuer([issued_by(bank)], entry, 2024) is None  # Vorjahr vor Beginn
+    assert previous_year_issuer([issued_by(bank)], entry, 2026) is None  # Vorjahr nicht erfüllt
+    assert previous_year_issuer([document(2024)], entry, 2025) is None  # ohne Aussteller
+
+
+def test_a_document_with_another_issuer_still_fulfils() -> None:
+    bank = Issuer(owner=COMMON_OWNER, name="Beispielbank")
+    other = Issuer(owner=COMMON_OWNER, name="Andere Bank")
+    documents = [issued_by(bank), issued_by(other, 2025, "b" * 64)]
+    entry = expected(start=2024)
+
+    assert len(matching_documents(documents, entry, 2025)) == 1
+    assert findings([entry, *documents]) == []
+
+
+def test_pages_show_the_suggestion_and_follow_a_merge(tmp_path: Path) -> None:
+    source = Issuer(owner=COMMON_OWNER, name="Beispielbank")
+    target = Issuer(owner=COMMON_OWNER, name="Beispielbank AG")
+    entry = expected(start=2024)
+    store = open_store(tmp_path, [])
+    store.apply([Put(source), Put(target), Put(entry), Put(issued_by(source))])
+    client = make_client(tmp_path)
+
+    for url in ("/belege/erwartet", f"/belege/erwartet/{entry.id}"):
+        page = client.get(url).text
+        assert f'Aussteller im Vorjahr: <a href="{issuer_url(source.id)}">Beispielbank</a>' in page
+
+    state = store.state()
+    store.apply(
+        [
+            Merge(
+                source.address,
+                target.address,
+                expected=state.checksum(source.address) or "",
+                expected_into=state.checksum(target.address) or "",
+            )
+        ]
+    )
+    page = make_client(tmp_path).get("/belege/erwartet").text
+    assert f'<a href="{issuer_url(target.id)}">Beispielbank AG</a>' in page
+
+
+def test_pages_show_no_suggestion_without_issuer(tmp_path: Path) -> None:
+    open_store(tmp_path, []).apply([Put(expected(start=2024)), Put(document(2024))])
+
+    assert "Aussteller im Vorjahr" not in make_client(tmp_path).get("/belege/erwartet").text

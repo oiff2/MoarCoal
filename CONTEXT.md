@@ -13,7 +13,7 @@ Ein Themenblock (z. B. Steuerjahr, Immobilie), der auf der Datenebene aufbaut un
 _Avoid_: Plugin, Tool, Feature
 
 **Modulanmeldung** _(geprägt)_:
-Was ein Modul beim Start der App über sich bekannt gibt, u. a.: seine Schlüssel im Wertekatalog samt Rechnung und Aufzählung der Bezugsobjekte, seine Eintragsarten, seine Dokumentarten und Auslese-Vorlagen, seine Befundarten und seine Seiten in der Oberfläche (Code: `ModuleRegistration`).
+Was ein Modul beim Start der App über sich bekannt gibt, u. a.: seine Schlüssel im Wertekatalog samt Rechnung und Aufzählung der Bezugsobjekte, seine Eintragsarten, seine Dokumentarten (optional mit Namensmustern, aus denen das Aufnehmen-Formular die Art vorbelegt) und Auslese-Vorlagen, seine Befundarten und seine Seiten in der Oberfläche (Code: `ModuleRegistration`).
 _Avoid_: Registry, Manifest, Plugin-Deklaration; „Anmeldung“ allein (klingt nach Login eines Nutzers oder nach Steueranmeldung)
 
 **abschalten**:
@@ -36,7 +36,7 @@ Die eine Stelle, an der alle nicht ausgeblendeten Befunde eines Nutzers zum gew�
 _Avoid_: Review, Inbox, To-do, Durchsicht
 
 **ausblenden**:
-Etwas aus einer Liste nehmen, ohne es zu löschen. Einen Befund blendet ein Nutzer mit Pflicht-Notiz für sich aus, bis sich der zugrunde liegende Stand ändert; eine Datei im Eingang wird für alle Nutzer ausgeblendet, bis jemand sie wieder einblendet (gespeichert als Eintrag der Datenebene mit SHA-256, Ablageort, Pfad und freiwilliger Notiz; Code: `HiddenFile`). Die Ausblendung eines Befunds heißt **Ausblendung**, ein Eintrag der Datenebene mit Befundart, Ziel, Fingerabdruck des Befunds und der Notiz (Code: `Dismissal`).
+Etwas aus einer Liste nehmen, ohne es zu löschen. Einen Befund blendet ein Nutzer mit Pflicht-Notiz für sich aus, bis sich der zugrunde liegende Stand ändert; eine Datei im Eingang wird für alle Nutzer ausgeblendet, bis jemand sie wieder einblendet (gespeichert als Eintrag der Datenebene mit SHA-256, Ablageort, Pfad und freiwilliger Notiz; Code: `HiddenFile`); ein ganzer Ordner eines Ablageorts mit allem darunter wird über Ablageort und Pfad ausgeblendet (Code: `HiddenFolder`). Die Ausblendung eines Befunds heißt **Ausblendung**, ein Eintrag der Datenebene mit Befundart, Ziel, Fingerabdruck des Befunds und der Notiz (Code: `Dismissal`).
 _Avoid_: quittieren, ignorieren, verwerfen
 
 **Nutzer**:
@@ -157,7 +157,7 @@ Der Unterschied zwischen dem eingefrorenen Stand eines Schnappschusses und dem a
 _Avoid_: Differenz, Diff, Änderung (das ist ein Teil eines Vorgangs)
 
 **Aussteller**:
-Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Name und weiteren Namen (Aliasse), auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ob Unternehmen oder Behörde, spielt keine Rolle; nur wer als **Privatperson** gekennzeichnet ist (z. B. privater Vermieter), hat sensiblen Namen und sensible Anschrift. Ein anderer Name desselben Ausstellers wird als Alias hinzugefügt; Zusammenführen zweier Aussteller ist die bewusste Ausnahme.
+Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Name und weiteren Namen (Aliasse), auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ob Unternehmen oder Behörde, spielt keine Rolle; nur wer als **Privatperson** gekennzeichnet ist (z. B. privater Vermieter), hat sensiblen Namen und sensible Anschrift. Ein anderer Name desselben Ausstellers wird als Alias hinzugefügt; Zusammenführen zweier Aussteller ist die bewusste Ausnahme (Code: `Issuer`).
 _Avoid_: Absender, Firma (im HGB der Handelsname), Gegenpartei
 
 **Eintrag**:
@@ -193,7 +193,7 @@ Alle geladenen Einträge im Arbeitsspeicher, unveränderlich; jede Anfrage hält
 _Avoid_: Cache, Snapshot (das ist der Schnappschuss), Kontext
 
 **Dokument**:
-Eine aufgenommene Datei, auf die MoarCoal an einem Ablageort verweist oder die es ins Datenverzeichnis übernommen hat (z. B. Rechnung, Kontoauszug, Bescheid, Mietvertrag), mit Aussteller, Datum und höchstens einer Dokumentart; vor dem Aufnehmen heißt sie Datei (Code: `Document`).
+Eine aufgenommene Datei, auf die MoarCoal an einem Ablageort verweist oder die es ins Datenverzeichnis übernommen hat (z. B. Rechnung, Kontoauszug, Bescheid, Mietvertrag), mit Aussteller, Datum und höchstens einer Dokumentart; vor dem Aufnehmen heißt sie Datei (Code: `Document`). Im Reiter Dokumente zeigt es einen bei jeder Anfrage abgeleiteten, nicht gespeicherten Zustand: „zu bestätigen“ (der neueste Vorschlag hat offene Felder), „auszulesen“ (die Dokumentart hat eine Auslese-Vorlage, aber es gibt noch keinen Vorschlag) oder „fertig“; ein Dokument ohne Dokumentart zeigt statt eines Zustands „Beleg“, kein Mangel (Code: `DocumentState`).
 _Avoid_: Unterlage, Anhang
 
 **Datenverzeichnis**:
@@ -205,8 +205,15 @@ Ein benannter, für alle Nutzer gemeinsamer Ordner außerhalb des Datenverzeichn
 _Avoid_: externer Ordner, Quellordner, Mount
 
 **Eingang** _(geprägt)_:
-Die Liste der Dateien in den Ablageorten, die weder aufgenommen noch ausgeblendet sind (in der Oberfläche der Filter „offen“ der Ablage); daraus wird nichts von selbst übernommen.
+Die Dateien in den Ablageorten, die weder aufgenommen noch ausgeblendet sind; in der Oberfläche der Filter „offen“ der Ablage, im Befund „n Dateien im Eingang“ gezählt. Daraus wird nichts von selbst übernommen.
 _Avoid_: Inbox, Import, Vorschlag
+
+**Reiter**:
+Ein Teil einer Seite mit eigener URL, zwischen dem man oben auf der Seite wechselt, z. B. Ablage, Dokumente und Erwartet der Belege-Seite.
+_Avoid_: Tab, Registerkarte
+
+**Ablage**:
+Der Reiter der Belege-Seite, der die Ablageorte als Baum zeigt, eine Zeile je Datei mit Stand offen oder aufgenommen; voreingestellt ist der Filter „offen“, also der Eingang. Dort nimmt man Dateien auf und blendet sie aus. Nicht zu verwechseln mit dem Ablageort, einem einzelnen Ordner (Code: `SiteListing`, der Filter nach Stand `IntakeFilter`).
 
 **aufnehmen**:
 Eine Datei aus dem Eingang zum Dokument machen; danach wird sie je nach Dokumentart eingelesen, ausgelesen oder beides. Gegenstück: **ausblenden** (die Datei erscheint nicht mehr im Eingang).
@@ -233,7 +240,7 @@ Was ein Modul für eine Dokumentart auslesen lassen will: Liste der Felder mit E
 _Avoid_: Prompt, Schema, Formular, Vorlage (allein, das sind die Jinja-Vorlagen der Oberfläche)
 
 **Beleg**:
-Ein Dokument, sofern es einen Betrag nachweist, auf den sich ein Einzelposten stützt oder (als Erwarteter Beleg) stützen soll; Beleg ist eine Rolle, kein Merkmal am Dokument, und nicht jedes Dokument ist einer.
+Ein Dokument, sofern es einen Betrag nachweist, auf den sich ein Einzelposten stützt oder (als Erwarteter Beleg) stützen soll; Beleg ist eine Rolle, kein Merkmal am Dokument, und nicht jedes Dokument ist einer. Auf der Belege-Seite nimmt man Belege auf: alles, was dort aufgenommen wird, ist ein Beleg, und die Auswahl „Beleg“ meint ein Dokument ohne besondere Dokumentart (Übertragungsprotokoll und EStB sind Spezialfälle davon).
 _Avoid_: Quittung, Nachweis
 
 **Erwarteter Beleg**:
@@ -241,7 +248,7 @@ Ein Beleg, der regelmäßig oder einmalig kommen soll, z. B. jährlich die Zinsb
 _Avoid_: Checkliste, Erwartung (allein), offener Beleg, Platzhalter
 
 **Dokumentart**:
-Was für ein Dokument es ist (z. B. Zinsbescheinigung, Grundsteuerbescheid, Darlehensvertrag); Module melden ihre Dokumentarten an, aber nur, wo sie etwas damit tun (einlesen, auslesen, Bezugszeitraum, Erwarteter Beleg); die Datenebene führt keine konkrete. Ein Dokument ohne Dokumentart ist ein normaler Beleg. Jedes Dokument hat höchstens eine. Die Dokumentart legt fest, ob ihre Dokumente einen **Bezugszeitraum** haben, den Zeitraum, für den das Dokument gilt (z. B. Zinsbescheinigung 2025, ausgestellt 2026); andere gelten ohne zeitliche Grenze (z. B. Darlehensvertrag). Hat die Dokumentart eine Einlese-Regel, wird das Dokument beim Aufnehmen eingelesen (Code: `DocumentKind`).
+Was für ein Dokument es ist (z. B. Zinsbescheinigung, Grundsteuerbescheid, Darlehensvertrag); Module melden ihre Dokumentarten an, aber nur, wo sie etwas damit tun (einlesen, auslesen, Bezugszeitraum, Erwarteter Beleg); die Datenebene führt keine konkrete. Ein Dokument ohne Dokumentart heißt in der Oberfläche „Beleg“; es hat keinen Bezugszeitraum und wird nicht eingelesen oder ausgelesen. Jedes Dokument hat höchstens eine. Die Dokumentart legt fest, ob ihre Dokumente einen **Bezugszeitraum** haben, den Zeitraum, für den das Dokument gilt (z. B. Zinsbescheinigung 2025, ausgestellt 2026); andere gelten ohne zeitliche Grenze (z. B. Darlehensvertrag). Eine Dokumentart mit Bezugszeitraum kann sich als „je Bezugszeitraum nur ein Dokument“ anmelden (Übertragungsprotokoll, EStB): je Nutzer und Jahr wird ein zweites beim Aufnehmen und beim Ändern von Art oder Jahr mit „Existiert bereits“ abgewiesen, frei wird die Art wieder durch Löschen; vorhandene Dubletten bleiben und ergeben einen Hinweis. Hat die Dokumentart eine Einlese-Regel, wird das Dokument beim Aufnehmen eingelesen (Code: `DocumentKind`).
 _Avoid_: Belegtyp, Dokumenttyp, Kategorie
 
 **Beschaffungsweg**:

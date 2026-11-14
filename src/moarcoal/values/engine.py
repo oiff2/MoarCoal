@@ -2,8 +2,10 @@
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 
+from moarcoal.documents import duplicate_findings
 from moarcoal.expected_documents import expected_document_findings
 from moarcoal.incoming import incoming_files
+from moarcoal.issuers import issuer_findings
 from moarcoal.proposals import aborted_extraction_findings, proposal_findings
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import Dismissal, SiteFile, Snapshot, State
@@ -11,6 +13,7 @@ from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYet
 from moarcoal.values.catalog import TimeKind, ValueCatalog
 from moarcoal.values.findings import (
     CYCLE,
+    DENYLIST_NOT_WRITTEN,
     DUPLICATE_LOCATOR,
     INCOMING_FILES,
     Finding,
@@ -190,6 +193,12 @@ class Values:
         found = list(self.findings)
         titles = {k.key: k.title for m in self._modules.values() for k in m.document_kinds}
         found.extend(expected_document_findings(self._state, user, year, titles))
+        found.extend(issuer_findings(self._state, user))
+        if self._state.denylist_failed:
+            text = "Abgeleitete Sperrliste konnte nicht geschrieben werden"
+            found.append(Finding(DENYLIST_NOT_WRITTEN, Severity.WARNING, "sperrliste", text))
+        kinds = {k.key: k for m in self._modules.values() for k in m.document_kinds}
+        found.extend(duplicate_findings(self._state, user, kinds))
         found.extend(proposal_findings(self._state, user, year, titles))
         found.extend(aborted_extraction_findings(self._state, user))
         found.extend(snapshot_findings(self._state.of_kind(Snapshot), user, year))
@@ -208,7 +217,7 @@ class Values:
                         Severity.NOTE,
                         "eingang",
                         text,
-                        href="/eingang",
+                        href="/belege",
                         fingerprint=fingerprint_,
                     )
                 )

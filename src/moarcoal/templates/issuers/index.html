@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Aussteller – MoarCoal{% endblock %}
+{% block main %}
+<h1>Aussteller</h1>
+<form method="get" action="/aussteller">
+  <label>Suche in Name und weiteren Namen
+    <input type="search" name="q" value="{{ query }}">
+  </label>
+  <button type="submit">Suchen</button>
+</form>
+{% if rows %}
+<table>
+  <tr><th>Name</th><th>Weitere Namen</th><th>Dokumente</th><th>Erwartete Belege</th></tr>
+  {% for issuer, documents, expected in rows %}
+  <tr>
+    <td><a href="{{ entry_url(issuer.address) }}">{{ issuer.name }}</a>{% if issuer.private_person %} (Privatperson){% endif %}</td>
+    <td>{{ issuer.aliases | join(", ") }}</td>
+    <td>{{ documents }}</td>
+    <td>{{ expected }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% elif query %}
+<p>Kein Aussteller zu „{{ query }}“.</p>
+{% else %}
+<p>Noch keine Aussteller. Sie entstehen beim Aufnehmen eines Dokuments.</p>
+{% endif %}
+{% endblock %}

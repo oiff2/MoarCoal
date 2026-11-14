@@ -21,6 +21,7 @@ from moarcoal.extraction import (
     FailureReason,
 )
 from moarcoal.extraction_template import ExtractionTemplate
+from moarcoal.links import document_url
 from moarcoal.storage import (
     AbortedExtraction,
     Applied,
@@ -49,10 +50,6 @@ class ReadOutRejected:
     """Es entstand kein Vorschlag; `message` ist für den Nutzer."""
 
     message: str
-
-
-def document_url(document: Document) -> str:
-    return f"/dokumente/{document.id}"
 
 
 def proposals_of(state: State, document: Document) -> list[Proposal]:
@@ -153,7 +150,7 @@ def aborted_extraction_findings(state: State, user: str) -> list[Finding]:
                 Severity.ERROR,
                 document.address,
                 text,
-                href=document_url(document),
+                href=document_url(document.id),
                 fingerprint=fingerprint(aborted.aborted_at.isoformat()),
             )
         )
@@ -238,11 +235,7 @@ def proposal_findings(
         if not history:
             continue
         proposal = history[-1]  # nur der neueste Vorschlag zählt
-        if (
-            document.period_start is not None
-            and document.period_end is not None
-            and not document.period_start.year <= year <= document.period_end.year
-        ):
+        if document.period_start is not None and not document.touches_year(year):
             continue
         open_keys = proposal.open_keys
         if not open_keys:
@@ -258,7 +251,7 @@ def proposal_findings(
                 Severity.NOTE,
                 proposal.address,
                 text,
-                href=document_url(document),
+                href=document_url(document.id),
                 fingerprint=fingerprint(*open_keys),
             )
         )

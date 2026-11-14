@@ -16,6 +16,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from moarcoal.app import create_app
+from moarcoal.documents import DUPLICATE_DOCUMENT
+from moarcoal.issuers import DOCUMENT_WITHOUT_ISSUER
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registration
 from moarcoal.modules.tax_year.anlage_n import (
@@ -90,11 +92,17 @@ def findings(
     items: list[Entry], foreign: Foreign | None = None, tax_year: ModuleRegistration = TAX_YEAR
 ) -> list[Finding]:
     values = evaluate([tax_year], items, work() if foreign is None else foreign)
-    return values.finding_list("anna", 2025).visible
+    return without_issuer_notes(values.finding_list("anna", 2025).visible)
+
+
+def without_issuer_notes(found: list[Finding]) -> list[Finding]:
+    """Die Testdokumente haben keinen Aussteller und teils dieselbe Art im selben Jahr; diese
+    Hinweise gehören nicht zum Abgleich."""
+    return [f for f in found if f.kind not in (DOCUMENT_WITHOUT_ISSUER, DUPLICATE_DOCUMENT)]
 
 
 def kinds(found: list[Finding]) -> list[str]:
-    return sorted(f.kind for f in found)
+    return sorted(f.kind for f in without_issuer_notes(found))
 
 
 def test_matching_protocol_gives_no_finding() -> None:
@@ -259,7 +267,7 @@ def test_whole_flow_finding_list_links_to_the_protocol(http: httpx.Client) -> No
         headers=ORIGIN,
     )
     taken = http.post(
-        "/eingang/aufnehmen",
+        "/belege/aufnehmen",
         data={
             "sha256": hashlib.sha256(FIXTURE.read_bytes()).hexdigest(),
             "kind": "transfer_protocol",

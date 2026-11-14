@@ -1,11 +1,13 @@
 """Tests der Absicherung (ADR 0007) und der Startseite, über den Test-Client."""
 
 import socket
+import sys
 from collections.abc import Iterator
 from pathlib import Path
 
 import httpx
 import pytest
+import uvicorn
 from fastapi.testclient import TestClient
 
 from moarcoal.__main__ import DEFAULT_PORT, main, read_data_dir, read_port
@@ -162,3 +164,29 @@ def test_main_aborts_when_port_taken(
     assert exit_info.value.code not in (0, None)
     err = capsys.readouterr().err
     assert f"Port {port}" in err and "nicht frei" in err and "MOARCOAL_PORT" in err
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="SO_REUSEADDR hat unter Windows andere Bedeutung"
+)
+def test_main_binds_port_in_time_wait(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as old_server:
+        old_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        old_server.bind(("127.0.0.1", 0))
+        old_server.listen()
+        port = old_server.getsockname()[1]
+        with socket.create_connection(("127.0.0.1", port)) as client_sock:
+            accepted, _ = old_server.accept()
+            accepted.close()  # der Server schließt zuerst: TIME-WAIT auf dem Server-Port
+            client_sock.recv(1)
+    bound: list[int] = []
+
+    def fake_run(self: uvicorn.Server, sockets: list[socket.socket] | None = None) -> None:
+        assert sockets
+        bound.append(sockets[0].getsockname()[1])
+
+    monkeypatch.setattr(uvicorn.Server, "run", fake_run)
+    monkeypatch.setenv("MOARCOAL_PORT", str(port))
+    monkeypatch.setenv("MOARCOAL_DATA_DIR", str(tmp_path))
+    main()
+    assert bound == [port]

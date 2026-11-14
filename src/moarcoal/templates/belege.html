@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% from "_issuer_field.html" import issuer_field %}
+{% from "_belege.html" import tabs, preview, rejection %}
+{% from "documents/_detail.html" import document_detail %}
+{% block title %}Belege – MoarCoal{% endblock %}
+{% macro size(file) %}{{ (file.size / 1024) | round(1) | string | replace(".", ",") }} KB{% endmacro %}
+{% macro hide_button(sha256="", site="", path="") %}
+<form class="direkt" method="post" action="/belege/ausblenden-direkt">
+  <input type="hidden" name="stand" value="{{ intake_filter }}">
+  {% if sha256 %}<input type="hidden" name="sha256" value="{{ sha256 }}">{% else %}<input type="hidden" name="site" value="{{ site }}"><input type="hidden" name="path" value="{{ path }}">{% endif %}
+  <button type="submit" class="auge" title="Ausblenden" aria-label="Ausblenden"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+</form>
+{% endmacro %}
+{% macro folder_node(folder) %}
+<details class="ordner"{% if folder.waiting or (selected and folder.contains(selected.file.sha256)) %} open{% endif %}>
+  <summary>{{ folder.name }}{% if folder.waiting %} <span class="zaehler">{{ folder.waiting }}</span>{% endif %}{% if folder.path %} {{ hide_button(site=folder.site, path=folder.path) }}{% endif %}</summary>
+  {% for sub in folder.folders.values() %}{{ folder_node(sub) }}{% endfor %}
+  {% for row in folder.rows %}{{ file_row(row) }}{% endfor %}
+</details>
+{% endmacro %}
+{% macro file_row(row) %}
+{% set file = row.file %}
+{% set doc = row.document %}
+<div class="datei" title="{{ file.site }}/{{ file.path }}">
+  <a class="name" href="/belege?stand={{ intake_filter }}&datei={{ file.sha256 }}"{% if selected and selected.file.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
+  <span class="groesse">{{ size(file) }}</span>
+  {% if doc %}
+  <span class="stand">aufgenommen</span>
+  <span class="aussteller">{% if doc.issuer %}{{ issuer_names[doc.issuer.id] }}{% endif %}</span>
+  <span class="art">{% for kind in kinds if kind.key == doc.document_kind %}{{ kind.title }}{% endfor %}{% if doc.period_start %}, {{ doc.period_start.year }}{% endif %}</span>
+  {% else %}
+  <span class="stand">offen</span>
+  {{ hide_button(sha256=file.sha256) }}
+  {% endif %}
+</div>
+{% endmacro %}
+{% macro size(file) %}{{ (file.size / 1024) | round(1) | string | replace(".", ",") }} KB{% endmacro %}
+{% macro pane() %}
+{% set file = selected.file %}
+{% set doc = selected.document %}
+{% set form = values if values.get("sha256") == file.sha256 else {} %}
+<div class="formular">
+  <p class="dateiname">{{ file.site }}/{{ file.path }} ({{ size(file) }})</p>
+  {% if doc %}
+  {{ document_detail(detail) }}
+  {% else %}
+  {% for message in errors.get(file.sha256, []) %}{{ rejection(message, existing) }}{% endfor %}
+  <form method="post" action="/belege/aufnehmen">
+    <input type="hidden" name="sha256" value="{{ file.sha256 }}">
+    {{ issuer_field(default=suggestion.issuer.id if suggestion.issuer else "", text=form.get("issuer_text", ""), from_name=suggestion.issuer is not none) }}
+    <label>Dokumentart{% if suggestion.kind %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %}
+      <select name="kind">
+        <option value="" data-ohne-zeitraum{% if not form.get("kind", suggestion.kind) %} selected{% endif %}>Beleg</option>
+        {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if form.get("kind", suggestion.kind) == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="jahr">Jahr{% if suggestion.year %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %} <input name="year" value="{{ form.get('year', suggestion.year or default_year) }}" size="6"></label>
+    <button type="submit">Aufnehmen</button>
+  </form>
+  <form method="post" action="/belege/ausblenden">
+    <input type="hidden" name="sha256" value="{{ file.sha256 }}">
+    <label>Notiz (freiwillig) <input type="text" name="note"></label>
+    <button type="submit">Ausblenden</button>
+  </form>
+  {% endif %}
+</div>
+{{ preview(preview_kind, preview_url, file.path) }}
+{% endmacro %}
+{% macro hidden_pane() %}
+{% set entry, checksum, file = selected_hidden.entry, selected_hidden.checksum, selected_hidden.file %}
+<div class="formular">
+  <p class="dateiname">{{ entry.site }}/{{ entry.path }}{% if file %} ({{ size(file) }}){% endif %}</p>
+  <p>Für alle Nutzer ausgeblendet, bis jemand die Datei wieder einblendet; sie zählt in keinem Zähler.{% if entry.note %} Notiz: {{ entry.note }}{% endif %}</p>
+  <form method="post" action="/belege/einblenden">
+    <input type="hidden" name="sha256" value="{{ entry.sha256 }}">
+    <input type="hidden" name="checksum" value="{{ checksum }}">
+    <button type="submit">Wieder einblenden</button>
+  </form>
+</div>
+{{ preview(preview_kind, preview_url, entry.path) }}
+{% endmacro %}
+{% block main %}
+<h1>Belege</h1>
+{{ tabs("ablage") }}
+{% if notice %}<p class="fehler">{{ notice }}</p>{% endif %}
+{% if not sites %}
+<p class="fehler">Es ist noch kein Ablageort eingerichtet (common/sites.json im Datenverzeichnis).</p>
+{% else %}
+<p class="filter">Anzeigen:
+  {% for s in intake_filters %}{% if s == intake_filter %}<strong>{{ s }}</strong>{% else %}<a href="/belege?stand={{ s }}">{{ s }}</a>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}
+</p>
+<div class="arbeit">
+<div class="baum">
+  {% for root in tree %}
+  {% if root.shown %}{{ folder_node(root) }}{% else %}<p>{{ root.name }}: keine Dateien.</p>{% endif %}
+  {% endfor %}
+  {% if hidden_files or hidden_folders %}
+  <details class="ausgeblendet"{% if selected_hidden %} open{% endif %}>
+    <summary>Ausgeblendet ({{ hidden_files | length + hidden_folders | length }})</summary>
+    {% for row in hidden_folders %}{% set entry, checksum, count = row.entry, row.checksum, row.count %}
+    <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
+      <span class="name">{{ entry.path }}/</span>
+      <span class="groesse">{{ count }} {{ "Datei" if count == 1 else "Dateien" }}</span>
+      <span class="stand">ausgeblendet</span>
+      <form class="direkt" method="post" action="/belege/einblenden-ordner">
+        <input type="hidden" name="site" value="{{ entry.site }}">
+        <input type="hidden" name="path" value="{{ entry.path }}">
+        <input type="hidden" name="checksum" value="{{ checksum }}">
+        <button type="submit">Wieder einblenden</button>
+      </form>
+    </div>
+    {% endfor %}
+    {% for row in hidden_files %}{% set entry, file = row.entry, row.file %}
+    <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
+      <a class="name" href="/belege?stand={{ intake_filter }}&datei={{ entry.sha256 }}"{% if selected_hidden and selected_hidden.entry.sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a>
+      {% if file %}<span class="groesse">{{ size(file) }}</span>{% endif %}
+      <span class="stand">ausgeblendet</span>
+    </div>
+    {% endfor %}
+  </details>
+  {% endif %}
+</div>
+<div class="rechts">
+  {% if selected %}{{ pane() }}{% elif selected_hidden %}{{ hidden_pane() }}{% else %}<p>Datei wählen (Pfeiltasten, Enter).</p>{% endif %}
+</div>
+</div>
+<script src="/static/belege.js" defer></script>
+{% endif %}
+{% endblock %}

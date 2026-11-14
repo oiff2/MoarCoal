@@ -3,7 +3,7 @@
 import hashlib
 import json
 import secrets
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Self, cast
 
@@ -51,21 +51,77 @@ class Entry(BaseModel):
         return EntryAddress(kind=type(self).__name__, id=self.id)
 
 
+type EntryCheck = Callable[[Entry, Mapping[EntryAddress, Entry]], str | None]
+"""Prüfung eines geschriebenen Eintrags gegen alle Einträge nach dem Vorgang; Text = Abweisung."""
+
+
 @dataclass(frozen=True)
 class EntryKind:
     """Eine Eintragsart, wie die Modulanmeldung sie nennt (docs/grundgeruest.md, 4 und 5.2).
 
     `schema` ist das Dateiformat (`<modul>/<n>`, ein Format je Datei); `path` ist die reine
-    Funktion Eintrag -> Datei (relativ zum Datenverzeichnis, mit `/`).
+    Funktion Eintrag -> Datei (relativ zum Datenverzeichnis, mit `/`). Was der Schreibweg je Art
+    zusätzlich tut, steht hier (optional): `check` prüft jeden geschriebenen Eintrag nach dem
+    ganzen Vorgang, `denylist` bildet aus allen Einträgen der Art die Werte der Sperrliste,
+    `merge` führt zwei Einträge der Art zusammen (Quelle, Ziel -> neues Ziel), `former_ids` nennt
+    die Kennungen früherer, zusammengeführter Einträge, die jetzt auf diesen auflösen.
     """
 
     model: type[Entry]
     schema: str
     path: Callable[[Entry], str]
+    check: EntryCheck | None = None
+    denylist: Callable[[list[Entry]], list[str]] | None = None
+    merge: Callable[[Entry, Entry], Entry] | None = None
+    former_ids: Callable[[Entry], Sequence[str]] | None = None
 
 
-def entry_kind[E: Entry](model: type[E], schema: str, path: Callable[[E], str]) -> EntryKind:
-    return EntryKind(model, schema, cast(Callable[[Entry], str], path))
+def entry_kind[E: Entry](
+    model: type[E],
+    schema: str,
+    path: Callable[[E], str],
+    *,
+    check: Callable[[E, Mapping[EntryAddress, Entry]], str | None] | None = None,
+    denylist: Callable[[list[E]], list[str]] | None = None,
+    merge: Callable[[E, E], E] | None = None,
+    former_ids: Callable[[E], Sequence[str]] | None = None,
+) -> EntryKind:
+    return EntryKind(
+        model,
+        schema,
+        cast(Callable[[Entry], str], path),
+        cast(EntryCheck | None, check),
+        cast(Callable[[list[Entry]], list[str]] | None, denylist),
+        cast(Callable[[Entry, Entry], Entry] | None, merge),
+        cast(Callable[[Entry], Sequence[str]] | None, former_ids),
+    )
+
+
+def with_reference_moved(entry: Entry, old: EntryAddress, new: EntryAddress) -> Entry:
+    """Der Eintrag, in dem jedes Feld mit der Adresse `old` auf `new` zeigt (nur direkte Felder)."""
+    moved = {name: new for name in type(entry).model_fields if getattr(entry, name) == old}
+    return entry.model_copy(update=moved) if moved else entry
+
+
+def referenced_addresses(entry: Entry) -> set[EntryAddress]:
+    """Alle Adressen, auf die Felder des Eintrags verweisen (auch in Listen und Teilmodellen)."""
+    found: set[EntryAddress] = set()
+
+    def walk(value: object) -> None:
+        if isinstance(value, EntryAddress):
+            found.add(value)
+        elif isinstance(value, BaseModel):
+            for name in type(value).model_fields:
+                walk(getattr(value, name))
+        elif isinstance(value, list | tuple | set | frozenset):
+            for item in cast(Iterable[object], value):
+                walk(item)
+        elif isinstance(value, dict):
+            for item in cast(dict[object, object], value).values():
+                walk(item)
+
+    walk(entry)
+    return found
 
 
 def entry_checksum(entry: Entry) -> str:

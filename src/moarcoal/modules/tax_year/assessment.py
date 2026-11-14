@@ -109,4 +109,5 @@ ASSESSMENT = DocumentKind(
     has_period=True,
     read_in=_no_read_in,
     extraction_template=TEMPLATE,
+    unique_per_period=True,
 )

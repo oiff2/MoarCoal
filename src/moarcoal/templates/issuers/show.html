@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ issuer.name }} – MoarCoal{% endblock %}
+{% block main %}
+<h1>{{ issuer.name }}</h1>
+<p><a href="/aussteller">Zurück zu Aussteller</a></p>
+{% include "work/_errors.html" %}
+{% if holder %}
+<ul class="fehler"><li>Duplikat zu: <a href="/aussteller/{{ holder.id }}">{{ holder.name }}</a></li></ul>
+{% endif %}
+<form method="post" action="/aussteller/{{ issuer.id }}">
+  <input type="hidden" name="checksum" value="{{ checksum }}">
+  <label>Name
+    <input name="name" value="{{ values.get('name', '') }}" required>
+  </label>
+  <label>Weitere Namen (einer pro Absatz, mit Enter getrennt)
+    <textarea name="aliases" rows="3">{{ values.get('aliases', '') }}</textarea>
+  </label>
+  <label>
+    <input type="checkbox" name="private_person"{% if values.get('private_person') %} checked{% endif %}>
+    Privatperson (Name und Anschrift sind sensibel)
+  </label>
+  <button type="submit">Speichern</button>
+</form>
+
+<h2>Dokumente ({{ documents | length }})</h2>
+{% if documents %}
+<ul>
+  {% for document in documents %}
+  <li><a href="{{ entry_url(document.address) }}">{{ document.site }}: {{ document.path }}</a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>Keine Dokumente.</p>
+{% endif %}
+
+<h2>Erwartete Belege ({{ expected | length }})</h2>
+{% if expected %}
+<ul>
+  {% for entry in expected %}
+  <li><a href="/belege/erwartet/{{ entry.id }}">{{ entry.document_kind }}, ab {{ entry.start_year }}{% if entry.description %}: {{ entry.description }}{% endif %}</a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>Keine Erwarteten Belege.</p>
+{% endif %}
+
+{% if others %}
+<h2>Zusammenführen</h2>
+<p>Ein anderer Name desselben Ausstellers gehört normalerweise als weiterer Name dazu (siehe oben). Zusammenführen ist die Ausnahme, wenn derselbe Aussteller zweimal angelegt wurde.</p>
+<form method="get" action="/aussteller/{{ issuer.id }}/zusammenfuehren">
+  <label>Zusammenführen mit
+    <select name="into" required>
+      {% for other in others %}<option value="{{ other.id }}">{{ other.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit">Folgen ansehen</button>
+</form>
+{% endif %}
+
+<h2>Löschen</h2>
+{% if documents or expected %}
+<p>Der Aussteller wird noch verwendet (siehe oben) und lässt sich erst löschen, wenn nichts mehr auf ihn verweist.</p>
+{% else %}
+<form method="post" action="/aussteller/{{ issuer.id }}/loeschen" class="inline">
+  <input type="hidden" name="checksum" value="{{ checksum }}">
+  <button type="submit">Löschen</button>
+</form>
+{% endif %}
+{% endblock %}

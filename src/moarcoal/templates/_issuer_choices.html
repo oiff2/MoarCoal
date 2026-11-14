@@ -1,0 +1,19 @@
+{# Trefferliste des Aussteller-Felds, geliefert von /aussteller-suche. Ist ein Aussteller gewählt
+   (`chosen`, mit `selected` = `id:…` oder `alias:…`), enthält sie nur die Wahl (verstecktes Feld; das Suchfeld zeigt dann den Namen). #}
+{% if chosen %}
+<div class="gewaehlt">
+  <input type="hidden" name="issuer_choice" value="{{ selected }}"{% if not selected.startswith("alias:") %} data-name="{{ chosen.name }}"{% endif %}>
+  {% if selected.startswith("alias:") %}<small>Neuer Alias: „{{ text }}“ zu {{ chosen.name }}</small>{% endif %}
+</div>
+{% else %}
+<ul class="treffer">
+{% for hit in hits %}
+  <li><button type="button" hx-get="/aussteller-suche" hx-target="closest .auswahl" hx-vals='{"issuer_choice": "id:{{ hit.id }}"}'>{{ hit.name }}{% if hit.aliases %} <small>({{ hit.aliases | join(", ") }})</small>{% endif %}</button></li>
+{% endfor %}
+{% if text and not exact %}
+{% for hit in hits %}
+  <li><button type="button" hx-get="/aussteller-suche" hx-target="closest .auswahl" hx-vals='{"issuer_choice": "alias:{{ hit.id }}"}'>Neuer Alias: „{{ text }}“ zu {{ hit.name }}</button></li>
+{% endfor %}
+{% endif %}
+</ul>
+{% endif %}

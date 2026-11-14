@@ -9,12 +9,13 @@ ein Absturz mitten im Umbenennen ist damit nicht abgedeckt.
 
 import hashlib
 import json
+import logging
 import os
 import re
 import threading
 import time
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
 
@@ -22,16 +23,19 @@ from pydantic import ValidationError
 
 from moarcoal.storage.aborted_extractions import ABORTED_EXTRACTION_KIND
 from moarcoal.storage.dismissals import DISMISSAL_KIND
-from moarcoal.storage.documents import DATA_LAYER_KINDS
+from moarcoal.storage.documents import document_entry_kind
 from moarcoal.storage.entries import (
     Entry,
     EntryAddress,
     EntryKind,
     entry_checksum,
     kind_collisions,
+    referenced_addresses,
+    with_reference_moved,
 )
 from moarcoal.storage.expected_documents import EXPECTED_DOCUMENT_KIND
-from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND
+from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND, HIDDEN_FOLDER_KIND
+from moarcoal.storage.issuers import ISSUER_KIND
 from moarcoal.storage.proposals import PROPOSAL_KIND
 from moarcoal.storage.snapshots import SNAPSHOT_KIND
 
@@ -42,6 +46,7 @@ BACKUP_KEEP = 20
 TEMP_SUFFIX = ".tmp"
 SITES_FILE = "common/sites.json"  # keine Einträge, sondern die benannten Ablageorte
 SITES_SCHEMA = "ablageorte/1"
+DERIVED_DENYLIST_FILE = "common/derived-denylist.txt"  # abgeleitet, nie von Hand
 MAX_SITE_FILE_BYTES = 50_000_000
 
 
@@ -87,7 +92,27 @@ class Delete:
         return self.target
 
 
-type Change = Put | Delete
+@dataclass(frozen=True)
+class Merge:
+    """Eintrag `source` in Eintrag `into` derselben Art zusammenführen (bewusste Ausnahme).
+
+    Geht nur bei Arten mit `EntryKind.merge` (bisher Aussteller), die das neue Ziel bildet; die
+    Kennung der Quelle verweist danach auf das Ziel (`State.resolve`, `EntryKind.former_ids`),
+    Einträge mit einem Feld auf die Quelle verweisen auf das Ziel. `expected` und `expected_into`
+    sind die Prüfsummen der bekannten Fassungen.
+    """
+
+    source: EntryAddress
+    into: EntryAddress
+    expected: str
+    expected_into: str
+
+    @property
+    def address(self) -> EntryAddress:
+        return self.source
+
+
+type Change = Put | Delete | Merge
 
 
 @dataclass(frozen=True)
@@ -102,12 +127,29 @@ class Rejected:
 
 @dataclass(frozen=True)
 class State:
-    """Alle geladenen Einträge, unveränderlich."""
+    """Alle geladenen Einträge, unveränderlich.
+
+    `denylist_failed`: die abgeleitete Sperrliste ließ sich zuletzt nicht schreiben (Befund).
+    `former`: frühere Adresse eines zusammengeführten Eintrags -> Adresse des heutigen Eintrags
+    (der Store bildet sie aus `EntryKind.former_ids`).
+    """
 
     entries: Mapping[EntryAddress, Entry]
+    denylist_failed: bool = False
+    former: Mapping[EntryAddress, EntryAddress] = field(
+        default_factory=dict[EntryAddress, EntryAddress]
+    )
 
     def get(self, address: EntryAddress) -> Entry | None:
         return self.entries.get(address)
+
+    def resolve(self, address: EntryAddress) -> Entry | None:
+        """Wie `get`; die Adresse eines zusammengeführten Eintrags liefert das Ziel."""
+        found = self.entries.get(address)
+        if found is not None:
+            return found
+        current = self.former.get(address)
+        return None if current is None else self.entries.get(current)
 
     def of_kind[E: Entry](self, kind: type[E]) -> list[E]:
         return [e for e in self.entries.values() if type(e) is kind]
@@ -144,6 +186,20 @@ def _render(schema: str, entries: Sequence[Entry]) -> bytes:
 
 def _sort_key(entry: Entry) -> str:
     return str(entry.address)
+
+
+def _reference_problems(
+    changes: Sequence[Change], new_entries: Mapping[EntryAddress, Entry]
+) -> dict[EntryAddress, str]:
+    """Verweise nach dem Vorgang: Gelöschtes wird nicht mehr verwendet."""
+    problems: dict[EntryAddress, str] = {}
+    deleted: set[EntryAddress] = set()
+    deleted.update(c.address for c in changes if isinstance(c, Delete | Merge))
+    if deleted:
+        for entry in new_entries.values():
+            for address in referenced_addresses(entry) & deleted:
+                problems[address] = "Wird noch verwendet."
+    return problems
 
 
 def _safe_path(relative: str) -> bool:
@@ -236,6 +292,8 @@ class Store:
         self._site_hashes: dict[tuple[str, int, int], str] = {}  # (Datei, Größe, mtime) -> SHA-256
         self._state = State(MappingProxyType({}))
         self._load()
+        entries = self._state.entries
+        self._state = self._state_of(entries, denylist_failed=not self._write_denylist(entries))
 
     @property
     def root(self) -> Path:
@@ -274,13 +332,15 @@ class Store:
 
         Es gelten die Regeln von `read_site_file`: Verzeichnis-Links werden nicht verfolgt, Dateien
         mit Ziel außerhalb des Ablageorts, zu große und unlesbare Dateien fehlen in der Liste.
+        Ordner mit Punkt am Anfang (etwa `.git`) werden samt Inhalt übergangen.
         """
         folder = self._sites.get(site)
         if folder is None:
             raise SiteFileError(f"Unbekannter Ablageort {site!r}.")
         base = folder.resolve()
         found: list[SiteFile] = []
-        for current, _, names in os.walk(base):
+        for current, dirs, names in os.walk(base):
+            dirs[:] = [d for d in dirs if not d.startswith(".")]
             for name in names:
                 file = Path(current) / name
                 try:
@@ -321,7 +381,7 @@ class Store:
                         raise StoreError(f"{relative}: {entry.address} kommt doppelt vor")
                     entries[entry.address] = entry
                 self._file_checksums[relative] = _sha256(data)
-        self._state = State(MappingProxyType(entries))
+        self._state = self._state_of(MappingProxyType(entries))
 
     def _parse(self, relative: str, data: bytes) -> list[Entry]:
         try:
@@ -387,8 +447,17 @@ class Store:
                         reasons[address] = "Inzwischen geändert."
                         continue
                     del new_entries[address]
+                case Merge(into=into):
+                    reason = self._merge(change, state, new_entries, touch)
+                    if reason is not None:
+                        reasons[address] = reason
+                        continue
+                    seen.add(into)
             if current is not None:
                 touch(self._path_of(current), address)
+        if not reasons:
+            reasons.update(_reference_problems(changes, new_entries))
+            reasons.update(self._kind_problems(changes, new_entries))
         if reasons:
             return Rejected(reasons)
 
@@ -397,8 +466,56 @@ class Store:
             return Rejected(reasons)
 
         self._write(plan)
-        self._state = State(MappingProxyType(new_entries))
+        entries = MappingProxyType(new_entries)
+        self._state = self._state_of(entries, denylist_failed=not self._write_denylist(entries))
         return Applied(changes)
+
+    def _kind_problems(
+        self, changes: Sequence[Change], new_entries: Mapping[EntryAddress, Entry]
+    ) -> dict[EntryAddress, str]:
+        """Prüfungen der Eintragsarten (`EntryKind.check`) für jeden geschriebenen Eintrag,
+        gegen den Stand nach dem ganzen Vorgang."""
+        problems: dict[EntryAddress, str] = {}
+        for change in changes:
+            address = change.into if isinstance(change, Merge) else change.address
+            entry = new_entries.get(address)
+            check = None if entry is None else self._kinds[type(entry).__name__].check
+            if entry is not None and check is not None:
+                reason = check(entry, new_entries)
+                if reason is not None:
+                    problems[address] = reason
+        return problems
+
+    def _merge(
+        self,
+        change: Merge,
+        state: State,
+        new_entries: dict[EntryAddress, Entry],
+        touch: Callable[[str, EntryAddress], None],
+    ) -> str | None:
+        source, target = state.get(change.source), state.get(change.into)
+        if source is None or target is None or type(source) is not type(target):
+            return "Diese Einträge lassen sich nicht zusammenführen."
+        merge = self._kinds[type(target).__name__].merge
+        if merge is None:
+            return "Diese Einträge lassen sich nicht zusammenführen."
+        if source.address == target.address:
+            return "Ein Eintrag lässt sich nicht mit sich selbst zusammenführen."
+        if (
+            entry_checksum(source) != change.expected
+            or entry_checksum(target) != change.expected_into
+        ):
+            return "Inzwischen geändert."
+        merged = merge(source, target)
+        new_entries[merged.address] = merged
+        touch(self._path_of(merged), merged.address)
+        del new_entries[source.address]
+        for address, entry in list(new_entries.items()):
+            moved = with_reference_moved(entry, source.address, target.address)
+            if moved is not entry:
+                new_entries[address] = moved
+                touch(self._path_of(entry), address)
+        return None
 
     def _check_put(self, entry: Entry, expected: str | None, current: Entry | None) -> str | None:
         cls = type(entry)
@@ -471,6 +588,38 @@ class Store:
             else:
                 self._file_checksums[path] = _sha256(data)
 
+    def _state_of(
+        self, entries: Mapping[EntryAddress, Entry], denylist_failed: bool = False
+    ) -> State:
+        """Der Stand mit den früheren Adressen, die `EntryKind.former_ids` nennt."""
+        former: dict[EntryAddress, EntryAddress] = {}
+        for entry in entries.values():
+            kind = self._kinds.get(type(entry).__name__)
+            if kind is not None and kind.former_ids is not None:
+                for old in kind.former_ids(entry):
+                    former[EntryAddress(kind=entry.address.kind, id=old)] = entry.address
+        return State(entries, denylist_failed, former)
+
+    def _write_denylist(self, entries: Mapping[EntryAddress, Entry]) -> bool:
+        """Schreibt die Sperrliste aus den sensiblen Feldern neu (Spec 8; `EntryKind.denylist`).
+
+        Scheitert das, gilt der Vorgang trotzdem (ADR 0006): `False`, daraus wird über
+        `State.denylist_failed` ein Befund, und die Warnung geht ins Protokoll.
+        """
+        lines: set[str] = set()
+        for kind in self._kinds.values():
+            if kind.denylist is not None:
+                lines.update(kind.denylist([e for e in entries.values() if type(e) is kind.model]))
+        data = "".join(f"{line}\n" for line in sorted(lines)).encode()
+        target = self._root / DERIVED_DENYLIST_FILE
+        try:
+            if (_read_if_exists(target) or b"") != data:  # leer und fehlend ist dasselbe
+                _write_file(target, data)
+        except OSError:
+            logging.getLogger(__name__).warning("Abgeleitete Sperrliste nicht geschrieben")
+            return False
+        return True
+
     def _backup(self, path: str, data: bytes) -> None:
         directory = self._root / BACKUP_DIR / path
         _write_file(directory / f"{time.time_ns():020d}.json", data)
@@ -479,18 +628,25 @@ class Store:
 
 
 def open_store(
-    root: Path, kinds: Sequence[EntryKind], sites: Mapping[str, Path] | None = None
+    root: Path,
+    kinds: Sequence[EntryKind],
+    sites: Mapping[str, Path] | None = None,
+    once_per_period: Mapping[str, str] | None = None,
 ) -> Store:
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
 
-    Die Arten der Datenebene (Dokument, Ausblendungen, Erwarteter Beleg, Schnappschuss) kommen
-    immer dazu.
+    Die Arten der Datenebene (Dokument, Aussteller, Ausblendungen, Erwarteter Beleg,
+    Schnappschuss) kommen immer dazu.
     `sites` nennt die Ablageorte (Name -> Ordner); ohne Angabe gilt `common/sites.json`.
+    `once_per_period` (Schlüssel -> Name) nennt die Dokumentarten mit nur einem Dokument je
+    Bezugszeitraum und Nutzer; der Schreibweg weist ein zweites ab.
     """
     all_kinds = (
-        *DATA_LAYER_KINDS,
+        document_entry_kind(once_per_period),
         DISMISSAL_KIND,
         HIDDEN_FILE_KIND,
+        HIDDEN_FOLDER_KIND,
+        ISSUER_KIND,
         EXPECTED_DOCUMENT_KIND,
         PROPOSAL_KIND,
         ABORTED_EXTRACTION_KIND,

@@ -1,0 +1,27 @@
+{# Formular zum Ändern eines Dokuments (Aussteller, Art, Jahr) und Löschen; wie beim Aufnehmen.
+   `references` sind die Einträge, die auf das Dokument verweisen: solange es welche gibt, sind
+   Art und Jahr gesperrt und Löschen ist nicht möglich. #}
+{% from "_issuer_field.html" import issuer_field %}
+{% macro document_form(document, kinds, references, checksum, labels, default_year, issuer_text="", year="") %}
+{% set locked = references | length > 0 %}
+<form method="post" action="/dokumente/{{ document.id }}/aendern">
+  {{ issuer_field(default=document.issuer.id if document.issuer else "", text=issuer_text) }}
+  <label>Dokumentart
+    <select name="kind"{% if locked %} disabled{% endif %}>
+      <option value="" data-ohne-zeitraum{% if not document.document_kind %} selected{% endif %}>Beleg</option>
+      {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if document.document_kind == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="jahr">Jahr <input name="year" value="{{ year or (document.period_start.year if document.period_start else default_year) }}" size="6"{% if locked %} disabled{% endif %}></label>
+  <button type="submit">Ändern</button>
+</form>
+{% if locked %}
+<p>Daran hängt etwas, deshalb sind Art und Jahr gesperrt und das Dokument lässt sich nicht löschen:
+  {% for ref in references %}{% set url = entry_url(ref.address) %}{% if url %}<a href="{{ url }}">{{ labels.get(ref.address.kind, ref.address.kind) }}</a>{% else %}{{ labels.get(ref.address.kind, ref.address.kind) }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}.</p>
+{% else %}
+<form method="post" action="/dokumente/{{ document.id }}/loeschen">
+  <input type="hidden" name="checksum" value="{{ checksum }}">
+  <button type="submit">Dokument löschen</button> <small>Die Datei bleibt liegen und ist danach wieder offen.</small>
+</form>
+{% endif %}
+{% endmacro %}

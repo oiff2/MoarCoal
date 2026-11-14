@@ -76,6 +76,7 @@ def test_denylist_matches_ignoring_case_and_spaces_without_echoing() -> None:
 
 
 def run_claude_hook(monkeypatch: pytest.MonkeyPatch, command: str, cwd: str = ".") -> int:
+    monkeypatch.setenv("MOARCOAL_DATA_DIR", str(pg.REPO_ROOT / "nonexistent"))
     event = {"tool_name": "Bash", "tool_input": {"command": command}, "cwd": cwd}
     monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(event)))
     monkeypatch.setattr(pg, "DENYLIST_PATH", pg.REPO_ROOT / "nonexistent")

@@ -1,7 +1,8 @@
 :root { color-scheme: light dark; }
-body { font-family: system-ui, sans-serif; margin: 0; }
+html, body { height: 100%; }
+body { font-family: system-ui, sans-serif; margin: 0; display: flex; flex-direction: column; }
 header nav { display: flex; gap: 1rem; padding: 0.5rem 1rem; border-bottom: 1px solid gray; }
-main { padding: 1rem; }
+main { padding: 1rem; flex: 1; min-height: 0; overflow: auto; }
 table { border-collapse: collapse; }
 th, td { text-align: left; padding: 0.25rem 0.75rem; border-bottom: 1px solid gray; }
 label { display: block; margin: 0.25rem 0; }
@@ -17,5 +18,50 @@ form.inline { display: inline; }
 .schweregrad-error strong { color: crimson; }
 .schweregrad-warning strong { color: darkorange; }
 tr:target { outline: 2px solid darkorange; }
-/* Eingang: das Jahr nur bei Dokumentarten mit Bezugszeitraum */
+/* Belege, Ablage: kein Seiten-Scrollen, der Baum scrollt in sich */
+main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
+.reiter { display: flex; gap: 1rem; margin-bottom: 0.5rem; }
+.reiter a[aria-current] { font-weight: bold; text-decoration: none; }
+.baum { flex: 1; min-height: 0; overflow: auto; }
+.ordner .ordner, .ordner .datei { margin-left: 1.25rem; }
+.ordner > summary { cursor: pointer; }
+.zaehler { padding: 0 0.4rem; border: 1px solid gray; border-radius: 0.25rem; font-size: 0.85em; }
+.datei { display: flex; flex-wrap: wrap; gap: 0 0.75rem; align-items: baseline; padding: 0.15rem 0; }
+form.direkt { display: inline; margin-left: auto; }
+button.auge { padding: 0 0.25rem; line-height: 1; vertical-align: middle; }
+button.auge svg { display: block; }
+.datei a[aria-current] { font-weight: bold; }
+.arbeit { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(18rem, 2fr) 3fr; grid-template-rows: minmax(0, 1fr); gap: 1rem; }
+/* Rechts: der Kopf ist so hoch wie sein Inhalt, höchstens 45 % und scrollt darüber in sich; darunter scrollt die Vorschau in sich */
+.rechts { display: flex; flex-direction: column; gap: 0.5rem; min-height: 0; }
+.formular { flex: 0 1 auto; max-height: 45%; overflow: auto; }
+.formular h2 { font-size: 1rem; margin: 0.75rem 0 0.25rem; }
+.aussteller-feld { max-width: 32rem; }
+/* Vorschlag: je Feld eine Zeile */
+.vorschlag { list-style: none; margin: 0; padding: 0; }
+.vorschlag li { display: flex; flex-wrap: wrap; gap: 0 0.75rem; align-items: baseline; padding: 0.2rem 0; border-bottom: 1px solid gray; }
+.vorschlag .feld { min-width: 10rem; }
+.vorschlag .wert { min-width: 6rem; }
+.vorschlag form { margin-left: auto; }
+.formular form { display: flex; flex-wrap: wrap; gap: 0 0.75rem; align-items: baseline; }
+.formular .dateiname { margin: 0 0 0.25rem; }
+.vorschau { flex: 1; min-height: 0; overflow: auto; }
+.vorschau iframe { width: 100%; height: 100%; border: 0; }
+.vorschau img { max-width: 100%; }
+.ausgeblendet { margin-top: 1rem; }
+
+/* Belege: das Jahr nur bei Dokumentarten mit Bezugszeitraum */
 form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
+
+/* Aussteller-Feld */
+.aussteller-feld { border: 0; padding: 0; margin: 0; position: relative; }
+.aussteller-feld legend { padding: 0; }
+.aussteller-feld .zeile { display: flex; gap: 1rem; align-items: center; }
+.aussteller-feld .suche { flex: 1; }
+.aussteller-feld .privat { display: none; white-space: nowrap; }
+.aussteller-feld:has(.suche:not(:placeholder-shown)):not(:has(.gewaehlt input)) .privat { display: inline; }
+/* Trefferliste klappt unter dem Feld auf, ohne den Seitenaufbau zu verschieben */
+.aussteller-feld .treffer { list-style: none; margin: 0.15rem 0 0; padding: 0; position: absolute; left: 0; right: 0; z-index: 10; background: Canvas; border: 1px solid gray; border-radius: 0.25rem; }
+.aussteller-feld .treffer:empty { display: none; }
+.aussteller-feld .treffer button { font: inherit; display: block; width: 100%; text-align: left; border: 0; background: none; padding: 0.3rem 0.5rem; cursor: pointer; }
+.aussteller-feld .treffer button:hover { background: color-mix(in srgb, currentColor 12%, transparent); }

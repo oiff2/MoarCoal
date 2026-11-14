@@ -1,15 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Erwarteten Beleg ändern – MoarCoal{% endblock %}
+{% from "_belege.html" import tabs %}
 {% block main %}
-<h1>Erwarteten Beleg ändern</h1>
-<p><a href="/erwartete-belege">Zurück zu Erwartete Belege</a></p>
+<h1>Belege</h1>
+{{ tabs("erwartet") }}
+<h2>Erwarteten Beleg ändern</h2>
+{% include "expected_documents/_suggestion.html" %}
 {% include "work/_errors.html" %}
-<form method="post" action="/erwartete-belege/{{ entry_id }}">
+<form method="post" action="/belege/erwartet/{{ entry_id }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   {% include "expected_documents/_fields.html" %}
   <button type="submit">Speichern</button>
 </form>
-<form method="post" action="/erwartete-belege/{{ entry_id }}/loeschen" class="inline">
+<form method="post" action="/belege/erwartet/{{ entry_id }}/loeschen" class="inline">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   <button type="submit">Löschen</button>
 </form>

@@ -1,0 +1,57 @@
+{# Kopf eines Dokuments: Aussteller und Ändern, Vorschlag bestätigen, Auslesen. `d` kommt von
+   `document_detail` (document_list.py). Eingebunden rechts im Reiter Dokumente
+   und in der Ablage. #}
+{% from "_document_form.html" import document_form %}
+{% macro document_detail(d) %}
+{% set document = d.document %}
+<h2>Aussteller</h2>
+<p>{% if d.issuer %}{{ d.issuer.name }}{% else %}Kein Aussteller angegeben.{% endif %}</p>
+<h2>Ändern</h2>
+{{ document_form(document, d.kinds, d.references, d.checksum, d.labels, d.default_year, d.issuer_text, d.year) }}
+
+{% if d.proposal %}
+<h2>Vorschlag bestätigen</h2>
+<p>Claude hat diese Felder ausgelesen. Erst was Sie bestätigen, gilt; eine Korrektur ersetzt den ausgelesenen Inhalt, der daneben stehen bleibt.</p>
+<ul class="vorschlag">
+  {% for key, field in d.proposal.fields.items() %}
+  {% set spec = d.template.field(key) if d.template else none %}
+  <li>
+    <strong class="feld">{{ spec.label if spec else key }}{% if spec and spec.unit %} ({{ spec.unit }}){% endif %}</strong>
+    <span class="wert">{{ "" if field.value is none else field.value }}</span>
+    <small class="stelle">{{ field.location }}</small>
+    <span class="stand">
+      {% if not field.confirmed %}offen
+      {% elif field.correction is not none %}bestätigt, korrigiert: {{ field.correction }}
+      {% else %}bestätigt{% endif %}
+    </span>
+    <form method="post" action="/dokumente/{{ document.id }}/bestaetigen">
+      <input type="hidden" name="field" value="{{ key }}">
+      <label>Korrektur <input type="text" name="correction" value="{{ field.correction or '' }}" size="18"></label>
+      <button type="submit">bestätigen</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% if d.proposal.open_keys %}
+<form method="post" action="/dokumente/{{ document.id }}/bestaetigen">
+  <input type="hidden" name="all" value="1">
+  <button type="submit">alle bestätigen</button>
+</form>
+{% else %}
+<p>Alle Felder sind bestätigt.</p>
+{% endif %}
+<h2>Neu auslesen</h2>
+<p>Liest das Dokument noch einmal aus. Der neue Vorschlag gilt dann; bestätigt werden muss er neu, der alte bleibt gespeichert.</p>
+<form method="post" action="/dokumente/{{ document.id }}/auslesen">
+  <button type="submit">Neu auslesen</button>
+</form>
+{% elif d.template %}
+<h2>Auslesen</h2>
+<p>Claude liest dieses Dokument nach der Auslese-Vorlage der Dokumentart aus. Das Ergebnis ist ein Vorschlag, den Sie danach je Feld bestätigen oder korrigieren.</p>
+<form method="post" action="/dokumente/{{ document.id }}/auslesen">
+  <button type="submit">Auslesen</button>
+</form>
+{% else %}
+<p>Diese Dokumentart wird nicht ausgelesen.</p>
+{% endif %}
+{% endmacro %}

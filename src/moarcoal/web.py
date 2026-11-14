@@ -8,9 +8,10 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from moarcoal.documents import DocumentKind
-from moarcoal.incoming import all_site_files
+from moarcoal.incoming import all_site_files, incoming_files
+from moarcoal.links import document_url, issuer_url
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import EntryAddress, ExpectedDocument, State, Store
+from moarcoal.storage import Document, EntryAddress, ExpectedDocument, Issuer, State, Store
 from moarcoal.values.engine import Values
 from moarcoal.values.model import Amount, format_amount
 
@@ -20,10 +21,22 @@ def format_eur(cents: int) -> str:
     return format_amount(Amount.eur_cents(cents))
 
 
+def year_of(text: str) -> int | None:
+    """Das Jahr als ganze Zahl (Randleerzeichen egal); `None`, wenn `text` keine ist."""
+    try:
+        return int(text.strip())
+    except ValueError:
+        return None
+
+
 def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) -> str | None:
     """Link zum Eintrag, wie das besitzende Modul ihn nennt; unbekannte Art: kein Link."""
+    if address.kind == Document.__name__:  # Baustein der Datenebene
+        return document_url(address.id)
     if address.kind == ExpectedDocument.__name__:  # Baustein der Datenebene
-        return f"/erwartete-belege/{address.id}"
+        return f"/belege/erwartet/{address.id}"
+    if address.kind == Issuer.__name__:  # Baustein der Datenebene
+        return issuer_url(address.id)
     return next((url for m in modules if (url := m.entry_url(address)) is not None), None)
 
 
@@ -69,6 +82,11 @@ async def form_fields(request: Request) -> dict[str, str]:
 def render(request: Request, name: str, status_code: int = 200, **context: Any) -> HTMLResponse:
     templates: Jinja2Templates = request.app.state.templates
     registrations: tuple[ModuleRegistration, ...] = request.app.state.modules
+    if "open_files" not in context:  # Zähler der Seitenleiste; die Belege-Seite kennt ihn schon
+        store = store_of(request)
+        context["open_files"] = len(
+            incoming_files(all_site_files(store), store.state(), user_of(request))
+        )
     return templates.TemplateResponse(
         request,
         name,

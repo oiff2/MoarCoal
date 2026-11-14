@@ -7,6 +7,7 @@
   <title>{% block title %}MoarCoal{% endblock %}</title>
   <link rel="stylesheet" href="/static/app.css">
   <script src="/static/htmx.min.js"></script>
+  <script src="/static/aussteller.js" defer></script>
 </head>
 <body>
   <header>
@@ -15,8 +16,8 @@
       {% for module in modules %}
       <a href="{{ module.nav_url }}">{{ module.nav_label }}</a>
       {% endfor %}
-      <a href="/eingang">Eingang</a>
-      <a href="/erwartete-belege">Erwartete Belege</a>
+      <a href="/belege">Belege{% if open_files %} ({{ open_files }}){% endif %}</a>
+      <a href="/aussteller">Aussteller</a>
       <a href="/befunde">Befunde</a>
       <span>{{ user_name }}</span>
     </nav>

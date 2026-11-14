@@ -1,4 +1,4 @@
-"""Seite „Erwartete Belege“: Stand je Jahr, anlegen, ändern, löschen (Baustein der Datenebene)."""
+"""Belege-Seite, Reiter Erwartet: Stand je Jahr, anlegen, ändern, löschen (Datenebene)."""
 
 from typing import Annotated
 
@@ -8,23 +8,23 @@ from pydantic import ValidationError
 
 from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.documents import DocumentKind
-from moarcoal.expected_documents import statuses
-from moarcoal.registration import ModuleRegistration
+from moarcoal.expected_documents import previous_year_issuer, statuses
 from moarcoal.storage import (
     Applied,
     Delete,
     Document,
     EntryAddress,
     ExpectedDocument,
+    Issuer,
     Put,
     Rejected,
     entry_checksum,
     new_id,
 )
 from moarcoal.storage.expected_documents import MAX_YEAR, MIN_YEAR, TEXT_MAX
-from moarcoal.web import form_fields, render, store_of, user_of
+from moarcoal.web import document_kinds, form_fields, render, store_of, user_of
 
-router = APIRouter(prefix="/erwartete-belege")
+router = APIRouter(prefix="/belege/erwartet")
 
 type Fields = dict[str, str]
 
@@ -38,8 +38,7 @@ END_BEFORE_START = "Ende: nicht vor dem Beginn"
 
 
 def _all_kinds(request: Request) -> list[DocumentKind]:
-    registrations: tuple[ModuleRegistration, ...] = request.app.state.modules
-    return [k for r in registrations for k in r.document_kinds]
+    return list(document_kinds(request).values())
 
 
 def _kinds(request: Request) -> dict[str, DocumentKind]:
@@ -92,6 +91,17 @@ def _own(request: Request, entry_id: str) -> ExpectedDocument:
     return entry
 
 
+def _suggestion(request: Request, entry: ExpectedDocument) -> Issuer | None:
+    """Aussteller des Vorjahres für das letzte angezeigte Jahr (bei offenem Ende `DEFAULT_YEAR`)."""
+    state = store_of(request).state()
+    user = user_of(request)
+    documents = [d for d in state.of_kind(Document) if d.owner == user]
+    year = entry.end_year if entry.end_year is not None else max(DEFAULT_YEAR, entry.start_year)
+    address = previous_year_issuer(documents, entry, year)
+    found = None if address is None else state.resolve(address)
+    return found if isinstance(found, Issuer) else None
+
+
 def _overview(
     request: Request, errors: list[str], values: Fields, status_code: int = 200
 ) -> HTMLResponse:
@@ -102,7 +112,7 @@ def _overview(
         (e for e in state.of_kind(ExpectedDocument) if e.owner == user),
         key=lambda e: (e.start_year, e.id),
     )
-    rows = [(e, statuses(documents, e, DEFAULT_YEAR)) for e in expected]
+    rows = [(e, statuses(documents, e, DEFAULT_YEAR), _suggestion(request, e)) for e in expected]
     return render(
         request,
         "expected_documents/index.html",
@@ -128,6 +138,7 @@ def _edit(
         "expected_documents/edit.html",
         status_code,
         entry_id=entry_id,
+        suggestion=_suggestion(request, _own(request, entry_id)),
         kinds=_kinds(request),
         values=fields,
         checksum=checksum,
@@ -152,7 +163,7 @@ def create(request: Request, fields: Annotated[Fields, Depends(form_fields)]) ->
     result = store_of(request).apply([Put(entry)])
     if not isinstance(result, Applied):
         return _overview(request, _reasons(result), fields, 409)
-    return RedirectResponse("/erwartete-belege", status_code=303)
+    return RedirectResponse("/belege/erwartet", status_code=303)
 
 
 @router.get("/{entry_id}", response_class=HTMLResponse)
@@ -173,7 +184,7 @@ def update(
     result = store_of(request).apply([Put(entry, expected=checksum)])
     if not isinstance(result, Applied):
         return _edit(request, entry_id, fields, _reasons(result), checksum, 409)
-    return RedirectResponse("/erwartete-belege", status_code=303)
+    return RedirectResponse("/belege/erwartet", status_code=303)
 
 
 @router.post("/{entry_id}/loeschen")
@@ -185,4 +196,4 @@ def delete(
     result = store_of(request).apply([Delete(entry.address, expected=checksum)])
     if not isinstance(result, Applied):
         return _edit(request, entry_id, _prefill(entry), _reasons(result), checksum, 409)
-    return RedirectResponse("/erwartete-belege", status_code=303)
+    return RedirectResponse("/belege/erwartet", status_code=303)
