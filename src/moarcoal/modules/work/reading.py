@@ -16,6 +16,7 @@ from moarcoal.storage import Document, Entry
 from moarcoal.values.model import parse_german_number
 
 READER_VERSION = 1
+TITLE = "Lohnsteuerbescheinigung"  # Titel der Dokumentart
 BELEGART = "VaSt_LStB"
 
 TAX_CLASS = "Besteuerungsmerkmal-ELStAM-Steuerklasse-Klasse"
@@ -51,7 +52,7 @@ def read_in_wage_tax_certificate(document: Document, content: bytes) -> list[Ent
     """Einlese-Regel der Dokumentart Lohnsteuerbescheinigung."""
     if document.period_start is None:
         raise ReadInError("Das Dokument hat keinen Bezugszeitraum.")
-    parsed = parse_elster_html(content)
+    parsed = parse_elster_html(content, TITLE)
     if parsed.belegart != BELEGART:
         raise ReadInError(
             f"Die Datei ist keine Lohnsteuerbescheinigung (Belegart {BELEGART} fehlt im Kopf)."

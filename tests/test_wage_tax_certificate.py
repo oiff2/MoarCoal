@@ -62,6 +62,16 @@ def read(content: str | bytes | None = None, year: int | None = 2025) -> WageTax
     return entry
 
 
+def test_pdf_instead_of_html_names_the_document_kind() -> None:
+    with pytest.raises(
+        ReadInError,
+        match=r"keine HTML-Datei.*PDF.*Dokumentart Lohnsteuerbescheinigung die Datei als HTML",
+    ):
+        read(b"%PDF-1.7\n1 0 obj")
+    with pytest.raises(ReadInError, match="keine Lohnsteuerbescheinigung"):
+        read("<!-- Belegart: E10 --><p>x</p>")
+
+
 def fixture_text() -> str:
     return FIXTURE.read_text(encoding="utf-8")
 

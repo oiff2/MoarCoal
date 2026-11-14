@@ -18,11 +18,14 @@ import re
 from dataclasses import dataclass
 from html.parser import HTMLParser
 
+from moarcoal.documents import ReadInError
+
 HEADER_COMMENT = re.compile(r"^\s*(Belegart|Belegversion|Veranlagungsjahr):\s*(.*?)\s*$")
 INDEX_SUFFIX = re.compile(r"_usb([0-9][0-9_\-]*)$")
 FORM_LINE = re.compile(r"\d{1,3}")
 RECEIVED = re.compile(r"Eingang auf Server:\s*(\d{2})\.(\d{2})\.(\d{4})")
 YEAR = re.compile(r"\d{4}")
+PDF_START = b"%PDF-"
 
 
 @dataclass(frozen=True)
@@ -117,8 +120,14 @@ class _Parser(HTMLParser):
             )
 
 
-def parse_elster_html(content: bytes) -> ParsedHtml:
-    """Kopf und alle Felder mit `data-name`, in der Reihenfolge der Datei."""
+def parse_elster_html(content: bytes, title: str) -> ParsedHtml:
+    """Kopf und alle Felder mit `data-name`, in der Reihenfolge der Datei. `title` ist der Titel
+    der Dokumentart und steht in der Meldung, wenn die Datei kein HTML ist (heute: ein PDF)."""
+    if content.lstrip().startswith(PDF_START):
+        raise ReadInError(
+            "Das ist keine HTML-Datei aus Mein ELSTER (sieht nach einem PDF aus). "
+            f"Bitte für die Dokumentart {title} die Datei als HTML speichern und diese aufnehmen."
+        )
     parser = _Parser()
     parser.feed(content.decode("utf-8", errors="replace"))
     parser.close()

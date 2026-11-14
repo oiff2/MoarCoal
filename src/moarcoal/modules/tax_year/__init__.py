@@ -19,7 +19,7 @@ from moarcoal.modules.tax_year.entries import (
     ProtocolReading,
 )
 from moarcoal.modules.tax_year.pages import MODULE_KEY, entry_url, router
-from moarcoal.modules.tax_year.reading import read_in_protocol
+from moarcoal.modules.tax_year.reading import TITLE, read_in_protocol
 from moarcoal.modules.tax_year.structure import FormStructure
 from moarcoal.registration import ModuleRegistration
 
@@ -29,7 +29,7 @@ def transfer_protocol(forms: Forms = FORMS) -> DocumentKind:
     als Schnappschuss der Abgabe ein."""
     return DocumentKind(
         key=TRANSFER_PROTOCOL_KEY,
-        title="Übertragungsprotokoll",
+        title=TITLE,
         has_period=True,
         read_in=read_in_protocol,
         after_take_in=partial(snapshot_on_filing, forms=forms),

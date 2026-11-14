@@ -150,6 +150,14 @@ def test_read_in_stores_fields_from_the_fixture() -> None:
     assert reading.reader_version == READER_VERSION
 
 
+def test_read_in_names_the_document_kind_for_a_pdf() -> None:
+    with pytest.raises(
+        ReadInError,
+        match=r"keine HTML-Datei.*PDF.*Dokumentart Übertragungsprotokoll die Datei als HTML",
+    ):
+        read_in_protocol(make_document(), b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n1 0 obj")
+
+
 def test_read_in_refuses_other_documents_and_year_mismatch() -> None:
     with pytest.raises(ReadInError, match="kein Übertragungsprotokoll"):
         read_in_protocol(make_document(), b"<p>nichts</p>")

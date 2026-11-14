@@ -25,6 +25,7 @@ from moarcoal.storage import Document, Entry
 
 READER_VERSION = 2
 MAX_LINES = 5000
+TITLE = "Übertragungsprotokoll"  # Titel der Dokumentart
 BELEGART = "E10"
 ELSTER_ID = re.compile(ELSTER_ID_PATTERN)
 
@@ -40,7 +41,7 @@ class ParsedProtocol:
 
 def parse_protocol(content: bytes) -> ParsedProtocol:
     """Kopf und alle Felder mit E-Kennung, in der Reihenfolge der Datei."""
-    parsed = parse_elster_html(content)
+    parsed = parse_elster_html(content, TITLE)
     return ParsedProtocol(
         belegart=parsed.belegart,
         belegversion=parsed.belegversion,
