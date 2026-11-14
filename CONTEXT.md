@@ -40,7 +40,7 @@ Etwas aus einer Liste nehmen, ohne es zu löschen. Einen Befund blendet ein Nutz
 _Avoid_: quittieren, ignorieren, verwerfen
 
 **Nutzer**:
-Eine Person mit eigenen Daten, Belegen und Steuererklärungen; mehrere Nutzer sind möglich, ihre Daten bleiben getrennt.
+Eine Person mit eigenen Daten, Belegen und Steuererklärungen; mehrere Nutzer sind möglich, ihre Daten bleiben getrennt. Ein Nutzer entsteht mit seinen Angaben zur Person; ohne Nutzer zeigt MoarCoal nur die Startseite.
 _Avoid_: Account, Profil, Steuerpflichtiger
 
 **Ausgewiesener Wert** _(geprägt)_:
@@ -171,6 +171,10 @@ _Avoid_: Trigger, Grund, Ereignis (allein)
 **Abweichung**:
 Der Unterschied zwischen dem eingefrorenen Stand eines Schnappschusses und dem aktuellen Stand, je Stufe der Kette: Betrag, Ergebnisart oder Einzelposten (hinzugekommen, weggefallen, geändert). Aus ihr macht das Modul, das den Schnappschuss ausgelöst hat, einen Befund; nicht zu verwechseln mit dem Abgleich mit dem Übertragungsprotokoll (Code: `Deviation`).
 _Avoid_: Differenz, Diff, Änderung (das ist ein Teil eines Vorgangs)
+
+**Angaben zur Person**:
+Vorname und Name eines Nutzers samt Verweis auf seinen eigenen Aussteller; ein Baustein der Datenebene, genau einer je Nutzer, ohne Löschen. Beim Speichern legt MoarCoal den Aussteller „Vorname Name“ als Privatperson an und hält ihn gleich; so gelangt der Name in die Sperrliste (Code: `PersonalDetails`).
+_Avoid_: Profil, Konto, Stammdaten
 
 **Aussteller**:
 Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Name und weiteren Namen (Aliasse), auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ob Unternehmen oder Behörde, spielt keine Rolle; nur wer als **Privatperson** gekennzeichnet ist (z. B. privater Vermieter), hat sensiblen Namen und sensible Anschrift. Ein anderer Name desselben Ausstellers wird als Alias hinzugefügt; Zusammenführen zweier Aussteller ist die bewusste Ausnahme (Code: `Issuer`).

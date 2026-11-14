@@ -57,8 +57,8 @@ Die Befunde in [3.5](#35-befunde) sind die Zielliste; gebaut wird jeder mit dem 
    Daten │ Fachkern │ Anbindung    ◀──── Auslese-Vorlagen, Befundarten, Seiten
                                           ▼
    Datenebene: Stand im Arbeitsspeicher, Rechenkontext, Wertekatalog, Befunde,
-               Bausteine (Dokument, Aussteller, Vertrag, Notiz, Erwarteter Beleg,
-               Vorschlag, Schnappschuss), Schreibweg, Aufrufbaustein für Claude
+               Bausteine (Dokument, Aussteller, Angaben zur Person, Vertrag, Notiz,
+               Erwarteter Beleg, Vorschlag, Schnappschuss), Schreibweg, Aufrufbaustein für Claude
                                           ▼
    ~/MoarCoal/ (JSON)                    Ablageorte (nur lesen)
 ```
@@ -83,6 +83,7 @@ Gespeichertes mit eigener Adresse ist ein **Eintrag**; seine **Adresse** lautet 
 | Dokument | Nutzer | Aussteller, Datum, höchstens eine Dokumentart, ggf. Bezugszeitraum, Zuordnungen (Liste von Adressen), Datei am Ablageort (Ablageort + relativer Pfad + SHA-256) oder übernommen | [Bausteine](https://github.com/oiff2/MoarCoal/issues/4), [Dateistruktur](https://github.com/oiff2/MoarCoal/issues/10), [Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21) |
 | Dokumentart | Code | angemeldet von Modulen, einige allgemeine von der Datenebene; legt fest, ob es einen Bezugszeitraum gibt und ob je Bezugszeitraum und Nutzer nur ein Dokument erlaubt ist (`unique_per_period`, [#87](https://github.com/oiff2/MoarCoal/issues/87)) | [Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21) |
 | Aussteller | gemeinsam | Name, weitere Namen (Aliasse), Merkmal Privatperson; Anschrift und Nummern erst, wenn ein Modul sie braucht; Zusammenführen als bewusster Ausnahmeweg (siehe Zuschnitt unten) | [Bausteine](https://github.com/oiff2/MoarCoal/issues/4), [Sensible Werte](https://github.com/oiff2/MoarCoal/issues/14), [Zuschnitt](https://github.com/oiff2/MoarCoal/issues/67) |
+| Angaben zur Person | Nutzer | Vorname, Name (beide Pflicht), Verweis auf den eigenen Aussteller; genau eine je Nutzer, anlegen und ändern, kein Löschen; ein Nutzer entsteht mit ihnen ([ADR 0009](adr/0009-angaben-zur-person-als-baustein.md)) | [Angaben zur Person](https://github.com/oiff2/MoarCoal/issues/124) |
 | Vertrag | Nutzer | Aussteller, Vertragsnummer, Art, Laufzeit, Anzeigename; Bedeutung weiß das Modul | [Bausteine](https://github.com/oiff2/MoarCoal/issues/4) |
 | Notiz | Nutzer | Text + Datum an einem Eintrag, einer Ausblendung oder einer Ausnahme, nie an Berechnetem | [Kennungen](https://github.com/oiff2/MoarCoal/issues/20) |
 | Erwarteter Beleg | Nutzer | Aussteller, Dokumentart, Zuordnung, Rhythmus mit Beginn/Ende, Beschaffungsweg, Beschaffungshinweis (sensibel), Ausnahmen je Zeitraum mit Notiz | [Was Module speichern](https://github.com/oiff2/MoarCoal/issues/21) |
@@ -106,6 +107,7 @@ Was **nicht** zur Datenebene gehört: Konten und Buchungen, Immobilie, Darlehen,
 - **Aufnehmen kompakt:** ein Suchfeld über Name und Aliasse, darunter die klickbare Trefferliste; Treffer wählen. Ohne Klick heißt Text „neu anlegen“ (Häkchen Privatperson in derselben Zeile, nur sichtbar, solange Text steht und nichts gewählt ist), leer heißt „kein Aussteller“. Ähnlicher Name: zusätzlich „Neuer Alias: ‹Text›“ je Treffer. Vorbelegt ist der zuletzt für die Dokumentart verwendete Aussteller (nur Oberfläche, nichts gespeichert).
 - **Zusammenführen ist die Ausnahme:** Normalfall ist ein neuer Alias. Zusammenführen nur auf der Seite des Ausstellers, mit Folgenseite (betroffene Dokumente und Erwartete Belege) und ausdrücklicher Bestätigung; Name und Aliasse der Quelle werden Aliasse des Ziels, die Kennung der Quelle verweist danach auf das Ziel. Keine Vorschläge der App, nie von selbst.
 - **Seite** `/aussteller`: Katalog (Name, Aliasse, Zahl der Dokumente und Erwarteten Belege, Suche), Detail (ändern, Dokumente, Erwartete Belege), Löschen nur ohne Verweise. Ihr Platz in der Navigation: Kategorie Allgemein, neben Belege ([#63](https://github.com/oiff2/MoarCoal/issues/63)).
+- **Aussteller des Nutzers** ([#124](https://github.com/oiff2/MoarCoal/issues/124), [ADR 0009](adr/0009-angaben-zur-person-als-baustein.md)): Beim Speichern der Angaben zur Person legt die App den Aussteller „Vorname Name“ (Privatperson) an und hält ihn im selben Vorgang gleich. Der Verweis wird über `merged_ids` aufgelöst; ist er leer oder nicht auflösbar, entsteht der Aussteller neu; trägt der Katalog den Namen schon genau einmal (Name oder Alias), wird dieser Aussteller übernommen. Ändert sich der Name, wird der alte Name Alias. Auf `/aussteller` sind Name und Privatperson nur lesbar (Hinweis „kommt aus Angaben zur Person“ mit Link), Löschen ist gesperrt; Aliasse und Zusammenführen bleiben. Er ist gemeinsam (`COMMON_OWNER`), jeder Nutzer sieht ihn. Die Sperrliste erfährt den Namen nur über `Issuer.sensitive_values`.
 - **Slices:** (1) Datenebene: Eintragsart, Feld am Dokument, `display_name`, Befund; (2) Aufnehmen-Formular und Ändern an der Dokumentseite; (3) Seite mit Katalog, Detail, Aliasse, Löschen; (4) Zusammenführen; später: Auslese schlägt den Aussteller vor, Erwarteter Beleg bekommt den Aussteller.
 
 ### 3.3 Contract des Ausgewiesenen Werts
@@ -382,6 +384,7 @@ Quellen: [Technikentscheidung](https://github.com/oiff2/MoarCoal/issues/8), [ADR
 - Nur an `127.0.0.1`, fester konfigurierbarer Port (Vorschlag 8765); belegt → Abbruch. Jede Seite hat eine direkt öffenbare URL. Start per Windows-Verknüpfung mit Ladebalken; der Server beendet sich, wenn keine Seite mehr offen ist.
 - Start und Neustart (Ticket #116): `moarcoal` startet nur den Server; `moarcoal start` öffnet danach die Startseite im Browser (`webbrowser.open`, sobald uvicorn `started` meldet; die Adresse steht immer in der Ausgabe); `moarcoal stop` beendet die eigene Instanz; `moarcoal restart [--force]` beendet sie, wartet höchstens 10 s auf den freien Port und startet wie `start`. Eigen ist der Prozess, der auf dem Port lauscht und dessen PID in `moarcoal.pid` im Datenverzeichnis steht (`storage/pid_file.py`, beim Start geschrieben, beim Beenden gelöscht; eine veraltete Datei zählt nicht). Einen fremden Prozess auf dem Port beendet nur `restart --force` (erst SIGTERM, dann SIGKILL) und nennt ihn vorher; ohne `--force` bricht `restart` mit Name und PID ab. Die Wahl der Aktion ist `instance.choose_action` (rein), den Port-Halter findet `psutil`. Der Server läuft immer im Vordergrund.
 - Kontext: Nutzer global; Jahr global, je Seite übersteuerbar.
+- Ohne Nutzer (keine Angaben zur Person für den Nutzer, vorerst `ich`) zeigt `/` nur „Bitte Nutzer anlegen“ mit dem Formular (Vorname, Name, Knopf „Nutzer anlegen“, dieselbe Teilvorlage wie auf `/person`); die Navigation zeigt nur „MoarCoal“, die Kopfzeile keinen Namen, und alle Seiten außer `/`, `/person` und `/static` leiten mit 303 auf `/` um. Mit Nutzer ist der Name in der Kopfzeile ein Link auf `/person` (Angaben ändern); der Umzug hinter das Nutzer-Symbol (#62) tauscht nur diesen Link.
 - Gestaltung: nur Desktop ab UWHD, kein Seiten-Scrollen (innen scrollende Bereiche erlaubt), wichtigste Infos immer sichtbar, Übersichtlichkeit hat Vorrang, der Platz wird genutzt. Hell und Dunkel über CSS-Variablen; ausgestaltet wird zuerst Dunkel. Tastatur wo sinnvoll.
 - Absicherung: Middleware prüft `Host`; ändernde Anfragen brauchen `Origin` gleich dem eigenen Origin (`http://127.0.0.1:<port>` bzw. `http://localhost:<port>`) oder `Sec-Fetch-Site: same-origin`; kein CORS, kein Token. Strikte CSP ohne Inline-Skript, `nosniff`, Autoescape überall.
 - Oberflächentexte stehen direkt in den Vorlagen, nur Deutsch.
@@ -412,7 +415,7 @@ Quellen: [Claude als Baustein](https://github.com/oiff2/MoarCoal/issues/7), [ADR
 
 Quelle: [Sensible Werte](https://github.com/oiff2/MoarCoal/issues/14).
 
-- Felder werden am Pydantic-Modell als `Sensitive[str]` markiert, einmal je Feldtyp. Bei Ausstellern nur, wenn sie Privatperson sind.
+- Felder werden am Pydantic-Modell als `Sensitive[str]` markiert, einmal je Feldtyp. Bei Ausstellern nur, wenn sie Privatperson sind. Der Name des Nutzers kommt nur so hinein: über den Aussteller, den die Angaben zur Person erzeugen (Abschnitt 3.2).
 - Die Datenebene schreibt daraus `common/derived-denylist.txt`: ganze Werte ab 6 Zeichen, bei Namen und Anschriften zusätzlich Teile ab 6 Zeichen. `tools/privacy_guard.py` liest sie neben der handgepflegten Sperrliste, ohne Modelle zu importieren; fehlt sie, gilt nur die handgepflegte, ohne Fehler.
 - Gilt für git, GitHub und das Protokoll der App (dort maskiert), nicht für Claude.
 
