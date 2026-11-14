@@ -3,7 +3,7 @@
 import hashlib
 import json
 import secrets
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Self, cast
 
@@ -63,7 +63,8 @@ class EntryKind:
     Funktion Eintrag -> Datei (relativ zum Datenverzeichnis, mit `/`). Was der Schreibweg je Art
     zusätzlich tut, steht hier (optional): `check` prüft jeden geschriebenen Eintrag nach dem
     ganzen Vorgang, `denylist` bildet aus allen Einträgen der Art die Werte der Sperrliste,
-    `merge` führt zwei Einträge der Art zusammen (Quelle, Ziel -> neues Ziel).
+    `merge` führt zwei Einträge der Art zusammen (Quelle, Ziel -> neues Ziel), `former_ids` nennt
+    die Kennungen früherer, zusammengeführter Einträge, die jetzt auf diesen auflösen.
     """
 
     model: type[Entry]
@@ -72,6 +73,7 @@ class EntryKind:
     check: EntryCheck | None = None
     denylist: Callable[[list[Entry]], list[str]] | None = None
     merge: Callable[[Entry, Entry], Entry] | None = None
+    former_ids: Callable[[Entry], Sequence[str]] | None = None
 
 
 def entry_kind[E: Entry](
@@ -82,6 +84,7 @@ def entry_kind[E: Entry](
     check: Callable[[E, Mapping[EntryAddress, Entry]], str | None] | None = None,
     denylist: Callable[[list[E]], list[str]] | None = None,
     merge: Callable[[E, E], E] | None = None,
+    former_ids: Callable[[E], Sequence[str]] | None = None,
 ) -> EntryKind:
     return EntryKind(
         model,
@@ -90,6 +93,7 @@ def entry_kind[E: Entry](
         cast(EntryCheck | None, check),
         cast(Callable[[list[Entry]], list[str]] | None, denylist),
         cast(Callable[[Entry, Entry], Entry] | None, merge),
+        cast(Callable[[Entry], Sequence[str]] | None, former_ids),
     )
 
 

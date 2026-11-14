@@ -131,4 +131,5 @@ ISSUER_KIND = entry_kind(
     check=check_issuer,
     denylist=denylist_lines,
     merge=merge_issuers,
+    former_ids=lambda issuer: issuer.merged_ids,
 )

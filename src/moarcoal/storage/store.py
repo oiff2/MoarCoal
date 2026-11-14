@@ -15,7 +15,7 @@ import re
 import threading
 import time
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
 
@@ -97,9 +97,9 @@ class Merge:
     """Eintrag `source` in Eintrag `into` derselben Art zusammenführen (bewusste Ausnahme).
 
     Geht nur bei Arten mit `EntryKind.merge` (bisher Aussteller), die das neue Ziel bildet; die
-    Kennung der Quelle verweist danach auf das Ziel (`State.resolve` über `merged_ids`), Einträge
-    mit einem Feld auf die Quelle verweisen auf das Ziel. `expected` und `expected_into` sind die
-    Prüfsummen der bekannten Fassungen.
+    Kennung der Quelle verweist danach auf das Ziel (`State.resolve`, `EntryKind.former_ids`),
+    Einträge mit einem Feld auf die Quelle verweisen auf das Ziel. `expected` und `expected_into`
+    sind die Prüfsummen der bekannten Fassungen.
     """
 
     source: EntryAddress
@@ -130,10 +130,15 @@ class State:
     """Alle geladenen Einträge, unveränderlich.
 
     `denylist_failed`: die abgeleitete Sperrliste ließ sich zuletzt nicht schreiben (Befund).
+    `former`: frühere Adresse eines zusammengeführten Eintrags -> Adresse des heutigen Eintrags
+    (der Store bildet sie aus `EntryKind.former_ids`).
     """
 
     entries: Mapping[EntryAddress, Entry]
     denylist_failed: bool = False
+    former: Mapping[EntryAddress, EntryAddress] = field(
+        default_factory=dict[EntryAddress, EntryAddress]
+    )
 
     def get(self, address: EntryAddress) -> Entry | None:
         return self.entries.get(address)
@@ -143,14 +148,8 @@ class State:
         found = self.entries.get(address)
         if found is not None:
             return found
-        return next(
-            (
-                e
-                for e in self.entries.values()
-                if e.address.kind == address.kind and address.id in getattr(e, "merged_ids", ())
-            ),
-            None,
-        )
+        current = self.former.get(address)
+        return None if current is None else self.entries.get(current)
 
     def of_kind[E: Entry](self, kind: type[E]) -> list[E]:
         return [e for e in self.entries.values() if type(e) is kind]
@@ -294,7 +293,7 @@ class Store:
         self._state = State(MappingProxyType({}))
         self._load()
         entries = self._state.entries
-        self._state = State(entries, denylist_failed=not self._write_denylist(entries))
+        self._state = self._state_of(entries, denylist_failed=not self._write_denylist(entries))
 
     @property
     def root(self) -> Path:
@@ -382,7 +381,7 @@ class Store:
                         raise StoreError(f"{relative}: {entry.address} kommt doppelt vor")
                     entries[entry.address] = entry
                 self._file_checksums[relative] = _sha256(data)
-        self._state = State(MappingProxyType(entries))
+        self._state = self._state_of(MappingProxyType(entries))
 
     def _parse(self, relative: str, data: bytes) -> list[Entry]:
         try:
@@ -468,7 +467,7 @@ class Store:
 
         self._write(plan)
         entries = MappingProxyType(new_entries)
-        self._state = State(entries, denylist_failed=not self._write_denylist(entries))
+        self._state = self._state_of(entries, denylist_failed=not self._write_denylist(entries))
         return Applied(changes)
 
     def _kind_problems(
@@ -588,6 +587,18 @@ class Store:
                 self._file_checksums.pop(path, None)
             else:
                 self._file_checksums[path] = _sha256(data)
+
+    def _state_of(
+        self, entries: Mapping[EntryAddress, Entry], denylist_failed: bool = False
+    ) -> State:
+        """Der Stand mit den früheren Adressen, die `EntryKind.former_ids` nennt."""
+        former: dict[EntryAddress, EntryAddress] = {}
+        for entry in entries.values():
+            kind = self._kinds.get(type(entry).__name__)
+            if kind is not None and kind.former_ids is not None:
+                for old in kind.former_ids(entry):
+                    former[EntryAddress(kind=entry.address.kind, id=old)] = entry.address
+        return State(entries, denylist_failed, former)
 
     def _write_denylist(self, entries: Mapping[EntryAddress, Entry]) -> bool:
         """Schreibt die Sperrliste aus den sensiblen Feldern neu (Spec 8; `EntryKind.denylist`).
