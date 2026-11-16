@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.personal_details import PersonalDetailsInvalid, details_of, personal_details_changes
 from moarcoal.storage import Applied, entry_checksum
-from moarcoal.web import form_fields, rejection_reasons, render, store_of, user_of
+from moarcoal.web.helpers import form_fields, rejection_reasons, render, store_of, user_of
 
 router = APIRouter()
 

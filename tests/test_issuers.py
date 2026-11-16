@@ -7,7 +7,6 @@ import pytest
 from pydantic import ValidationError
 
 from moarcoal.issuers import DOCUMENT_WITHOUT_ISSUER
-from moarcoal.links import document_url, issuer_url
 from moarcoal.storage import (
     COMMON_OWNER,
     Applied,
@@ -23,6 +22,7 @@ from moarcoal.storage import (
     open_store,
 )
 from moarcoal.values.testing import evaluate
+from moarcoal.web.links import document_url, issuer_url
 
 SHA = "a" * 64
 

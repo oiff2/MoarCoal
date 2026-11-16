@@ -8,7 +8,6 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from moarcoal.defaults import DEFAULT_YEAR, MAX_YEAR, MIN_YEAR
 from moarcoal.documents import DocumentKind
 from moarcoal.expected_documents import previous_year_issuer, statuses
-from moarcoal.links import expected_documents_url
 from moarcoal.storage import (
     Applied,
     Delete,
@@ -20,7 +19,7 @@ from moarcoal.storage import (
     new_id,
 )
 from moarcoal.storage.expected_documents import TEXT_MAX
-from moarcoal.web import (
+from moarcoal.web.helpers import (
     document_kinds,
     entry_of,
     form_fields,
@@ -30,6 +29,7 @@ from moarcoal.web import (
     user_of,
     validated,
 )
+from moarcoal.web.links import expected_documents_url
 
 router = APIRouter(prefix="/belege/erwartet")
 

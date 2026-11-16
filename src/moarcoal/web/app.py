@@ -12,33 +12,33 @@ from fastapi.templating import Jinja2Templates
 from jinja2 import Environment, FileSystemLoader
 
 from moarcoal.defaults import year_of
-from moarcoal.document_list import router as document_list_router
-from moarcoal.document_pages import router as document_router
 from moarcoal.documents import read_in_again
-from moarcoal.expected_documents_pages import router as expected_documents_router
 from moarcoal.extraction import ClaudeExtractor, Extractor
-from moarcoal.findings_pages import router as findings_router
-from moarcoal.issuer_field_pages import router as issuer_field_router
-from moarcoal.issuer_pages import router as issuer_router
 from moarcoal.modules import MODULES
 from moarcoal.modules.work.trips.place_search import NominatimSearch, PlaceSearch
-from moarcoal.person_pages import router as person_router
-from moarcoal.previews import preview_kind
 from moarcoal.registration import ModuleRegistration
-from moarcoal.security import SecurityMiddleware
-from moarcoal.site_pages import moved_router
-from moarcoal.site_pages import router as belege_router
 from moarcoal.storage import open_store
 from moarcoal.values.model import format_amount
-from moarcoal.web import (
+from moarcoal.web.document_list import router as document_list_router
+from moarcoal.web.document_pages import router as document_router
+from moarcoal.web.expected_documents_pages import router as expected_documents_router
+from moarcoal.web.findings_pages import router as findings_router
+from moarcoal.web.helpers import (
     YEAR_COOKIE,
     entry_url,
     form_fields,
     format_eur,
     require_user,
 )
+from moarcoal.web.issuer_field_pages import router as issuer_field_router
+from moarcoal.web.issuer_pages import router as issuer_router
+from moarcoal.web.person_pages import router as person_router
+from moarcoal.web.previews import preview_kind
+from moarcoal.web.security import SecurityMiddleware
+from moarcoal.web.site_pages import moved_router
+from moarcoal.web.site_pages import router as belege_router
 
-PACKAGE_DIR = Path(__file__).parent
+PACKAGE_DIR = Path(__file__).parent.parent
 TEMPLATES_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
 # Durchstich: ein fester Nutzer; Nutzerliste und Nutzerwechsel kommen mit dem Prototyp (#62).

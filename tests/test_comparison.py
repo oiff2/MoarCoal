@@ -17,8 +17,8 @@ from app_helper import make_app
 from fastapi.testclient import TestClient
 
 from moarcoal.documents import DUPLICATE_DOCUMENT
-from moarcoal.elster_html import parse_elster_html
 from moarcoal.issuers import DOCUMENT_WITHOUT_ISSUER
+from moarcoal.modules.elster_html import parse_elster_html
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registration
 from moarcoal.modules.tax_year.anlage_n import (

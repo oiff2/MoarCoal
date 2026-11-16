@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from moarcoal.storage import Entry, EntryAddress, ExpectedDocument, Issuer, Rejected
 from moarcoal.storage.issuers import COMMON_OWNER
-from moarcoal.web import entry_of, rejection_reasons, rejection_text, validated
+from moarcoal.web.helpers import entry_of, rejection_reasons, rejection_text, validated
 
 
 class Lookup:

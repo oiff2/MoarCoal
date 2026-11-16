@@ -10,11 +10,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
-from moarcoal.document_list import documents_page
 from moarcoal.documents import IntakeRejected, change_document, read_document_choice
 from moarcoal.extraction import Extractor
-from moarcoal.links import document_url
-from moarcoal.previews import file_response
 from moarcoal.proposals import (
     ReadOutRejected,
     confirm,
@@ -23,7 +20,8 @@ from moarcoal.proposals import (
     template_of,
 )
 from moarcoal.storage import Applied, Delete, Document
-from moarcoal.web import (
+from moarcoal.web.document_list import documents_page
+from moarcoal.web.helpers import (
     document_kinds,
     entry_of,
     form_fields,
@@ -31,6 +29,8 @@ from moarcoal.web import (
     store_of,
     user_of,
 )
+from moarcoal.web.links import document_url
+from moarcoal.web.previews import file_response
 
 router = APIRouter(prefix="/dokumente")
 

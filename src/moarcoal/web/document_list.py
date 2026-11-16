@@ -20,11 +20,11 @@ from moarcoal.document_filter import (
     document_state,
     filter_documents,
 )
-from moarcoal.links import document_file_url
-from moarcoal.previews import preview_kind
 from moarcoal.proposals import latest_proposal, template_of
 from moarcoal.storage import Document, Issuer, entry_checksum, name_key
-from moarcoal.web import document_kinds, render, store_of, user_of
+from moarcoal.web.helpers import document_kinds, render, store_of, user_of
+from moarcoal.web.links import document_file_url
+from moarcoal.web.previews import preview_kind
 
 router = APIRouter(prefix="/belege/dokumente")
 

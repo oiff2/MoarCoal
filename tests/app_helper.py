@@ -4,8 +4,8 @@ from typing import Any
 
 from fastapi import FastAPI
 
-from moarcoal.app import create_app
 from moarcoal.storage import PersonalDetails, Put
+from moarcoal.web.app import create_app
 
 
 def make_app(*args: Any, with_user: bool = True, **kwargs: Any) -> FastAPI:

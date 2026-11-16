@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from moarcoal.defaults import year_of
 from moarcoal.dismissals import NoteMissing, dismiss, undismiss
 from moarcoal.storage import Applied
-from moarcoal.web import (
+from moarcoal.web.helpers import (
     form_fields,
     global_year,
     rejection_text,

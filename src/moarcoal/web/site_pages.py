@@ -6,16 +6,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import DEFAULT_YEAR
-from moarcoal.document_list import document_detail
 from moarcoal.documents import IntakeRejected, read_document_choice, take_in
 from moarcoal.incoming import all_site_files, folder_path_error, hide_file, hide_folder, unhide
-from moarcoal.links import document_url, site_url
 from moarcoal.prefill import Prefill, prefill_from_name
-from moarcoal.previews import file_response, preview_kind
 from moarcoal.proposals import template_of
-from moarcoal.site_view import IntakeFilter, SiteListing, next_open, site_listing
 from moarcoal.storage import Applied, HiddenFile, HiddenFolder, Issuer
-from moarcoal.web import (
+from moarcoal.web.document_list import document_detail
+from moarcoal.web.helpers import (
     document_kinds,
     entry_url,
     form_fields,
@@ -25,6 +22,9 @@ from moarcoal.web import (
     user_of,
     values_on,
 )
+from moarcoal.web.links import document_url, site_url
+from moarcoal.web.previews import file_response, preview_kind
+from moarcoal.web.site_view import IntakeFilter, SiteListing, next_open, site_listing
 
 router = APIRouter(prefix="/belege")
 moved_router = APIRouter()  # alte Adressen /eingang…

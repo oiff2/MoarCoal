@@ -13,11 +13,9 @@ from fastapi.testclient import TestClient
 
 from moarcoal.documents import DocumentKind, IntakeRejected, take_in
 from moarcoal.incoming import all_site_files, hide_file, incoming_files
-from moarcoal.links import document_url
 from moarcoal.modules.tax_year import REGISTRATION
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.registration import ModuleRegistration
-from moarcoal.site_view import IntakeFilter, site_rows, site_tree
 from moarcoal.storage import (
     COMMON_OWNER,
     Applied,
@@ -30,6 +28,8 @@ from moarcoal.storage import (
     Store,
     open_store,
 )
+from moarcoal.web.links import document_url
+from moarcoal.web.site_view import IntakeFilter, site_rows, site_tree
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PORT = 4711

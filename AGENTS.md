@@ -11,6 +11,7 @@ Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is don
 - [Wayfinder-Karte: Oberfläche bauen und Module aufräumen #129](https://github.com/oiff2/MoarCoal/issues/129): the current work. Builds the UI from the prototype (header, sidebar, light/dark), decides which parts are modules, then removes duplicate logic. This map carries execution: settled slices are built as `task` tickets (TDD, user acceptance for visible changes). Read its Notes first. No new content here; that gets its own map.
 - [Wayfinder-Karte: Inhalte nach dem Durchstich #61](https://github.com/oiff2/MoarCoal/issues/61) (closed): global UI prototype, Belege page, Aussteller, Steuerjahr Anlage N with Abschnitt 3. Abschnitt 2 ([#46](https://github.com/oiff2/MoarCoal/issues/46)) and the Durchstich ([#27](https://github.com/oiff2/MoarCoal/issues/27)) are done.
 - [Wayfinder-Karte: Grundgerüst MoarCoal](https://github.com/oiff2/MoarCoal/issues/1) (closed): decisions behind the spec, one sub-issue per design question.
+- `src/moarcoal/`: layers by path. `web/` is the binding (routes, templates, security, links; only here and in `modules/` FastAPI is imported, plus `registration.py`), `modules/` the modules, `storage/` and `values/` plus the flat data-layer files (`documents.py`, `incoming.py`, …) the data layer, `__main__.py` and `instance.py` the start.
 - `erkenntnisse.md`: lessons from the predecessor project Kohlebau. Use it for orientation; it is not a spec.
 
 ## Privacy

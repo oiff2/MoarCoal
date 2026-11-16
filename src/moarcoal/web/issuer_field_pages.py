@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 from moarcoal.issuer_field import holder_of_name, issuer_at, last_issuer, search_issuers
-from moarcoal.web import render, store_of, user_of
+from moarcoal.web.helpers import render, store_of, user_of
 
 router = APIRouter()
 

@@ -19,7 +19,6 @@ from app_helper import make_app
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from moarcoal.links import document_url
 from moarcoal.modules.tax_year import ASSESSMENT, ProtocolReading, registration
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_n import (
@@ -63,6 +62,7 @@ from moarcoal.values.engine import Foreign
 from moarcoal.values.findings import Finding, Severity
 from moarcoal.values.model import Amount, Period, Subject, Unit
 from moarcoal.values.testing import evaluate, fixed, not_applicable, not_yet
+from moarcoal.web.links import document_url
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PORT = 4711

@@ -7,10 +7,10 @@ from typing import Any
 import pytest
 from jinja2 import Environment, FileSystemLoader
 
-from moarcoal.app import TEMPLATES_DIR
-from moarcoal.previews import preview_kind
 from moarcoal.values.findings import Severity
 from moarcoal.values.model import Backing
+from moarcoal.web.app import TEMPLATES_DIR
+from moarcoal.web.previews import preview_kind
 
 STATUS = "_status.html"
 
@@ -71,7 +71,9 @@ def test_finding_list_groups_by_severity_under_headings() -> None:
     from types import SimpleNamespace
 
     def finding(severity: Severity, message: str) -> SimpleNamespace:
-        return SimpleNamespace(severity=severity, message=message, href=None, identity=("k", message))
+        return SimpleNamespace(
+            severity=severity, message=message, href=None, identity=("k", message)
+        )
 
     env = Environment(loader=FileSystemLoader(TEMPLATES_DIR), autoescape=True)
     module: Any = env.get_template("_findings.html").module

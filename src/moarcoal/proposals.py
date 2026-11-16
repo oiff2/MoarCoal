@@ -21,7 +21,6 @@ from moarcoal.extraction import (
     FailureReason,
 )
 from moarcoal.extraction_template import ExtractionTemplate
-from moarcoal.links import document_url
 from moarcoal.storage import (
     AbortedExtraction,
     Applied,
@@ -35,6 +34,7 @@ from moarcoal.storage import (
     Store,
 )
 from moarcoal.values.findings import Finding, Severity, fingerprint
+from moarcoal.web.links import document_url
 
 UNCONFIRMED = "unconfirmed_proposal"
 """Befundart „Unbestätigter Vorschlag“ (Hinweis)."""

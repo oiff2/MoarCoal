@@ -30,7 +30,7 @@ from moarcoal.storage import Applied, Entry, EntryAddress, Put, entry_checksum, 
 from moarcoal.values.findings import Finding, Severity
 from moarcoal.values.model import Amount, ExposedValue, Period, Unit, parse_cents
 from moarcoal.values.testing import evaluate
-from moarcoal.web import format_eur
+from moarcoal.web.helpers import format_eur
 
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}

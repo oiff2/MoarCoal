@@ -14,13 +14,6 @@ from pydantic import BaseModel, ValidationError
 from moarcoal.defaults import DEFAULT_YEAR, year_of
 from moarcoal.documents import DocumentKind
 from moarcoal.incoming import all_site_files, incoming_files
-from moarcoal.links import (
-    document_url,
-    expected_documents_url,
-    issuer_url,
-    issuers_url,
-    site_url,
-)
 from moarcoal.personal_details import details_of
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import (
@@ -36,6 +29,13 @@ from moarcoal.storage import (
 from moarcoal.values.engine import Values
 from moarcoal.values.findings import Finding, Severity
 from moarcoal.values.model import Amount, format_amount
+from moarcoal.web.links import (
+    document_url,
+    expected_documents_url,
+    issuer_url,
+    issuers_url,
+    site_url,
+)
 
 
 def format_eur(cents: int) -> str:

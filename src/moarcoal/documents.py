@@ -21,7 +21,6 @@ from pydantic import ValidationError
 from moarcoal.defaults import DEFAULT_YEAR, MAX_YEAR, MIN_YEAR, year_of
 from moarcoal.extraction_template import ExtractionTemplate
 from moarcoal.issuer_field import IssuerChoice, resolve_issuer
-from moarcoal.links import document_url
 from moarcoal.storage import (
     Applied,
     Change,
@@ -46,6 +45,7 @@ from moarcoal.storage.documents import (
     period_clash,
 )
 from moarcoal.values.findings import READ_IN_CHANGED, Finding, Severity
+from moarcoal.web.links import document_url
 
 if TYPE_CHECKING:
     from moarcoal.values.engine import Values

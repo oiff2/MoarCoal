@@ -8,9 +8,9 @@ bestätigt ist, spielt keine Rolle (3.6, Punkt 7).
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from moarcoal.links import expected_documents_url
 from moarcoal.storage import Document, EntryAddress, ExpectedDocument, State
 from moarcoal.values.findings import Finding, Severity, fingerprint
+from moarcoal.web.links import expected_documents_url
 
 PENDING = "expected_document_pending"
 DUPLICATE = "expected_document_duplicate"

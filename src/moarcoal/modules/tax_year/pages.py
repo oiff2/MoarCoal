@@ -16,7 +16,7 @@ from moarcoal.modules.tax_year.structure import form_pages
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Applied, Document, EntryAddress
 from moarcoal.values.model import Period
-from moarcoal.web import (
+from moarcoal.web.helpers import (
     entry_of,
     form_fields,
     module_state,

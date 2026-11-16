@@ -25,7 +25,7 @@ from moarcoal.storage import (
     new_id,
 )
 from moarcoal.values.model import Period
-from moarcoal.web import (
+from moarcoal.web.helpers import (
     entry_of,
     form_fields,
     module_state,

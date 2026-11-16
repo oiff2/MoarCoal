@@ -1,8 +1,8 @@
 """Befund der Datenebene zum Aussteller (docs/grundgeruest.md, 3.2, Zuschnitt des Ausstellers)."""
 
-from moarcoal.links import document_url
 from moarcoal.storage import Document, State
 from moarcoal.values.findings import Finding, Severity
+from moarcoal.web.links import document_url
 
 DOCUMENT_WITHOUT_ISSUER = "document_without_issuer"
 

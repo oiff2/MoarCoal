@@ -7,7 +7,6 @@ from typing import Any
 from fastapi import Request
 
 from moarcoal.defaults import year_of
-from moarcoal.links import document_url
 from moarcoal.modules.work.common import MODULE_KEY
 from moarcoal.modules.work.trips.entries import BusinessTrip, trips_fingerprint
 from moarcoal.modules.work.trips.germany_map import germany_map
@@ -24,13 +23,14 @@ from moarcoal.modules.work.trips.table import (
 from moarcoal.modules.work.trips.values import TRAVEL_FARE, TRAVEL_TOTAL
 from moarcoal.storage import entry_checksum
 from moarcoal.values.model import Period
-from moarcoal.web import (
+from moarcoal.web.helpers import (
     global_year,
     module_state,
     user_of,
     values_of,
     year_choices,
 )
+from moarcoal.web.links import document_url
 
 
 @dataclass(frozen=True)

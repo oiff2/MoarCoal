@@ -9,10 +9,10 @@ import pytest
 from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.links import document_url
 from moarcoal.modules import MODULES
 from moarcoal.modules.tax_year import TRANSFER_PROTOCOL
 from moarcoal.storage import Document, ExpectedDocument, Put, Store
+from moarcoal.web.links import document_url
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 SHA = hashlib.sha256(FIXTURE.read_bytes()).hexdigest()

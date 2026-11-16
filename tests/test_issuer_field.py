@@ -11,7 +11,6 @@ from fastapi.testclient import TestClient
 
 from moarcoal.issuer_field import IssuerChoice, last_issuer, resolve_issuer, search_issuers
 from moarcoal.issuers import issuer_findings
-from moarcoal.links import document_url
 from moarcoal.storage import (
     COMMON_OWNER,
     Document,
@@ -21,6 +20,7 @@ from moarcoal.storage import (
     State,
     entry_checksum,
 )
+from moarcoal.web.links import document_url
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PORT = 4711

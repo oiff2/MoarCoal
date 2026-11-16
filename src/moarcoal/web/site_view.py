@@ -14,7 +14,6 @@ from moarcoal.incoming import (
     in_hidden_folder,
     site_files_of,
 )
-from moarcoal.links import document_file_url, site_file_url
 from moarcoal.storage import (
     Document,
     HiddenFile,
@@ -24,6 +23,7 @@ from moarcoal.storage import (
     Store,
     entry_checksum,
 )
+from moarcoal.web.links import document_file_url, site_file_url
 
 
 class IntakeFilter(StrEnum):

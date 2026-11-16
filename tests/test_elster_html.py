@@ -5,7 +5,7 @@ import datetime
 import pytest
 
 from moarcoal.documents import ReadInError
-from moarcoal.elster_html import parse_elster_document
+from moarcoal.modules.elster_html import parse_elster_document
 from moarcoal.storage import Document
 
 HEAD = b"<!-- Belegart: XY1 --><!-- Veranlagungsjahr: 2025 -->"

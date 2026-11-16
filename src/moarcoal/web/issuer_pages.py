@@ -9,7 +9,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
-from moarcoal.links import issuer_url, issuers_url
 from moarcoal.personal_details import (
     details_for_issuer,
     details_of,
@@ -31,7 +30,7 @@ from moarcoal.storage import (
 )
 from moarcoal.storage.entries import referenced_addresses
 from moarcoal.storage.issuers import issuer_with_name
-from moarcoal.web import (
+from moarcoal.web.helpers import (
     entry_of,
     form_fields,
     rejection_reasons,
@@ -40,6 +39,7 @@ from moarcoal.web import (
     user_of,
     validated,
 )
+from moarcoal.web.links import issuer_url, issuers_url
 
 router = APIRouter(prefix="/aussteller")
 

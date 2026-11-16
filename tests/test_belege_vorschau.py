@@ -8,8 +8,8 @@ import httpx
 import pytest
 from test_belege import FIXTURE, ORIGIN, SHA, make_client, take
 
-from moarcoal.site_view import Folder, Row, next_open
 from moarcoal.storage import Document, Put, SiteFile, Store, entry_checksum
+from moarcoal.web.site_view import Folder, Row, next_open
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 20
 PDF = b"%PDF-1.4\n% Beispiel\n"

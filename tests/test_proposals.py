@@ -22,11 +22,11 @@ from moarcoal.extraction import (
     FakeExtractor,
 )
 from moarcoal.extraction_template import ExtractionTemplate, TemplateField
-from moarcoal.links import document_url
 from moarcoal.proposals import UNCONFIRMED, latest_proposal, template_of
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import AbortedExtraction, Change, Document, Proposal, Rejected, Store
 from moarcoal.values.model import Backing, DocumentLocator, Source
+from moarcoal.web.links import document_url
 
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}

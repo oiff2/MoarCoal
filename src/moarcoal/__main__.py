@@ -10,7 +10,6 @@ from pathlib import Path
 
 import uvicorn
 
-from moarcoal.app import create_app
 from moarcoal.instance import (
     HOST,
     Action,
@@ -24,6 +23,7 @@ from moarcoal.instance import (
     wait_for_port,
 )
 from moarcoal.storage import default_data_dir, read_pid, remove_pid, write_pid
+from moarcoal.web.app import create_app
 
 DEFAULT_PORT = 8765
 PORT_ENV = "MOARCOAL_PORT"

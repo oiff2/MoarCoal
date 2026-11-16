@@ -1,6 +1,6 @@
 """Einlese-Regel der Lohnsteuerbescheinigung (eDaten-HTML, `Belegart: VaSt_LStB`), ohne Claude.
 
-Den Leser des HTML teilen alle Dokumentarten dieses Formats (`moarcoal.elster_html`). Hier steht,
+Den Leser des HTML teilen alle Dokumentarten dieses Formats (`modules/elster_html.py`). Hier steht,
 welche Pfade für Anlage N Nr. 4 bis 7 gelten: Steuerklasse, Bruttoarbeitslohn, Lohnsteuer und
 Solidaritätszuschlag. Das HTML enthält nur belegte Felder; was fehlt, bleibt leer (nie 0). Kommt
 ein Pfad mehrfach vor (Wiederholgruppe, z. B. Steuerklassenwechsel im Jahr), ist nicht entschieden,
@@ -10,7 +10,7 @@ welcher Wert gilt; die Datei wird dann abgewiesen statt geraten.
 from pydantic import ValidationError
 
 from moarcoal.documents import DocumentKind, ReadInError
-from moarcoal.elster_html import HtmlField, parse_elster_document
+from moarcoal.modules.elster_html import HtmlField, parse_elster_document
 from moarcoal.modules.work.wage_tax.entries import WageTaxCertificate
 from moarcoal.storage import Document, ReadInEntry
 from moarcoal.values.model import parse_cents

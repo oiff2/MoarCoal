@@ -11,7 +11,6 @@ from fastapi.testclient import TestClient
 
 from moarcoal.documents import DocumentKind
 from moarcoal.expected_documents import DUPLICATE, PENDING, matching_documents, previous_year_issuer
-from moarcoal.links import issuer_url
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import TRANSFER_PROTOCOL
 from moarcoal.modules.work import REGISTRATION as WORK
@@ -40,6 +39,7 @@ from moarcoal.values.model import (
     ValueKey,
 )
 from moarcoal.values.testing import evaluate
+from moarcoal.web.links import issuer_url
 
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}

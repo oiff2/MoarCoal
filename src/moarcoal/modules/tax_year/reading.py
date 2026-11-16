@@ -1,6 +1,6 @@
 """Einlese-Regel des Übertragungsprotokolls: exakt, ohne Claude, reine Funktionen.
 
-Der Leser des HTML (Kopf, Felder mit `data-name`) ist gemeinsam (`moarcoal.elster_html`). Hier
+Der Leser des HTML (Kopf, Felder mit `data-name`) ist gemeinsam (`modules/elster_html.py`). Hier
 steht, was das Protokoll (`Belegart: E10`) daraus macht:
 
 - Jedes ausgefüllte Feld mit E-Kennung wird eine Zeile. Die E-Kennung ist das letzte Pfadsegment,
@@ -13,7 +13,7 @@ import re
 from collections.abc import Iterable
 
 from moarcoal.documents import ReadInError
-from moarcoal.elster_html import HtmlField, parse_elster_document
+from moarcoal.modules.elster_html import HtmlField, parse_elster_document
 from moarcoal.modules.tax_year.entries import (
     ELSTER_ID_PATTERN,
     TEXT_MAX,

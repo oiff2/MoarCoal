@@ -8,7 +8,7 @@ import httpx
 from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.web import year_choices
+from moarcoal.web.helpers import year_choices
 
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}

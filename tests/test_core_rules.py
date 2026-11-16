@@ -233,6 +233,37 @@ def test_the_data_layer_knows_no_routes_and_no_fastapi(tmp_path: Path) -> None:
     assert not offenders, f"Web-Wissen in der Datenebene: {offenders}"
 
 
+def fastapi_importers(root: Path = SRC) -> list[str]:
+    """Dateien außerhalb von `web/` und `modules/`, die FastAPI oder Starlette importieren.
+
+    `modules/` führt die Seiten der Module (Router in der Anmeldung), nicht die Datenebene;
+    `registration.py` ist der Vertrag, der `APIRouter` nennt.
+    """
+    found: list[str] = []
+    for path in sorted(root.rglob("*.py")):
+        relative = path.relative_to(root)
+        if relative.parts[0] in ("web", "modules") or path.name == "registration.py":
+            continue
+        if any(n.split(".")[0] in WEB_LIBRARIES for n in imported_names(path.read_text("utf-8"))):
+            found.append(relative.as_posix())
+    return found
+
+
+def test_outside_web_nothing_imports_fastapi() -> None:
+    """Die Schicht steht am Pfad: FastAPI und Starlette kennt nur `web/` (und die Module samt
+    Vertrag `registration.py`)."""
+    assert fastapi_importers() == []
+
+
+def test_the_fastapi_import_check_fails_on_an_injected_import(tmp_path: Path) -> None:
+    (tmp_path / "web").mkdir()
+    (tmp_path / "web" / "app.py").write_text("from fastapi import FastAPI\n", encoding="utf-8")
+    (tmp_path / "documents.py").write_text("import fastapi.responses\n", encoding="utf-8")
+    (tmp_path / "issuers.py").write_text("from starlette.requests import Request\n", "utf-8")
+    (tmp_path / "defaults.py").write_text("import datetime\n", encoding="utf-8")
+    assert fastapi_importers(tmp_path) == ["documents.py", "issuers.py"]
+
+
 def test_layer_check_finds_a_route_and_fastapi() -> None:
     prefixes = {"belege", "aussteller"}
     assert layer_breaches('href = "/belege"', prefixes) == ['"/belege"']

@@ -13,7 +13,6 @@ from moarcoal.documents import (
     duplicate_findings,
     take_in,
 )
-from moarcoal.links import document_url
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.storage import (
     Applied,
@@ -25,6 +24,7 @@ from moarcoal.storage import (
     entry_checksum,
     open_store,
 )
+from moarcoal.web.links import document_url
 
 ONCE = DocumentKind("once", "Einmalart", True, lambda d, c: [], 1, unique_per_period=True)
 FREE = DocumentKind("free", "Freie Art", True, lambda d, c: [], 1)

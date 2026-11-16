@@ -2,12 +2,8 @@
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 
-from moarcoal.documents import DocumentKind, duplicate_findings, rereading_findings
-from moarcoal.expected_documents import expected_document_findings
-from moarcoal.incoming import incoming_files
-from moarcoal.issuers import issuer_findings
-from moarcoal.links import site_url
-from moarcoal.proposals import aborted_extraction_findings, proposal_findings
+from moarcoal.block_findings import block_findings
+from moarcoal.documents import DocumentKind
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import Dismissal, EntryAddress, SiteFile, Snapshot, State
 from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYetSignal
@@ -16,7 +12,6 @@ from moarcoal.values.findings import (
     CYCLE,
     DENYLIST_NOT_WRITTEN,
     DUPLICATE_LOCATOR,
-    INCOMING_FILES,
     Finding,
     FindingList,
     Severity,
@@ -192,37 +187,19 @@ class Values:
                 else:
                     self.get(entry.key, user, period)
         found = list(self.findings)
-        titles = {k.key: k.title for m in self._modules.values() for k in m.document_kinds}
-        found.extend(expected_document_findings(self._state, user, year, titles))
-        found.extend(issuer_findings(self._state, user))
+        blocks = block_findings(
+            self._state, user, year, self._document_kinds(), self._entry_url, self._site_files
+        )
+        found.extend(blocks.early)
         if self._state.denylist_failed:
             text = "Abgeleitete Sperrliste konnte nicht geschrieben werden"
             found.append(Finding(DENYLIST_NOT_WRITTEN, Severity.WARNING, "sperrliste", text))
-        kinds = self._document_kinds()
-        found.extend(duplicate_findings(self._state, user, kinds))
-        found.extend(rereading_findings(self._state, user, year, kinds, self._entry_url))
-        found.extend(proposal_findings(self._state, user, year, titles))
-        found.extend(aborted_extraction_findings(self._state, user))
+        found.extend(blocks.late)
         found.extend(snapshot_findings(self._state.of_kind(Snapshot), user, year))
         for module in self._modules.values():
             if module.findings is not None:
                 found.extend(module.findings(self.module_state(module.key, user), self, year))
-        if self._site_files is not None:
-            waiting = incoming_files(self._site_files(), self._state, user)
-            if waiting:
-                count = len(waiting)
-                text = "1 Datei im Eingang" if count == 1 else f"{count} Dateien im Eingang"
-                fingerprint_ = fingerprint(*sorted(f.sha256 for f in waiting))
-                found.append(
-                    Finding(
-                        INCOMING_FILES,
-                        Severity.NOTE,
-                        "eingang",
-                        text,
-                        href=site_url(),
-                        fingerprint=fingerprint_,
-                    )
-                )
+        found.extend(blocks.incoming)
         order = {Severity.ERROR: 0, Severity.WARNING: 1, Severity.NOTE: 2}
         found.sort(key=lambda f: order[f.severity])
         dismissals = [d for d in self._state.of_kind(Dismissal) if d.owner == user]

@@ -37,7 +37,14 @@ from moarcoal.modules.work.trips.view import (
     trips_of,
 )
 from moarcoal.storage import Applied, Change, Delete, Proposal, entry_checksum
-from moarcoal.web import form_fields, module_state, rejection_text, render, store_of, user_of
+from moarcoal.web.helpers import (
+    form_fields,
+    module_state,
+    rejection_text,
+    render,
+    store_of,
+    user_of,
+)
 
 router = APIRouter(prefix="/arbeit/dienstreisen")
 

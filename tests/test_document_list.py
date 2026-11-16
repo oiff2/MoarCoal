@@ -10,7 +10,6 @@ import pytest
 from app_helper import make_app
 from fastapi.testclient import TestClient
 
-from moarcoal.links import document_url
 from moarcoal.storage import (
     COMMON_OWNER,
     Document,
@@ -23,6 +22,7 @@ from moarcoal.storage import (
     entry_checksum,
 )
 from moarcoal.storage.entries import Entry
+from moarcoal.web.links import document_url
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PORT = 4711

@@ -19,7 +19,7 @@ from moarcoal.modules.work.workplace.entries import (
 )
 from moarcoal.storage import Entry, EntryAddress
 from moarcoal.values.model import parse_cents
-from moarcoal.web import validated
+from moarcoal.web.helpers import validated
 
 type Fields = dict[str, str]
 type Build = Callable[[Fields, str, str], tuple[Entry | None, list[str]]]

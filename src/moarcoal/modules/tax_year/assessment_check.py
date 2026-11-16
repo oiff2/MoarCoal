@@ -8,7 +8,6 @@ Positionen gehen ein; berechnete Felder ohne Gegenstück im Schnappschuss bleibe
 from collections.abc import Sequence
 from decimal import Decimal
 
-from moarcoal.links import document_url
 from moarcoal.modules.tax_year.anlage_n import FORMS
 from moarcoal.modules.tax_year.assessment import ASSESSMENT_KEY
 from moarcoal.modules.tax_year.entries import taken_order
@@ -19,6 +18,7 @@ from moarcoal.storage import Document, Snapshot
 from moarcoal.values.findings import Finding, FindingKind, Severity, fingerprint
 from moarcoal.values.model import Period, ValueKey, ValueRef
 from moarcoal.values.snapshots import frozen_time
+from moarcoal.web.links import document_url
 
 ASSESSMENT_DEVIATION = "tax_year.assessment_deviation"
 ASSESSMENT_NO_SNAPSHOT = "tax_year.assessment_no_snapshot"
