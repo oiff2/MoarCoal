@@ -1,11 +1,11 @@
 """Baustein Aussteller: wer ein Dokument ausgestellt hat (docs/grundgeruest.md, 3.2)."""
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import Self
 
 from pydantic import Field, field_validator, model_validator
 
-from moarcoal.storage.entries import Entry, EntryAddress, entry_kind
+from moarcoal.storage.entries import Entry, EntryAddress, EntryKind, entry_kind
 from moarcoal.storage.hidden_files import COMMON_OWNER
 
 ISSUER_SCHEMA = "datenebene/1"
@@ -116,12 +116,25 @@ def issuer_path(entry: Issuer) -> str:
     return "common/issuers.json"
 
 
-ISSUER_KIND = entry_kind(
-    Issuer,
-    ISSUER_SCHEMA,
-    issuer_path,
-    check=check_issuer,
-    denylist=denylist_lines,
-    merge=merge_issuers,
-    former_ids=lambda issuer: issuer.merged_ids,
-)
+type IssuerCheck = Callable[[Issuer, Mapping[EntryAddress, Entry]], str | None]
+
+
+def issuer_entry_kind(check_own: IssuerCheck | None = None) -> EntryKind:
+    """Die Eintragsart Aussteller. `check_own` prüft im Schreibweg zusätzlich den eigenen
+    Aussteller gegen die Angaben zur Person (`check_own_issuer`, ADR 0009)."""
+
+    def check(issuer: Issuer, entries: Mapping[EntryAddress, Entry]) -> str | None:
+        reason = check_issuer(issuer, entries)
+        if reason is None and check_own is not None:
+            reason = check_own(issuer, entries)
+        return reason
+
+    return entry_kind(
+        Issuer,
+        ISSUER_SCHEMA,
+        issuer_path,
+        check=check,
+        denylist=denylist_lines,
+        merge=merge_issuers,
+        former_ids=lambda issuer: issuer.merged_ids,
+    )
