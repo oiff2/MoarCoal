@@ -1,9 +1,11 @@
 """Baustein Ausblendung im Eingang: eine Datei erscheint für alle Nutzer nicht mehr im Eingang."""
 
+from collections.abc import Mapping
+
 from pydantic import Field
 
 from moarcoal.storage.documents import SHA256_PATTERN
-from moarcoal.storage.entries import Entry, entry_kind
+from moarcoal.storage.entries import Entry, EntryAddress, entry_kind
 
 HIDDEN_FILE_SCHEMA = "datenebene/1"
 COMMON_OWNER = "common"  # gemeinsame Einträge gehören keinem Nutzer
@@ -44,4 +46,18 @@ def hidden_folder_path(entry: HiddenFolder) -> str:
     return "common/hidden_folders.json"
 
 
-HIDDEN_FOLDER_KIND = entry_kind(HiddenFolder, HIDDEN_FILE_SCHEMA, hidden_folder_path)
+def check_hidden_folder(folder: HiddenFolder, entries: Mapping[EntryAddress, Entry]) -> str | None:
+    """Prüfung im Schreibweg: ein Ordner ist höchstens einmal ausgeblendet."""
+    if any(
+        isinstance(e, HiddenFolder)
+        and e.id != folder.id
+        and (e.site, e.path) == (folder.site, folder.path)
+        for e in entries.values()
+    ):
+        return "Dieser Ordner ist schon ausgeblendet."
+    return None
+
+
+HIDDEN_FOLDER_KIND = entry_kind(
+    HiddenFolder, HIDDEN_FILE_SCHEMA, hidden_folder_path, check=check_hidden_folder
+)

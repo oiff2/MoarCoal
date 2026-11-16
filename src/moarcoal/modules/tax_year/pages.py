@@ -13,7 +13,7 @@ from moarcoal.modules.tax_year.comparison import (
 )
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
 from moarcoal.modules.tax_year.fields import FormField
-from moarcoal.modules.tax_year.inputs import changes_for_input, current_input
+from moarcoal.modules.tax_year.inputs import changes_for_input, current_input, typed_field
 from moarcoal.modules.tax_year.structure import form_pages
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Applied, Document, EntryAddress
@@ -133,7 +133,7 @@ def save_input(
 
     Auch eine abgelehnte Eingabe antwortet mit 200, denn htmx tauscht Fehlerantworten nicht ein.
     """
-    field = next((f for f in FORMS.get(year, ()) if f.elster_id == elster_id and f.typed), None)
+    field = typed_field(FORMS, year, elster_id)
     if field is None:
         raise HTTPException(404)
     text = fields.get("content", "")

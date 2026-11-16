@@ -356,6 +356,46 @@ def test_the_own_issuer_cannot_be_deleted(tmp_path: Path) -> None:
     assert isinstance(refused, Rejected)
 
 
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"name": "Hacker"},
+        {"private_person": False},
+        {"name": "Hacker", "aliases": ("Erika Musterfrau",), "private_person": False},
+    ],
+)
+def test_the_write_path_keeps_the_own_issuer_private_with_the_name(
+    tmp_path: Path, update: dict[str, object]
+) -> None:
+    created(tmp_path)
+    issuer = only_issuer(tmp_path)
+    store = open_store(tmp_path, [])
+
+    result = store.apply([Put(issuer.model_copy(update=update), entry_checksum(issuer))])
+
+    assert isinstance(result, Rejected)
+    assert denylist_lines(state_of(tmp_path).of_kind(Issuer)) == ["Erika Musterfrau", "Musterfrau"]
+
+
+def test_the_write_path_lets_the_own_issuer_keep_the_name_as_alias(tmp_path: Path) -> None:
+    created(tmp_path)
+    issuer = only_issuer(tmp_path)
+    store = open_store(tmp_path, [])
+    renamed = issuer.model_copy(update={"name": "E. Musterfrau", "aliases": ("Erika Musterfrau",)})
+
+    assert isinstance(store.apply([Put(renamed, entry_checksum(issuer))]), Applied)
+
+
+def test_the_write_path_rejects_details_whose_issuer_lacks_the_name(tmp_path: Path) -> None:
+    store = open_store(tmp_path, [])
+    other = Issuer(owner=COMMON_OWNER, name="Beispielbank AG")
+    store.apply([Put(other)])
+
+    result = store.apply([Put(details(issuer=other.address))])
+
+    assert isinstance(result, Rejected)
+
+
 def test_an_ordinary_issuer_stays_editable(tmp_path: Path) -> None:
     client = created(tmp_path)
     other = Issuer(owner=COMMON_OWNER, name="Beispielbank AG")

@@ -1,7 +1,7 @@
 """Daten des Moduls Steuerjahr: eingelesene Zeilen eines Übertragungsprotokolls und Eingaben."""
 
 import datetime
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -55,8 +55,8 @@ class FormInput(Entry):
     """Eingabe zu einem Eintippfeld der Anlage, direkt im Steuerjahr erfasst (Nutzereingabe).
 
     `content` steht so, wie sie in das Feld in ELSTER einzutragen ist (Anzahl Tage als Zahl, eine
-    Auswahl als ihr Text); die Prüfung gegen das Feld macht der Vorgang in `inputs`. Je Nutzer,
-    Jahr und Feld höchstens eine.
+    Auswahl als ihr Text). Der Schreibweg prüft sie gegen das Feld (`kinds`); je Nutzer, Jahr und
+    Feld höchstens eine.
     """
 
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
@@ -64,8 +64,16 @@ class FormInput(Entry):
     content: str = Field(min_length=1, max_length=TEXT_MAX)
 
 
-def check_input(entry: FormInput, entries: Mapping[EntryAddress, Entry]) -> str | None:
-    """Schreibweg: nur eine Eingabe je Nutzer, Jahr und Feld."""
+type FieldCheck = Callable[[FormInput], str | None]
+"""Warum eine Eingabe nicht zu ihrem Feld passt; `None`, wenn sie passt."""
+
+
+def check_input(
+    entry: FormInput, entries: Mapping[EntryAddress, Entry], fits_field: FieldCheck
+) -> str | None:
+    """Schreibweg: die Eingabe passt zu ihrem Feld, nur eine je Nutzer, Jahr und Feld."""
+    if (reason := fits_field(entry)) is not None:
+        return reason
     same = [
         e
         for e in entries.values()
@@ -81,7 +89,13 @@ def yearly_path(entry: ProtocolReading | FormInput) -> str:
     return f"users/{entry.owner}/tax_year/{entry.year}.json"
 
 
-KINDS: tuple[EntryKind, ...] = (
-    entry_kind(ProtocolReading, SCHEMA, yearly_path, falls_with="document"),
-    entry_kind(FormInput, SCHEMA, yearly_path, check=check_input),
-)
+def kinds(fits_field: FieldCheck) -> tuple[EntryKind, ...]:
+    """Die Eintragsarten des Moduls; `fits_field` prüft eine Eingabe gegen den Feldkatalog."""
+
+    def check(entry: FormInput, entries: Mapping[EntryAddress, Entry]) -> str | None:
+        return check_input(entry, entries, fits_field)
+
+    return (
+        entry_kind(ProtocolReading, SCHEMA, yearly_path, falls_with="document"),
+        entry_kind(FormInput, SCHEMA, yearly_path, check=check),
+    )

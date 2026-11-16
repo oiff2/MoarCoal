@@ -25,10 +25,13 @@ from moarcoal.modules.tax_year import REGISTRATION
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import (
+    COMMON_OWNER,
     Applied,
     Document,
     HiddenFile,
     HiddenFolder,
+    Put,
+    Rejected,
     SiteFileError,
     Store,
     open_store,
@@ -629,3 +632,28 @@ def test_direct_hiding_needs_origin_and_get_never_writes(root: Path, site: Path)
     assert client.post("/belege/einblenden-ordner", data={"site": "Belege"}).status_code == 403
     assert client.get("/belege/ausblenden-direkt").status_code == 405
     assert not (root / "common" / "hidden_files.json").exists()
+
+
+def test_the_write_path_hides_a_folder_only_once(root: Path, site: Path) -> None:
+    store = open_store(root, [], {"Belege": site})
+
+    def folder() -> HiddenFolder:
+        return HiddenFolder(owner=COMMON_OWNER, site="Belege", path="2025")
+
+    assert isinstance(store.apply([Put(folder())]), Applied)
+    assert isinstance(store.apply([Put(folder())]), Rejected)
+    assert isinstance(store.apply([Put(folder()), Put(folder())]), Rejected)
+    other = HiddenFolder(owner=COMMON_OWNER, site="Belege", path="2025/alt")
+    assert isinstance(store.apply([Put(other)]), Applied)
+
+
+def test_the_write_path_takes_in_a_file_once_per_user(root: Path, site: Path) -> None:
+    store = open_store(root, [], {"Belege": site})
+
+    def document(owner: str = "anna", path: str = "2025/protokoll.html") -> Document:
+        return Document(owner=owner, site="Belege", path=path, sha256=SHA)
+
+    assert isinstance(store.apply([Put(document())]), Applied)
+    assert isinstance(store.apply([Put(document(path="kopie.html"))]), Rejected)
+    assert isinstance(store.apply([Put(document("berta")), Put(document("berta"))]), Rejected)
+    assert isinstance(store.apply([Put(document("berta"))]), Applied)

@@ -37,7 +37,13 @@ from moarcoal.storage import (
     Store,
     entry_checksum,
 )
-from moarcoal.storage.documents import TEXT_MAX, exists_already, period_clash
+from moarcoal.storage.documents import (
+    ALREADY_TAKEN_IN,
+    TEXT_MAX,
+    documents_of_file,
+    exists_already,
+    period_clash,
+)
 from moarcoal.values.findings import READ_IN_CHANGED, Finding, Severity
 
 if TYPE_CHECKING:
@@ -190,8 +196,8 @@ def take_in(
     except SiteFileError as error:
         return IntakeRejected((str(error),))
     sha256 = hashlib.sha256(content).hexdigest()
-    if _already_taken_in(store.state(), user, sha256):
-        return IntakeRejected(("Diese Datei ist schon aufgenommen.",))
+    if documents_of_file(store.state().entries, user, sha256):  # Komfort: nicht erst einlesen
+        return IntakeRejected((ALREADY_TAKEN_IN,))
     start, end = _period(kind, year)
     try:
         document = Document(
@@ -222,10 +228,6 @@ def take_in(
     if not isinstance(result, Applied):
         return _rejected(result.reasons, store.state(), kinds, document)
     return TakenIn(document, entries)
-
-
-def _already_taken_in(state: State, user: str, sha256: str) -> bool:
-    return any(d.owner == user and d.sha256 == sha256 for d in state.of_kind(Document))
 
 
 def change_document(

@@ -158,7 +158,9 @@ def test_transfer_protocol_and_assessment_are_registered_as_unique() -> None:
 def test_every_write_path_is_checked_not_only_take_in_and_change(store: Store) -> None:
     first = take(store, "a")
     assert isinstance(first, TakenIn)
-    second = first.document.model_copy(update={"id": "ABCDEFGHJK", "path": "b.txt"})
+    second = first.document.model_copy(
+        update={"id": "ABCDEFGHJK", "path": "b.txt", "sha256": "b" * 64}
+    )
 
     result = store.apply([Put(second)])
 

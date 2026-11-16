@@ -95,6 +95,7 @@ def create_app(
             for kind in module.document_kinds
             if kind.unique_per_period
         },
+        kinds_with_period={k.key for m in modules for k in m.document_kinds if k.has_period},
     )
     document_kinds = {k.key: k for module in modules for k in module.document_kinds}
     for line in read_in_again(app.state.store, document_kinds):  # Start, Schritt 5

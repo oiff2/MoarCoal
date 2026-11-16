@@ -18,12 +18,14 @@ from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import (
     COMMON_OWNER,
+    Applied,
     Document,
     EntryAddress,
     ExpectedDocument,
     Issuer,
     Merge,
     Put,
+    Rejected,
     open_store,
 )
 from moarcoal.values.calculation import Calculation
@@ -275,6 +277,22 @@ def test_another_user_cannot_open_the_entry(tmp_path: Path) -> None:
 def test_kinds_without_period_are_not_offered() -> None:
     plain = DocumentKind("demo.vertrag", "Vertrag", False, lambda d, b: [], 1)
     assert not plain.has_period
+
+
+def test_the_write_path_rejects_a_kind_that_is_unknown_or_has_no_period(tmp_path: Path) -> None:
+    plain = DocumentKind("demo.vertrag", "Vertrag", False, lambda d, b: [], 1)
+    demo = ModuleRegistration(
+        key="demo", area_name="Demo", nav_label="Demo", nav_url="/demo",
+        router=APIRouter(), kinds=(), document_kinds=(plain,),
+    )  # fmt: skip
+    store = make_app(PORT, tmp_path, modules=[WORK, TAX_YEAR, demo]).state.store
+
+    def entry(kind: str) -> ExpectedDocument:
+        return ExpectedDocument(owner="anna", document_kind=kind, start_year=2025)
+
+    assert isinstance(store.apply([Put(entry("unbekannt"))]), Rejected)
+    assert isinstance(store.apply([Put(entry(plain.key))]), Rejected)
+    assert isinstance(store.apply([Put(entry(KIND))]), Applied)
 
 
 def test_hiding_pending_2025_leaves_2026_a_separate_finding(tmp_path: Path) -> None:
