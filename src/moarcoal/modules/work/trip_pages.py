@@ -39,7 +39,7 @@ from moarcoal.modules.work.trips import (
 )
 from moarcoal.place_search import PlaceSearch, PlaceSearchError
 from moarcoal.storage import Applied, Change, Delete, Proposal, entry_checksum
-from moarcoal.web import form_fields, module_state, render, store_of, user_of
+from moarcoal.web import form_fields, module_state, rejection_text, render, store_of, user_of
 
 router = APIRouter(prefix="/arbeit/dienstreisen")
 
@@ -68,7 +68,7 @@ def _apply(request: Request, year: int, changes: Sequence[Change]) -> Response:
     result = store_of(request).apply(changes)
     if isinstance(result, Applied):
         return RedirectResponse(f"/arbeit/dienstreisen/{year}", status_code=303)
-    return _page(request, year, error=" ".join(result.reasons.values()), status_code=409)
+    return _page(request, year, error=rejection_text(result), status_code=409)
 
 
 @router.get("/{year}", response_class=HTMLResponse)

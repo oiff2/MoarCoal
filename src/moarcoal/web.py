@@ -1,14 +1,15 @@
 """Gemeinsame Helfer der Seiten: Vorlagen, Nutzer, Stand und Formularfelder."""
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from functools import cache
-from typing import Any
+from typing import Any, Protocol
 from urllib.parse import parse_qs
 
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, ValidationError
 
 from moarcoal.defaults import DEFAULT_YEAR, year_of
 from moarcoal.documents import DocumentKind
@@ -22,7 +23,16 @@ from moarcoal.links import (
 )
 from moarcoal.personal_details import details_of
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import Document, EntryAddress, ExpectedDocument, Issuer, State, Store
+from moarcoal.storage import (
+    Document,
+    Entry,
+    EntryAddress,
+    ExpectedDocument,
+    Issuer,
+    Rejected,
+    State,
+    Store,
+)
 from moarcoal.values.engine import Values
 from moarcoal.values.findings import Finding, Severity
 from moarcoal.values.model import Amount, format_amount
@@ -139,6 +149,57 @@ async def form_fields(request: Request) -> dict[str, str]:
     body = (await request.body()).decode("utf-8", errors="replace")
     parsed = parse_qs(body, keep_blank_values=True)
     return {name: values[0] for name, values in parsed.items()}
+
+
+class _Lookup(Protocol):
+    def get(self, address: EntryAddress) -> Entry | None: ...
+
+
+def entry_of[E: Entry](state: _Lookup, kind: type[E], entry_id: str, owner: str | None = None) -> E:
+    """Der Eintrag der Art `kind` mit dieser Kennung, sonst 404: ungültige Kennung, es gibt ihn
+    nicht, oder er gehört einem anderen als `owner` (`None`: Eigentümer egal, z. B. bei
+    gemeinsamen Einträgen oder einem Stand, der schon auf den Nutzer eingegrenzt ist)."""
+    try:
+        address = EntryAddress(kind=kind.__name__, id=entry_id)
+    except ValueError as error:
+        raise HTTPException(404) from error
+    entry = state.get(address)
+    if not isinstance(entry, kind) or (owner is not None and entry.owner != owner):
+        raise HTTPException(404)
+    return entry
+
+
+def rejection_reasons(result: Rejected) -> list[str]:
+    """Die Gründe eines abgewiesenen Vorgangs als Liste, für die Fehlerliste einer Seite."""
+    return list(result.reasons.values())
+
+
+def rejection_text(result: Rejected) -> str:
+    """Die Gründe eines abgewiesenen Vorgangs als ein Text, für einen Hinweis auf der Seite."""
+    return " ".join(rejection_reasons(result))
+
+
+def field_hints(
+    error: ValidationError, hints: Mapping[str, str], unknown: str | None = None
+) -> list[str]:
+    """Je Feld, das die Prüfung ablehnt, ein Hinweis aus `hints` (Pydantic liefert nur englische
+    Meldungen), in der Reihenfolge der Fehler, je Feld einmal. Ein Feld ohne Hinweis (und ein
+    Fehler ohne Feld) erhält `unknown`, ohne Angabe den Feldnamen; ein leerer Text entfällt."""
+    names = dict.fromkeys(
+        next((p for p in reversed(e["loc"]) if isinstance(p, str)), "") for e in error.errors()
+    )
+    texts = [hints.get(name, name if unknown is None else unknown) for name in names]
+    return [text for text in texts if text]
+
+
+def validated[M: BaseModel](
+    model: type[M], data: Mapping[str, Any], hints: Mapping[str, str], unknown: str | None = None
+) -> tuple[M | None, list[str]]:
+    """Formular -> Modell: das geprüfte Modell, sonst `None` und die Hinweise je Feld."""
+    try:
+        return model.model_validate(data), []
+    except ValidationError as error:
+        return None, field_hints(error, hints, unknown)
 
 
 def _sidebar(request: Request, open_files: int | None) -> list[tuple[str, list[NavEntry]]]:

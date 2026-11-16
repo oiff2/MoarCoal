@@ -2,9 +2,8 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
-from pydantic import ValidationError
 
 from moarcoal.defaults import DEFAULT_YEAR, MAX_YEAR, MIN_YEAR
 from moarcoal.documents import DocumentKind
@@ -14,16 +13,23 @@ from moarcoal.storage import (
     Applied,
     Delete,
     Document,
-    EntryAddress,
     ExpectedDocument,
     Issuer,
     Put,
-    Rejected,
     entry_checksum,
     new_id,
 )
 from moarcoal.storage.expected_documents import TEXT_MAX
-from moarcoal.web import document_kinds, form_fields, render, store_of, user_of
+from moarcoal.web import (
+    document_kinds,
+    entry_of,
+    form_fields,
+    rejection_reasons,
+    render,
+    store_of,
+    user_of,
+    validated,
+)
 
 router = APIRouter(prefix="/belege/erwartet")
 
@@ -53,21 +59,19 @@ def _build(
     kind = fields.get("document_kind", "")
     if kind not in _kinds(request):
         return None, [HINTS["document_kind"]]
-    try:
-        entry = ExpectedDocument.model_validate(
-            {
-                "id": entry_id,
-                "owner": owner,
-                "document_kind": kind,
-                "start_year": fields.get("start_year", "").strip(),
-                "end_year": fields.get("end_year", "").strip() or None,
-                "description": fields.get("description", "").strip(),
-            }
-        )
-    except ValidationError as error:
-        names = list(dict.fromkeys(str(e["loc"][-1]) if e["loc"] else "" for e in error.errors()))
-        return None, [HINTS.get(name, END_BEFORE_START) for name in names]
-    return entry, []
+    return validated(
+        ExpectedDocument,
+        {
+            "id": entry_id,
+            "owner": owner,
+            "document_kind": kind,
+            "start_year": fields.get("start_year", "").strip(),
+            "end_year": fields.get("end_year", "").strip() or None,
+            "description": fields.get("description", "").strip(),
+        },
+        HINTS,
+        END_BEFORE_START,
+    )
 
 
 def _prefill(entry: ExpectedDocument | None) -> Fields:
@@ -82,14 +86,7 @@ def _prefill(entry: ExpectedDocument | None) -> Fields:
 
 
 def _own(request: Request, entry_id: str) -> ExpectedDocument:
-    try:
-        address = EntryAddress(kind=ExpectedDocument.__name__, id=entry_id)
-    except ValueError as error:
-        raise HTTPException(404) from error
-    entry = store_of(request).state().get(address)
-    if not isinstance(entry, ExpectedDocument) or entry.owner != user_of(request):
-        raise HTTPException(404)
-    return entry
+    return entry_of(store_of(request).state(), ExpectedDocument, entry_id, user_of(request))
 
 
 def _suggestion(request: Request, entry: ExpectedDocument) -> Issuer | None:
@@ -147,10 +144,6 @@ def _edit(
     )
 
 
-def _reasons(result: Rejected) -> list[str]:
-    return list(result.reasons.values())
-
-
 @router.get("", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
     return _overview(request, [], _prefill(None))
@@ -163,7 +156,7 @@ def create(request: Request, fields: Annotated[Fields, Depends(form_fields)]) ->
         return _overview(request, errors, fields, 422)
     result = store_of(request).apply([Put(entry)])
     if not isinstance(result, Applied):
-        return _overview(request, _reasons(result), fields, 409)
+        return _overview(request, rejection_reasons(result), fields, 409)
     return RedirectResponse(expected_documents_url(), status_code=303)
 
 
@@ -184,7 +177,7 @@ def update(
         return _edit(request, entry_id, fields, errors, checksum, 422)
     result = store_of(request).apply([Put(entry, expected=checksum)])
     if not isinstance(result, Applied):
-        return _edit(request, entry_id, fields, _reasons(result), checksum, 409)
+        return _edit(request, entry_id, fields, rejection_reasons(result), checksum, 409)
     return RedirectResponse(expected_documents_url(), status_code=303)
 
 
@@ -196,5 +189,5 @@ def delete(
     checksum = fields.get("checksum", "")
     result = store_of(request).apply([Delete(entry.address, expected=checksum)])
     if not isinstance(result, Applied):
-        return _edit(request, entry_id, _prefill(entry), _reasons(result), checksum, 409)
+        return _edit(request, entry_id, _prefill(entry), rejection_reasons(result), checksum, 409)
     return RedirectResponse(expected_documents_url(), status_code=303)

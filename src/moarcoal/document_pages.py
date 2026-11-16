@@ -7,9 +7,8 @@ Löschen, Auslesen und Bestätigen sind POST und brauchen den Origin (Middleware
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
-from pydantic import ValidationError
 
 from moarcoal.document_list import documents_page
 from moarcoal.documents import IntakeRejected, change_document, read_document_choice
@@ -19,13 +18,19 @@ from moarcoal.previews import file_response
 from moarcoal.proposals import (
     ReadOutRejected,
     confirm,
-    document_of,
     latest_proposal,
     read_out,
     template_of,
 )
 from moarcoal.storage import Applied, Delete, Document
-from moarcoal.web import document_kinds, form_fields, store_of, user_of
+from moarcoal.web import (
+    document_kinds,
+    entry_of,
+    form_fields,
+    rejection_text,
+    store_of,
+    user_of,
+)
 
 router = APIRouter(prefix="/dokumente")
 
@@ -33,18 +38,12 @@ type Fields = dict[str, str]
 
 
 def _document(request: Request, document_id: str) -> Document:
-    try:
-        document = document_of(store_of(request).state(), user_of(request), document_id)
-    except ValidationError:
-        document = None
-    if document is None:
-        raise HTTPException(404)
-    return document
+    return entry_of(store_of(request).state(), Document, document_id, user_of(request))
 
 
-def _refused(request: Request, document: Document, status_code: int, *reasons: str) -> HTMLResponse:
-    """Der Reiter Dokumente mit dem Dokument und den Gründen der Abweisung."""
-    return documents_page(request, status_code, selected=document.id, notice=" ".join(reasons))
+def _refused(request: Request, document: Document, status_code: int, notice: str) -> HTMLResponse:
+    """Der Reiter Dokumente mit dem Dokument und dem Hinweis zur Abweisung."""
+    return documents_page(request, status_code, selected=document.id, notice=notice)
 
 
 def _in_list(document: Document) -> RedirectResponse:
@@ -110,7 +109,7 @@ def delete(
     document = _document(request, document_id)
     result = store_of(request).apply([Delete(document.address, fields.get("checksum", ""))])
     if not isinstance(result, Applied):
-        return _refused(request, document, 409, *result.reasons.values())
+        return _refused(request, document, 409, rejection_text(result))
     return RedirectResponse("/belege/dokumente", status_code=303)
 
 

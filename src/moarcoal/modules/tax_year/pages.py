@@ -16,7 +16,16 @@ from moarcoal.modules.tax_year.structure import form_pages
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Applied, Document, EntryAddress
 from moarcoal.values.model import Period
-from moarcoal.web import form_fields, module_state, render, store_of, user_of, values_of
+from moarcoal.web import (
+    entry_of,
+    form_fields,
+    module_state,
+    rejection_text,
+    render,
+    store_of,
+    user_of,
+    values_of,
+)
 
 router = APIRouter(prefix="/steuerjahr")
 
@@ -46,14 +55,8 @@ def index(request: Request) -> HTMLResponse:
 
 @router.get("/uebertragungsprotokolle/{reading_id}", response_class=HTMLResponse)
 def protocol_page(request: Request, reading_id: str) -> HTMLResponse:
-    try:
-        address = EntryAddress(kind=ProtocolReading.__name__, id=reading_id)
-    except ValueError as error:
-        raise HTTPException(404) from error
     state = _own_state(request)
-    reading = state.get(address)
-    if not isinstance(reading, ProtocolReading):
-        raise HTTPException(404)
+    reading = entry_of(state, ProtocolReading, reading_id)
     document: Document | None = next(
         (d for d in state.documents() if d.address == reading.document), None
     )
@@ -138,7 +141,7 @@ def save_input(
     if error is None and changes:
         result = store_of(request).apply(changes)
         if not isinstance(result, Applied):
-            error = " ".join(result.reasons.values())
+            error = rejection_text(result)
     return _input_part(request, year, field, error, text if error else None)
 
 

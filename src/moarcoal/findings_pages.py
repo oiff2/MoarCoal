@@ -9,7 +9,15 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from moarcoal.defaults import year_of
 from moarcoal.dismissals import NoteMissing, dismiss, undismiss
 from moarcoal.storage import Applied
-from moarcoal.web import form_fields, global_year, render, store_of, user_of, values_of
+from moarcoal.web import (
+    form_fields,
+    global_year,
+    rejection_text,
+    render,
+    store_of,
+    user_of,
+    values_of,
+)
 
 router = APIRouter()
 
@@ -79,7 +87,7 @@ def dismiss_finding(
     except NoteMissing:
         return _findings_page(request, year, status_code=422, error=identity, note=note)
     if not isinstance(result, Applied):
-        reasons = " ".join(result.reasons.values())
+        reasons = rejection_text(result)
         return _findings_page(request, year, status_code=409, notice=reasons)
     return RedirectResponse(f"/befunde?year={year}", status_code=303)
 
@@ -93,6 +101,6 @@ def undismiss_finding(
     if result is None:
         raise HTTPException(404)
     if not isinstance(result, Applied):
-        reasons = " ".join(result.reasons.values())
+        reasons = rejection_text(result)
         return _findings_page(request, year, status_code=409, notice=reasons)
     return RedirectResponse(f"/befunde?year={year}&ausgeblendet=1", status_code=303)

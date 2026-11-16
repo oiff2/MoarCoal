@@ -8,7 +8,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
-from pydantic import ValidationError
 
 from moarcoal.links import issuer_url, issuers_url
 from moarcoal.personal_details import (
@@ -26,14 +25,21 @@ from moarcoal.storage import (
     Issuer,
     Merge,
     Put,
-    Rejected,
     State,
     entry_checksum,
     name_key,
 )
 from moarcoal.storage.entries import referenced_addresses
 from moarcoal.storage.issuers import issuer_with_name
-from moarcoal.web import form_fields, render, store_of, user_of
+from moarcoal.web import (
+    entry_of,
+    form_fields,
+    rejection_reasons,
+    render,
+    store_of,
+    user_of,
+    validated,
+)
 
 router = APIRouter(prefix="/aussteller")
 
@@ -72,32 +78,23 @@ def _build(fields: Fields, issuer: Issuer, locked: bool = False) -> tuple[Issuer
     """Der geänderte Aussteller; Name und Privatperson bleiben, wenn er aus den Angaben zur
     Person kommt (`locked`)."""
     aliases = tuple(line.strip() for line in fields.get("aliases", "").splitlines() if line.strip())
-    try:
-        changed = Issuer.model_validate(
-            {
-                **issuer.model_dump(),
-                "name": issuer.name if locked else fields.get("name", "").strip(),
-                "aliases": aliases,
-                "private_person": issuer.private_person
-                if locked
-                else fields.get("private_person") == "on",
-            }
-        )
-    except ValidationError as error:
-        names = {str(e["loc"][0]) for e in error.errors() if e["loc"]}
-        return None, [hint for name, hint in HINTS.items() if name in names]
-    return changed, []
+    return validated(
+        Issuer,
+        {
+            **issuer.model_dump(),
+            "name": issuer.name if locked else fields.get("name", "").strip(),
+            "aliases": aliases,
+            "private_person": issuer.private_person
+            if locked
+            else fields.get("private_person") == "on",
+        },
+        HINTS,
+        unknown="",
+    )
 
 
 def _issuer(request: Request, issuer_id: str) -> Issuer:
-    try:
-        address = EntryAddress(kind=Issuer.__name__, id=issuer_id)
-    except ValueError as error:
-        raise HTTPException(404) from error
-    issuer = store_of(request).state().get(address)
-    if not isinstance(issuer, Issuer):
-        raise HTTPException(404)
-    return issuer
+    return entry_of(store_of(request).state(), Issuer, issuer_id)
 
 
 def _detail(
@@ -132,10 +129,6 @@ def _detail(
         holder=holder,
         from_details=details_for_issuer(state, issuer) is not None,
     )
-
-
-def _reasons(result: Rejected) -> list[str]:
-    return list(result.reasons.values())
 
 
 @router.get("", response_class=HTMLResponse)
@@ -233,7 +226,7 @@ def merge(
         ]
     )
     if not isinstance(result, Applied):
-        return _merge_page(request, source, target, _reasons(result), 409)
+        return _merge_page(request, source, target, rejection_reasons(result), 409)
     return RedirectResponse(issuer_url(target.id), status_code=303)
 
 
@@ -253,7 +246,7 @@ def update(
             (h for n in (changed.name, *changed.aliases) if (h := issuer_with_name(others, n))),
             None,
         )
-        reasons = [] if holder else _reasons(result)
+        reasons = [] if holder else rejection_reasons(result)
         return _detail(request, issuer, fields, reasons, 409, holder)
     return RedirectResponse(issuer_url(issuer.id), status_code=303)
 
@@ -267,5 +260,5 @@ def delete(
         return _detail(request, issuer, errors=[FROM_DETAILS], status_code=409)
     result = store_of(request).apply([Delete(issuer.address, expected=fields.get("checksum", ""))])
     if not isinstance(result, Applied):
-        return _detail(request, issuer, errors=_reasons(result), status_code=409)
+        return _detail(request, issuer, errors=rejection_reasons(result), status_code=409)
     return RedirectResponse(issuers_url(), status_code=303)

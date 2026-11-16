@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.personal_details import PersonalDetailsInvalid, details_of, personal_details_changes
 from moarcoal.storage import Applied, entry_checksum
-from moarcoal.web import form_fields, render, store_of, user_of
+from moarcoal.web import form_fields, rejection_reasons, render, store_of, user_of
 
 router = APIRouter()
 
@@ -69,5 +69,5 @@ def save(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> R
         return _page(request, template, fields, error.problems, 422)
     result = store.apply(changes)
     if not isinstance(result, Applied):
-        return _page(request, template, fields, list(result.reasons.values()), 409)
+        return _page(request, template, fields, rejection_reasons(result), 409)
     return RedirectResponse("/" if created else "/person", status_code=303)

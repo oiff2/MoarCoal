@@ -27,7 +27,6 @@ from moarcoal.storage import (
     Applied,
     Delete,
     Document,
-    EntryAddress,
     Proposal,
     ProposalField,
     Put,
@@ -262,8 +261,3 @@ def proposal_findings(
             )
         )
     return found
-
-
-def document_of(state: State, user: str, document_id: str) -> Document | None:
-    entry = state.get(EntryAddress(kind=Document.__name__, id=document_id))
-    return entry if isinstance(entry, Document) and entry.owner == user else None

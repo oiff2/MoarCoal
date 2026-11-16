@@ -19,6 +19,7 @@ from moarcoal.web import (
     document_kinds,
     entry_url,
     form_fields,
+    rejection_text,
     render,
     store_of,
     user_of,
@@ -170,7 +171,7 @@ def hide(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> R
     following = _after(listing, file.sha256)
     result = hide_file(store_of(request), file, fields.get("note", ""))
     if not isinstance(result, Applied):
-        return _page(request, listing, 409, " ".join(result.reasons.values()), selected=file.sha256)
+        return _page(request, listing, 409, rejection_text(result), selected=file.sha256)
     return following or RedirectResponse(site_url(), status_code=303)
 
 
@@ -195,7 +196,7 @@ def hide_directly(request: Request, fields: Annotated[Fields, Depends(form_field
             return _page(request, listing, 409, error)
         result = hide_folder(store, store.state(), site, path)
     if result is not None and not isinstance(result, Applied):
-        return _page(request, listing, 409, " ".join(result.reasons.values()))
+        return _page(request, listing, 409, rejection_text(result))
     return back
 
 
