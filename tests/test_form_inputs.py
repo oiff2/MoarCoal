@@ -142,6 +142,20 @@ def test_only_one_input_per_field_and_year_is_accepted_by_the_write_path(tmp_pat
     assert isinstance(other, Applied)
 
 
+@pytest.mark.parametrize(
+    ("elster_id", "content", "year"),
+    [("E0204507", "viele", 2025), ("E0204901", "Vielleicht", 2025), ("E0204507", "20", 2024)],
+)
+def test_the_write_path_rejects_an_input_that_does_not_fit_the_field(
+    tmp_path: Path, elster_id: str, content: str, year: int
+) -> None:
+    store = open_store(tmp_path, TAX_YEAR.kinds)
+
+    result = store.apply([Put(entered(elster_id, content, year))])
+
+    assert isinstance(result, Rejected)
+
+
 # --- Seite --------------------------------------------------------------------------------------
 
 

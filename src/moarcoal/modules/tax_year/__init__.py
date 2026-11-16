@@ -13,11 +13,12 @@ from moarcoal.modules.tax_year.comparison import (
     snapshot_on_filing,
 )
 from moarcoal.modules.tax_year.entries import (
-    KINDS,
     TRANSFER_PROTOCOL_KEY,
     ProtocolLine,
     ProtocolReading,
+    kinds,
 )
+from moarcoal.modules.tax_year.inputs import input_problem
 from moarcoal.modules.tax_year.pages import MODULE_KEY, entry_url, router
 from moarcoal.modules.tax_year.reading import READER_VERSION, TITLE, read_in_protocol
 from moarcoal.modules.tax_year.structure import FormStructure
@@ -54,7 +55,7 @@ def registration(
         icon="steuerjahr",
         router=router,
         entry_url=entry_url,
-        kinds=KINDS,
+        kinds=kinds(partial(input_problem, forms)),
         values=values_for(forms),
         document_kinds=(transfer_protocol(forms), ASSESSMENT),
         finding_kinds=FINDING_KINDS,
