@@ -657,3 +657,17 @@ def test_the_write_path_takes_in_a_file_once_per_user(root: Path, site: Path) ->
     assert isinstance(store.apply([Put(document(path="kopie.html"))]), Rejected)
     assert isinstance(store.apply([Put(document("berta")), Put(document("berta"))]), Rejected)
     assert isinstance(store.apply([Put(document("berta"))]), Applied)
+
+
+def test_the_write_path_hides_a_file_only_once(root: Path, site: Path) -> None:
+    store = open_store(root, [], {"Belege": site})
+
+    def hidden(path: str = "2025/protokoll.html", sha256: str = SHA) -> HiddenFile:
+        return HiddenFile(owner=COMMON_OWNER, sha256=sha256, site="Belege", path=path)
+
+    assert isinstance(store.apply([Put(hidden())]), Applied)
+    assert isinstance(store.apply([Put(hidden(path="kopie.html"))]), Rejected)
+    assert isinstance(
+        store.apply([Put(hidden("b.txt", "b" * 64)), Put(hidden("c.txt", "b" * 64))]), Rejected
+    )
+    assert isinstance(store.apply([Put(hidden("b.txt", "b" * 64))]), Applied)
