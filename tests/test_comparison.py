@@ -38,7 +38,7 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_WORKDAYS,
     WORK_WORKDAYS_PER_WEEK,
 )
-from moarcoal.modules.tax_year.comparison import (
+from moarcoal.modules.tax_year.protocol_check import (
     AMBIGUOUS,
     DEVIATION,
     LINE_MISMATCH,

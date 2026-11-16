@@ -6,21 +6,18 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from moarcoal.modules.tax_year.anlage_n import FORMS, STRUCTURES
-from moarcoal.modules.tax_year.comparison import (
-    current_assessment,
-    describe_frozen,
-    latest_snapshot,
-)
-from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading
+from moarcoal.modules.tax_year.assessment_check import current_assessment
+from moarcoal.modules.tax_year.entries import MODULE_KEY, TRANSFER_PROTOCOL_KEY, ProtocolReading
 from moarcoal.modules.tax_year.fields import FormField
 from moarcoal.modules.tax_year.inputs import changes_for_input, current_input, typed_field
+from moarcoal.modules.tax_year.links import protocol_url
+from moarcoal.modules.tax_year.snapshot_check import describe_frozen, latest_snapshot
 from moarcoal.modules.tax_year.structure import form_pages
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Applied, Document, EntryAddress
 from moarcoal.values.model import Period
 from moarcoal.web import form_fields, module_state, render, store_of, user_of, values_of
 
-MODULE_KEY = "tax_year"
 router = APIRouter(prefix="/steuerjahr")
 
 
@@ -169,5 +166,5 @@ def _input_part(
 def entry_url(address: EntryAddress) -> str | None:
     """Link zur Seite eines eingelesenen Protokolls, sonst `None`."""
     if address.kind == ProtocolReading.__name__:
-        return f"/steuerjahr/uebertragungsprotokolle/{address.id}"
+        return protocol_url(address.id)
     return None

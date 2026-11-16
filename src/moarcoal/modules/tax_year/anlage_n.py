@@ -20,8 +20,8 @@ from moarcoal.modules.tax_year.assessment import (
     MEAL_ALLOWANCE,
     SOLI_WITHHELD,
 )
-from moarcoal.modules.tax_year.entries import FormInput
-from moarcoal.modules.tax_year.fields import Direction, FormField, Rounding, TypedInput
+from moarcoal.modules.tax_year.fields import Direction, FormField, Forms, Rounding, TypedInput
+from moarcoal.modules.tax_year.inputs import current_input
 from moarcoal.modules.tax_year.structure import FormStructure, load_structure
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
@@ -282,9 +282,6 @@ def fields_n(structure: FormStructure) -> tuple[FormField, ...]:
 STRUCTURES: Mapping[int, FormStructure] = {2025: load_structure(FORM, 2025)}
 FIELDS_2025 = fields_n(STRUCTURES[2025])
 
-type Forms = Mapping[int, tuple[FormField, ...]]
-"""Felder der Anlage N je Steuerjahr."""
-
 FORMS: Forms = {2025: FIELDS_2025}
 
 
@@ -335,14 +332,7 @@ def compute_homeoffice_days(calculation: Calculation, field: FormField) -> Amoun
     """Nr. 58: die Tage, die der Nutzer im Steuerjahr eingegeben hat; ohne Eingabe noch nicht
     berechenbar (nie 0)."""
     year = calculation.year
-    entry = next(
-        (
-            e
-            for e in calculation.own.all(FormInput)
-            if (e.year, e.elster_id) == (year, field.elster_id)
-        ),
-        None,
-    )
+    entry = current_input(calculation.own, year, field)
     if entry is None:
         calculation.not_yet(f"Die Homeoffice-Tage (Nr. 58) sind für {year} noch nicht erfasst")
     days = Amount.of(int(entry.content), Unit.DAYS)

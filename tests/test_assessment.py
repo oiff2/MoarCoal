@@ -48,14 +48,14 @@ from moarcoal.modules.tax_year.assessment import (
     MEAL_ALLOWANCE,
     TEMPLATE,
 )
-from moarcoal.modules.tax_year.comparison import (
+from moarcoal.modules.tax_year.assessment_check import (
     ASSESSMENT_DEVIATION,
     ASSESSMENT_NO_SNAPSHOT,
     assessment_amounts,
     current_assessment,
-    snapshot_on_filing,
 )
 from moarcoal.modules.tax_year.fields import Direction, FormField, Rounding
+from moarcoal.modules.tax_year.snapshot_check import snapshot_on_filing
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import Document, Entry, EntryAddress, Proposal, Put, State, Store
 from moarcoal.storage.proposals import ProposalField

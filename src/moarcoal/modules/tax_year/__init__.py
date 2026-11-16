@@ -5,22 +5,21 @@ from collections.abc import Mapping
 from functools import partial
 
 from moarcoal.documents import DocumentKind
-from moarcoal.modules.tax_year.anlage_n import FORMS, STRUCTURES, Forms, values_for
+from moarcoal.modules.tax_year.anlage_n import FORMS, STRUCTURES, values_for
 from moarcoal.modules.tax_year.assessment import ASSESSMENT
-from moarcoal.modules.tax_year.comparison import (
-    FINDING_KINDS,
-    module_findings,
-    snapshot_on_filing,
-)
+from moarcoal.modules.tax_year.comparison import FINDING_KINDS, module_findings
 from moarcoal.modules.tax_year.entries import (
+    MODULE_KEY,
     TRANSFER_PROTOCOL_KEY,
     ProtocolLine,
     ProtocolReading,
     kinds,
 )
+from moarcoal.modules.tax_year.fields import Forms
 from moarcoal.modules.tax_year.inputs import input_problem
-from moarcoal.modules.tax_year.pages import MODULE_KEY, entry_url, router
+from moarcoal.modules.tax_year.pages import entry_url, router
 from moarcoal.modules.tax_year.reading import READER_VERSION, TITLE, read_in_protocol
+from moarcoal.modules.tax_year.snapshot_check import snapshot_on_filing
 from moarcoal.modules.tax_year.structure import FormStructure
 from moarcoal.registration import ModuleRegistration
 

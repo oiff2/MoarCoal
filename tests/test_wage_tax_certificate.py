@@ -18,7 +18,7 @@ from moarcoal.modules.tax_year.anlage_n import (
     N_SOLI,
     N_TAX_CLASS,
 )
-from moarcoal.modules.tax_year.comparison import DEVIATION, MISSING
+from moarcoal.modules.tax_year.protocol_check import DEVIATION, MISSING
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import WAGE_TAX_CERTIFICATE, WageTaxCertificate
 from moarcoal.modules.work.reading import read_in_wage_tax_certificate

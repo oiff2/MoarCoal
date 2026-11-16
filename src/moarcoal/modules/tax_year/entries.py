@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.storage import Entry, EntryAddress, EntryKind, ReadInEntry, entry_kind
 
+MODULE_KEY = "tax_year"
 SCHEMA = "tax_year/1"
 TRANSFER_PROTOCOL_KEY = "transfer_protocol"  # Schlüssel der Dokumentart
 ELSTER_ID_PATTERN = r"^E\d{7}$"  # einzige Stelle des Musters
@@ -62,6 +63,11 @@ class FormInput(Entry):
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
     elster_id: ElsterId
     content: str = Field(min_length=1, max_length=TEXT_MAX)
+
+
+def taken_order(moment: datetime.datetime | None, entry_id: str) -> tuple[bool, float, str]:
+    """Reihenfolge nach Aufnahmezeitpunkt (ohne Zeitpunkt zuerst), bei Gleichstand nach `id`."""
+    return (moment is not None, moment.timestamp() if moment else 0.0, entry_id)
 
 
 type FieldCheck = Callable[[FormInput], str | None]

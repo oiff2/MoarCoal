@@ -1,8 +1,7 @@
 """Eingaben zu Eintippfeldern der Anlage: aus dem Formular eine Liste von Änderungen machen."""
 
-from moarcoal.modules.tax_year.anlage_n import Forms
 from moarcoal.modules.tax_year.entries import FormInput
-from moarcoal.modules.tax_year.fields import FormField
+from moarcoal.modules.tax_year.fields import FormField, Forms
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Change, Delete, Put, entry_checksum
 
