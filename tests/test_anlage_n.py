@@ -22,6 +22,7 @@ from moarcoal.modules.tax_year.anlage_n import (
     N_ABSENCE_DAYS,
     N_CAR_DISTANCE,
     N_EQUIPMENT,
+    N_HOMEOFFICE_DAYS,
     N_WORKDAYS_PER_WEEK,
     N_WORKPLACE_DAYS,
     N_WORKPLACE_DISTANCE,
@@ -30,10 +31,13 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_CAR_DISTANCE,
     WORK_DISTANCE_KM,
     WORK_EQUIPMENT,
+    WORK_HOMEOFFICE_DAYS,
     WORK_TRIP_DAYS,
     WORK_WORKDAYS,
     WORK_WORKDAYS_PER_WEEK,
+    YES_NO,
 )
+from moarcoal.modules.tax_year.fields import TypedInput
 from moarcoal.modules.tax_year.structure import form_pages
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import EntryAddress
@@ -96,7 +100,12 @@ def place(subject: Subject = PLACE, workdays: int = 180, km: int = 12) -> Foreig
         (WORK_DISTANCE_KM, subject, YEAR): fixed(Amount.of(km, Unit.KM)),
         **{
             (key, subject, YEAR): not_yet("keine Eingabe")
-            for key in (WORK_WORKDAYS_PER_WEEK, WORK_ABSENCE_DAYS, WORK_CAR_DISTANCE)
+            for key in (
+                WORK_WORKDAYS_PER_WEEK,
+                WORK_ABSENCE_DAYS,
+                WORK_CAR_DISTANCE,
+                WORK_HOMEOFFICE_DAYS,
+            )
         },
         (WORK_TRIP_DAYS, None, YEAR): not_yet("keine Dienstreisen"),
     }
@@ -538,6 +547,46 @@ def test_cycle_fingerprint_follows_the_members() -> None:
     assert cycle("demo.a", "demo.b").fingerprint == base.fingerprint
 
 
+# --- Nr. 58: Homeoffice-Tage aus Arbeit --------------------------------------------------------
+
+
+def homeoffice(days: int = 20) -> Foreign:
+    return {**place(), (WORK_HOMEOFFICE_DAYS, PLACE, YEAR): fixed(Amount.of(days, Unit.DAYS))}
+
+
+def test_homeoffice_days_come_from_the_workplace() -> None:
+    field = exposed(tax_year(homeoffice(20))(N_HOMEOFFICE_DAYS, YEAR))
+
+    assert field.amount == Amount.of(20, Unit.DAYS)
+    assert field.workings.steps[-1].text == "Homeoffice-Tage übernommen"
+
+
+def test_homeoffice_days_without_a_workplace_are_not_yet_computable() -> None:
+    previous = Period.year(2024)
+    result = tax_year({(WORK_HOMEOFFICE_DAYS, PLACE, previous): fixed(Amount.of(20, Unit.DAYS))})(
+        N_HOMEOFFICE_DAYS, YEAR
+    )
+
+    assert isinstance(result, NotYetComputable)
+    assert "erste Tätigkeitsstätte" in result.reason
+
+
+def test_absence_days_add_the_homeoffice_days_of_the_workplace() -> None:
+    foreign = {
+        **homeoffice(20),
+        (WORK_ABSENCE_DAYS, PLACE, YEAR): fixed(Amount.of(30, Unit.DAYS)),
+        (WORK_TRIP_DAYS, None, YEAR): fixed(Amount.of(3, Unit.DAYS)),
+    }
+
+    assert exposed(tax_year(foreign)(N_ABSENCE_DAYS, YEAR)).amount == Amount.of(53, Unit.DAYS)
+
+
+def test_only_the_company_car_is_an_input_field() -> None:
+    typed = {f.elster_id: f.typed for f in FIELDS_2025 if f.typed}
+
+    assert typed == {"E0204901": TypedInput(YES_NO)}
+
+
 # --- Nr. 28 und 31: Tage je Woche, Abwesenheit, Pkw-km -----------------------------------------
 
 
@@ -572,10 +621,10 @@ def absence(trip_days: int = 3, vacation: int = 30) -> Foreign:
 
 
 def test_absence_days_are_not_yet_computable_without_homeoffice_days() -> None:
-    result = tax_year(absence())(N_ABSENCE_DAYS, YEAR)  # ohne Eingabe zu Nr. 58
+    result = tax_year(absence())(N_ABSENCE_DAYS, YEAR)  # ohne Homeoffice-Tage bei Arbeit
 
     assert isinstance(result, NotYetComputable)
-    assert "Homeoffice-Tage" in result.reason
+    assert "homeoffice_days" in result.reason
 
 
 def test_absence_days_sum_the_three_parts_with_working(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -21,11 +21,10 @@ from moarcoal.modules.tax_year.assessment import (
     SOLI_WITHHELD,
 )
 from moarcoal.modules.tax_year.fields import Direction, FormField, Forms, Rounding, TypedInput
-from moarcoal.modules.tax_year.inputs import current_input
 from moarcoal.modules.tax_year.structure import FormStructure, load_structure
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
-from moarcoal.values.model import Amount, Unit, UserInputLocator, ValueKey
+from moarcoal.values.model import Amount, Unit, ValueKey
 
 FORM = "N"  # Anlage N (Person A)
 YES_NO = ("Ja", "Nein")  # Auswahl von Nr. 65; die Struktur nennt für Auswahlfelder ohne Liste keine
@@ -40,6 +39,7 @@ WORK_SOLI = ValueKey("work.soli_withheld")
 WORK_WORKDAYS_PER_WEEK = ValueKey("work.workdays_per_week")
 WORK_ABSENCE_DAYS = ValueKey("work.absence_days")
 WORK_CAR_DISTANCE = ValueKey("work.car_distance_km")
+WORK_HOMEOFFICE_DAYS = ValueKey("work.homeoffice_days")
 WORK_TRIP_DAYS = ValueKey("work.trip_days")
 WORK_TRAVEL_FARE = ValueKey("work.travel_fare")
 WORK_TRAVEL_TOTAL = ValueKey("work.travel_total")
@@ -257,7 +257,7 @@ def fields_n(structure: FormStructure) -> tuple[FormField, ...]:
             Rounding.WHOLE_EUROS,
             Direction.EXPENSE,
         ),
-        computed(N_HOMEOFFICE_DAYS, "E0204507", Unit.DAYS, Rounding.NONE, typed=TypedInput()),
+        computed(N_HOMEOFFICE_DAYS, "E0204507", Unit.DAYS, Rounding.NONE),
         known("company_car", "E0204901", None, Rounding.NONE, typed=TypedInput(YES_NO)),
         known("travel_fare_kind", "E0205003", None, Rounding.NONE),
         computed(
@@ -329,15 +329,8 @@ def compute_car_distance(calculation: Calculation, field: FormField) -> Amount:
 
 
 def compute_homeoffice_days(calculation: Calculation, field: FormField) -> Amount:
-    """Nr. 58: die Tage, die der Nutzer im Steuerjahr eingegeben hat; ohne Eingabe noch nicht
-    berechenbar (nie 0)."""
-    year = calculation.year
-    entry = current_input(calculation.own, year, field)
-    if entry is None:
-        calculation.not_yet(f"Die Homeoffice-Tage (Nr. 58) sind für {year} noch nicht erfasst")
-    days = Amount.of(int(entry.content), Unit.DAYS)
-    calculation.item("Homeoffice-Tage", days, UserInputLocator(entry.address))
-    return calculation.step("Homeoffice-Tage laut Eingabe", days)
+    """Nr. 58: die Homeoffice-Tage der ersten Tätigkeitsstätte."""
+    return _work_value(calculation, field, WORK_HOMEOFFICE_DAYS, "Homeoffice-Tage")
 
 
 def homeoffice_days(calculation: Calculation) -> Amount:

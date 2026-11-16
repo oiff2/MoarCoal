@@ -29,6 +29,7 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_DISTANCE_KM,
     WORK_EQUIPMENT,
     WORK_GROSS_WAGES,
+    WORK_HOMEOFFICE_DAYS,
     WORK_INCOME_TAX,
     WORK_SOLI,
     WORK_TAX_CLASS,
@@ -100,7 +101,12 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
         (WORK_EQUIPMENT, None, YEAR): fixed(Amount.eur_cents(cents)),
         **{
             (key, PLACE, YEAR): not_yet("keine Eingabe")
-            for key in (WORK_WORKDAYS_PER_WEEK, WORK_ABSENCE_DAYS, WORK_CAR_DISTANCE)
+            for key in (
+                WORK_WORKDAYS_PER_WEEK,
+                WORK_ABSENCE_DAYS,
+                WORK_CAR_DISTANCE,
+                WORK_HOMEOFFICE_DAYS,
+            )
         },
         **{
             (key, None, YEAR): not_yet("keine Lohnsteuerbescheinigung")

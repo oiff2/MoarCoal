@@ -12,6 +12,7 @@ from moarcoal.modules.work.workplace.entries import (
     DEFAULT_WORKDAYS,
     MAX_ABSENCE_DAYS,
     MAX_DISTANCE_KM,
+    MAX_HOMEOFFICE_DAYS,
     MAX_WORKDAYS,
     FirstWorkplace,
     UserInput,
@@ -32,6 +33,7 @@ HINTS = {
     "workdays_per_week": f"Arbeitstage je Woche: ganze Zahl von 1 bis {DAYS_PER_WEEK}, oder leer",
     "absence_days": f"Urlaubs- und Krankheitstage: ganze Zahl von 0 bis {MAX_ABSENCE_DAYS}, "
     "oder leer",
+    "homeoffice_days": f"Homeoffice-Tage: ganze Zahl von 0 bis {MAX_HOMEOFFICE_DAYS}, oder leer",
     "car_distance_km": "Mit dem Pkw gefahrene km: ganze Zahl, höchstens die einfache Entfernung, "
     "oder leer",
     "description": f"Beschreibung: höchstens {TEXT_MAX} Zeichen",
@@ -40,7 +42,7 @@ HINTS = {
 }
 EQUIPMENT_HINTS = {**HINTS, "description": f"Beschreibung: angeben, höchstens {TEXT_MAX} Zeichen"}
 
-OPTIONAL_WORKPLACE = ("workdays_per_week", "absence_days", "car_distance_km")
+OPTIONAL_WORKPLACE = ("workdays_per_week", "absence_days", "homeoffice_days", "car_distance_km")
 
 
 def build_workplace(fields: Fields, owner: str, entry_id: str) -> tuple[Entry | None, list[str]]:

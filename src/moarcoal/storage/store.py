@@ -314,7 +314,16 @@ class Store:
                         raise StoreError(f"{relative}: {entry.address} kommt doppelt vor")
                     entries[entry.address] = entry
                 self._file_checksums[relative] = _sha256(data)
+        self._check_on_load(entries)
         self._state = self._state_of(MappingProxyType(entries))
+
+    def _check_on_load(self, entries: Mapping[EntryAddress, Entry]) -> None:
+        """Arten mit `check_on_load` prüfen auch geladene Einträge; passt einer nicht mehr, startet
+        die App nicht und nennt die Datei (ADR 0004)."""
+        for entry in entries.values():
+            kind = self._kinds[type(entry).__name__]
+            if kind.check_on_load and kind.check and (reason := kind.check(entry, entries)):
+                raise StoreError(f"{kind.path(entry)}: Eintrag {entry.address}: {reason}")
 
     def _parse(self, relative: str, data: bytes) -> list[Entry]:
         try:

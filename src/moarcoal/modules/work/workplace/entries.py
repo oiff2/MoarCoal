@@ -13,6 +13,7 @@ MAX_WORKDAYS = 250
 DEFAULT_WORKDAYS = MAX_WORKDAYS - 30  # abzüglich 30 Urlaubstage
 MAX_DISTANCE_KM = 1000
 MAX_ABSENCE_DAYS = 366
+MAX_HOMEOFFICE_DAYS = 366
 DAYS_PER_WEEK = 7
 
 
@@ -28,7 +29,8 @@ class UserInput(BaseModel):
 
 class FirstWorkplace(Entry):
     """Erste Tätigkeitsstätte eines Steuerjahrs: Arbeitstage, einfache Entfernung in km und
-    die Angaben zu Arbeitstagen je Woche, Urlaubs- und Krankheitstagen und Pkw-km.
+    die Angaben zu Arbeitstagen je Woche, Urlaubs- und Krankheitstagen, Homeoffice-Tagen und
+    Pkw-km.
 
     `workdays` sind die Tage, an denen der Nutzer die Tätigkeitsstätte aufgesucht hat (Anlage N
     „aufgesucht an Tagen“), nicht alle Arbeitstage des Jahrs (Homeoffice, Dienstreisen fehlen).
@@ -39,10 +41,11 @@ class FirstWorkplace(Entry):
     workdays: int = Field(ge=0, le=MAX_WORKDAYS)
     distance_km: int = Field(ge=0, le=MAX_DISTANCE_KM)
     description: str = Field(default="", max_length=TEXT_MAX)
-    # Freiwillige Angaben zu Anlage N Nr. 28 und 31; fehlt eine, ist ihr Feld noch nicht
+    # Freiwillige Angaben zu Anlage N Nr. 28, 31 und 58; fehlt eine, ist ihr Feld noch nicht
     # berechenbar.
     workdays_per_week: int | None = Field(default=None, ge=1, le=DAYS_PER_WEEK)
     absence_days: int | None = Field(default=None, ge=0, le=MAX_ABSENCE_DAYS)
+    homeoffice_days: int | None = Field(default=None, ge=0, le=MAX_HOMEOFFICE_DAYS)
     car_distance_km: int | None = Field(default=None, ge=0, le=MAX_DISTANCE_KM)
 
     @field_validator("car_distance_km")

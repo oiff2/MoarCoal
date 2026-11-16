@@ -28,6 +28,7 @@ EQUIPMENT = ValueKey("work.equipment")
 WORKDAYS_PER_WEEK = ValueKey("work.workdays_per_week")
 ABSENCE_DAYS = ValueKey("work.absence_days")
 CAR_DISTANCE_KM = ValueKey("work.car_distance_km")
+HOMEOFFICE_DAYS = ValueKey("work.homeoffice_days")
 
 
 def _workplace(calculation: Calculation) -> FirstWorkplace:
@@ -76,6 +77,10 @@ def compute_workdays_per_week(calculation: Calculation) -> Amount:
 
 def compute_absence_days(calculation: Calculation) -> Amount:
     return _optional_input(calculation, "absence_days", "Urlaubs- und Krankheitstage", Unit.DAYS)
+
+
+def compute_homeoffice_days(calculation: Calculation) -> Amount:
+    return _optional_input(calculation, "homeoffice_days", "Homeoffice-Tage", Unit.DAYS)
 
 
 def compute_car_distance(calculation: Calculation) -> Amount:
@@ -168,6 +173,17 @@ VALUES: tuple[ValueDefinition, ...] = (
             has_subject=True,
         ),
         compute_absence_days,
+        _workplace_subjects,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            HOMEOFFICE_DAYS,
+            "Homeoffice-Tage bei einer ersten Tätigkeitsstätte im Steuerjahr",
+            Unit.DAYS,
+            TimeKind.PERIOD,
+            has_subject=True,
+        ),
+        compute_homeoffice_days,
         _workplace_subjects,
     ),
     ValueDefinition(

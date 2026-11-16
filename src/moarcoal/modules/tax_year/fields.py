@@ -31,24 +31,18 @@ class Rounding(StrEnum):
 
 
 NEW_FIELD = "neu"
-MAX_DAYS = 366
 
 
 @dataclass(frozen=True)
 class TypedInput:
-    """Ein Eintippfeld: der Nutzer gibt es im Steuerjahr ein. Mit `choices` nimmt es genau einen
-    dieser Texte, sonst eine ganze Zahl (Tage) von 0 bis `maximum`."""
+    """Ein Eintippfeld: der Nutzer wählt im Steuerjahr genau einen der Texte `choices`. Werte, mit
+    denen ein Modul rechnet, sind keine Eintippfelder, sondern Einträge dieses Moduls."""
 
-    choices: tuple[str, ...] = ()
-    maximum: int = MAX_DAYS
+    choices: tuple[str, ...]
 
     def check(self, text: str) -> str | None:
         """Der Grund, warum `text` nicht passt; `None`, wenn er passt."""
-        if self.choices:
-            return None if text in self.choices else "Wähle eine der Möglichkeiten."
-        if not (text.isascii() and text.isdigit()) or int(text) > self.maximum:
-            return f"Gib eine ganze Zahl von 0 bis {self.maximum} ein."
-        return None
+        return None if text in self.choices else "Wähle eine der Möglichkeiten."
 
 
 @dataclass(frozen=True)

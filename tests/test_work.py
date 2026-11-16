@@ -24,11 +24,19 @@ from moarcoal.modules.work import (
 )
 from moarcoal.modules.work.workplace.forms import HINTS, build_equipment
 from moarcoal.modules.work.workplace.values import EQUIPMENT as EQUIPMENT_KEY
-from moarcoal.modules.work.workplace.values import EQUIPMENT_GAP
+from moarcoal.modules.work.workplace.values import EQUIPMENT_GAP, HOMEOFFICE_DAYS
 from moarcoal.registration import ForeignKindError, ModuleRegistration
 from moarcoal.storage import Applied, Entry, EntryAddress, Put, entry_checksum, open_store
 from moarcoal.values.findings import Finding, Severity
-from moarcoal.values.model import Amount, ExposedValue, Period, Unit, parse_cents
+from moarcoal.values.model import (
+    Amount,
+    ExposedValue,
+    NotYetComputable,
+    Period,
+    Subject,
+    Unit,
+    parse_cents,
+)
 from moarcoal.values.testing import evaluate
 from moarcoal.web.helpers import format_eur
 
@@ -362,7 +370,13 @@ def test_workplace_inputs_are_optional_and_stored(tmp_path: Path) -> None:
     entry_id = only_id(tmp_path)
     page = http.get(f"/arbeit/erste-taetigkeitsstaette/{entry_id}").text
     checksum = page.split('name="checksum" value="')[1].split('"')[0]
-    extra = {**WORKPLACE, "workdays_per_week": "5", "absence_days": "32", "car_distance_km": "11"}
+    extra = {
+        **WORKPLACE,
+        "workdays_per_week": "5",
+        "absence_days": "32",
+        "homeoffice_days": "40",
+        "car_distance_km": "11",
+    }
     response = http.post(
         f"/arbeit/erste-taetigkeitsstaette/{entry_id}",
         data={**extra, "checksum": checksum},
@@ -371,20 +385,66 @@ def test_workplace_inputs_are_optional_and_stored(tmp_path: Path) -> None:
     assert response.status_code == 303
     (entry,) = stored(tmp_path).values()
     assert entry["workdays_per_week"] == 5 and entry["absence_days"] == 32
+    assert entry["homeoffice_days"] == 40
+    page = http.get(f"/arbeit/erste-taetigkeitsstaette/{entry_id}").text
+    assert 'name="homeoffice_days"' in page and 'value="40"' in page
     assert entry["car_distance_km"] == 11
 
 
 def test_workplace_inputs_are_validated(tmp_path: Path) -> None:
     http = make_client(tmp_path)
-    bad_inputs = (("workdays_per_week", "8"), ("absence_days", "-1"), ("car_distance_km", "13"))
+    bad_inputs = (
+        ("workdays_per_week", "8"),
+        ("absence_days", "-1"),
+        ("homeoffice_days", "367"),
+        ("car_distance_km", "13"),
+    )
     for name, bad in bad_inputs:
         response = http.post(
             "/arbeit/erste-taetigkeitsstaette", data={**WORKPLACE, name: bad}, headers=ORIGIN
         )
         assert response.status_code == 422
+        assert (
+            name != "homeoffice_days"
+            or "Homeoffice-Tage: ganze Zahl von 0 bis 366" in response.text
+        )
     assert not work_file(tmp_path).exists()
 
 
 def test_workplace_without_the_new_fields_still_loads() -> None:
     entry = FirstWorkplace(owner="anna", year=2025, workdays=180, distance_km=12)
     assert entry.workdays_per_week is None and entry.absence_days is None
+
+
+# --- Homeoffice-Tage (Nr. 58) -------------------------------------------------------------------
+
+
+def homeoffice_days(days: int | None) -> object:
+    place = FirstWorkplace(
+        owner="anna", year=2025, workdays=180, distance_km=12, homeoffice_days=days
+    )
+    subject = Subject(place.address)
+    return evaluate([REGISTRATION], [place]).get(
+        HOMEOFFICE_DAYS, "anna", Period.year(2025), subject
+    )
+
+
+def test_homeoffice_days_come_from_the_workplace() -> None:
+    result = homeoffice_days(40)
+
+    assert isinstance(result, ExposedValue)
+    assert result.amount == Amount.of(40, Unit.DAYS)
+
+
+def test_zero_homeoffice_days_are_a_value() -> None:
+    result = homeoffice_days(0)
+
+    assert isinstance(result, ExposedValue)
+    assert result.amount == Amount.of(0, Unit.DAYS)
+
+
+def test_empty_homeoffice_days_are_not_yet_computable_never_zero() -> None:
+    result = homeoffice_days(None)
+
+    assert isinstance(result, NotYetComputable)
+    assert "Homeoffice-Tage" in result.reason

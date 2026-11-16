@@ -62,10 +62,10 @@ class EntryKind:
     `schema` ist das Dateiformat (`<modul>/<n>`, ein Format je Datei); `path` ist die reine
     Funktion Eintrag -> Datei (relativ zum Datenverzeichnis, mit `/`). Was der Schreibweg je Art
     zusätzlich tut, steht hier (optional): `check` prüft jeden geschriebenen Eintrag nach dem
-    ganzen Vorgang, `denylist` bildet aus allen Einträgen der Art die Werte der Sperrliste,
-    `merge` führt zwei Einträge der Art zusammen (Quelle, Ziel -> neues Ziel), `former_ids` nennt
-    die Kennungen früherer, zusammengeführter Einträge, die jetzt auf diesen auflösen. `label` ist
-    die Bezeichnung der Art auf Seiten (z. B. „Vorschlag“), leer gilt der Name im Code.
+    ganzen Vorgang, mit `check_on_load` auch jeden geladenen beim Start, `denylist` bildet aus
+    allen Einträgen der Art die Werte der Sperrliste, `merge` führt zwei Einträge der Art zusammen
+    (Quelle, Ziel -> neues Ziel), `former_ids` nennt die Kennungen früherer, zusammengeführter
+    Einträge, die jetzt auf diesen auflösen. `label` ist die Bezeichnung der Art auf Seiten (z. B. „Vorschlag“), leer gilt der Name im Code.
 
     Zwei Merkmale regeln das Löschen des Eintrags, auf den andere verweisen: `falls_with` nennt das
     Feld, dessen Ziel diesen Eintrag beim Löschen mitnimmt (er fällt mit ihm weg, `Store.apply`
@@ -77,6 +77,7 @@ class EntryKind:
     schema: str
     path: Callable[[Entry], str]
     check: EntryCheck | None = None
+    check_on_load: bool = False
     denylist: Callable[[list[Entry]], list[str]] | None = None
     merge: Callable[[Entry, Entry], Entry] | None = None
     former_ids: Callable[[Entry], Sequence[str]] | None = None
@@ -91,6 +92,7 @@ def entry_kind[E: Entry](
     path: Callable[[E], str],
     *,
     check: Callable[[E, Mapping[EntryAddress, Entry]], str | None] | None = None,
+    check_on_load: bool = False,
     denylist: Callable[[list[E]], list[str]] | None = None,
     merge: Callable[[E, E], E] | None = None,
     former_ids: Callable[[E], Sequence[str]] | None = None,
@@ -106,6 +108,7 @@ def entry_kind[E: Entry](
         schema,
         cast(Callable[[Entry], str], path),
         cast(EntryCheck | None, check),
+        check_on_load,
         cast(Callable[[list[Entry]], list[str]] | None, denylist),
         cast(Callable[[Entry, Entry], Entry] | None, merge),
         cast(Callable[[Entry], Sequence[str]] | None, former_ids),

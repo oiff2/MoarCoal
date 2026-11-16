@@ -150,17 +150,11 @@ def _input_part(
 ) -> HTMLResponse:
     entry = current_input(_own_state(request), year, field)
     content = typed if typed is not None else entry.content if entry else None
-    result = (
-        values_of(request).get(field.key, user_of(request), Period.year(year))
-        if field.computed
-        else None
-    )
     return render(
         request,
         "tax_year/_eingabe_teil.html",
         year=year,
         field=field,
-        result=result,
         content=content,
         error=error,
     )

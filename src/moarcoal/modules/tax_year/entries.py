@@ -55,9 +55,9 @@ class ProtocolReading(ReadInEntry):
 class FormInput(Entry):
     """Eingabe zu einem Eintippfeld der Anlage, direkt im Steuerjahr erfasst (Nutzereingabe).
 
-    `content` steht so, wie sie in das Feld in ELSTER einzutragen ist (Anzahl Tage als Zahl, eine
-    Auswahl als ihr Text). Der Schreibweg prüft sie gegen das Feld (`kinds`); je Nutzer, Jahr und
-    Feld höchstens eine.
+    `content` steht so, wie sie in das Feld in ELSTER einzutragen ist (die Auswahl als ihr Text).
+    Der Schreibweg prüft sie gegen das Feld (`kinds`), auch beim Laden: eine Eingabe zu einem Feld,
+    das keine mehr nimmt, hält den Start an. Je Nutzer, Jahr und Feld höchstens eine.
     """
 
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
@@ -103,5 +103,5 @@ def kinds(fits_field: FieldCheck) -> tuple[EntryKind, ...]:
 
     return (
         entry_kind(ProtocolReading, SCHEMA, yearly_path, falls_with="document", label="Einlesung"),
-        entry_kind(FormInput, SCHEMA, yearly_path, check=check),
+        entry_kind(FormInput, SCHEMA, yearly_path, check=check, check_on_load=True),
     )
