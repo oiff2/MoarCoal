@@ -25,13 +25,11 @@ from moarcoal.modules.work.trips import (
 )
 from moarcoal.modules.work.values import TRAVEL_FARE, TRAVEL_TOTAL
 from moarcoal.place_search import PlaceHit
-from moarcoal.proposals import proposals_of
 from moarcoal.storage import entry_checksum
 from moarcoal.values.model import Period
 from moarcoal.web import (
     global_year,
     module_state,
-    store_of,
     user_of,
     values_of,
     year_choices,
@@ -81,8 +79,7 @@ def _statements(request: Request, year: int, trips: Sequence[BusinessTrip]) -> l
     state = module_state(request, MODULE_KEY)
     found: list[dict[str, Any]] = []
     for document in statements(state.documents(), year):
-        history = proposals_of(store_of(request).state(), document)
-        proposal = history[-1] if history else None
+        proposal = state.latest_proposal(document)
         found.append(
             {
                 "document": document,

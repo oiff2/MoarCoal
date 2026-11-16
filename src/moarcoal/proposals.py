@@ -52,14 +52,20 @@ class ReadOutRejected:
     message: str
 
 
-def proposals_of(state: State, document: Document) -> list[Proposal]:
-    """Die Vorschläge des Eigentümers zum Dokument, der neueste zuletzt."""
+def latest_proposal(state: State, document: Document) -> Proposal | None:
+    """Der neueste Vorschlag des Eigentümers zum Dokument; nur er gilt (Neu auslesen)."""
     found = [
         p
         for p in state.of_kind(Proposal)
         if p.owner == document.owner and p.document == document.address
     ]
-    return sorted(found, key=lambda p: (p.created_at, p.id))
+    return max(found, key=lambda p: (p.created_at, p.id), default=None)
+
+
+def template_of(kinds: Mapping[str, DocumentKind], document: Document) -> ExtractionTemplate | None:
+    """Die Auslese-Vorlage der Dokumentart des Dokuments; ohne Art oder Vorlage `None`."""
+    kind = kinds.get(document.document_kind or "")
+    return None if kind is None else kind.extraction_template
 
 
 def read_out(
@@ -74,8 +80,7 @@ def read_out(
     Gibt es schon einen Vorschlag, entsteht ein neuer daneben (Neu auslesen); der neueste gilt,
     Bestätigungen des alten werden nicht übernommen. Ein Fehlschlag legt nichts an.
     """
-    kind = kinds.get(document.document_kind or "")
-    template = None if kind is None else kind.extraction_template
+    template = template_of(kinds, document)
     if template is None:
         return ReadOutRejected("Diese Dokumentart kann nicht ausgelesen werden.")
     try:
@@ -233,10 +238,9 @@ def proposal_findings(
     documents = {d.address: d for d in state.of_kind(Document) if d.owner == user}
     found: list[Finding] = []
     for document in sorted(documents.values(), key=lambda d: str(d.address)):
-        history = proposals_of(state, document)
-        if not history:
+        proposal = latest_proposal(state, document)
+        if proposal is None:
             continue
-        proposal = history[-1]  # nur der neueste Vorschlag zählt
         if document.period_start is not None and not document.touches_year(year):
             continue
         open_keys = proposal.open_keys

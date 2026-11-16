@@ -7,6 +7,7 @@ from fastapi import APIRouter
 
 from moarcoal.documents import DocumentKind
 from moarcoal.extraction_template import Confirmed
+from moarcoal.proposals import latest_proposal, template_of
 from moarcoal.storage import (
     Document,
     Entry,
@@ -89,6 +90,10 @@ class ModuleState:
             found = [d for d in found if d.document_kind == document_kind]
         return sorted(found, key=lambda d: str(d.address))
 
+    def latest_proposal(self, document: Document) -> Proposal | None:
+        """Der neueste Vorschlag zu einem Dokument des Nutzers; Dokumente anderer Nutzer: `None`."""
+        return latest_proposal(self._state, document) if document.owner == self._user else None
+
     def confirmed_fields(self, document: Document) -> dict[str, tuple[Confirmed, DocumentLocator]]:
         """Die bestätigten Felder des neuesten Vorschlags zum Dokument (Spec 3.6, Punkt 9).
 
@@ -98,18 +103,10 @@ class ModuleState:
         (`TemplateField.read`); ein Feld, dessen Inhalt das nicht zulässt, fehlt (Bestätigen weist
         es ab, das trifft nur Vorschläge von vorher).
         """
-        if document.owner != self._user:
+        latest = self.latest_proposal(document)
+        if latest is None:
             return {}
-        proposals = [
-            p
-            for p in self._state.of_kind(Proposal)
-            if p.owner == self._user and p.document == document.address
-        ]
-        if not proposals:
-            return {}
-        latest = max(proposals, key=lambda p: (p.created_at, p.id))
-        kind = self._document_kinds.get(document.document_kind or "")
-        template = None if kind is None else kind.extraction_template
+        template = template_of(self._document_kinds, document)
         found: dict[str, tuple[Confirmed, DocumentLocator]] = {}
         for key, field in latest.fields.items():
             if not field.confirmed:

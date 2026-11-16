@@ -23,7 +23,7 @@ from moarcoal.extraction import (
 )
 from moarcoal.extraction_template import ExtractionTemplate, TemplateField
 from moarcoal.links import document_url
-from moarcoal.proposals import UNCONFIRMED
+from moarcoal.proposals import UNCONFIRMED, latest_proposal, template_of
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import AbortedExtraction, Change, Document, Proposal, Rejected, Store
 from moarcoal.values.model import Backing, DocumentLocator, Source
@@ -428,9 +428,30 @@ def test_confirmed_fields_come_from_the_newest_proposal_and_only_for_the_owner(
     from moarcoal.storage import Put
 
     setup.store.apply([Put(newer)])
+    assert latest_proposal(setup.store.state(), document) == newer
+    assert setup.module_state().latest_proposal(document) == newer
     assert setup.module_state().confirmed_fields(document) == {}
     stranger = ModuleState(setup.store.state(), REGISTRATION, "berta")
+    assert stranger.latest_proposal(document) is None
     assert stranger.confirmed_fields(document) == {}
+
+
+def test_latest_proposal_without_proposal_is_none(tmp_path: Path) -> None:
+    setup = make(tmp_path)
+    setup.take_in()
+    assert latest_proposal(setup.store.state(), setup.document()) is None
+    assert setup.module_state().latest_proposal(setup.document()) is None
+
+
+def test_template_of_is_the_extraction_template_of_the_document_kind(tmp_path: Path) -> None:
+    setup = make(tmp_path)
+    setup.take_in()
+    document = setup.document()
+    kinds = {KIND.key: KIND, PLAIN.key: PLAIN}
+    assert template_of(kinds, document) is TEMPLATE
+    assert template_of(kinds, document.model_copy(update={"document_kind": "plain"})) is None
+    assert template_of(kinds, document.model_copy(update={"document_kind": None})) is None
+    assert template_of({}, document) is None
 
 
 def test_document_locator_label_names_the_source_and_the_place() -> None:
