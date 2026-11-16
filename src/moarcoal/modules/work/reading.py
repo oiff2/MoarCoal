@@ -10,7 +10,7 @@ welcher Wert gilt; die Datei wird dann abgewiesen statt geraten.
 from pydantic import ValidationError
 
 from moarcoal.documents import ReadInError
-from moarcoal.elster_html import HtmlField, parse_elster_html
+from moarcoal.elster_html import HtmlField, parse_elster_document
 from moarcoal.modules.work.entries import WageTaxCertificate
 from moarcoal.storage import Document, ReadInEntry
 from moarcoal.values.model import parse_cents
@@ -49,19 +49,7 @@ def _tax_class(field: HtmlField) -> int:
 
 def read_in_wage_tax_certificate(document: Document, content: bytes) -> list[ReadInEntry]:
     """Einlese-Regel der Dokumentart Lohnsteuerbescheinigung."""
-    if document.period_start is None:
-        raise ReadInError("Das Dokument hat keinen Bezugszeitraum.")
-    parsed = parse_elster_html(content, TITLE)
-    if parsed.belegart != BELEGART:
-        raise ReadInError(
-            f"Die Datei ist keine Lohnsteuerbescheinigung (Belegart {BELEGART} fehlt im Kopf)."
-        )
-    year = document.period_start.year
-    if parsed.year is not None and parsed.year != year:
-        raise ReadInError(
-            f"Die Lohnsteuerbescheinigung gehört zum Steuerjahr {parsed.year}, "
-            f"eingetragen ist {year}."
-        )
+    year, parsed = parse_elster_document(document, content, BELEGART, TITLE)
     fields = list(parsed.fields)
     tax_class = _single(fields, TAX_CLASS, "Steuerklasse")
     gross = _single(fields, GROSS_WAGES, "Bruttoarbeitslohn")

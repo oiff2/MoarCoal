@@ -17,6 +17,7 @@ from app_helper import make_app
 from fastapi.testclient import TestClient
 
 from moarcoal.documents import DUPLICATE_DOCUMENT
+from moarcoal.elster_html import parse_elster_html
 from moarcoal.issuers import DOCUMENT_WITHOUT_ISSUER
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registration
@@ -44,7 +45,7 @@ from moarcoal.modules.tax_year.comparison import (
     MISSING,
     UNKNOWN_ELSTER_ID,
 )
-from moarcoal.modules.tax_year.reading import parse_protocol
+from moarcoal.modules.tax_year.reading import TITLE, protocol_lines
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import Document, Entry, EntryAddress
 from moarcoal.values.engine import Foreign
@@ -416,7 +417,7 @@ def test_unknown_elster_id_fingerprint_follows_the_field() -> None:
 
 
 def test_fixture_protocol_matches_the_catalog_for_all_three_computed_fields() -> None:
-    lines = list(parse_protocol(FIXTURE.read_bytes()).lines)
+    lines = list(protocol_lines(parse_elster_html(FIXTURE.read_bytes(), TITLE).fields))
 
     found = findings(protocol(lines), work(cents=6990))
 

@@ -82,7 +82,7 @@ def test_unexpected_format_names_the_document_kind() -> None:
             match=r"Unerwartetes Format \(keine HTML-Datei.*Lohnsteuerbescheinigung",
         ):
             read(content)
-    with pytest.raises(ReadInError, match="keine Lohnsteuerbescheinigung"):
+    with pytest.raises(ReadInError, match="Dokumentart Lohnsteuerbescheinigung"):
         read("<!-- Belegart: E10 --><p>x</p>")
 
 
@@ -113,7 +113,7 @@ def test_wrong_year_is_rejected() -> None:
 
 
 def test_other_belegart_is_rejected() -> None:
-    with pytest.raises(ReadInError, match="keine Lohnsteuerbescheinigung"):
+    with pytest.raises(ReadInError, match="Dokumentart Lohnsteuerbescheinigung"):
         read(PROTOCOL.read_bytes())
 
 
