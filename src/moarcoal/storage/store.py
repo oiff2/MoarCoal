@@ -39,6 +39,7 @@ from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND, HIDDEN_FOLDER_KIND
 from moarcoal.storage.issuers import issuer_entry_kind
 from moarcoal.storage.personal_details import PERSONAL_DETAILS_KIND, check_own_issuer
 from moarcoal.storage.proposals import PROPOSAL_KIND
+from moarcoal.storage.sites import Sites, path_error
 from moarcoal.storage.snapshots import SNAPSHOT_KIND
 
 DEFAULT_DATA_DIR_NAME = "MoarCoal"
@@ -49,25 +50,10 @@ TEMP_SUFFIX = ".tmp"
 SITES_FILE = "common/sites.json"  # keine Einträge, sondern die benannten Ablageorte
 SITES_SCHEMA = "ablageorte/1"
 DERIVED_DENYLIST_FILE = "common/derived-denylist.txt"  # abgeleitet, nie von Hand
-MAX_SITE_FILE_BYTES = 50_000_000
 
 
 class StoreError(Exception):
     """Das Datenverzeichnis lässt sich nicht laden; die Meldung nennt die Datei."""
-
-
-class SiteFileError(Exception):
-    """Eine Datei an einem Ablageort lässt sich nicht lesen; die Meldung ist für den Nutzer."""
-
-
-@dataclass(frozen=True)
-class SiteFile:
-    """Eine Datei an einem Ablageort: Ablageort, Pfad relativ dazu (mit `/`), Größe, SHA-256."""
-
-    site: str
-    path: str
-    size: int
-    sha256: str
 
 
 @dataclass(frozen=True)
@@ -209,11 +195,8 @@ def _reference_problems(
 def _safe_path(relative: str) -> bool:
     pure = PurePosixPath(relative)
     return (
-        str(pure) == relative  # keine leeren oder "."-Teile, kein doppelter Schrägstrich
-        and not pure.is_absolute()
-        and ".." not in pure.parts
+        path_error(relative) is None
         and pure.suffix == ".json"
-        and bool(pure.parts)
         and pure.parts[0] in DATA_DIRS
         and relative != SITES_FILE
     )
@@ -289,11 +272,10 @@ class Store:
         self, root: Path, kinds: Sequence[EntryKind], sites: Mapping[str, Path] | None = None
     ) -> None:
         self._root = root
-        self._sites = dict(_load_sites(root) if sites is None else sites)
+        self._sites = Sites(_load_sites(root) if sites is None else sites)
         self._kinds = {kind.model.__name__: kind for kind in kinds}
         self._lock = threading.Lock()
         self._file_checksums: dict[str, str] = {}
-        self._site_hashes: dict[tuple[str, int, int], str] = {}  # (Datei, Größe, mtime) -> SHA-256
         self._state = State(MappingProxyType({}))
         self._load()
         entries = self._state.entries
@@ -306,63 +288,10 @@ class Store:
     def state(self) -> State:
         return self._state
 
-    def site_names(self) -> list[str]:
-        return sorted(self._sites)
-
-    def read_site_file(self, site: str, relative: str) -> bytes:
-        """Inhalt einer Datei an einem Ablageort; es wird nur gelesen, nie geschrieben."""
-        folder = self._sites.get(site)
-        if folder is None:
-            raise SiteFileError(f"Unbekannter Ablageort {site!r}.")
-        pure = PurePosixPath(relative)
-        if not relative or pure.is_absolute() or ".." in pure.parts:
-            raise SiteFileError("Der Pfad muss relativ zum Ablageort sein, ohne „..“.")
-        target = (folder / pure).resolve()
-        if not target.is_relative_to(folder.resolve()):
-            raise SiteFileError("Der Pfad führt aus dem Ablageort hinaus.")
-        try:
-            if target.stat().st_size > MAX_SITE_FILE_BYTES:
-                raise SiteFileError("Die Datei ist zu groß.")
-            return target.read_bytes()
-        except (FileNotFoundError, NotADirectoryError, IsADirectoryError) as error:
-            raise SiteFileError(
-                f"Am Ablageort {site!r} gibt es keine Datei {relative!r}."
-            ) from error
-        except OSError as error:
-            raise SiteFileError(f"Die Datei lässt sich nicht lesen ({error.strerror}).") from error
-
-    def list_site_files(self, site: str) -> list[SiteFile]:
-        """Alle Dateien eines Ablageorts, rekursiv und nach Pfad sortiert; es wird nur gelesen.
-
-        Es gelten die Regeln von `read_site_file`: Verzeichnis-Links werden nicht verfolgt, Dateien
-        mit Ziel außerhalb des Ablageorts, zu große und unlesbare Dateien fehlen in der Liste.
-        Ordner mit Punkt am Anfang (etwa `.git`) werden samt Inhalt übergangen.
-        """
-        folder = self._sites.get(site)
-        if folder is None:
-            raise SiteFileError(f"Unbekannter Ablageort {site!r}.")
-        base = folder.resolve()
-        found: list[SiteFile] = []
-        for current, dirs, names in os.walk(base):
-            dirs[:] = [d for d in dirs if not d.startswith(".")]
-            for name in names:
-                file = Path(current) / name
-                try:
-                    target = file.resolve()
-                    if not target.is_relative_to(base) or not target.is_file():
-                        continue
-                    info = target.stat()
-                    if info.st_size > MAX_SITE_FILE_BYTES:
-                        continue
-                    key = (str(target), info.st_size, info.st_mtime_ns)
-                    sha256 = self._site_hashes.get(key)
-                    if sha256 is None:
-                        sha256 = self._site_hashes[key] = _sha256(target.read_bytes())
-                except OSError:
-                    continue
-                relative = file.relative_to(base).as_posix()
-                found.append(SiteFile(site, relative, info.st_size, sha256))
-        return sorted(found, key=lambda f: f.path)
+    @property
+    def sites(self) -> Sites:
+        """Die Ablageorte, nur lesend."""
+        return self._sites
 
     def _path_of(self, entry: Entry) -> str:
         return self._kinds[type(entry).__name__].path(entry)

@@ -19,26 +19,41 @@ from moarcoal.storage import (
     State,
     Store,
 )
+from moarcoal.storage.sites import path_error
 
 
 def all_site_files(store: Store) -> list[SiteFile]:
     """Alle Dateien aller Ablageorte."""
-    return [file for site in store.site_names() for file in store.list_site_files(site)]
+    return [file for site in store.sites.names() for file in store.sites.files(site)]
+
+
+def site_files_of(
+    files: Sequence[SiteFile], state: State, user: str
+) -> list[tuple[SiteFile, Document | None]]:
+    """Die Dateien der Ablage von `user`, eine je Inhalt (mit dem ersten Pfad), ohne Ausgeblendete;
+    zu jeder ihr Dokument, wenn `user` sie aufgenommen hat.
+
+    Hat `user` den Inhalt aufgenommen, steht er mit seinem Dokument da, auch wenn ihn jemand
+    ausgeblendet hat; so hat jede Datei genau eine Stelle (Ablage oder Ausgeblendet).
+    """
+    documents: dict[str, Document] = {}
+    for document in state.of_kind(Document):
+        if document.owner == user:
+            documents.setdefault(document.sha256, document)
+    hidden = {h.sha256 for h in state.of_kind(HiddenFile)}
+    folders = state.of_kind(HiddenFolder)
+    shown: dict[str, tuple[SiteFile, Document | None]] = {}
+    for file in files:
+        if file.sha256 in documents or (
+            file.sha256 not in hidden and not in_hidden_folder(file, folders)
+        ):
+            shown.setdefault(file.sha256, (file, documents.get(file.sha256)))
+    return list(shown.values())
 
 
 def incoming_files(files: Sequence[SiteFile], state: State, user: str) -> list[SiteFile]:
-    """Der Eingang von `user`: nicht von ihm aufgenommen, nicht ausgeblendet.
-
-    Gleicher Inhalt an mehreren Stellen erscheint einmal, mit dem ersten Pfad.
-    """
-    known = {d.sha256 for d in state.of_kind(Document) if d.owner == user}
-    known |= {h.sha256 for h in state.of_kind(HiddenFile)}
-    folders = state.of_kind(HiddenFolder)
-    shown: dict[str, SiteFile] = {}
-    for file in files:
-        if file.sha256 not in known and not in_hidden_folder(file, folders):
-            shown.setdefault(file.sha256, file)
-    return list(shown.values())
+    """Der Eingang von `user`: die Dateien seiner Ablage, die er nicht aufgenommen hat."""
+    return [file for file, document in site_files_of(files, state, user) if document is None]
 
 
 def in_hidden_folder(file: SiteFile, folders: Sequence[HiddenFolder]) -> bool:
@@ -49,12 +64,11 @@ def in_hidden_folder(file: SiteFile, folders: Sequence[HiddenFolder]) -> bool:
 def folder_path_error(files: Sequence[SiteFile], site: str, path: str) -> str | None:
     """Warum `path` kein Ordner von `site` ist, den man ausblenden kann; `None`, wenn er einer ist.
 
-    Es gelten die Pfadregeln von `Store.read_site_file` (relativ, ohne `..`). Als Ordner gilt, was
-    mindestens eine aufgelistete Datei enthält; aufgelistet ist nur, was im Ablageort liegt.
+    Es gilt die Pfadregel der Ablageorte (`path_error`). Als Ordner gilt, was mindestens eine
+    aufgelistete Datei enthält; aufgelistet ist nur, was im Ablageort liegt.
     """
-    parts = path.split("/")
-    if not path or path.startswith("/") or ".." in parts or "" in parts:
-        return "Der Pfad muss relativ zum Ablageort sein, ohne „..“."
+    if (error := path_error(path)) is not None:
+        return error
     if not any(f.site == site and f.path.startswith(path + "/") for f in files):
         return "Diesen Ordner gibt es im Ablageort nicht."
     return None

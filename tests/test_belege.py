@@ -83,20 +83,20 @@ def main_of(client: httpx.Client, url: str) -> str:
 def test_list_site_files_is_recursive_with_size_and_sha256(root: Path, site: Path) -> None:
     (site / "lose.txt").write_text("abc", encoding="utf-8")
     store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    files = {f.path: f for f in store.list_site_files("Belege")}
+    files = {f.path: f for f in store.sites.files("Belege")}
     assert sorted(files) == ["2025/protokoll.html", "lose.txt"]
     assert files["lose.txt"].size == 3
     assert files["lose.txt"].sha256 == hashlib.sha256(b"abc").hexdigest()
     assert files["2025/protokoll.html"].sha256 == SHA
     with pytest.raises(SiteFileError, match="Unbekannter Ablageort"):
-        store.list_site_files("Anderswo")
+        store.sites.files("Anderswo")
 
 
 def test_list_site_files_skips_dot_folders(root: Path, site: Path) -> None:
     (site / ".git" / "objects").mkdir(parents=True)
     (site / ".git" / "objects" / "x.txt").write_text("x", encoding="utf-8")
     store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    assert [f.path for f in store.list_site_files("Belege")] == ["2025/protokoll.html"]
+    assert [f.path for f in store.sites.files("Belege")] == ["2025/protokoll.html"]
 
 
 def test_list_site_files_skips_links_out_of_the_site(
@@ -109,13 +109,13 @@ def test_list_site_files_skips_links_out_of_the_site(
     (site / "ordner-link").symlink_to(outside, target_is_directory=True)
     (site / "kaputt").symlink_to(outside / "fehlt.txt")
     store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    assert [f.path for f in store.list_site_files("Belege")] == ["2025/protokoll.html"]
+    assert [f.path for f in store.sites.files("Belege")] == ["2025/protokoll.html"]
 
 
 def test_list_site_files_keeps_links_inside_the_site(root: Path, site: Path) -> None:
     (site / "kopie.html").symlink_to(site / "2025" / "protokoll.html")
     store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    assert [f.path for f in store.list_site_files("Belege")] == [
+    assert [f.path for f in store.sites.files("Belege")] == [
         "2025/protokoll.html",
         "kopie.html",
     ]
@@ -243,7 +243,7 @@ def test_hidden_file_gone_from_the_site_is_listed_and_can_be_shown(root: Path, s
 
 def test_hide_file_without_note_is_fine(root: Path, site: Path) -> None:
     store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    (file,) = store.list_site_files("Belege")
+    (file,) = store.sites.files("Belege")
     assert isinstance(hide_file(store, file, ""), Applied)
     (hidden,) = store.state().of_kind(HiddenFile)
     assert hidden.note == ""

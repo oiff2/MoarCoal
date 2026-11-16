@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from moarcoal.documents import DocumentKind, IntakeRejected, ReadInError, TakenIn
 from moarcoal.documents import take_in as take_in_with
 from moarcoal.elster_html import parse_elster_html
+from moarcoal.incoming import all_site_files, folder_path_error
 from moarcoal.modules.tax_year import (
     REGISTRATION,
     TRANSFER_PROTOCOL,
@@ -192,12 +193,22 @@ def test_read_in_accepts_empty_head_year(tmp_path: Path) -> None:
 
 def test_read_site_file_reads_only_inside_the_site(root: Path, site: Path) -> None:
     store = make_store(root, site)
-    assert store.read_site_file("Belege", "2025/protokoll.html") == FIXTURE.read_bytes()
+    assert store.sites.read("Belege", "2025/protokoll.html") == FIXTURE.read_bytes()
     for bad in ["../x", "/etc/passwd", "", "2025/../../x", "2025/fehlt.html", "2025"]:
         with pytest.raises(SiteFileError):
-            store.read_site_file("Belege", bad)
+            store.sites.read("Belege", bad)
     with pytest.raises(SiteFileError, match="Unbekannter Ablageort"):
-        store.read_site_file("Anderswo", "2025/protokoll.html")
+        store.sites.read("Anderswo", "2025/protokoll.html")
+
+
+def test_reading_a_file_and_hiding_a_folder_share_one_path_rule(root: Path, site: Path) -> None:
+    """Nur der Pfad in Normalform gilt: kein doppelter Schrägstrich, kein „.“, kein „/“ am Ende."""
+    store = make_store(root, site)
+    files = all_site_files(store)
+    for bad in ["2025//protokoll.html", "./2025/protokoll.html", "2025/protokoll.html/"]:
+        with pytest.raises(SiteFileError) as raised:
+            store.sites.read("Belege", bad)
+        assert folder_path_error(files, "Belege", bad) == str(raised.value)
 
 
 def test_read_site_file_rejects_symlink_out_of_the_site(
@@ -207,7 +218,7 @@ def test_read_site_file_rejects_symlink_out_of_the_site(
     outside.write_text("x", encoding="utf-8")
     (site / "link.txt").symlink_to(outside)
     with pytest.raises(SiteFileError, match="hinaus"):
-        make_store(root, site).read_site_file("Belege", "link.txt")
+        make_store(root, site).sites.read("Belege", "link.txt")
 
 
 def test_sites_come_from_the_shared_file_and_are_not_entries(root: Path, site: Path) -> None:
@@ -217,7 +228,7 @@ def test_sites_come_from_the_shared_file_and_are_not_entries(root: Path, site: P
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
     store = open_store(root, REGISTRATION.kinds)
-    assert store.site_names() == ["Belege"]
+    assert store.sites.names() == ["Belege"]
     assert store.state().entries == {}
 
 

@@ -1,6 +1,6 @@
 """Vorschau einer Datei eines Ablageorts: Medientyp, Schutz-Header und Antwort.
 
-Gelesen wird nur über `Store.read_site_file` (dessen Pfadregeln gelten). Vorschau gibt es für PDF,
+Gelesen wird nur über `Sites.read` (dessen Pfadregeln gelten). Vorschau gibt es für PDF,
 Bilder und HTML; alles andere (auch SVG, das Skript enthalten kann) bekommt keine.
 """
 
@@ -46,7 +46,7 @@ def file_response(store: Store, site: str, path: str, sha256: str) -> Response:
     if entry is None:
         raise HTTPException(415, "Für diese Datei gibt es keine Vorschau.")
     try:
-        content = store.read_site_file(site, path)
+        content = store.sites.read(site, path)
     except SiteFileError:
         raise HTTPException(404) from None
     if hashlib.sha256(content).hexdigest() != sha256:
