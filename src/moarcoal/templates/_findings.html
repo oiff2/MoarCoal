@@ -1,12 +1,25 @@
-{#- Gemeinsame Anzeige von Befunden: Schweregrad, Text, Link zur Stelle.
+{#- Gemeinsame Anzeige von Befunden: je Schweregrad eine Überschrift (Fehler zuerst), darunter Text und Link zur Stelle.
     Mit `year` bekommt jeder Befund ein Formular „Ausblenden“; `earlier` nennt frühere Ausblendungen,
     `error` den Befund (Art, Ziel) mit fehlender Notiz und `note` die eingegebene Notiz. -#}
 {% from "_status.html" import severity %}
+{% set severity_order = ["ERROR", "WARNING", "NOTE"] %}
+
+{% macro by_severity(items, attribute) %}
+{% for name in severity_order %}
+{% set group = items | selectattr(attribute ~ ".name", "equalto", name) | list %}
+{% if group %}
+{% set level = group | map(attribute=attribute) | first %}
+<h3 class="befunde-gruppe">{{ severity(level, level.value ~ " (" ~ group | length ~ ")") }}</h3>
+{{ caller(group) }}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
 {% macro finding_list(findings, year=none, earlier={}, error=none, note="") %}
+{% call(group) by_severity(findings, "severity") %}
 <ul class="befunde">
-  {% for finding in findings %}
+  {% for finding in group %}
   <li>
-    {{ severity(finding.severity) }}
     {% if finding.href %}<a href="{{ finding.href }}">{{ finding.message }}</a>{% else %}{{ finding.message }}{% endif %}
     {% set before = earlier.get(finding.identity) %}
     {% if before %}<br><em>war ausgeblendet: {{ before.note }} ({{ before.noted_on.strftime("%d.%m.%Y") }})</em>{% endif %}
@@ -25,13 +38,14 @@
   </li>
   {% endfor %}
 </ul>
+{% endcall %}
 {% endmacro %}
 
 {% macro hidden_list(hidden, year) %}
+{% call(group) by_severity(hidden, "finding.severity") %}
 <ul class="befunde">
-  {% for item in hidden %}
+  {% for item in group %}
   <li>
-    {{ severity(item.finding.severity) }}
     {% if item.finding.href %}<a href="{{ item.finding.href }}">{{ item.finding.message }}</a>{% else %}{{ item.finding.message }}{% endif %}
     <br><em>ausgeblendet: {{ item.dismissal.note }} ({{ item.dismissal.noted_on.strftime("%d.%m.%Y") }})</em>
     <form method="post" action="/befunde/einblenden">
@@ -42,4 +56,5 @@
   </li>
   {% endfor %}
 </ul>
+{% endcall %}
 {% endmacro %}

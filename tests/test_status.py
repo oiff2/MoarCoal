@@ -64,3 +64,27 @@ def test_no_template_copies_status_classes() -> None:
         if p.name != STATUS and pattern.search(p.read_text(encoding="utf-8"))
     ]
     assert offenders == []
+
+
+def test_finding_list_groups_by_severity_under_headings() -> None:
+    """Befunde stehen je Schweregrad unter einer Überschrift (Symbol, Name, Anzahl), Fehler zuerst."""
+    from types import SimpleNamespace
+
+    def finding(severity: Severity, message: str) -> SimpleNamespace:
+        return SimpleNamespace(severity=severity, message=message, href=None, identity=("k", message))
+
+    env = Environment(loader=FileSystemLoader(TEMPLATES_DIR), autoescape=True)
+    module: Any = env.get_template("_findings.html").module
+    findings = [
+        finding(Severity.NOTE, "hinweis-a"),
+        finding(Severity.ERROR, "fehler-a"),
+        finding(Severity.ERROR, "fehler-b"),
+    ]
+    html = str(module.finding_list(findings))
+    headings = re.findall(r"<h3[^>]*>(.*?)</h3>", html, re.S)
+    assert len(headings) == 2
+    assert "status-error" in headings[0] and "Fehler (2)" in headings[0]
+    assert "status-note" in headings[1] and "Hinweis (1)" in headings[1]
+    assert "Warnung" not in html
+    assert html.index("fehler-b") < html.index("hinweis-a")
+    assert html.count('class="symbol"') == 2

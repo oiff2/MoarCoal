@@ -146,3 +146,4 @@ label.inline { display: inline; }
 
 nav.seiten { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin: 0.5rem 0; }
 nav.seiten a[aria-current="page"] { font-weight: bold; text-decoration: none; }
+.befunde-gruppe { margin: 0.75rem 0 0.25rem; font-size: 1rem; }
