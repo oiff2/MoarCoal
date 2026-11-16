@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
-from moarcoal.links import issuer_url
+from moarcoal.links import issuer_url, issuers_url
 from moarcoal.personal_details import (
     details_for_issuer,
     details_of,
@@ -255,7 +255,7 @@ def update(
         )
         reasons = [] if holder else _reasons(result)
         return _detail(request, issuer, fields, reasons, 409, holder)
-    return RedirectResponse(f"/aussteller/{issuer.id}", status_code=303)
+    return RedirectResponse(issuer_url(issuer.id), status_code=303)
 
 
 @router.post("/{issuer_id}/loeschen")
@@ -268,4 +268,4 @@ def delete(
     result = store_of(request).apply([Delete(issuer.address, expected=fields.get("checksum", ""))])
     if not isinstance(result, Applied):
         return _detail(request, issuer, errors=_reasons(result), status_code=409)
-    return RedirectResponse("/aussteller", status_code=303)
+    return RedirectResponse(issuers_url(), status_code=303)

@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi import Request
 
+from moarcoal.defaults import year_of
 from moarcoal.links import document_url
 from moarcoal.modules.work.entries import (
     MODULE_KEY,
@@ -33,7 +34,6 @@ from moarcoal.web import (
     user_of,
     values_of,
     year_choices,
-    year_of,
 )
 
 

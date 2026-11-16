@@ -12,18 +12,12 @@ from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
 from moarcoal.documents import DocumentKind, IntakeRejected, take_in
-from moarcoal.incoming import (
-    IntakeFilter,
-    all_site_files,
-    hide_file,
-    incoming_files,
-    site_rows,
-    site_tree,
-)
+from moarcoal.incoming import all_site_files, hide_file, incoming_files
 from moarcoal.links import document_url
 from moarcoal.modules.tax_year import REGISTRATION
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.registration import ModuleRegistration
+from moarcoal.site_view import IntakeFilter, site_rows, site_tree
 from moarcoal.storage import (
     COMMON_OWNER,
     Applied,

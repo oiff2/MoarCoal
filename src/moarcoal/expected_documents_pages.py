@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from moarcoal.defaults import DEFAULT_YEAR, MAX_YEAR, MIN_YEAR
 from moarcoal.documents import DocumentKind
 from moarcoal.expected_documents import previous_year_issuer, statuses
+from moarcoal.links import expected_documents_url
 from moarcoal.storage import (
     Applied,
     Delete,
@@ -163,7 +164,7 @@ def create(request: Request, fields: Annotated[Fields, Depends(form_fields)]) ->
     result = store_of(request).apply([Put(entry)])
     if not isinstance(result, Applied):
         return _overview(request, _reasons(result), fields, 409)
-    return RedirectResponse("/belege/erwartet", status_code=303)
+    return RedirectResponse(expected_documents_url(), status_code=303)
 
 
 @router.get("/{entry_id}", response_class=HTMLResponse)
@@ -184,7 +185,7 @@ def update(
     result = store_of(request).apply([Put(entry, expected=checksum)])
     if not isinstance(result, Applied):
         return _edit(request, entry_id, fields, _reasons(result), checksum, 409)
-    return RedirectResponse("/belege/erwartet", status_code=303)
+    return RedirectResponse(expected_documents_url(), status_code=303)
 
 
 @router.post("/{entry_id}/loeschen")
@@ -196,4 +197,4 @@ def delete(
     result = store_of(request).apply([Delete(entry.address, expected=checksum)])
     if not isinstance(result, Applied):
         return _edit(request, entry_id, _prefill(entry), _reasons(result), checksum, 409)
-    return RedirectResponse("/belege/erwartet", status_code=303)
+    return RedirectResponse(expected_documents_url(), status_code=303)

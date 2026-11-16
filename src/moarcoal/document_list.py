@@ -1,111 +1,32 @@
 """Seite „Belege“, Reiter Dokumente: alle aufgenommenen Dokumente mit Filter und Suche.
 
-Der Zustand eines Dokuments wird bei jeder Anfrage abgeleitet und nicht gespeichert. Ändern und
+Zustand und Filter stehen in `document_filter.py`, das Lesen von Art, Jahr und Aussteller in
+`documents.py` (`read_document_choice`). Ändern und
 Löschen laufen über die Routen unter `/dokumente/{id}` (`document_pages.py`); ihre Abweisungen
 zeigt `documents_page` hier im Reiter.
 """
 
-from collections.abc import Mapping
-from dataclasses import dataclass
-from enum import StrEnum
 from typing import Any
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from moarcoal.defaults import DEFAULT_YEAR
-from moarcoal.documents import DocumentKind, IntakeRejected
-from moarcoal.issuer_field import IssuerChoice, resolve_issuer
+from moarcoal.defaults import DEFAULT_YEAR, year_of
+from moarcoal.document_filter import (
+    WITHOUT_ISSUER,
+    WITHOUT_KIND,
+    DocumentState,
+    document_state,
+    filter_documents,
+)
+from moarcoal.links import document_file_url
 from moarcoal.previews import preview_kind
 from moarcoal.proposals import latest_proposal, template_of
-from moarcoal.storage import Document, Issuer, State, entry_checksum, name_key
-from moarcoal.web import document_kinds, render, store_of, user_of, year_of
+from moarcoal.storage import Document, Issuer, entry_checksum, name_key
+from moarcoal.web import document_kinds, render, store_of, user_of
 
 router = APIRouter(prefix="/belege/dokumente")
-
-WITHOUT_KIND = "none"
-"""Filterwert für „Beleg“: Dokumente ohne Dokumentart."""
-
-WITHOUT_ISSUER = "none"
-"""Filterwert für „ohne Aussteller“."""
-
-YEAR_NOT_A_NUMBER = "Steuerjahr: ganze Zahl, z. B. 2025"
-
-REFERENCE_LABELS = {
-    "Proposal": "Vorschlag",
-    "AbortedExtraction": "Abgebrochene Auslesung",
-    "Snapshot": "Schnappschuss",
-    "ProtocolReading": "Einlesung",
-    "WageTaxCertificate": "Einlesung",
-}
-"""Bezeichnungen für die Einträge, die auf ein Dokument verweisen; sonst gilt der Name im Code."""
-
-
-class DocumentState(StrEnum):
-    """Der abgeleitete Zustand eines Dokuments, in der Reihenfolge des Filters; ohne Art `BELEG`."""
-
-    TO_CONFIRM = "zu bestätigen"
-    TO_EXTRACT = "auszulesen"
-    DONE = "fertig"
-    BELEG = "Beleg"
-
-
-def document_state(
-    state: State, kinds: Mapping[str, DocumentKind], document: Document
-) -> DocumentState:
-    """„zu bestätigen“ (der neueste Vorschlag hat offene Felder), „auszulesen“ (die Art hat eine
-    Auslese-Vorlage, aber es gibt keinen Vorschlag), „fertig“ oder, ohne Art, „Beleg“ (neutral)."""
-    if not document.document_kind:
-        return DocumentState.BELEG
-    proposal = latest_proposal(state, document)
-    if proposal is not None:
-        return DocumentState.TO_CONFIRM if proposal.open_keys else DocumentState.DONE
-    if template_of(kinds, document) is not None:
-        return DocumentState.TO_EXTRACT
-    return DocumentState.DONE
-
-
-def filter_documents(
-    state: State,
-    user: str,
-    kinds: Mapping[str, DocumentKind],
-    *,
-    kind: str = "",
-    year: int | None = None,
-    issuer: str = "",
-    query: str = "",
-    status: str = "",
-) -> list[Document]:
-    """Die Dokumente von `user`, die alle gesetzten Filter erfüllen, nach Pfad sortiert.
-
-    `kind` ist ein Schlüssel oder `WITHOUT_KIND`, `issuer` eine Kennung oder `WITHOUT_ISSUER`,
-    `status` ein Zustand aus `document_state`, leer jeweils für alle; `year` trifft Dokumente,
-    deren Bezugszeitraum das Jahr berührt; `query` sucht ohne Groß-/Kleinschreibung in Pfad,
-    Ablageort, Art und Namen und Aliassen des Ausstellers.
-    """
-    issuers = {i.address: i for i in state.of_kind(Issuer)}
-    needle = name_key(query)
-    found: list[Document] = []
-    for document in state.of_kind(Document):
-        if document.owner != user:
-            continue
-        if kind and (document.document_kind or WITHOUT_KIND) != kind:
-            continue
-        if issuer and (document.issuer.id if document.issuer else WITHOUT_ISSUER) != issuer:
-            continue
-        if year is not None and not document.touches_year(year):
-            continue
-        if status and document_state(state, kinds, document) != status:
-            continue
-        owner = issuers.get(document.issuer) if document.issuer else None
-        kind_entry = kinds.get(document.document_kind or "")
-        texts = [document.site, document.path, kind_entry.title if kind_entry else ""]
-        texts += [owner.name, *owner.aliases] if owner else []
-        if needle and not any(needle in name_key(text) for text in texts):
-            continue
-        found.append(document)
-    return sorted(found, key=lambda d: (d.path, d.site, d.id))
 
 
 def document_detail(
@@ -127,46 +48,12 @@ def document_detail(
         "references": store.references_to(document.address),
         "bound": store.references_to(document.address, with_derived=True),
         "checksum": entry_checksum(document),
-        "labels": REFERENCE_LABELS,
+        "labels": store.kind_labels(),
         "default_year": DEFAULT_YEAR,
         "kind": kind,
         "template": template_of(kinds, document),
         "proposal": latest_proposal(state, document),
     }
-
-
-@dataclass(frozen=True)
-class DocumentChoice:
-    """Aussteller, Art und Jahr aus dem Formular eines Dokuments (Aufnehmen oder Ändern).
-
-    `kind_key` ist leer für „Beleg“ und `None`, wenn das Formular keine Art schickt (gesperrt);
-    `year` ist `DEFAULT_YEAR`, wenn die Art keinen Bezugszeitraum hat.
-    """
-
-    issuer: IssuerChoice
-    kind_key: str | None
-    year: int
-
-
-def read_document_choice(
-    state: State, kinds: Mapping[str, DocumentKind], fields: Mapping[str, str]
-) -> DocumentChoice | IntakeRejected:
-    """Liest Art, Jahr und Aussteller aus den Formularfeldern `kind`, `year` und denen des
-    Aussteller-Felds; was sich nicht lesen lässt, weist es ab wie `take_in`."""
-    kind_key = fields.get("kind")
-    kind = kinds.get(kind_key or "")
-    if kind_key and kind is None:
-        return IntakeRejected(("Bitte eine Dokumentart wählen.",))
-    year = DEFAULT_YEAR
-    if kind is not None and kind.has_period:
-        given = year_of(fields.get("year", ""))
-        if given is None:
-            return IntakeRejected((YEAR_NOT_A_NUMBER,))
-        year = given
-    issuer = resolve_issuer(state, fields)
-    if isinstance(issuer, str):
-        return IntakeRejected((issuer,))
-    return DocumentChoice(issuer, kind_key, year)
 
 
 @router.get("", response_class=HTMLResponse)
@@ -228,7 +115,7 @@ def documents_page(
         filters=filters,
         base=urlencode({k: v for k, v in filters.items() if v}),
         preview_kind=chosen and preview_kind(chosen.path),
-        preview_url=chosen and f"/dokumente/{chosen.id}/datei",
+        preview_url=chosen and document_file_url(chosen.id),
         without_kind=WITHOUT_KIND,
         without_issuer=WITHOUT_ISSUER,
         notice=notice,

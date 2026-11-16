@@ -160,7 +160,7 @@ def yearly_path(
 KINDS: tuple[EntryKind, ...] = (
     entry_kind(FirstWorkplace, SCHEMA, yearly_path),
     entry_kind(WorkEquipment, SCHEMA, yearly_path),
-    entry_kind(WageTaxCertificate, SCHEMA, yearly_path, falls_with="document"),
+    entry_kind(WageTaxCertificate, SCHEMA, yearly_path, falls_with="document", label="Einlesung"),
     entry_kind(BusinessTrip, SCHEMA, yearly_path),
     entry_kind(TripsConfirmation, SCHEMA, yearly_path, check=check_confirmation),
 )

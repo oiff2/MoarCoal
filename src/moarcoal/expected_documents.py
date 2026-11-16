@@ -8,12 +8,12 @@ bestätigt ist, spielt keine Rolle (3.6, Punkt 7).
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from moarcoal.links import expected_documents_url
 from moarcoal.storage import Document, EntryAddress, ExpectedDocument, State
 from moarcoal.values.findings import Finding, Severity, fingerprint
 
 PENDING = "expected_document_pending"
 DUPLICATE = "expected_document_duplicate"
-HREF = "/belege/erwartet"
 
 
 def matching_documents(
@@ -80,6 +80,7 @@ def expected_document_findings(
     zurückbringt.
     """
     documents = [d for d in state.of_kind(Document) if d.owner == user]
+    href = expected_documents_url()
     found: list[Finding] = []
     for expected in sorted(state.of_kind(ExpectedDocument), key=lambda e: str(e.address)):
         if expected.owner != user or not expected.due_in(year):
@@ -91,12 +92,12 @@ def expected_document_findings(
             text = f"Erwarteter Beleg für {year} ausstehend: {name}"
             stand = fingerprint("ausstehend", expected.document_kind, expected.description)
             found.append(
-                Finding(PENDING, Severity.NOTE, target, text, href=HREF, fingerprint=stand)
+                Finding(PENDING, Severity.NOTE, target, text, href=href, fingerprint=stand)
             )
         elif len(matching) > 1:
             text = f"Mehrere passende Dokumente für {year}; mögliche Dublette: {name}"
             stand = fingerprint(*(d.id for d in matching))
             found.append(
-                Finding(DUPLICATE, Severity.NOTE, target, text, href=HREF, fingerprint=stand)
+                Finding(DUPLICATE, Severity.NOTE, target, text, href=href, fingerprint=stand)
             )
     return found

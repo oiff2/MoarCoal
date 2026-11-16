@@ -6,23 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import DEFAULT_YEAR
-from moarcoal.document_list import document_detail, read_document_choice
-from moarcoal.documents import IntakeRejected, take_in
-from moarcoal.incoming import (
-    IntakeFilter,
-    SiteListing,
-    all_site_files,
-    folder_path_error,
-    hide_file,
-    hide_folder,
-    next_open,
-    site_listing,
-    unhide,
-)
-from moarcoal.links import document_url
+from moarcoal.document_list import document_detail
+from moarcoal.documents import IntakeRejected, read_document_choice, take_in
+from moarcoal.incoming import all_site_files, folder_path_error, hide_file, hide_folder, unhide
+from moarcoal.links import document_url, site_url
 from moarcoal.prefill import Prefill, prefill_from_name
 from moarcoal.previews import file_response, preview_kind
 from moarcoal.proposals import template_of
+from moarcoal.site_view import IntakeFilter, SiteListing, next_open, site_listing
 from moarcoal.storage import Applied, HiddenFile, HiddenFolder, Issuer
 from moarcoal.web import (
     document_kinds,
@@ -167,7 +158,7 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
         target = document_url(result.document.id)
     elif following is not None:
         return following
-    return RedirectResponse(target or "/belege", status_code=303)
+    return RedirectResponse(target or site_url(), status_code=303)
 
 
 @router.post("/ausblenden")
@@ -180,7 +171,7 @@ def hide(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> R
     result = hide_file(store_of(request), file, fields.get("note", ""))
     if not isinstance(result, Applied):
         return _page(request, listing, 409, " ".join(result.reasons.values()), selected=file.sha256)
-    return following or RedirectResponse("/belege", status_code=303)
+    return following or RedirectResponse(site_url(), status_code=303)
 
 
 @router.post("/ausblenden-direkt")
@@ -215,7 +206,7 @@ def _unhide(request: Request, hidden: HiddenFile | HiddenFolder | None, checksum
     if not isinstance(result, Applied):
         changed = "Die Ausblendung wurde inzwischen geändert. Bitte neu prüfen."
         return _page(request, None, 409, changed)
-    return RedirectResponse("/belege", status_code=303)
+    return RedirectResponse(site_url(), status_code=303)
 
 
 @router.post("/einblenden-ordner")
