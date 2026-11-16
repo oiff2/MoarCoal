@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.work import REGISTRATION as WORK
+from moarcoal.personal_details import personal_details_changes
 from moarcoal.storage import COMMON_OWNER, Document, Issuer, Put, open_store
 
 PORT = 4711
@@ -178,3 +179,24 @@ def test_private_person_stays_out_of_findings(tmp_path: Path) -> None:
 
     assert "Dokument ohne Aussteller" in findings and "Beispielfrau" not in findings
     assert "Beispielfrau" in client.get("/aussteller").text
+
+
+def test_own_issuer_comes_first_with_and_without_search(tmp_path: Path) -> None:
+    amt = issuer("Aaa Finanzamt")
+    open_store(tmp_path, []).apply(
+        [
+            Put(amt),
+            *personal_details_changes(open_store(tmp_path, []).state(), "anna", "Max", "Zeta"),
+        ]
+    )
+    client = make_client(tmp_path)
+
+    page = client.get("/aussteller").text
+    assert page.index("Max Zeta") < page.index("Aaa Finanzamt")
+    assert '(<a href="/person">Angaben zur Person</a>)' in page
+    assert "(Privatperson)" not in page and "(Sie)" not in page
+
+    hit = client.get("/aussteller?q=a").text  # passt auf beide
+    assert hit.index("Max Zeta") < hit.index("Aaa Finanzamt")
+    miss = client.get("/aussteller?q=finanzamt").text
+    assert "Angaben zur Person</a>)" not in miss and "Aaa Finanzamt" in miss

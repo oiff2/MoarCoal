@@ -99,3 +99,10 @@ def personal_details_changes(
         )
         changes.append(Put(changed, expected))
     return changes
+
+
+def own_issuer_first(issuers: list[Issuer], own: Issuer | None) -> list[Issuer]:
+    """Die Liste mit dem eigenen Aussteller an erster Stelle, falls er in ihr vorkommt."""
+    if own is None:
+        return issuers
+    return sorted(issuers, key=lambda i: i.id != own.id)  # stabil: Rest behält die Reihenfolge

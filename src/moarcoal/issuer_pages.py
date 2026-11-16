@@ -11,7 +11,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
 from moarcoal.links import issuer_url
-from moarcoal.personal_details import details_for_issuer
+from moarcoal.personal_details import (
+    details_for_issuer,
+    details_of,
+    own_issuer,
+    own_issuer_first,
+)
 from moarcoal.storage import (
     Applied,
     Delete,
@@ -138,12 +143,18 @@ def index(request: Request, q: str = "") -> HTMLResponse:
     query = q.strip()
     state = store_of(request).state()
     user = user_of(request)
+    details = details_of(state, user)
+    own = None if details is None else own_issuer(state, details)
+    found = [
+        i
+        for i in sorted(state.of_kind(Issuer), key=lambda i: (name_key(i.name), i.id))
+        if _matches(i, query)
+    ]
     rows = [
         (issuer, *(len(refs) for refs in _references(state, issuer, user)))
-        for issuer in sorted(state.of_kind(Issuer), key=lambda i: (name_key(i.name), i.id))
-        if _matches(issuer, query)
+        for issuer in own_issuer_first(found, own)
     ]
-    return render(request, "issuers/index.html", rows=rows, query=query)
+    return render(request, "issuers/index.html", rows=rows, query=query, own=own)
 
 
 @router.get("/{issuer_id}", response_class=Response)
