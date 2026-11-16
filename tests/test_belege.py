@@ -645,3 +645,15 @@ def test_the_write_path_hides_a_folder_only_once(root: Path, site: Path) -> None
     assert isinstance(store.apply([Put(folder()), Put(folder())]), Rejected)
     other = HiddenFolder(owner=COMMON_OWNER, site="Belege", path="2025/alt")
     assert isinstance(store.apply([Put(other)]), Applied)
+
+
+def test_the_write_path_takes_in_a_file_once_per_user(root: Path, site: Path) -> None:
+    store = open_store(root, [], {"Belege": site})
+
+    def document(owner: str = "anna", path: str = "2025/protokoll.html") -> Document:
+        return Document(owner=owner, site="Belege", path=path, sha256=SHA)
+
+    assert isinstance(store.apply([Put(document())]), Applied)
+    assert isinstance(store.apply([Put(document(path="kopie.html"))]), Rejected)
+    assert isinstance(store.apply([Put(document("berta")), Put(document("berta"))]), Rejected)
+    assert isinstance(store.apply([Put(document("berta"))]), Applied)

@@ -119,21 +119,41 @@ def period_clash(
     )
 
 
+def documents_of_file(
+    entries: Mapping[EntryAddress, Entry], owner: str, sha256: str
+) -> list[Document]:
+    """Die Dokumente des Nutzers zur Datei mit diesem SHA-256 (je Nutzer höchstens eines)."""
+    return [
+        e
+        for e in entries.values()
+        if isinstance(e, Document) and (e.owner, e.sha256) == (owner, sha256)
+    ]
+
+
+ALREADY_TAKEN_IN = "Diese Datei ist schon aufgenommen."
+
+
 def exists_already(title: str, document: Document) -> str:
     year = document.period_start.year if document.period_start else ""
     return f"Existiert bereits: {title} {year}"
 
 
 def document_entry_kind(once_per_period: Mapping[str, str] | None = None) -> EntryKind:
-    """Die Eintragsart Dokument. `once_per_period` (Schlüssel -> Name der Dokumentarten, die je
+    """Die Eintragsart Dokument; eine Datei (SHA-256) ist je Nutzer höchstens einmal Dokument.
+    `once_per_period` (Schlüssel -> Name der Dokumentarten, die je
     Bezugszeitraum und Nutzer nur ein Dokument erlauben) kommt aus den Modulanmeldungen; die
     Prüfung läuft im Schreibweg gegen den Stand nach dem Vorgang."""
     once = once_per_period or {}
 
     def check(document: Document, entries: Mapping[EntryAddress, Entry]) -> str | None:
-        """Aussteller existiert; je Bezugszeitraum nur ein Dokument, wo verlangt."""
+        """Aussteller existiert; eine Datei je Nutzer nur einmal; je Bezugszeitraum nur ein
+        Dokument, wo verlangt."""
         if document.issuer is not None and document.issuer not in entries:
             return "Aussteller existiert nicht."
+        if any(
+            d.id != document.id for d in documents_of_file(entries, document.owner, document.sha256)
+        ):
+            return ALREADY_TAKEN_IN
         other = period_clash(entries, document, once)
         if other is not None and document.document_kind is not None:
             return exists_already(once[document.document_kind], other)
