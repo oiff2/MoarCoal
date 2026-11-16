@@ -13,7 +13,7 @@ from moarcoal.documents import ReadInError
 from moarcoal.elster_html import HtmlField, parse_elster_html
 from moarcoal.modules.work.entries import WageTaxCertificate
 from moarcoal.storage import Document, ReadInEntry
-from moarcoal.values.model import parse_german_number
+from moarcoal.values.model import parse_cents
 
 READER_VERSION = 1
 TITLE = "Lohnsteuerbescheinigung"  # Titel der Dokumentart
@@ -35,11 +35,10 @@ def _single(fields: list[HtmlField], path: str, name: str) -> HtmlField | None:
 
 
 def _cents(field: HtmlField, name: str) -> int:
-    amount = parse_german_number(field.text)
-    cents = None if amount is None else amount * 100
-    if cents is None or cents != cents.to_integral_value() or cents < 0:
+    cents = parse_cents(field.text)
+    if cents is None or cents < 0:
         raise ReadInError(f"{name}: „{field.text}“ ist kein Betrag in Euro und Cent.")
-    return int(cents)
+    return cents
 
 
 def _tax_class(field: HtmlField) -> int:

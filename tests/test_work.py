@@ -22,13 +22,13 @@ from moarcoal.modules.work import (
     WageTaxCertificate,
     WorkEquipment,
 )
-from moarcoal.modules.work.pages import parse_cents
+from moarcoal.modules.work.pages import HINTS, build_equipment
 from moarcoal.modules.work.values import EQUIPMENT as EQUIPMENT_KEY
 from moarcoal.modules.work.values import EQUIPMENT_GAP
 from moarcoal.registration import ForeignKindError, ModuleRegistration
 from moarcoal.storage import Applied, Entry, EntryAddress, Put, entry_checksum, open_store
 from moarcoal.values.findings import Finding, Severity
-from moarcoal.values.model import Amount, ExposedValue, Period, Unit
+from moarcoal.values.model import Amount, ExposedValue, Period, Unit, parse_cents
 from moarcoal.values.testing import evaluate
 from moarcoal.web import format_eur
 
@@ -114,16 +114,33 @@ def test_module_state_refuses_foreign_kinds(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     ("text", "cents"),
-    [("49,90", 4990), ("49,9", 4990), ("1.234,56", 123456), ("12", 1200), (" 0,01 ", 1)],
+    [
+        ("49,90", 4990),
+        ("49,9", 4990),
+        ("1.234,56", 123456),
+        ("12", 1200),
+        (" 0,01 ", 1),
+        ("5 €", 500),
+    ],
 )
 def test_parse_cents(text: str, cents: int) -> None:
     assert parse_cents(text) == cents
 
 
-@pytest.mark.parametrize("text", ["", "abc", "1,234", "NaN", "inf"])
+@pytest.mark.parametrize("text", ["", "abc", "1,234", "NaN", "inf", "12.5", "1e3", "1.2.3"])
 def test_parse_cents_rejects(text: str) -> None:
-    with pytest.raises(ValueError):
-        parse_cents(text)
+    assert parse_cents(text) is None
+
+
+def test_equipment_amount_with_point_as_decimal_separator_is_rejected() -> None:
+    """„12.5“ ist nicht 125 €: der Betrag wird abgewiesen, statt still falsch gespeichert."""
+    entry, errors = build_equipment(
+        {"year": "2025", "amount": "12.5", "date": "2025-03-01", "description": "Maus"},
+        "anna",
+        "AAAAAAAAAA",
+    )
+    assert entry is None
+    assert errors == [HINTS["amount_cents"]]
 
 
 def test_format_eur() -> None:
