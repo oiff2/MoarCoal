@@ -28,7 +28,19 @@ def hidden_file_path(entry: HiddenFile) -> str:
     return "common/hidden_files.json"
 
 
-HIDDEN_FILE_KIND = entry_kind(HiddenFile, HIDDEN_FILE_SCHEMA, hidden_file_path)
+def check_hidden_file(hidden: HiddenFile, entries: Mapping[EntryAddress, Entry]) -> str | None:
+    """Prüfung im Schreibweg: eine Datei (SHA-256) ist höchstens einmal ausgeblendet."""
+    if any(
+        isinstance(e, HiddenFile) and e.id != hidden.id and e.sha256 == hidden.sha256
+        for e in entries.values()
+    ):
+        return "Diese Datei ist schon ausgeblendet."
+    return None
+
+
+HIDDEN_FILE_KIND = entry_kind(
+    HiddenFile, HIDDEN_FILE_SCHEMA, hidden_file_path, check=check_hidden_file
+)
 
 
 class HiddenFolder(Entry):
