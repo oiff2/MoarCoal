@@ -9,7 +9,7 @@ Der gemeinsame Unterbau: gespeicherte Daten und die Fachbausteine, die alle Modu
 _Avoid_: Datalayer, Kern, Backend, Datenbank
 
 **Modul**:
-Ein Themenblock (z. B. Steuerjahr, Immobilie), der auf der Datenebene aufbaut und von anderen Modulen nur deren Ausgewiesene Werte sowie Adresse und Anzeigenamen ihrer Einträge kennt.
+Ein Themenblock, den ein Nutzer als Ganzes abschalten kann (z. B. Steuerjahr, Immobilie), der auf der Datenebene aufbaut und von anderen Modulen nur deren Ausgewiesene Werte sowie Adresse und Anzeigenamen ihrer Einträge kennt.
 _Avoid_: Plugin, Tool, Feature
 
 **Modulanmeldung** _(geprägt)_:
@@ -52,7 +52,7 @@ Ergebnis eines Ausgewiesenen Werts, dem ein Einzelposten fehlt, dessen Fehlen se
 _Avoid_: unvollständig, nicht vorhanden
 
 **entfällt**:
-Ergebnis eines Ausgewiesenen Werts, der fachlich nicht zutrifft, mit Grund im Rechenweg (z. B. „Modul Dienstreisen abgeschaltet“); weder ein Betrag noch „noch nicht berechenbar“, und ohne Befund (Code: `NotApplicable`). Die Datenebene liefert es für die Werte abgeschalteter Module; eine Modul-Rechnung darf es nur als ausdrückliche Entscheidung liefern. Geht ein entfallender Wert in eine andere Rechnung ein, fehlt dort sein Einzelposten, und der Rechenweg nennt den Grund.
+Ergebnis eines Ausgewiesenen Werts, der fachlich nicht zutrifft, mit Grund im Rechenweg (z. B. „Modul Arbeit abgeschaltet“); weder ein Betrag noch „noch nicht berechenbar“, und ohne Befund (Code: `NotApplicable`). Die Datenebene liefert es für die Werte abgeschalteter Module; eine Modul-Rechnung darf es nur als ausdrückliche Entscheidung liefern. Geht ein entfallender Wert in eine andere Rechnung ein, fehlt dort sein Einzelposten, und der Rechenweg nennt den Grund.
 _Avoid_: leer, n/a, null, nicht vorhanden
 
 **Einzelposten** _(geprägt)_:
@@ -72,7 +72,7 @@ Der Kanal, über den Daten von außen in MoarCoal gelangen: eDaten-Abruf aus Mei
 _Avoid_: Herkunft, Import, Datenquelle
 
 **Nutzereingabe**:
-Eine von Hand erfasste Angabe, eingebettet in eine eigene Eintragsart des Moduls: in Arbeit ein Betrag mit Datum und Beschreibung (Code: `UserInput`), im Steuerjahr der Inhalt eines einzelnen Felds der Anlage, direkt dort eingegeben (Code: `FormInput`). Als Fundstelle ergibt sie den Belegstand angenommen.
+Eine von Hand erfasste Angabe, eingebettet in eine eigene Eintragsart des Moduls: Womit ein Modul rechnet oder was es als Wert weitergibt, ist eine Eintragsart dieses Moduls (in Arbeit z. B. ein Betrag mit Datum und Beschreibung, Code: `UserInput`); nur ein Feld der Anlage, das bloß abgeschrieben wird (Ja/Nein, Text), nimmt seinen Inhalt direkt im Steuerjahr (Code: `FormInput`). Als Fundstelle ergibt sie den Belegstand angenommen.
 _Avoid_: manuelle Buchung, Handeingabe
 
 **Arbeit**:
