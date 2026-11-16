@@ -3,10 +3,17 @@
 import ast
 import importlib
 import pkgutil
+from collections.abc import Iterable, Mapping
 from pathlib import Path
+from types import ModuleType
+from typing import Any
 
 import moarcoal
+import moarcoal.modules
+from moarcoal.modules import MODULES
 from moarcoal.storage import all_kinds, kind_collisions
+from moarcoal.values.catalog import ValueCatalog
+from moarcoal.values.model import ValueKey
 
 SRC = Path(__file__).parent.parent / "src" / "moarcoal"
 STORAGE_PACKAGE = "storage"
@@ -94,3 +101,39 @@ def test_file_access_check_finds_direct_access() -> None:
     assert direct_file_access("import os\nos.replace(a, b)") == ["os.replace(...)"]
     assert direct_file_access("import shutil") == ["import shutil"]
     assert direct_file_access("x = {}.get('a')\nos.path.join('a', 'b')") == []
+
+
+def unknown_value_keys(
+    catalog: ValueCatalog, namespaces: Mapping[str, Mapping[str, Any]]
+) -> list[str]:
+    """Jeder Werte-Schlüssel, den ein Modul als Konstante nennt (eigene und fremde, die es per
+    `calculation.use` anfragt) und den kein Modul im Wertekatalog angemeldet hat."""
+    return [
+        f"{module}.{name} = {value}"
+        for module, namespace in namespaces.items()
+        for name, value in namespace.items()
+        if isinstance(value, ValueKey) and value not in catalog.definitions
+    ]
+
+
+def module_namespaces() -> dict[str, dict[str, Any]]:
+    found: Iterable[ModuleType] = (
+        importlib.import_module(m.name)
+        for m in pkgutil.walk_packages(moarcoal.modules.__path__, "moarcoal.modules.")
+    )
+    return {m.__name__: vars(m) for m in found}
+
+
+def test_every_value_key_a_module_names_is_in_the_catalog() -> None:
+    """Fremde Schlüssel stehen als Text im Modul (Prinzip 2); ein Tippfehler fiele sonst erst zur
+    Laufzeit als `UnknownValueKey` auf."""
+    catalog = ValueCatalog.of((m.key, m.values) for m in MODULES)
+    assert unknown_value_keys(catalog, module_namespaces()) == []
+
+
+def test_value_key_check_finds_a_typo() -> None:
+    catalog = ValueCatalog.of((m.key, m.values) for m in MODULES)
+    namespace = {"WORK_DAYS": ValueKey("work.workday"), "OTHER": "work.workday"}
+    assert unknown_value_keys(catalog, {"beispiel": namespace}) == [
+        "beispiel.WORK_DAYS = work.workday"
+    ]
