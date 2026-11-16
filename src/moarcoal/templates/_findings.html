@@ -21,20 +21,20 @@
   {% for finding in group %}
   <li>
     {% if finding.href %}<a href="{{ finding.href }}">{{ finding.message }}</a>{% else %}{{ finding.message }}{% endif %}
-    {% set before = earlier.get(finding.identity) %}
-    {% if before %}<br><em>war ausgeblendet: {{ before.note }} ({{ before.noted_on.strftime("%d.%m.%Y") }})</em>{% endif %}
     {% if year %}
     {% set failed = error == finding.identity %}
-    <form method="post" action="/befunde/ausblenden">
+    <form class="ausblenden" method="post" action="/befunde/ausblenden">
       <input type="hidden" name="year" value="{{ year }}">
       <input type="hidden" name="kind" value="{{ finding.kind }}">
       <input type="hidden" name="target" value="{{ finding.identity[1] }}">
       <input type="hidden" name="fingerprint" value="{{ finding.fingerprint }}">
-      <label>Notiz <input type="text" name="note" value="{{ note if failed else '' }}"></label>
-      <button type="submit">Ausblenden</button>
-      {% if failed %}<p class="fehler">Zum Ausblenden gehört eine Notiz.</p>{% endif %}
+      <input type="text" name="note" placeholder="Notiz" aria-label="Notiz" value="{{ note if failed else '' }}">
+      <button type="submit" class="auge" title="Ausblenden" aria-label="Ausblenden">{% include "icons/auge.svg" %}</button>
     </form>
+    {% if failed %}<p class="fehler">Zum Ausblenden gehört eine Notiz.</p>{% endif %}
     {% endif %}
+    {% set before = earlier.get(finding.identity) %}
+    {% if before %}<em>war ausgeblendet: {{ before.note }} ({{ before.noted_on.strftime("%d.%m.%Y") }})</em>{% endif %}
   </li>
   {% endfor %}
 </ul>
