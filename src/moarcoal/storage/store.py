@@ -14,7 +14,7 @@ import os
 import re
 import threading
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
@@ -34,7 +34,7 @@ from moarcoal.storage.entries import (
     strong_references,
     with_reference_moved,
 )
-from moarcoal.storage.expected_documents import EXPECTED_DOCUMENT_KIND
+from moarcoal.storage.expected_documents import expected_document_entry_kind
 from moarcoal.storage.hidden_files import HIDDEN_FILE_KIND, HIDDEN_FOLDER_KIND
 from moarcoal.storage.issuers import ISSUER_KIND
 from moarcoal.storage.personal_details import PERSONAL_DETAILS_KIND
@@ -671,6 +671,7 @@ def open_store(
     kinds: Sequence[EntryKind],
     sites: Mapping[str, Path] | None = None,
     once_per_period: Mapping[str, str] | None = None,
+    kinds_with_period: Collection[str] | None = None,
 ) -> Store:
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
 
@@ -678,7 +679,8 @@ def open_store(
     Schnappschuss) kommen immer dazu.
     `sites` nennt die Ablageorte (Name -> Ordner); ohne Angabe gilt `common/sites.json`.
     `once_per_period` (Schlüssel -> Name) nennt die Dokumentarten mit nur einem Dokument je
-    Bezugszeitraum und Nutzer; der Schreibweg weist ein zweites ab.
+    Bezugszeitraum und Nutzer; der Schreibweg weist ein zweites ab. `kinds_with_period` nennt
+    die Dokumentarten mit Bezugszeitraum; ein Erwarteter Beleg einer anderen wird abgewiesen.
     """
     all_kinds = (
         document_entry_kind(once_per_period),
@@ -688,7 +690,7 @@ def open_store(
         HIDDEN_FOLDER_KIND,
         ISSUER_KIND,
         PERSONAL_DETAILS_KIND,
-        EXPECTED_DOCUMENT_KIND,
+        expected_document_entry_kind(kinds_with_period),
         PROPOSAL_KIND,
         ABORTED_EXTRACTION_KIND,
         SNAPSHOT_KIND,

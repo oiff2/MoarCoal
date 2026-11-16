@@ -1,11 +1,12 @@
 """Baustein Erwarteter Beleg in einfacher Form (docs/grundgeruest.md, 3.2 und 3.6)."""
 
+from collections.abc import Collection, Mapping
 from typing import Self
 
 from pydantic import Field, model_validator
 
 from moarcoal.defaults import MAX_YEAR, MIN_YEAR
-from moarcoal.storage.entries import Entry, entry_kind
+from moarcoal.storage.entries import Entry, EntryAddress, EntryKind, entry_kind
 
 EXPECTED_DOCUMENT_SCHEMA = "datenebene/1"
 TEXT_MAX = 200
@@ -38,6 +39,16 @@ def expected_document_path(entry: ExpectedDocument) -> str:
     return f"users/{entry.owner}/expected_documents.json"
 
 
-EXPECTED_DOCUMENT_KIND = entry_kind(
-    ExpectedDocument, EXPECTED_DOCUMENT_SCHEMA, expected_document_path
-)
+def expected_document_entry_kind(kinds_with_period: Collection[str] | None = None) -> EntryKind:
+    """Die Eintragsart Erwarteter Beleg. `kinds_with_period` (Schlüssel der Dokumentarten mit
+    Bezugszeitraum) kommt aus den Modulanmeldungen; nur für sie lässt sich ein Jahr erwarten, und
+    der Schreibweg weist andere ab. Ohne Angabe prüft er die Dokumentart nicht."""
+
+    def check(entry: ExpectedDocument, entries: Mapping[EntryAddress, Entry]) -> str | None:
+        if kinds_with_period is not None and entry.document_kind not in kinds_with_period:
+            return "Für diese Dokumentart lässt sich kein Jahr erwarten."
+        return None
+
+    return entry_kind(
+        ExpectedDocument, EXPECTED_DOCUMENT_SCHEMA, expected_document_path, check=check
+    )
