@@ -96,6 +96,6 @@ def kinds(fits_field: FieldCheck) -> tuple[EntryKind, ...]:
         return check_input(entry, entries, fits_field)
 
     return (
-        entry_kind(ProtocolReading, SCHEMA, yearly_path, falls_with="document"),
+        entry_kind(ProtocolReading, SCHEMA, yearly_path, falls_with="document", label="Einlesung"),
         entry_kind(FormInput, SCHEMA, yearly_path, check=check),
     )

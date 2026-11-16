@@ -3,15 +3,19 @@
 import ast
 import importlib
 import pkgutil
-from collections.abc import Iterable, Mapping
+import re
+import warnings
+from collections.abc import Collection, Iterable, Mapping
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+from app_helper import make_app
+
 import moarcoal
 import moarcoal.modules
 from moarcoal.modules import MODULES
-from moarcoal.storage import all_kinds, kind_collisions
+from moarcoal.storage import all_kinds, kind_collisions, open_store
 from moarcoal.values.catalog import ValueCatalog
 from moarcoal.values.model import ValueKey
 
@@ -137,3 +141,116 @@ def test_value_key_check_finds_a_typo() -> None:
     assert unknown_value_keys(catalog, {"beispiel": namespace}) == [
         "beispiel.WORK_DAYS = work.workday"
     ]
+
+
+LAYER_PACKAGES = ("storage", "values")  # die Datenebene im engen Sinn (Prinzip 1)
+WEB_LIBRARIES = {"fastapi", "starlette"}
+# Der Vertrag der Module nennt ihre Seiten (`APIRouter`, Entscheidung im Zuschnitt der Module);
+# was er lädt, zählt nicht.
+WEB_ALLOWED = {"moarcoal.registration"}
+
+
+def imported_names(source: str) -> list[str]:
+    """Alle Module, die der Quelltext importiert (absolut, wie geschrieben)."""
+    found: list[str] = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            found += [a.name for a in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            found.append(node.module)
+    return found
+
+
+def layer_breaches(source: str, route_prefixes: Collection[str]) -> list[str]:
+    """Stellen, an denen Quelltext der Datenebene Web-Wissen trägt: ein Import aus FastAPI oder
+    Starlette, oder ein Text, der mit einer Route der App beginnt (`/belege…`)."""
+    found = [
+        f"import {name}" for name in imported_names(source) if name.split(".")[0] in WEB_LIBRARIES
+    ]
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            match = re.match(r"/([^/?#{]+)", node.value)
+            if match and match.group(1) in route_prefixes:
+                found.append(f'"{node.value}"')
+    return found
+
+
+def route_prefixes(tmp_path: Path) -> set[str]:
+    """Der erste Abschnitt jeder Route der App (`belege`, `aussteller`, `arbeit`, …)."""
+    app = make_app(port=8000, data_dir=tmp_path)
+    with warnings.catch_warnings():  # doppelte Operation-IDs der Weiterleitungen sind egal
+        warnings.simplefilter("ignore")
+        paths: Iterable[str] = app.openapi()["paths"]
+    return {p.split("/")[1] for p in paths} - {""}
+
+
+def source_of(module: str) -> Path | None:
+    """Die Datei eines Moduls von MoarCoal; `None` außerhalb des Pakets."""
+    if module != "moarcoal" and not module.startswith("moarcoal."):
+        return None
+    base = SRC.joinpath(*module.split(".")[1:])
+    for candidate in (base.with_suffix(".py"), base / "__init__.py"):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def web_loaders(start: Path) -> list[str]:
+    """Die Module von MoarCoal, über die `start` (auch mittelbar) FastAPI oder Starlette lädt;
+    `WEB_ALLOWED` wird nicht weiter verfolgt."""
+    found: list[str] = []
+    seen: set[str] = set()
+    pending = imported_names(start.read_text(encoding="utf-8"))
+    while pending:
+        module = pending.pop()
+        if module in seen or module in WEB_ALLOWED:
+            continue
+        seen.add(module)
+        path = source_of(module)
+        if path is None:
+            continue
+        names = imported_names(path.read_text(encoding="utf-8"))
+        if any(n.split(".")[0] in WEB_LIBRARIES for n in names):
+            found.append(module)
+        pending += names
+    return sorted(found)
+
+
+def layer_files() -> list[Path]:
+    return sorted(p for package in LAYER_PACKAGES for p in (SRC / package).rglob("*.py"))
+
+
+def test_the_data_layer_knows_no_routes_and_no_fastapi(tmp_path: Path) -> None:
+    """Prinzip 1: `storage/` und `values/` nennen keine Route und importieren FastAPI weder selbst
+    noch über Seiten-Code; Adressen baut `links.py`."""
+    prefixes = route_prefixes(tmp_path)
+    offenders: dict[str, list[str]] = {}
+    for path in layer_files():
+        found = layer_breaches(path.read_text(encoding="utf-8"), prefixes)
+        found += [f"lädt {m}" for m in web_loaders(path)]
+        if found:
+            offenders[path.relative_to(SRC).as_posix()] = found
+    assert not offenders, f"Web-Wissen in der Datenebene: {offenders}"
+
+
+def test_layer_check_finds_a_route_and_fastapi() -> None:
+    prefixes = {"belege", "aussteller"}
+    assert layer_breaches('href = "/belege"', prefixes) == ['"/belege"']
+    assert layer_breaches('url = f"/aussteller/{x}"', prefixes) == ['"/aussteller/"']
+    assert layer_breaches("from fastapi import Request", prefixes) == ["import fastapi"]
+    assert layer_breaches('p = Path("/mnt", "c")\ns = "a/belege"', prefixes) == []
+
+
+def test_route_prefixes_come_from_the_app(tmp_path: Path) -> None:
+    assert {"belege", "aussteller", "befunde"} <= route_prefixes(tmp_path)
+
+
+def test_every_kind_that_points_at_a_document_has_a_label(tmp_path: Path) -> None:
+    """Am Dokument stehen die Einträge, die auf es verweisen, mit ihrer Bezeichnung; eine neue
+    Einlesung eines Moduls erscheint so nie als Name im Code."""
+    import_all_modules()
+    store = open_store(tmp_path, [kind for m in MODULES for kind in m.kinds])
+    labels = store.kind_labels()
+    kinds = [k for k in all_kinds() if not k.__subclasses__()]  # ohne Basen wie `ReadInEntry`
+    pointing = [k.__name__ for k in kinds if "document" in k.model_fields]
+    assert pointing and [name for name in pointing if name not in labels] == []

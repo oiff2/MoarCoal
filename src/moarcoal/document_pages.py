@@ -11,8 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
-from moarcoal.document_list import documents_page, read_document_choice
-from moarcoal.documents import IntakeRejected, change_document
+from moarcoal.document_list import documents_page
+from moarcoal.documents import IntakeRejected, change_document, read_document_choice
 from moarcoal.extraction import Extractor
 from moarcoal.links import document_url
 from moarcoal.previews import file_response

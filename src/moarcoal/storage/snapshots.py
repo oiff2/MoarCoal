@@ -109,4 +109,6 @@ def snapshot_path(entry: Snapshot) -> str:
     return f"users/{entry.owner}/snapshots.json"
 
 
-SNAPSHOT_KIND = entry_kind(Snapshot, SNAPSHOT_SCHEMA, snapshot_path, weak_references=("document",))
+SNAPSHOT_KIND = entry_kind(
+    Snapshot, SNAPSHOT_SCHEMA, snapshot_path, weak_references=("document",), label="Schnappschuss"
+)

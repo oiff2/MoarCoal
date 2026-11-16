@@ -10,10 +10,16 @@ from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from moarcoal.defaults import DEFAULT_YEAR, MAX_YEAR, MIN_YEAR
+from moarcoal.defaults import DEFAULT_YEAR, year_of
 from moarcoal.documents import DocumentKind
 from moarcoal.incoming import all_site_files, incoming_files
-from moarcoal.links import document_url, issuer_url
+from moarcoal.links import (
+    document_url,
+    expected_documents_url,
+    issuer_url,
+    issuers_url,
+    site_url,
+)
 from moarcoal.personal_details import details_of
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import Document, EntryAddress, ExpectedDocument, Issuer, State, Store
@@ -25,16 +31,6 @@ from moarcoal.values.model import Amount, format_amount
 def format_eur(cents: int) -> str:
     """Ganze Cent als deutscher Betrag, z. B. 123456 -> '1.234,56 €'."""
     return format_amount(Amount.eur_cents(cents))
-
-
-def year_of(text: str, *, in_range: bool = False) -> int | None:
-    """Das Jahr als ganze Zahl (Randleerzeichen egal); `None`, wenn `text` keine ist, mit
-    `in_range` auch, wenn sie außerhalb von `MIN_YEAR` bis `MAX_YEAR` liegt."""
-    try:
-        year = int(text.strip())
-    except ValueError:
-        return None
-    return year if not in_range or MIN_YEAR <= year <= MAX_YEAR else None
 
 
 MAX_YEARS = 10  # so viele Jahre mit Daten stehen höchstens zur Auswahl
@@ -79,7 +75,7 @@ def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) ->
     if address.kind == Document.__name__:  # Baustein der Datenebene
         return document_url(address.id)
     if address.kind == ExpectedDocument.__name__:  # Baustein der Datenebene
-        return f"/belege/erwartet/{address.id}"
+        return expected_documents_url(address.id)
     if address.kind == Issuer.__name__:  # Baustein der Datenebene
         return issuer_url(address.id)
     return next((url for m in modules if (url := m.entry_url(address)) is not None), None)
@@ -153,8 +149,8 @@ def _sidebar(request: Request, open_files: int | None) -> list[tuple[str, list[N
         open_files = len(incoming_files(all_site_files(store), store.state(), user_of(request)))
     areas = [NavEntry(r.nav_label, r.nav_url, r.icon) for r in registrations]
     general = [
-        NavEntry("Belege", "/belege", "belege", open_files),
-        NavEntry("Aussteller", "/aussteller", "aussteller"),
+        NavEntry("Belege", site_url(), "belege", open_files),
+        NavEntry("Aussteller", issuers_url(), "aussteller"),
     ]
     return [("Bereiche", areas), ("Allgemein", general)]
 

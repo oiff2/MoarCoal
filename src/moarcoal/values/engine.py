@@ -6,6 +6,7 @@ from moarcoal.documents import DocumentKind, duplicate_findings, rereading_findi
 from moarcoal.expected_documents import expected_document_findings
 from moarcoal.incoming import incoming_files
 from moarcoal.issuers import issuer_findings
+from moarcoal.links import site_url
 from moarcoal.proposals import aborted_extraction_findings, proposal_findings
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import Dismissal, EntryAddress, SiteFile, Snapshot, State
@@ -218,7 +219,7 @@ class Values:
                         Severity.NOTE,
                         "eingang",
                         text,
-                        href="/belege",
+                        href=site_url(),
                         fingerprint=fingerprint_,
                     )
                 )

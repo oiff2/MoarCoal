@@ -166,4 +166,6 @@ def rereading_path(entry: Rereading) -> str:
     return f"users/{entry.owner}/documents.json"
 
 
-REREADING_KIND = entry_kind(Rereading, DOCUMENT_SCHEMA, rereading_path, falls_with="document")
+REREADING_KIND = entry_kind(
+    Rereading, DOCUMENT_SCHEMA, rereading_path, falls_with="document", label="Neueinlesung"
+)

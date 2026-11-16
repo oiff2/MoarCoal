@@ -18,8 +18,9 @@ from typing import TYPE_CHECKING, cast
 
 from pydantic import ValidationError
 
-from moarcoal.defaults import MAX_YEAR, MIN_YEAR
+from moarcoal.defaults import DEFAULT_YEAR, MAX_YEAR, MIN_YEAR, year_of
 from moarcoal.extraction_template import ExtractionTemplate
+from moarcoal.issuer_field import IssuerChoice, resolve_issuer
 from moarcoal.links import document_url
 from moarcoal.storage import (
     Applied,
@@ -53,6 +54,7 @@ DUPLICATE_DOCUMENT = "document_duplicate"
 MAX_DIFFERENCES = 50  # so viele Stellen hält eine Neueinlesung fest; gezählt werden alle
 SHOWN_DIFFERENCES = 3  # so viele nennt der Befund
 OWN_FIELDS = frozenset({"id", "owner", "document", "reader_version"})  # kein eingelesener Wert
+YEAR_NOT_A_NUMBER = "Steuerjahr: ganze Zahl, z. B. 2025"
 
 
 class ReadInError(Exception):
@@ -109,6 +111,40 @@ class IntakeRejected:
 
     reasons: tuple[str, ...]
     existing: Document | None = None
+
+
+@dataclass(frozen=True)
+class DocumentChoice:
+    """Aussteller, Art und Jahr aus dem Formular eines Dokuments (Aufnehmen oder Ändern).
+
+    `kind_key` ist leer für „Beleg“ und `None`, wenn das Formular keine Art schickt (gesperrt);
+    `year` ist `DEFAULT_YEAR`, wenn die Art keinen Bezugszeitraum hat.
+    """
+
+    issuer: IssuerChoice
+    kind_key: str | None
+    year: int
+
+
+def read_document_choice(
+    state: State, kinds: Mapping[str, DocumentKind], fields: Mapping[str, str]
+) -> DocumentChoice | IntakeRejected:
+    """Liest Art, Jahr und Aussteller aus den Formularfeldern `kind`, `year` und denen des
+    Aussteller-Felds; was sich nicht lesen lässt, weist es ab wie `take_in`."""
+    kind_key = fields.get("kind")
+    kind = kinds.get(kind_key or "")
+    if kind_key and kind is None:
+        return IntakeRejected(("Bitte eine Dokumentart wählen.",))
+    year = DEFAULT_YEAR
+    if kind is not None and kind.has_period:
+        given = year_of(fields.get("year", ""))
+        if given is None:
+            return IntakeRejected((YEAR_NOT_A_NUMBER,))
+        year = given
+    issuer = resolve_issuer(state, fields)
+    if isinstance(issuer, str):
+        return IntakeRejected((issuer,))
+    return DocumentChoice(issuer, kind_key, year)
 
 
 def _year_problem(year: int) -> str | None:

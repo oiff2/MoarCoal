@@ -24,5 +24,9 @@ def aborted_extraction_path(entry: AbortedExtraction) -> str:
 
 
 ABORTED_EXTRACTION_KIND = entry_kind(
-    AbortedExtraction, ABORTED_EXTRACTION_SCHEMA, aborted_extraction_path, falls_with="document"
+    AbortedExtraction,
+    ABORTED_EXTRACTION_SCHEMA,
+    aborted_extraction_path,
+    falls_with="document",
+    label="Abgebrochene Auslesung",
 )

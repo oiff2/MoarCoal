@@ -64,7 +64,8 @@ class EntryKind:
     zusätzlich tut, steht hier (optional): `check` prüft jeden geschriebenen Eintrag nach dem
     ganzen Vorgang, `denylist` bildet aus allen Einträgen der Art die Werte der Sperrliste,
     `merge` führt zwei Einträge der Art zusammen (Quelle, Ziel -> neues Ziel), `former_ids` nennt
-    die Kennungen früherer, zusammengeführter Einträge, die jetzt auf diesen auflösen.
+    die Kennungen früherer, zusammengeführter Einträge, die jetzt auf diesen auflösen. `label` ist
+    die Bezeichnung der Art auf Seiten (z. B. „Vorschlag“), leer gilt der Name im Code.
 
     Zwei Merkmale regeln das Löschen des Eintrags, auf den andere verweisen: `falls_with` nennt das
     Feld, dessen Ziel diesen Eintrag beim Löschen mitnimmt (er fällt mit ihm weg, `Store.apply`
@@ -81,6 +82,7 @@ class EntryKind:
     former_ids: Callable[[Entry], Sequence[str]] | None = None
     falls_with: str | None = None
     weak_references: tuple[str, ...] = ()
+    label: str = ""
 
 
 def entry_kind[E: Entry](
@@ -94,6 +96,7 @@ def entry_kind[E: Entry](
     former_ids: Callable[[E], Sequence[str]] | None = None,
     falls_with: str | None = None,
     weak_references: tuple[str, ...] = (),
+    label: str = "",
 ) -> EntryKind:
     named = [*weak_references, *([falls_with] if falls_with else [])]
     if unknown := [name for name in named if name not in model.model_fields]:
@@ -108,6 +111,7 @@ def entry_kind[E: Entry](
         cast(Callable[[Entry], Sequence[str]] | None, former_ids),
         falls_with,
         weak_references,
+        label,
     )
 
 

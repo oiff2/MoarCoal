@@ -49,4 +49,4 @@ def proposal_path(entry: Proposal) -> str:
     return f"users/{entry.owner}/proposals.json"
 
 
-PROPOSAL_KIND = entry_kind(Proposal, PROPOSAL_SCHEMA, proposal_path)
+PROPOSAL_KIND = entry_kind(Proposal, PROPOSAL_SCHEMA, proposal_path, label="Vorschlag")

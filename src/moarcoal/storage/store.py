@@ -500,6 +500,11 @@ class Store:
                     pending.append(address)
         return along
 
+    def kind_labels(self) -> dict[str, str]:
+        """Die Bezeichnungen der angemeldeten Arten auf Seiten (Name im Code -> Bezeichnung);
+        Arten ohne Bezeichnung fehlen."""
+        return {name: kind.label for name, kind in self._kinds.items() if kind.label}
+
     def references_to(self, address: EntryAddress, *, with_derived: bool = False) -> list[Entry]:
         """Die Einträge, die das Löschen von `address` sperren: sie verwenden es, ohne mit ihm
         wegzufallen (schwache Verweise zählen nicht); nach Adresse sortiert. Mit `with_derived`

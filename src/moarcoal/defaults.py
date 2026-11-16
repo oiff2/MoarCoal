@@ -7,3 +7,13 @@ DEFAULT_YEAR = 2025
 # Der einzige Jahresbereich: Jahre außerhalb gelten als Eingabefehler.
 MIN_YEAR = 2000
 MAX_YEAR = 2100
+
+
+def year_of(text: str, *, in_range: bool = False) -> int | None:
+    """Das Jahr als ganze Zahl (Randleerzeichen egal); `None`, wenn `text` keine ist, mit
+    `in_range` auch, wenn sie außerhalb von `MIN_YEAR` bis `MAX_YEAR` liegt."""
+    try:
+        year = int(text.strip())
+    except ValueError:
+        return None
+    return year if not in_range or MIN_YEAR <= year <= MAX_YEAR else None
