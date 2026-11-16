@@ -84,7 +84,7 @@ def read_out(
     if template is None:
         return ReadOutRejected("Diese Dokumentart kann nicht ausgelesen werden.")
     try:
-        content = store.read_site_file(document.site, document.path)
+        content = store.sites.read(document.site, document.path)
     except SiteFileError as error:
         return ReadOutRejected(str(error))
     if hashlib.sha256(content).hexdigest() != document.sha256:

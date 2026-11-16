@@ -32,7 +32,7 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_TRAVEL_TOTAL,
     WORK_WORKDAYS,
 )
-from moarcoal.modules.tax_year.comparison import SNAPSHOT_DEVIATION, snapshot_on_filing
+from moarcoal.modules.tax_year.snapshot_check import SNAPSHOT_DEVIATION, snapshot_on_filing
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work.entries import FirstWorkplace, UserInput, WorkEquipment
 from moarcoal.registration import ModuleState

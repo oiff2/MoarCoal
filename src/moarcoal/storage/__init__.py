@@ -24,6 +24,7 @@ from moarcoal.storage.issuers import (
 from moarcoal.storage.personal_details import PersonalDetails
 from moarcoal.storage.pid_file import read_pid, remove_pid, write_pid
 from moarcoal.storage.proposals import PROPOSAL_KIND, Content, Proposal, ProposalField
+from moarcoal.storage.sites import SiteFile, SiteFileError, Sites
 from moarcoal.storage.snapshots import (
     FrozenAmount,
     FrozenItem,
@@ -41,8 +42,6 @@ from moarcoal.storage.store import (
     Merge,
     Put,
     Rejected,
-    SiteFile,
-    SiteFileError,
     State,
     Store,
     StoreError,
@@ -87,6 +86,7 @@ __all__ = [
     "Rereading",
     "SiteFile",
     "SiteFileError",
+    "Sites",
     "State",
     "Store",
     "StoreError",

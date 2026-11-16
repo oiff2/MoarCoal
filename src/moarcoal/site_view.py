@@ -7,7 +7,13 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 
-from moarcoal.incoming import all_site_files, hidden_files, hidden_folders, in_hidden_folder
+from moarcoal.incoming import (
+    all_site_files,
+    hidden_files,
+    hidden_folders,
+    in_hidden_folder,
+    site_files_of,
+)
 from moarcoal.links import document_file_url, site_file_url
 from moarcoal.storage import (
     Document,
@@ -119,24 +125,8 @@ def next_open(tree: Sequence[Folder], sha256: str) -> str | None:
 
 
 def site_rows(files: Sequence[SiteFile], state: State, user: str) -> list[Row]:
-    """Alle Zeilen der Ablage von `user`: eine je Inhalt (mit dem ersten Pfad), ohne Ausgeblendete.
-
-    Hat `user` den Inhalt aufgenommen, steht er mit seinem Dokument da, auch wenn ihn jemand
-    ausgeblendet hat; so hat jede Datei genau eine Stelle (Ablage oder Ausgeblendet).
-    """
-    documents: dict[str, Document] = {}
-    for document in state.of_kind(Document):
-        if document.owner == user:
-            documents.setdefault(document.sha256, document)
-    hidden = {h.sha256 for h in state.of_kind(HiddenFile)}
-    folders = state.of_kind(HiddenFolder)
-    rows: dict[str, Row] = {}
-    for file in files:
-        if file.sha256 in documents or (
-            file.sha256 not in hidden and not in_hidden_folder(file, folders)
-        ):
-            rows.setdefault(file.sha256, Row(file, documents.get(file.sha256)))
-    return list(rows.values())
+    """Alle Zeilen der Ablage von `user` (`site_files_of`)."""
+    return [Row(file, document) for file, document in site_files_of(files, state, user)]
 
 
 def site_tree(
@@ -186,7 +176,7 @@ class SiteListing:
         return site_tree(self.rows, self.sites, intake_filter)
 
     def open_files(self) -> list[SiteFile]:
-        """Der Eingang (wie `incoming_files`)."""
+        """Der Eingang: die Zeilen ohne Dokument."""
         return [row.file for row in self.rows if row.document is None]
 
     def open_file(self, sha256: str) -> SiteFile | None:
@@ -207,7 +197,7 @@ def site_listing(store: Store, state: State, user: str) -> SiteListing:
     in_tree = {r.file.sha256 for r in rows}
     return SiteListing(
         files=files,
-        sites=store.site_names(),
+        sites=store.sites.names(),
         rows=rows,
         hidden_files=[
             HiddenFileRow(h, entry_checksum(h), by_sha.get(h.sha256))

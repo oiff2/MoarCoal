@@ -107,6 +107,11 @@ class FormField:
             raise ValueError(f"{self.label}: ein Feld ohne Betrag hat keine Position im EStB")
 
     @property
+    def name(self) -> str:
+        """Das Feld, wie Befunde es nennen: „Anlage N Nr. …, Bezeichnung“."""
+        return f"Anlage N Nr. {self.form_line}, {self.label}"
+
+    @property
     def whole_euros(self) -> bool:
         """Ob das Feld ganze Euro nimmt (angezeigt ohne Cent)."""
         return self.rounding is Rounding.WHOLE_EUROS
@@ -196,6 +201,10 @@ class FormField:
         how = "aufgerundet" if difference > 0 else "abgerundet"
         side = "Gunsten" if (difference > 0) == favourable else "Ungunsten"
         return f"um {self.show(abs(difference))} {how}, zu deinen {side} (Wert {shown})."
+
+
+type Forms = Mapping[int, tuple[FormField, ...]]
+"""Felder der Anlage N je Steuerjahr."""
 
 
 def check_previous_years(forms: Mapping[int, Sequence[FormField]]) -> list[str]:

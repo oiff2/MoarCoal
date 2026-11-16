@@ -228,7 +228,7 @@ def take_in(
     if (problem := _year_problem(year)) is not None:
         return IntakeRejected((problem,))
     try:
-        content = store.read_site_file(site, path)
+        content = store.sites.read(site, path)
     except SiteFileError as error:
         return IntakeRejected((str(error),))
     sha256 = hashlib.sha256(content).hexdigest()
@@ -298,7 +298,7 @@ def change_document(
         )
         if kind is not None and kind_key != document.document_kind:
             try:
-                content = store.read_site_file(document.site, document.path)
+                content = store.sites.read(document.site, document.path)
                 if hashlib.sha256(content).hexdigest() != document.sha256:
                     return IntakeRejected(("Die Datei hat sich seit dem Aufnehmen geändert.",))
                 changes.extend(Put(entry) for entry in _read_in(kind, updated, content))
@@ -359,7 +359,7 @@ def read_in_again(
             continue  # nichts eingelesen oder schon mit der aktuellen Fassung
         name = f"{document.site}/{document.path}"
         try:
-            content = store.read_site_file(document.site, document.path)
+            content = store.sites.read(document.site, document.path)
         except SiteFileError as error:
             report.append(f"{name}: nicht neu eingelesen, {error}")
             continue
