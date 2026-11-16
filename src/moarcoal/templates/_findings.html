@@ -23,15 +23,19 @@
     {% if finding.href %}<a href="{{ finding.href }}">{{ finding.message }}</a>{% else %}{{ finding.message }}{% endif %}
     {% if year %}
     {% set failed = error == finding.identity %}
-    <form class="ausblenden" method="post" action="/befunde/ausblenden">
+    {% set dialog_id = "ausblenden-" ~ loop.index ~ "-" ~ finding.fingerprint %}
+    <button type="button" class="auge" popovertarget="{{ dialog_id }}" title="Ausblenden" aria-label="Ausblenden">{% include "icons/auge.svg" %}</button>
+    <form id="{{ dialog_id }}" class="ausblenden" {% if not failed %}popover{% endif %} method="post" action="/befunde/ausblenden">
+      <p>{{ finding.message }}</p>
       <input type="hidden" name="year" value="{{ year }}">
       <input type="hidden" name="kind" value="{{ finding.kind }}">
       <input type="hidden" name="target" value="{{ finding.identity[1] }}">
       <input type="hidden" name="fingerprint" value="{{ finding.fingerprint }}">
-      <input type="text" name="note" placeholder="Notiz" aria-label="Notiz" value="{{ note if failed else '' }}">
-      <button type="submit" class="auge" title="Ausblenden" aria-label="Ausblenden">{% include "icons/auge.svg" %}</button>
+      <label>Notiz <input type="text" name="note" value="{{ note if failed else '' }}" autofocus></label>
+      {% if failed %}<p class="fehler">Zum Ausblenden gehört eine Notiz.</p>{% endif %}
+      <button type="submit">Ausblenden</button>
+      {% if not failed %}<button type="button" popovertarget="{{ dialog_id }}" popovertargetaction="hide">Abbrechen</button>{% endif %}
     </form>
-    {% if failed %}<p class="fehler">Zum Ausblenden gehört eine Notiz.</p>{% endif %}
     {% endif %}
     {% set before = earlier.get(finding.identity) %}
     {% if before %}<em>war ausgeblendet: {{ before.note }} ({{ before.noted_on.strftime("%d.%m.%Y") }})</em>{% endif %}

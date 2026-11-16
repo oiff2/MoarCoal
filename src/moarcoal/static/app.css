@@ -147,5 +147,8 @@ label.inline { display: inline; }
 nav.seiten { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin: 0.5rem 0; }
 nav.seiten a[aria-current="page"] { font-weight: bold; text-decoration: none; }
 .befunde-gruppe { margin: 0.75rem 0 0.25rem; font-size: 1rem; }
-form.ausblenden { display: inline-flex; align-items: center; gap: 0.25rem; margin-left: 0.75rem; vertical-align: middle; }
+.befunde li > button.auge { margin-left: 0.5rem; }
+form.ausblenden { padding: 1rem; border: 1px solid var(--linie); border-radius: 0.5rem; background: var(--flaeche); color: var(--text); }
+form.ausblenden:not([popover]) { display: block; margin: 0.5rem 0; max-width: 32rem; }
+form.ausblenden::backdrop { background: var(--text); opacity: 0.3; }
 .befunde li > em { display: block; }
