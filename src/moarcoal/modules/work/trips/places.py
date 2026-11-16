@@ -12,8 +12,9 @@ from dataclasses import dataclass
 
 from pydantic import Field, model_validator
 
-from moarcoal.modules.work.entries import SCHEMA, TEXT_MAX, BusinessTrip
-from moarcoal.modules.work.germany_map import GermanyMap
+from moarcoal.modules.work.common import SCHEMA, TEXT_MAX
+from moarcoal.modules.work.trips.entries import BusinessTrip
+from moarcoal.modules.work.trips.germany_map import GermanyMap
 from moarcoal.storage import (
     Change,
     Delete,

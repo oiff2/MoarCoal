@@ -8,12 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import MAX_YEAR, MIN_YEAR
-from moarcoal.modules.work.entries import (
-    MODULE_KEY,
-    trips_fingerprint,
-)
-from moarcoal.modules.work.germany_map import germany_map
-from moarcoal.modules.work.places import (
+from moarcoal.modules.work.common import MODULE_KEY
+from moarcoal.modules.work.trips.entries import trips_fingerprint
+from moarcoal.modules.work.trips.germany_map import germany_map
+from moarcoal.modules.work.trips.place_search import PlaceSearch, PlaceSearchError
+from moarcoal.modules.work.trips.places import (
     Place,
     PlaceError,
     forget_changes,
@@ -21,23 +20,22 @@ from moarcoal.modules.work.places import (
     locate_changes,
     place_uses,
 )
-from moarcoal.modules.work.trip_reading import statements, take_over_changes
-from moarcoal.modules.work.trip_view import (
+from moarcoal.modules.work.trips.reading import statements, take_over_changes
+from moarcoal.modules.work.trips.table import (
+    TripRow,
+    TripTableError,
+    confirm_changes,
+    confirmation_in,
+    confirmations_in,
+    plan_changes,
+    rows_from_form,
+)
+from moarcoal.modules.work.trips.view import (
     PlaceSearchView,
-    confirmations_of,
     places_of,
     trips_context,
     trips_of,
 )
-from moarcoal.modules.work.trips import (
-    TripRow,
-    TripTableError,
-    confirm_changes,
-    current_confirmation,
-    plan_changes,
-    rows_from_form,
-)
-from moarcoal.place_search import PlaceSearch, PlaceSearchError
 from moarcoal.storage import Applied, Change, Delete, Proposal, entry_checksum
 from moarcoal.web import form_fields, module_state, rejection_text, render, store_of, user_of
 
@@ -103,7 +101,11 @@ def confirm(
         )
         return _page(request, year, error=error, status_code=409)
     changes = confirm_changes(
-        confirmations_of(request, year), trips, year, user_of(request), datetime.date.today()
+        confirmations_in(module_state(request, MODULE_KEY), year),
+        trips,
+        year,
+        user_of(request),
+        datetime.date.today(),
     )
     return _apply(request, year, changes)
 
@@ -111,7 +113,7 @@ def confirm(
 @router.post("/{year}/vollstaendig/aufheben")
 def withdraw(request: Request, year: int) -> Response:
     year = _year(year)
-    confirmation = current_confirmation(confirmations_of(request, year), trips_of(request, year))
+    confirmation = confirmation_in(module_state(request, MODULE_KEY), year)
     if confirmation is None:
         return RedirectResponse(f"/arbeit/dienstreisen/{year}", status_code=303)
     return _apply(request, year, [Delete(confirmation.address, entry_checksum(confirmation))])

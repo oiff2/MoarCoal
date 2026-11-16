@@ -21,8 +21,8 @@ from moarcoal.findings_pages import router as findings_router
 from moarcoal.issuer_field_pages import router as issuer_field_router
 from moarcoal.issuer_pages import router as issuer_router
 from moarcoal.modules import MODULES
+from moarcoal.modules.work.trips.place_search import NominatimSearch, PlaceSearch
 from moarcoal.person_pages import router as person_router
-from moarcoal.place_search import NominatimSearch, PlaceSearch
 from moarcoal.previews import preview_kind
 from moarcoal.registration import ModuleRegistration
 from moarcoal.security import SecurityMiddleware

@@ -21,7 +21,7 @@ from moarcoal.modules.tax_year.anlage_n import (
 from moarcoal.modules.tax_year.protocol_check import DEVIATION, MISSING
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import WAGE_TAX_CERTIFICATE, WageTaxCertificate
-from moarcoal.modules.work.reading import read_in_wage_tax_certificate
+from moarcoal.modules.work.wage_tax.reading import read_in_wage_tax_certificate
 from moarcoal.storage import (
     Applied,
     Delete,

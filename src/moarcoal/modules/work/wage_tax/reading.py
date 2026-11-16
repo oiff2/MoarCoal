@@ -9,9 +9,9 @@ welcher Wert gilt; die Datei wird dann abgewiesen statt geraten.
 
 from pydantic import ValidationError
 
-from moarcoal.documents import ReadInError
+from moarcoal.documents import DocumentKind, ReadInError
 from moarcoal.elster_html import HtmlField, parse_elster_document
-from moarcoal.modules.work.entries import WageTaxCertificate
+from moarcoal.modules.work.wage_tax.entries import WageTaxCertificate
 from moarcoal.storage import Document, ReadInEntry
 from moarcoal.values.model import parse_cents
 
@@ -86,3 +86,13 @@ def read_in_wage_tax_certificate(document: Document, content: bytes) -> list[Rea
             "Ein Wert der Lohnsteuerbescheinigung liegt außerhalb des Bereichs."
         ) from error
     return [entry]
+
+
+WAGE_TAX_CERTIFICATE = DocumentKind(
+    key="wage_tax_certificate",
+    title=TITLE,
+    has_period=True,
+    read_in=read_in_wage_tax_certificate,
+    reader_version=READER_VERSION,
+    unique_per_period=True,
+)

@@ -19,7 +19,7 @@ from moarcoal.extraction_template import ExtractionTemplate, TemplateField, row_
 from moarcoal.modules import ModuleState
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import BusinessTrip, TripsConfirmation
-from moarcoal.modules.work.trip_reading import (
+from moarcoal.modules.work.trips.reading import (
     IGNORED,
     ROWS,
     STATEMENT,

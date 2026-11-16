@@ -8,24 +8,20 @@ from fastapi import Request
 
 from moarcoal.defaults import year_of
 from moarcoal.links import document_url
-from moarcoal.modules.work.entries import (
-    MODULE_KEY,
-    BusinessTrip,
-    TripsConfirmation,
-    trips_fingerprint,
-)
-from moarcoal.modules.work.germany_map import germany_map
-from moarcoal.modules.work.places import Place, place_uses, sort_places
-from moarcoal.modules.work.trip_reading import IGNORED, proposed_trips, statements
-from moarcoal.modules.work.trips import (
+from moarcoal.modules.work.common import MODULE_KEY
+from moarcoal.modules.work.trips.entries import BusinessTrip, trips_fingerprint
+from moarcoal.modules.work.trips.germany_map import germany_map
+from moarcoal.modules.work.trips.place_search import PlaceHit
+from moarcoal.modules.work.trips.places import Place, place_uses, sort_places
+from moarcoal.modules.work.trips.reading import IGNORED, proposed_trips, statements
+from moarcoal.modules.work.trips.table import (
     KM_RATES,
     TripRow,
-    current_confirmation,
+    confirmation_in,
     place_prefill,
-    sorted_trips,
+    trips_in,
 )
-from moarcoal.modules.work.values import TRAVEL_FARE, TRAVEL_TOTAL
-from moarcoal.place_search import PlaceHit
+from moarcoal.modules.work.trips.values import TRAVEL_FARE, TRAVEL_TOTAL
 from moarcoal.storage import entry_checksum
 from moarcoal.values.model import Period
 from moarcoal.web import (
@@ -48,17 +44,11 @@ class PlaceSearchView:
 
 
 def trips_of(request: Request, year: int) -> list[BusinessTrip]:
-    state = module_state(request, MODULE_KEY)
-    return sorted_trips([t for t in state.all(BusinessTrip) if t.year == year])
+    return trips_in(module_state(request, MODULE_KEY), year)
 
 
 def places_of(request: Request) -> list[Place]:
     return module_state(request, MODULE_KEY).all(Place)
-
-
-def confirmations_of(request: Request, year: int) -> list[TripsConfirmation]:
-    state = module_state(request, MODULE_KEY)
-    return [c for c in state.all(TripsConfirmation) if c.year == year]
 
 
 def trip_years(request: Request, chosen: int) -> list[int]:
@@ -119,7 +109,7 @@ def trips_context(
         "trip_count": len(trips),
         "total_km": sum(t.distance_km for t in trips),
         "rate": rate,
-        "confirmation": current_confirmation(confirmations_of(request, year), trips),
+        "confirmation": confirmation_in(module_state(request, MODULE_KEY), year),
         "stand": trips_fingerprint(trips),
         "fare": values.get(TRAVEL_FARE, user, period),
         "total": values.get(TRAVEL_TOTAL, user, period),

@@ -2,7 +2,8 @@
 # requires-python = ">=3.13"
 # dependencies = ["shapely>=2.0"]
 # ///
-"""Build `src/moarcoal/modules/work/germany_map.json`, the base map of the Dienstreisen page (#114).
+"""Build `src/moarcoal/modules/work/trips/germany_map.json`, the base map of the Dienstreisen
+page (#114).
 
 Dev-time only, run once: the app itself never fetches geodata. Input is Natural Earth (public
 domain), `ne_10m_admin_1_states_provinces.geojson` from
@@ -11,8 +12,8 @@ https://github.com/nvkelso/natural-earth-vector, downloaded into a folder of its
     uv run scripts/make_germany_map.py <path to the geojson> [<output json>]
 
 Projection: equirectangular with the longitude scaled by cos(51.2 degrees), 100 units per degree of
-latitude; `moarcoal.modules.work.germany_map` projects a position the same way from the constants
-stored in the output.
+latitude; `moarcoal.modules.work.trips.germany_map` projects a position the same way from the
+constants stored in the output.
 """
 
 import json
@@ -71,5 +72,7 @@ def main(source: Path, target: Path) -> None:
 if __name__ == "__main__":
     main(
         Path(sys.argv[1]),
-        Path(sys.argv[2] if len(sys.argv) > 2 else "src/moarcoal/modules/work/germany_map.json"),
+        Path(
+            sys.argv[2] if len(sys.argv) > 2 else "src/moarcoal/modules/work/trips/germany_map.json"
+        ),
     )

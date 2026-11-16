@@ -292,7 +292,8 @@ def test_without_protocol_there_is_no_comparison() -> None:
 def test_no_equipment_after_previous_year_matches_a_missing_field_and_keeps_the_note() -> None:
     from moarcoal.modules.work import REGISTRATION as WORK
     from moarcoal.modules.work import FirstWorkplace, UserInput, WorkEquipment
-    from moarcoal.modules.work.values import EQUIPMENT_GAP, TRIPS_TO_FILL
+    from moarcoal.modules.work.trips.values import TRIPS_TO_FILL
+    from moarcoal.modules.work.workplace.values import EQUIPMENT_GAP
 
     place = FirstWorkplace(owner="anna", year=2025, workdays=220, distance_km=12, description="x")
     bought_2024 = WorkEquipment(

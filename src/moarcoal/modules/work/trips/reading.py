@@ -15,8 +15,8 @@ from decimal import Decimal
 
 from moarcoal.documents import DocumentKind
 from moarcoal.extraction_template import ExtractionTemplate, TemplateField, row_key, split_row_key
-from moarcoal.modules.work.entries import BusinessTrip
-from moarcoal.modules.work.trips import TripRow, validate_row
+from moarcoal.modules.work.trips.entries import BusinessTrip
+from moarcoal.modules.work.trips.table import TripRow, validate_row
 from moarcoal.storage import Content, Document, Proposal, Put
 
 TRIP_STATEMENT_KEY = "trip_statement"  # Schlüssel der Dokumentart

@@ -28,7 +28,7 @@ ALLOWED = {
     # `webbrowser.open` öffnet die Startseite, keine Datei; die PID-Datei liegt in `storage`.
     "__main__.py": {".open(...)"},
     "modules/tax_year/structure.py": {".read_text(...)"},
-    "modules/work/germany_map.py": {".read_text(...)"},
+    "modules/work/trips/germany_map.py": {".read_text(...)"},
 }
 
 FILE_METHODS = {

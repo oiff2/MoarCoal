@@ -24,7 +24,12 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from pydantic import ValidationError
 
-from moarcoal.modules.work.entries import BusinessTrip, TripsConfirmation, trips_fingerprint
+from moarcoal.modules.work.trips.entries import (
+    BusinessTrip,
+    TripsConfirmation,
+    trips_fingerprint,
+)
+from moarcoal.registration import ModuleState
 from moarcoal.storage import Delete, Put, entry_checksum, new_id
 from moarcoal.values.model import Amount, Unit
 
@@ -251,3 +256,17 @@ def confirm_changes(
         return [Put(new)]
     old = confirmations[0]
     return [Put(new.model_copy(update={"id": old.id}), expected=entry_checksum(old))]
+
+
+def trips_in(state: ModuleState, year: int) -> list[BusinessTrip]:
+    """Die Reisen des Jahrs, nach Start sortiert."""
+    return sorted_trips([t for t in state.all(BusinessTrip) if t.year == year])
+
+
+def confirmations_in(state: ModuleState, year: int) -> list[TripsConfirmation]:
+    return [c for c in state.all(TripsConfirmation) if c.year == year]
+
+
+def confirmation_in(state: ModuleState, year: int) -> TripsConfirmation | None:
+    """Die Bestätigung des Jahrs, die für den heutigen Stand der Reisen gilt; sonst `None`."""
+    return current_confirmation(confirmations_in(state, year), trips_in(state, year))

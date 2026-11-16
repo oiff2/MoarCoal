@@ -34,7 +34,7 @@ from moarcoal.modules.tax_year.anlage_n import (
 )
 from moarcoal.modules.tax_year.snapshot_check import SNAPSHOT_DEVIATION, snapshot_on_filing
 from moarcoal.modules.work import REGISTRATION as WORK
-from moarcoal.modules.work.entries import FirstWorkplace, UserInput, WorkEquipment
+from moarcoal.modules.work.workplace.entries import FirstWorkplace, UserInput, WorkEquipment
 from moarcoal.registration import ModuleState
 from moarcoal.storage import (
     AbortedExtraction,

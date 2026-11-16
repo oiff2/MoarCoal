@@ -1,33 +1,30 @@
 """Seiten des Moduls Arbeit: erfassen, ändern, löschen. Geschrieben wird nur über `apply`."""
 
-from collections.abc import Callable
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
-from moarcoal.defaults import DEFAULT_YEAR, MAX_YEAR, MIN_YEAR
-from moarcoal.modules.work.entries import (
-    DEFAULT_WORKDAYS,
-    MAX_WORKDAYS,
-    MODULE_KEY,
-    FirstWorkplace,
-    UserInput,
-    WorkEquipment,
+from moarcoal.modules.work.common import MODULE_KEY
+from moarcoal.modules.work.trips.view import chosen_year, trips_context
+from moarcoal.modules.work.workplace.entries import FirstWorkplace, WorkEquipment
+from moarcoal.modules.work.workplace.forms import (
+    KINDS,
+    EntryForm,
+    Fields,
+    prefill_from,
+    prefill_new,
 )
-from moarcoal.modules.work.trip_view import chosen_year, trips_context
-from moarcoal.modules.work.values import DISTANCE_KM, EQUIPMENT, WORKDAYS
+from moarcoal.modules.work.workplace.values import DISTANCE_KM, EQUIPMENT, WORKDAYS
 from moarcoal.registration import ModuleState
 from moarcoal.storage import (
     Applied,
     Delete,
-    Entry,
-    EntryAddress,
     Put,
     entry_checksum,
     new_id,
 )
-from moarcoal.values.model import Period, parse_cents
+from moarcoal.values.model import Period
 from moarcoal.web import (
     entry_of,
     form_fields,
@@ -36,96 +33,10 @@ from moarcoal.web import (
     render,
     store_of,
     user_of,
-    validated,
     values_of,
 )
 
 router = APIRouter(prefix="/arbeit")
-
-type Fields = dict[str, str]
-type Build = Callable[[Fields, str, str], tuple[Entry | None, list[str]]]
-
-# Hinweis je Feld, wenn die Prüfung es ablehnt (Pydantic liefert nur englische Meldungen).
-HINTS = {
-    "year": f"Steuerjahr: Jahr zwischen {MIN_YEAR} und {MAX_YEAR}",
-    "workdays": f"Arbeitstage: ganze Zahl von 0 bis {MAX_WORKDAYS}",
-    "distance_km": "Einfache Entfernung: ganze Zahl von 0 bis 1000 km",
-    "workdays_per_week": "Arbeitstage je Woche: ganze Zahl von 1 bis 7, oder leer",
-    "absence_days": "Urlaubs- und Krankheitstage: ganze Zahl von 0 bis 366, oder leer",
-    "car_distance_km": "Mit dem Pkw gefahrene km: ganze Zahl, höchstens die einfache Entfernung, "
-    "oder leer",
-    "description": "Beschreibung: höchstens 200 Zeichen",
-    "amount_cents": "Betrag: größer als 0, mit höchstens zwei Nachkommastellen, z. B. 49,90",
-    "date": "Datum: gültiges Datum",
-}
-EQUIPMENT_HINTS = {**HINTS, "description": "Beschreibung: angeben, höchstens 200 Zeichen"}
-
-OPTIONAL_WORKPLACE = ("workdays_per_week", "absence_days", "car_distance_km")
-
-
-def build_workplace(fields: Fields, owner: str, entry_id: str) -> tuple[Entry | None, list[str]]:
-    return validated(
-        FirstWorkplace,
-        {
-            "id": entry_id,
-            "owner": owner,
-            "year": fields.get("year", ""),
-            "workdays": fields.get("workdays", ""),
-            "distance_km": fields.get("distance_km", ""),
-            "description": fields.get("description", "").strip(),
-            **{name: fields.get(name, "").strip() or None for name in OPTIONAL_WORKPLACE},
-        },
-        HINTS,
-    )
-
-
-def build_equipment(fields: Fields, owner: str, entry_id: str) -> tuple[Entry | None, list[str]]:
-    cents = parse_cents(fields.get("amount", ""))  # None: die Prüfung unten meldet den Betrag
-    user_input, errors = validated(
-        UserInput,
-        {
-            "amount_cents": cents,
-            "date": fields.get("date", ""),
-            "description": fields.get("description", "").strip(),
-        },
-        EQUIPMENT_HINTS,
-    )
-    if user_input is None:
-        return None, errors
-    return validated(
-        WorkEquipment,
-        {
-            "id": entry_id,
-            "owner": owner,
-            "year": fields.get("year", ""),
-            "input": user_input.model_dump(),
-        },
-        EQUIPMENT_HINTS,
-    )
-
-
-class EntryForm:
-    def __init__(self, slug: str, title: str, model: type[Entry], build: Build) -> None:
-        self.slug = slug
-        self.title = title
-        self.model = model
-        self.build = build
-
-
-KINDS = {
-    "erste-taetigkeitsstaette": EntryForm(
-        "erste-taetigkeitsstaette", "Erste Tätigkeitsstätte", FirstWorkplace, build_workplace
-    ),
-    "arbeitsmittel": EntryForm("arbeitsmittel", "Arbeitsmittel", WorkEquipment, build_equipment),
-}
-
-
-def entry_url(address: EntryAddress) -> str | None:
-    """Link zur Änderungsseite eines Eintrags des Moduls, sonst `None`."""
-    for kind in KINDS.values():
-        if kind.model.__name__ == address.kind:
-            return f"/arbeit/{kind.slug}/{address.id}"
-    return None
 
 
 def _kind(slug: str) -> EntryForm:
@@ -137,39 +48,6 @@ def _kind(slug: str) -> EntryForm:
 
 def _own_state(request: Request) -> ModuleState:
     return module_state(request, MODULE_KEY)
-
-
-def _prefill_new(slug: str) -> Fields:
-    """Vorbelegung eines neuen Formulars."""
-    if slug == "erste-taetigkeitsstaette":
-        return {"year": str(DEFAULT_YEAR), "workdays": str(DEFAULT_WORKDAYS)}
-    return {"year": str(DEFAULT_YEAR)}
-
-
-def _prefill_from(entry: Entry | None) -> Fields:
-    """Vorbelegung der Formularfelder aus einem Eintrag."""
-    match entry:
-        case FirstWorkplace():
-            return {
-                "year": str(entry.year),
-                "workdays": str(entry.workdays),
-                "distance_km": str(entry.distance_km),
-                "description": entry.description,
-                **{
-                    name: "" if getattr(entry, name) is None else str(getattr(entry, name))
-                    for name in OPTIONAL_WORKPLACE
-                },
-            }
-        case WorkEquipment():
-            euros, cents = divmod(entry.input.amount_cents, 100)
-            return {
-                "year": str(entry.year),
-                "amount": f"{euros},{cents:02d}",
-                "date": entry.input.date.isoformat(),
-                "description": entry.input.description,
-            }
-        case _:
-            return {"year": str(DEFAULT_YEAR)}
 
 
 def _years(request: Request, state: ModuleState) -> list[dict[str, Any]]:
@@ -200,7 +78,7 @@ def _years(request: Request, state: ModuleState) -> list[dict[str, Any]]:
 
 def _prefill_all(submitted: str | None = None, fields: Fields | None = None) -> dict[str, Fields]:
     """Vorbelegung der Formulare der Übersicht: Eingabe für die abgeschickte Art, sonst neu."""
-    return {s: fields if s == submitted and fields is not None else _prefill_new(s) for s in KINDS}
+    return {s: fields if s == submitted and fields is not None else prefill_new(s) for s in KINDS}
 
 
 def _overview(
@@ -238,7 +116,7 @@ def edit_page(request: Request, slug: str, entry_id: str) -> HTMLResponse:
         "work/edit.html",
         kind=kind,
         entry=entry,
-        values=_prefill_from(entry),
+        values=prefill_from(entry),
         checksum=entry_checksum(entry),
         errors=[],
     )

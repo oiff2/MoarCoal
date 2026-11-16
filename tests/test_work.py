@@ -22,9 +22,9 @@ from moarcoal.modules.work import (
     WageTaxCertificate,
     WorkEquipment,
 )
-from moarcoal.modules.work.pages import HINTS, build_equipment
-from moarcoal.modules.work.values import EQUIPMENT as EQUIPMENT_KEY
-from moarcoal.modules.work.values import EQUIPMENT_GAP
+from moarcoal.modules.work.workplace.forms import HINTS, build_equipment
+from moarcoal.modules.work.workplace.values import EQUIPMENT as EQUIPMENT_KEY
+from moarcoal.modules.work.workplace.values import EQUIPMENT_GAP
 from moarcoal.registration import ForeignKindError, ModuleRegistration
 from moarcoal.storage import Applied, Entry, EntryAddress, Put, entry_checksum, open_store
 from moarcoal.values.findings import Finding, Severity

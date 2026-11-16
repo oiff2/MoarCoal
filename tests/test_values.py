@@ -12,7 +12,7 @@ from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
 from moarcoal.modules.work import REGISTRATION, FirstWorkplace, UserInput, WorkEquipment
-from moarcoal.modules.work.values import DISTANCE_KM, EQUIPMENT, WORKDAYS
+from moarcoal.modules.work.workplace.values import DISTANCE_KM, EQUIPMENT, WORKDAYS
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import EntryAddress
 from moarcoal.values.calculation import Calculation, NotYetSignal

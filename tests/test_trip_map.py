@@ -18,8 +18,16 @@ from pydantic import ValidationError
 
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import BusinessTrip
-from moarcoal.modules.work.germany_map import germany_map
-from moarcoal.modules.work.places import (
+from moarcoal.modules.work.trips.germany_map import germany_map
+from moarcoal.modules.work.trips.place_search import (
+    MIN_INTERVAL_SECONDS,
+    USER_AGENT,
+    FakePlaceSearch,
+    NominatimSearch,
+    PlaceHit,
+    PlaceSearchError,
+)
+from moarcoal.modules.work.trips.places import (
     Place,
     PlaceError,
     PlaceUse,
@@ -29,14 +37,6 @@ from moarcoal.modules.work.places import (
     locate_changes,
     place_uses,
     sort_places,
-)
-from moarcoal.place_search import (
-    MIN_INTERVAL_SECONDS,
-    USER_AGENT,
-    FakePlaceSearch,
-    NominatimSearch,
-    PlaceHit,
-    PlaceSearchError,
 )
 from moarcoal.storage import Put, Store, entry_checksum
 

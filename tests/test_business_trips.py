@@ -18,7 +18,7 @@ from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_n import N_TRAVEL_FARE, N_TRAVEL_TOTAL
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import BusinessTrip, TripsConfirmation
-from moarcoal.modules.work.trips import (
+from moarcoal.modules.work.trips.table import (
     TripRow,
     TripTableError,
     confirm_changes,
@@ -28,7 +28,7 @@ from moarcoal.modules.work.trips import (
     rows_from_form,
     split_places,
 )
-from moarcoal.modules.work.values import TRAVEL_FARE, TRAVEL_TOTAL, TRIPS_TO_FILL
+from moarcoal.modules.work.trips.values import TRAVEL_FARE, TRAVEL_TOTAL, TRIPS_TO_FILL
 from moarcoal.storage import Applied, Delete, Put, Rejected, entry_checksum, open_store
 from moarcoal.values.model import (
     Amount,
