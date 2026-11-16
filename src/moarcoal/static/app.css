@@ -16,6 +16,18 @@
 :root[data-darstellung="dunkel"] { color-scheme: dark; }
 a { color: var(--akzent); }
 /* Ende der Farb-Tokens */
+/* Statussprache (_status.html): je Status ein Symbol und eine Farbe; Dateityp-Icons bleiben farblos */
+.status { white-space: nowrap; font-weight: 600; }
+.status .symbol { display: inline-block; width: 1.1em; text-align: center; }
+.status-error { color: var(--fehler); }
+.status-warning { color: var(--warnung); }
+.status-note { color: var(--akzent); }
+.status-pending { color: var(--warnung); }
+.status-assumed { color: inherit; opacity: 0.75; }
+.status-proven { color: var(--gut); }
+.ausgewiesen summary .status { margin-left: 0.75rem; }
+.dateityp { align-self: center; opacity: 0.6; }
+.dateityp .icon { width: 1.1rem; height: 1.1rem; display: block; }
 html, body { height: 100%; }
 /* Rahmen: Seitenleiste links über die ganze Höhe, Kopfleiste oben, nur der Inhalt scrollt */
 body {
@@ -46,8 +58,6 @@ html.js .ohne-js { display: none; }
 html:not(.js) .darstellung { display: none; }
 .befunde-kopf { display: flex; align-items: center; gap: 0.75rem; min-width: 0; color: inherit; text-decoration: none; }
 .befunde-kopf .wichtigster { max-width: 28rem; margin-left: 0.5rem; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.befunde-kopf .schweregrad-error { color: var(--fehler); }
-.befunde-kopf .schweregrad-warning { color: var(--warnung); }
 .befunde-kopf .keine { color: inherit; opacity: 0.5; }
 .darstellung { margin-left: auto; display: flex; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; }
 .darstellung + .nutzer { margin-left: 0; }
@@ -61,13 +71,8 @@ label { display: block; margin: 0.25rem 0; }
 form.inline { display: inline; }
 .ausgewiesen { margin: 0.25rem 0; }
 .ausgewiesen summary { cursor: pointer; }
-.belegstand { margin-left: 0.75rem; padding: 0 0.4rem; border: 1px solid var(--linie); border-radius: 0.25rem; font-size: 0.85em; }
-.belegstand-pending { border-color: var(--warnung); }
-.belegstand-proven { border-color: var(--gut); }
 .rechenweg { margin: 0.25rem 0; }
 .befunde { padding-left: 1.25rem; }
-.schweregrad-error strong { color: var(--fehler); }
-.schweregrad-warning strong { color: var(--warnung); }
 tr:target { outline: 2px solid var(--warnung); }
 /* Belege, Ablage: kein Seiten-Scrollen, der Baum scrollt in sich */
 main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
@@ -141,3 +146,9 @@ label.inline { display: inline; }
 
 nav.seiten { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin: 0.5rem 0; }
 nav.seiten a[aria-current="page"] { font-weight: bold; text-decoration: none; }
+.befunde-gruppe { margin: 0.75rem 0 0.25rem; font-size: 1rem; }
+.befunde li > button.auge { margin-left: 0.5rem; }
+form.ausblenden { padding: 1rem; border: 1px solid var(--linie); border-radius: 0.5rem; background: var(--flaeche); color: var(--text); }
+form.ausblenden:not([popover]) { display: block; margin: 0.5rem 0; max-width: 32rem; }
+form.ausblenden::backdrop { background: var(--text); opacity: 0.3; }
+.befunde li > em { display: block; }
