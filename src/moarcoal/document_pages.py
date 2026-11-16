@@ -20,8 +20,9 @@ from moarcoal.proposals import (
     ReadOutRejected,
     confirm,
     document_of,
-    proposals_of,
+    latest_proposal,
     read_out,
+    template_of,
 )
 from moarcoal.storage import Applied, Delete, Document
 from moarcoal.web import document_kinds, form_fields, store_of, user_of
@@ -130,13 +131,12 @@ def confirm_fields(
     request: Request, document_id: str, fields: Annotated[Fields, Depends(form_fields)]
 ) -> Response:
     document = _document(request, document_id)
-    proposals = proposals_of(store_of(request).state(), document)
-    if not proposals:
+    proposal = latest_proposal(store_of(request).state(), document)
+    if proposal is None:
         return _refused(request, document, 409, "Zu diesem Dokument gibt es keinen Vorschlag.")
     key = None if fields.get("all") else fields.get("field", "")
-    kind = document_kinds(request).get(document.document_kind or "")
-    template = None if kind is None else kind.extraction_template
-    result = confirm(store_of(request), proposals[-1], template, key, fields.get("correction"))
+    template = template_of(document_kinds(request), document)
+    result = confirm(store_of(request), proposal, template, key, fields.get("correction"))
     if not isinstance(result, Applied):
         return _refused(request, document, 409, result.message)
     return _in_list(document)

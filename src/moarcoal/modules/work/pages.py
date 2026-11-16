@@ -1,7 +1,6 @@
 """Seiten des Moduls Arbeit: erfassen, ändern, löschen. Geschrieben wird nur über `apply`."""
 
 from collections.abc import Callable
-from decimal import Decimal, InvalidOperation
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -30,7 +29,7 @@ from moarcoal.storage import (
     entry_checksum,
     new_id,
 )
-from moarcoal.values.model import Period
+from moarcoal.values.model import Period, parse_cents
 from moarcoal.web import form_fields, module_state, render, store_of, user_of, values_of
 
 router = APIRouter(prefix="/arbeit")
@@ -52,19 +51,6 @@ HINTS = {
     "date": "Datum: gültiges Datum",
 }
 REQUIRED_DESCRIPTION = "Beschreibung: angeben, höchstens 200 Zeichen"
-
-
-def parse_cents(text: str) -> int:
-    """'1.234,56' oder '49,9' -> Cent; wirft `ValueError` bei allem anderen."""
-    cleaned = text.strip().replace(".", "").replace(",", ".")
-    try:
-        amount = Decimal(cleaned)
-    except InvalidOperation as error:
-        raise ValueError(text) from error
-    cents = amount * 100
-    if not amount.is_finite() or cents != cents.to_integral_value():
-        raise ValueError(text)
-    return int(cents)
 
 
 def _errors(error: ValidationError, required_description: bool) -> list[str]:
@@ -97,10 +83,7 @@ def build_workplace(fields: Fields, owner: str, entry_id: str) -> tuple[Entry | 
 
 
 def build_equipment(fields: Fields, owner: str, entry_id: str) -> tuple[Entry | None, list[str]]:
-    try:
-        cents = parse_cents(fields.get("amount", ""))
-    except ValueError:
-        cents = 0  # die Prüfung unten meldet den Betrag
+    cents = parse_cents(fields.get("amount", ""))  # None: die Prüfung unten meldet den Betrag
     try:
         entry = WorkEquipment.model_validate(
             {

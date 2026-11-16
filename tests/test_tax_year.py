@@ -14,12 +14,19 @@ from fastapi.testclient import TestClient
 
 from moarcoal.documents import DocumentKind, IntakeRejected, ReadInError, TakenIn
 from moarcoal.documents import take_in as take_in_with
+from moarcoal.elster_html import parse_elster_html
 from moarcoal.modules.tax_year import (
     REGISTRATION,
     TRANSFER_PROTOCOL,
+    ProtocolLine,
     ProtocolReading,
 )
-from moarcoal.modules.tax_year.reading import READER_VERSION, parse_protocol, read_in_protocol
+from moarcoal.modules.tax_year.reading import (
+    READER_VERSION,
+    TITLE,
+    protocol_lines,
+    read_in_protocol,
+)
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.storage import (
     Applied,
@@ -92,13 +99,17 @@ def make_client(root: Path, site: Path) -> httpx.Client:
 # --- Einlese-Regel ----------------------------------------------------------------------------
 
 
-def test_parse_protocol_reads_header_and_fields_as_printed() -> None:
-    parsed = parse_protocol(FIXTURE.read_bytes())
+def fixture_lines() -> tuple[ProtocolLine, ...]:
+    return protocol_lines(parse_elster_html(FIXTURE.read_bytes(), TITLE).fields)
+
+
+def test_protocol_reads_header_and_fields_as_printed() -> None:
+    parsed = parse_elster_html(FIXTURE.read_bytes(), TITLE)
     assert (parsed.belegart, parsed.belegversion, parsed.year) == ("E10", "2025", 2025)
     assert str(parsed.received) == "2026-03-01"
     fields = [
         (line.elster_id, line.form, line.form_line, line.label, line.content, line.index)
-        for line in parsed.lines
+        for line in protocol_lines(parsed.fields)
     ]
     assert fields == [
         ("E0203503", "N", "29", "aufgesucht an Tagen", "220", "1_1-1-1"),
@@ -110,25 +121,24 @@ def test_parse_protocol_reads_header_and_fields_as_printed() -> None:
 
 
 def test_fundstelle_is_the_full_data_name_and_repeated_elster_id_stay_separate() -> None:
-    lines = parse_protocol(FIXTURE.read_bytes()).lines
+    lines = fixture_lines()
     assert lines[0].data_name == "id-N-Werbungskosten-Fahrten-E0203503_usb1_1-1-1"
     repeated = [line for line in lines if line.elster_id == "E0204403"]
     assert [line.content for line in repeated] == ["49,90", "20,00"]  # nicht summiert
     assert len({line.data_name for line in repeated}) == 2
 
 
-def test_parse_protocol_ignores_fields_without_elster_id() -> None:
-    parsed = parse_protocol(FIXTURE.read_bytes())
-    texts = {line.content for line in parsed.lines}
+def test_protocol_ignores_fields_without_elster_id() -> None:
+    texts = {line.content for line in fixture_lines()}
     assert "wird ignoriert" not in texts
     assert "2025" not in texts  # Vorsatz-Zeitraum hat keine E-Kennung
 
 
-def test_parse_protocol_empty_year_falls_back_to_belegversion_or_none() -> None:
+def test_elster_head_empty_year_falls_back_to_belegversion_or_none() -> None:
     html = b"<!-- Belegart: E10 --><!-- Belegversion: 202501 --><!-- Veranlagungsjahr: -->"
-    assert parse_protocol(html).year is None
+    assert parse_elster_html(html, TITLE).year is None
     html = b"<!-- Belegart: E10 --><!-- Veranlagungsjahr: 2024 -->"
-    assert parse_protocol(html).year == 2024
+    assert parse_elster_html(html, TITLE).year == 2024
 
 
 def make_document(year: int | None = 2025) -> Document:
@@ -161,7 +171,7 @@ def test_read_in_reports_unexpected_format_with_the_document_kind() -> None:
 
 
 def test_read_in_refuses_other_documents_and_year_mismatch() -> None:
-    with pytest.raises(ReadInError, match="kein Übertragungsprotokoll"):
+    with pytest.raises(ReadInError, match="Dokumentart Übertragungsprotokoll"):
         read_in_protocol(make_document(), b"<!-- Belegart: X --><p>nichts</p>")
     with pytest.raises(ReadInError, match="kein Feld mit E-Kennung"):
         read_in_protocol(make_document(), b"<!-- Belegart: E10 --><p>leer</p>")
@@ -422,7 +432,7 @@ def test_page_rejects_year_that_contradicts_the_head(root: Path, site: Path) -> 
 
 
 def test_protocol_line_is_stored_as_elster_id() -> None:
-    line = parse_protocol(FIXTURE.read_bytes()).lines[0]
+    line = fixture_lines()[0]
     dumped = line.model_dump(mode="json")
     assert dumped["elster_id"] == line.elster_id
     assert len(dumped) == 7

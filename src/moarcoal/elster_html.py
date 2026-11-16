@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 
 from moarcoal.documents import ReadInError
+from moarcoal.storage import Document
 
 HEADER_COMMENT = re.compile(r"^\s*(Belegart|Belegversion|Veranlagungsjahr):\s*(.*?)\s*$")
 INDEX_SUFFIX = re.compile(r"_usb([0-9][0-9_\-]*)$")
@@ -147,6 +148,27 @@ def parse_elster_html(content: bytes, title: str) -> ParsedHtml:
         received=_received("".join(parser.text)),
         fields=tuple(parser.fields),
     )
+
+
+def parse_elster_document(
+    document: Document, content: bytes, belegart: str, title: str
+) -> tuple[int, ParsedHtml]:
+    """Liest die Datei eines Dokuments mit Bezugszeitraum und prüft den Kopf: die Belegart der
+    Dokumentart (Titel `title`) und, falls der Kopf eines nennt, das Jahr des Dokuments. Gibt das
+    Jahr des Dokuments und die gelesene Datei zurück; sonst `ReadInError`."""
+    if document.period_start is None:
+        raise ReadInError("Das Dokument hat keinen Bezugszeitraum.")
+    parsed = parse_elster_html(content, title)
+    if parsed.belegart != belegart:
+        raise ReadInError(
+            f"Die Datei passt nicht zur Dokumentart {title} (Belegart {belegart} fehlt im Kopf)."
+        )
+    year = document.period_start.year
+    if parsed.year is not None and parsed.year != year:
+        raise ReadInError(
+            f"Die Datei ({title}) gehört zum Steuerjahr {parsed.year}, eingetragen ist {year}."
+        )
+    return year, parsed
 
 
 def _received(text: str) -> datetime.date | None:

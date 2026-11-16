@@ -9,12 +9,11 @@ steht, was das Protokoll (`Belegart: E10`) daraus macht:
   (Wiederholgruppen); jedes Vorkommen bleibt eine eigene Zeile, nichts wird summiert.
 """
 
-import datetime
 import re
-from dataclasses import dataclass
+from collections.abc import Iterable
 
 from moarcoal.documents import ReadInError
-from moarcoal.elster_html import HtmlField, parse_elster_html
+from moarcoal.elster_html import HtmlField, parse_elster_document
 from moarcoal.modules.tax_year.entries import (
     ELSTER_ID_PATTERN,
     TEXT_MAX,
@@ -30,25 +29,9 @@ BELEGART = "E10"
 ELSTER_ID = re.compile(ELSTER_ID_PATTERN)
 
 
-@dataclass(frozen=True)
-class ParsedProtocol:
-    belegart: str
-    belegversion: str
-    year: int | None  # aus dem Kopf: Veranlagungsjahr, sonst eine vierstellige Belegversion
-    received: datetime.date | None
-    lines: tuple[ProtocolLine, ...]
-
-
-def parse_protocol(content: bytes) -> ParsedProtocol:
-    """Kopf und alle Felder mit E-Kennung, in der Reihenfolge der Datei."""
-    parsed = parse_elster_html(content, TITLE)
-    return ParsedProtocol(
-        belegart=parsed.belegart,
-        belegversion=parsed.belegversion,
-        year=parsed.year,
-        received=parsed.received,
-        lines=tuple(line for f in parsed.fields if (line := _line(f)) is not None),
-    )
+def protocol_lines(fields: Iterable[HtmlField]) -> tuple[ProtocolLine, ...]:
+    """Die Zeilen aller Felder mit E-Kennung, in der Reihenfolge der Datei."""
+    return tuple(line for f in fields if (line := _line(f)) is not None)
 
 
 def _line(field: HtmlField) -> ProtocolLine | None:
@@ -69,20 +52,11 @@ def _line(field: HtmlField) -> ProtocolLine | None:
 
 def read_in_protocol(document: Document, content: bytes) -> list[ReadInEntry]:
     """Einlese-Regel der Dokumentart Übertragungsprotokoll."""
-    if document.period_start is None:
-        raise ReadInError("Das Dokument hat keinen Bezugszeitraum.")
-    parsed = parse_protocol(content)
-    if parsed.belegart != BELEGART:
-        raise ReadInError("Die Datei ist kein Übertragungsprotokoll (Belegart E10 fehlt im Kopf).")
-    year = document.period_start.year
-    if parsed.year is not None and parsed.year != year:
-        raise ReadInError(
-            f"Das Übertragungsprotokoll gehört zum Steuerjahr {parsed.year}, "
-            f"eingetragen ist {year}."
-        )
-    if not parsed.lines:
+    year, parsed = parse_elster_document(document, content, BELEGART, TITLE)
+    lines = protocol_lines(parsed.fields)
+    if not lines:
         raise ReadInError("Im Übertragungsprotokoll steht kein Feld mit E-Kennung.")
-    if len(parsed.lines) > MAX_LINES:
+    if len(lines) > MAX_LINES:
         raise ReadInError(f"Mehr als {MAX_LINES} Felder; kein Übertragungsprotokoll?")
     reading = ProtocolReading(
         owner=document.owner,
@@ -91,6 +65,6 @@ def read_in_protocol(document: Document, content: bytes) -> list[ReadInEntry]:
         reader_version=READER_VERSION,
         belegversion=parsed.belegversion,
         received=parsed.received,
-        lines=parsed.lines,
+        lines=lines,
     )
     return [reading]

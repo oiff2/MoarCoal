@@ -71,6 +71,16 @@ def parse_german_number(text: str) -> Decimal | None:
         return None
 
 
+def parse_cents(text: str) -> int | None:
+    """'1.234,56' oder '49,9' -> Cent wie `parse_german_number`; mehr als zwei Nachkommastellen
+    oder kein deutscher Betrag (auch '12.5'): `None`."""
+    amount = parse_german_number(text)
+    cents = None if amount is None else amount * 100
+    if cents is None or cents != cents.to_integral_value():
+        return None
+    return int(cents)
+
+
 @dataclass(frozen=True)
 class Period:
     """Zeitraum von `start` bis `end` einschließlich, meist ein Kalenderjahr."""

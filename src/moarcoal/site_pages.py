@@ -22,6 +22,7 @@ from moarcoal.incoming import (
 from moarcoal.links import document_url
 from moarcoal.prefill import Prefill, prefill_from_name
 from moarcoal.previews import file_response, preview_kind
+from moarcoal.proposals import template_of
 from moarcoal.storage import Applied, HiddenFile, HiddenFolder, Issuer
 from moarcoal.web import (
     document_kinds,
@@ -161,8 +162,7 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
         )
     modules = request.app.state.modules
     target = next((url for e in result.entries if (url := entry_url(modules, e.address))), None)
-    kind = kinds.get(result.document.document_kind or "")
-    if kind is not None and kind.extraction_template is not None:
+    if template_of(kinds, result.document) is not None:
         # im Reiter Dokumente liest der Nutzer das Dokument aus
         target = document_url(result.document.id)
     elif following is not None:

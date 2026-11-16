@@ -18,7 +18,7 @@ from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.documents import DocumentKind, IntakeRejected
 from moarcoal.issuer_field import IssuerChoice, resolve_issuer
 from moarcoal.previews import preview_kind
-from moarcoal.proposals import proposals_of
+from moarcoal.proposals import latest_proposal, template_of
 from moarcoal.storage import Document, Issuer, State, entry_checksum, name_key
 from moarcoal.web import document_kinds, render, store_of, user_of, year_of
 
@@ -58,11 +58,10 @@ def document_state(
     Auslese-Vorlage, aber es gibt keinen Vorschlag), „fertig“ oder, ohne Art, „Beleg“ (neutral)."""
     if not document.document_kind:
         return DocumentState.BELEG
-    proposals = proposals_of(state, document)
-    if proposals:
-        return DocumentState.TO_CONFIRM if proposals[-1].open_keys else DocumentState.DONE
-    kind = kinds.get(document.document_kind)
-    if kind is not None and kind.extraction_template:
+    proposal = latest_proposal(state, document)
+    if proposal is not None:
+        return DocumentState.TO_CONFIRM if proposal.open_keys else DocumentState.DONE
+    if template_of(kinds, document) is not None:
         return DocumentState.TO_EXTRACT
     return DocumentState.DONE
 
@@ -119,7 +118,6 @@ def document_detail(
     state = store.state()
     kinds = document_kinds(request)
     kind = kinds.get(document.document_kind or "")
-    proposals = proposals_of(state, document)
     return {
         "document": document,
         "issuer": state.get(document.issuer) if document.issuer else None,
@@ -132,8 +130,8 @@ def document_detail(
         "labels": REFERENCE_LABELS,
         "default_year": DEFAULT_YEAR,
         "kind": kind,
-        "template": None if kind is None else kind.extraction_template,
-        "proposal": proposals[-1] if proposals else None,
+        "template": template_of(kinds, document),
+        "proposal": latest_proposal(state, document),
     }
 
 

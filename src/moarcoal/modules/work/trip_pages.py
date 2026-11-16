@@ -38,7 +38,6 @@ from moarcoal.modules.work.trips import (
     rows_from_form,
 )
 from moarcoal.place_search import PlaceSearch, PlaceSearchError
-from moarcoal.proposals import proposals_of
 from moarcoal.storage import Applied, Change, Delete, Proposal, entry_checksum
 from moarcoal.web import form_fields, module_state, render, store_of, user_of
 
@@ -120,10 +119,11 @@ def withdraw(request: Request, year: int) -> Response:
 
 def _latest_proposal(request: Request, year: int, proposal_id: str) -> Proposal:
     """Der neueste Vorschlag zu einer Reiseaufstellung des Jahrs, sonst 404."""
-    for document in statements(module_state(request, MODULE_KEY).documents(), year):
-        history = proposals_of(store_of(request).state(), document)
-        if history and history[-1].id == proposal_id:
-            return history[-1]
+    state = module_state(request, MODULE_KEY)
+    for document in statements(state.documents(), year):
+        proposal = state.latest_proposal(document)
+        if proposal is not None and proposal.id == proposal_id:
+            return proposal
     raise HTTPException(404)
 
 
