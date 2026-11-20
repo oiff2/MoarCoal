@@ -9,6 +9,19 @@
 {%- else -%}{{ share.cents | eur }}{% if not share.immediate %}<br><small>{{ share.months }} von {{ share.total_months }} Monaten</small>{% endif %}
 {%- endif -%}
 {%- endmacro %}
+{% macro purchase_head(year) -%}
+<tr><th>Datum</th><th>Beschreibung</th><th class="zahl">Betrag</th><th class="zahl">{{ year }}</th></tr>
+{%- endmacro %}
+{#- Eine Anschaffung als Zeile der Tabellen; mit `url` verlinkt die Beschreibung auf den Eintrag. -#}
+{% macro purchase_row(entry, share, date_format, url=none) -%}
+<tr>
+  <td>{{ entry.input.date.strftime(date_format) }}</td>
+  <td>{% if url %}<a href="{{ url }}">{{ entry.input.description }}</a>{% else %}{{ entry.input.description }}{% endif %}
+    {%- set life = entry.counted_useful_life %}{% if life %}<br><small>AfA über {{ life }} {{ "Jahr" if life == 1 else "Jahre" }}</small>{% endif %}</td>
+  <td class="zahl">{{ entry.input.amount_cents | eur }}</td>
+  <td class="zahl">{{ afa(share) }}</td>
+</tr>
+{%- endmacro %}
 {% block main %}
 {#- Eine Seite für das ganze Modul (docs/grundgeruest.md §6): drei Spalten, jede scrollt in sich, die Seite nie. -#}
 <div class="arbeit-seite">
@@ -32,14 +45,9 @@
       <h2>Arbeitsmittel</h2>
       {% if equipment %}
       <table class="arbeitsmittel">
-        <tr><th>Datum</th><th>Beschreibung</th><th class="zahl">Betrag</th><th class="zahl">{{ year }}</th></tr>
+        {{ purchase_head(year) }}
         {% for entry, form, share in equipment %}
-        <tr>
-          <td>{{ entry.input.date.strftime("%d.%m.") }}</td>
-          <td>{{ entry.input.description }}{% if entry.useful_life_years %}<br><small>AfA über {{ entry.useful_life_years }} {{ "Jahr" if entry.useful_life_years == 1 else "Jahre" }}</small>{% endif %}</td>
-          <td class="zahl">{{ entry.input.amount_cents | eur }}</td>
-          <td class="zahl">{{ afa(share) }}</td>
-        </tr>
+        {{ purchase_row(entry, share, "%d.%m.") }}
         <tr class="bearbeiten"><td colspan="4">{{ entry_form(form, "Ändern") }}</td></tr>
         {% endfor %}
       </table>
@@ -47,14 +55,9 @@
       {% if running %}
       <h3>Laufende Abschreibungen aus Vorjahren</h3>
       <table class="arbeitsmittel">
-        <tr><th>Datum</th><th>Beschreibung</th><th class="zahl">Betrag</th><th class="zahl">{{ year }}</th></tr>
+        {{ purchase_head(year) }}
         {% for entry, share, url in running %}
-        <tr>
-          <td>{{ entry.input.date.strftime("%d.%m.%Y") }}</td>
-          <td><a href="{{ url }}">{{ entry.input.description }}</a>{% if entry.useful_life_years %}<br><small>AfA über {{ entry.useful_life_years }} {{ "Jahr" if entry.useful_life_years == 1 else "Jahre" }}</small>{% endif %}</td>
-          <td class="zahl">{{ entry.input.amount_cents | eur }}</td>
-          <td class="zahl">{{ afa(share) }}</td>
-        </tr>
+        {{ purchase_row(entry, share, "%d.%m.%Y", url) }}
         {% endfor %}
       </table>
       {% endif %}

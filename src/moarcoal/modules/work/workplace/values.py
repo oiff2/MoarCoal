@@ -10,7 +10,7 @@ from moarcoal.modules.work.common import work_url
 from moarcoal.modules.work.workplace.depreciation import (
     GWG_SOURCE,
     depreciation,
-    gwg_limit,
+    limit_text,
     needs_useful_life,
 )
 from moarcoal.modules.work.workplace.entries import FirstWorkplace, WorkEquipment
@@ -29,7 +29,7 @@ from moarcoal.values.model import (
     UserInputLocator,
     ValueKey,
     ValueRef,
-    format_amount,
+    format_eur,
 )
 
 WORKDAYS = ValueKey("work.workdays")
@@ -115,20 +115,19 @@ def shares(state: ModuleState, year: int) -> list[tuple[WorkEquipment, Depreciat
 def _workings(calculation: Calculation, purchase: WorkEquipment, share: Depreciation) -> None:
     """Der Rechenweg einer Anschaffung: Betrag, Grenze mit Quelle, Nutzungsdauer, Monate, AfA."""
     name, bought = purchase.input.description, purchase.year
-    amount = format_amount(Amount.eur_cents(purchase.input.amount_cents))
-    limit = gwg_limit(bought)
-    assert limit is not None  # ohne geprüfte Grenze gibt es keinen Anteil
-    border = f"GWG-Grenze {bought}: {format_amount(Amount.eur_cents(limit))}"
+    amount = format_eur(purchase.input.amount_cents)
+    border = limit_text(bought)
     if share.immediate:
         calculation.decide(
             f"„{name}“: {amount}, voll im Jahr der Anschaffung ({border}, {GWG_SOURCE})"
         )
         return
     years = purchase.useful_life_years
-    calculation.decide(
+    calculation.decide(  # ein Jahr: nur vor 2021 anteilig (BMF, Rz. 7)
         f"„{name}“: {amount} über der {border}; AfA über {years} "
         f"{'Jahr' if years == 1 else 'Jahre'}, {calculation.year} {share.months} von "
-        f"{share.total_months} Monaten: {format_amount(Amount.eur_cents(share.cents))}"
+        f"{share.total_months} Monaten: "
+        f"{format_eur(share.cents)}"
     )
 
 
@@ -180,9 +179,10 @@ def equipment_findings(state: ModuleState, values: ValueSource, year: int) -> li
             USEFUL_LIFE_MISSING,
             Severity.WARNING,
             purchase.address,
+            # ohne das Steuerjahr im Text: ein Befund je Anschaffung, einmal ausgeblendet in allen
             f"„{purchase.input.description}“ ({purchase.year}) liegt über der GWG-Grenze; "
-            f"ohne Nutzungsdauer ist die Summe der Arbeitsmittel {year} noch nicht berechenbar. "
-            "Nutzungsdauer in Jahren angeben.",
+            f"ohne Nutzungsdauer ist die Summe der Arbeitsmittel ab {purchase.year} noch nicht "
+            "berechenbar. Nutzungsdauer in Jahren angeben.",
             href=entry_url(purchase.address) or "",
         )
         for purchase, _ in counted

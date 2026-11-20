@@ -20,7 +20,7 @@ from moarcoal.modules.work.workplace.entries import (
     WorkEquipment,
 )
 from moarcoal.storage import Entry, EntryAddress
-from moarcoal.values.model import Amount, format_amount, parse_cents
+from moarcoal.values.model import format_eur, parse_cents
 from moarcoal.web.helpers import validated
 
 type Fields = dict[str, str]
@@ -117,9 +117,7 @@ def useful_life_hint(year: int | None) -> str:
     """Wann die Nutzungsdauer nötig ist, mit der GWG-Grenze des Jahrs, sofern geprüft."""
     limit = None if year is None else gwg_limit(year)
     border = (
-        "über der GWG-Grenze"
-        if limit is None
-        else f"über der GWG-Grenze von {format_amount(Amount.eur_cents(limit))}"
+        "über der GWG-Grenze" if limit is None else f"über der GWG-Grenze von {format_eur(limit)}"
     )
     return f"nur {border} nötig; Computerhardware und Software: 1 Jahr (BMF)"
 

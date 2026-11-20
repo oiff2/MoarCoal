@@ -9,12 +9,10 @@ from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.modules.work.common import SCHEMA, TEXT_MAX, yearly_path
 from moarcoal.modules.work.workplace.depreciation import (
     MAX_USEFUL_LIFE,
-    above_limit,
-    gwg_limit,
-    needs_useful_life,
+    counted_useful_life,
+    missing,
 )
 from moarcoal.storage import Entry, EntryAddress, EntryKind, entry_kind
-from moarcoal.values.model import Amount, format_amount
 
 MAX_CENTS = 100_000_000
 MAX_WORKDAYS = 250
@@ -73,18 +71,15 @@ class WorkEquipment(Entry):
     input: UserInput
     useful_life_years: int | None = Field(default=None, ge=1, le=MAX_USEFUL_LIFE)
 
+    @property
+    def counted_useful_life(self) -> int | None:
+        """Die Nutzungsdauer, die zählt (nur über der GWG-Grenze); für die Seite."""
+        return counted_useful_life(self)
+
 
 def check_equipment(entry: WorkEquipment, entries: Mapping[EntryAddress, Entry]) -> str | None:
     """Schreibweg: über der GWG-Grenze braucht es Nutzungsdauer und ein Datum im Steuerjahr."""
-    limit = gwg_limit(entry.year)
-    if limit is not None and needs_useful_life(entry):
-        return (
-            "Nutzungsdauer angeben: der Betrag liegt über der GWG-Grenze von "
-            f"{format_amount(Amount.eur_cents(limit))} für {entry.year}"
-        )
-    if above_limit(entry) and entry.input.date.year != entry.year:
-        return f"Das Datum der Anschaffung muss in {entry.year} liegen (für die AfA)"
-    return None
+    return missing(entry)
 
 
 KINDS: tuple[EntryKind, ...] = (

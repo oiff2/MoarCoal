@@ -13,7 +13,7 @@ from app_helper import make_app
 from fastapi.testclient import TestClient
 
 from moarcoal.modules.work import REGISTRATION, UserInput, WorkEquipment
-from moarcoal.modules.work.workplace.depreciation import depreciation
+from moarcoal.modules.work.workplace.depreciation import GWG_LIMITS, depreciation
 from moarcoal.modules.work.workplace.entries import KINDS
 from moarcoal.modules.work.workplace.values import (
     EQUIPMENT,
@@ -99,6 +99,14 @@ def test_one_year_useful_life_counts_in_full_in_the_year_of_purchase() -> None:
     assert amount_of(total([laptop], 2026)) == Decimal("0")
 
 
+def test_one_year_useful_life_before_2021_is_spread_by_month() -> None:
+    """Voll im Jahr der Anschaffung erst ab 2021 (BMF, Rz. 7); davor 2 + 10 von 12 Monaten."""
+    laptop = purchase(150_000, year=2020, month=11, life=1, text="Notebook")
+
+    assert amount_of(total([laptop], 2020)) == Decimal("250.00")
+    assert amount_of(total([laptop], 2021)) == Decimal("1250.00")
+
+
 def test_up_to_the_limit_counts_in_full_without_useful_life() -> None:
     chair = purchase(95_200, text="Bürostuhl")  # genau die Grenze
 
@@ -112,6 +120,7 @@ def test_up_to_the_limit_counts_in_full_without_useful_life() -> None:
 def test_above_the_limit_without_useful_life_is_not_yet_with_a_finding() -> None:
     desk = purchase(120_000, year=2024)
 
+    prints: set[str] = set()
     for year in (2024, 2025):
         result = total([desk], year)
         assert isinstance(result, NotYetComputable)
@@ -120,6 +129,8 @@ def test_above_the_limit_without_useful_life_is_not_yet_with_a_finding() -> None
         assert finding.severity is Severity.WARNING
         assert finding.target == desk.address
         assert finding.href == f"/arbeit/arbeitsmittel/{desk.id}"
+        prints.add(finding.fingerprint)
+    assert len(prints) == 1  # ein Befund je Anschaffung: einmal ausgeblendet, in allen Jahren
     assert findings([desk], 2023, USEFUL_LIFE_MISSING) == []
 
 
@@ -130,6 +141,21 @@ def test_year_without_checked_limit_is_not_carried_forward() -> None:
 
     assert isinstance(result, NotYetComputable)
     assert result.reason == "GWG-Grenze für 2017 noch nicht geprüft"
+
+
+def test_year_after_the_table_blocks_only_what_could_be_above_the_limit() -> None:
+    """Ein Jahr nach der Tabelle: bis zur zuletzt geprüften Grenze sicher GWG, darüber offen."""
+    later = max(GWG_LIMITS) + 1
+    lamp = purchase(4990, year=later, text="Lampe")
+    desk = purchase(120_000, year=later, life=3)
+
+    result = total([lamp], later)
+    assert amount_of(result) == Decimal("49.90")
+    assert isinstance(result, ExposedValue)
+    assert any("noch nicht geprüft" in s.text for s in result.workings.steps)
+    blocked = total([lamp, desk], later)
+    assert isinstance(blocked, NotYetComputable)
+    assert blocked.reason == f"GWG-Grenze für {later} noch nicht geprüft"
 
 
 def test_running_depreciation_from_a_checked_year_counts_in_any_later_year() -> None:
@@ -226,3 +252,14 @@ def test_page_takes_the_useful_life_and_shows_running_depreciation(tmp_path: Pat
     assert "Laufende Abschreibungen aus Vorjahren" in later
     assert "14.03.2024" in later and "400,00 €" in later and "12 von 36 Monaten" in later
     assert "über der GWG-Grenze von 952,00 €" in later  # Hinweis am Feld Nutzungsdauer
+
+
+def test_page_hides_a_useful_life_up_to_the_limit(tmp_path: Path) -> None:
+    """Bis zur Grenze zählt eine eingetragene Nutzungsdauer nicht und steht nicht auf der Seite."""
+    client = make_client(tmp_path)
+    lamp = DESK | {"amount": "49,90", "description": "Lampe", "useful_life_years": "5"}
+
+    assert client.post("/arbeit/arbeitsmittel", data=lamp, headers=ORIGIN).status_code == 303
+
+    page = client.get("/arbeit?jahr=2024").text
+    assert "49,90 €" in page and "AfA über" not in page
