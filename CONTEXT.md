@@ -76,7 +76,7 @@ Eine von Hand erfasste Angabe, eingebettet in eine eigene Eintragsart des Moduls
 _Avoid_: manuelle Buchung, Handeingabe
 
 **Arbeit**:
-Das Modul für die Angaben zur nichtselbständigen Arbeit (Anlage N), im Durchstich von Hand erfasst (erste Tätigkeitsstätte, Arbeitsmittel), dazu die eingelesene Lohnsteuerbescheinigung und die Dienstreisen. Modulschlüssel `work`.
+Das Modul für die Angaben zur nichtselbständigen Arbeit (Anlage N): von Hand erfasst die Erste Tätigkeitsstätte und die Arbeitsmittel, dazu die eingelesene Lohnsteuerbescheinigung und die Dienstreisen. Ein Steuerjahr steht auf einer Seite; jeder Eintrag außer den Orten gehört zu genau einem Steuerjahr. Modulschlüssel `work`.
 
 **Erste Tätigkeitsstätte**:
 Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die Arbeitstage und die einfache Entfernung in km von der Wohnung dorthin, freiwillig dazu Arbeitstage je Woche, Urlaubs- und Krankheitstage, Homeoffice-Tage und die davon mit dem eigenen Pkw gefahrenen km (Code: `FirstWorkplace`); sie ist das Bezugsobjekt dieser Ausgewiesenen Werte. Daraus kommen die Felder Nr. 28, 31 und 58 der Anlage N; Nr. 28 „Urlaubs-, Krankheits-, Heimarbeits- und Dienstreisetage“ ist die Summe aus den Urlaubs- und Krankheitstagen, den Homeoffice-Tagen und den Tagen der Dienstreisen. Nr. 27 (Ziel, Adresse, Zeitraum) berechnet MoarCoal noch nicht.
@@ -98,7 +98,7 @@ Die Bescheinigung des Arbeitgebers über Bruttoarbeitslohn und einbehaltene Steu
 _Avoid_: Lohnsteuerkarte, Lohnbescheinigung
 
 **Steuerjahr**:
-Das Modul für die Steuererklärung eines Jahres; im Durchstich nimmt es das Übertragungsprotokoll auf und liest es ein. Modulschlüssel `tax_year`.
+Das Modul für die Steuererklärung eines Jahres: bildet die Anlagen wie Mein ELSTER ab (eine Seite je Anlage und Jahr), ordnet ihren Feldern Ausgewiesene Werte anderer Module zu, liest das Übertragungsprotokoll ein und gleicht es samt EStB mit dem Stand ab. Modulschlüssel `tax_year`.
 
 **Übertragungsprotokoll**:
 Das HTML-Dokument, das Mein ELSTER nach der Übertragung einer Steuererklärung ausstellt: je ausgefülltem Feld E-Kennung, Anlage, Nummer im Vordruck, Bezeichnung und übertragener Inhalt. Dokumentart des Moduls Steuerjahr mit Bezugszeitraum; die eingelesenen Felder, je mit Fundstelle im Dokument (dem vollen Feldnamen `data-name`), stehen in einem eigenen Eintrag (Code: `ProtocolReading`), jedes eingelesene Feld als **Protokollfeld**.
