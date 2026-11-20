@@ -1,12 +1,18 @@
 """Erste Tätigkeitsstätte und Arbeitsmittel: Nutzereingaben zur Anlage N, von Hand erfasst."""
 
 import datetime
+from collections.abc import Mapping
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.modules.work.common import SCHEMA, TEXT_MAX, yearly_path
-from moarcoal.storage import Entry, EntryKind, entry_kind
+from moarcoal.modules.work.workplace.depreciation import (
+    MAX_USEFUL_LIFE,
+    counted_useful_life,
+    missing,
+)
+from moarcoal.storage import Entry, EntryAddress, EntryKind, entry_kind
 
 MAX_CENTS = 100_000_000
 MAX_WORKDAYS = 250
@@ -57,13 +63,26 @@ class FirstWorkplace(Entry):
 
 
 class WorkEquipment(Entry):
-    """Arbeitsmittel eines Steuerjahrs, ein Betrag je Eintrag."""
+    """Arbeitsmittel, ein Betrag je Anschaffung im Steuerjahr `year`. Über der GWG-Grenze verteilt
+    die Nutzungsdauer (ganze Jahre) den Betrag als AfA auf die Jahre (`workplace.depreciation`);
+    bis zur Grenze bleibt sie leer. Einträge von vor der AfA haben keine (Befund statt Annahme)."""
 
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
     input: UserInput
+    useful_life_years: int | None = Field(default=None, ge=1, le=MAX_USEFUL_LIFE)
+
+    @property
+    def counted_useful_life(self) -> int | None:
+        """Die Nutzungsdauer, die zählt (nur über der GWG-Grenze); für die Seite."""
+        return counted_useful_life(self)
+
+
+def check_equipment(entry: WorkEquipment, entries: Mapping[EntryAddress, Entry]) -> str | None:
+    """Schreibweg: über der GWG-Grenze braucht es Nutzungsdauer und ein Datum im Steuerjahr."""
+    return missing(entry)
 
 
 KINDS: tuple[EntryKind, ...] = (
     entry_kind(FirstWorkplace, SCHEMA, yearly_path),
-    entry_kind(WorkEquipment, SCHEMA, yearly_path),
+    entry_kind(WorkEquipment, SCHEMA, yearly_path, check=check_equipment),
 )

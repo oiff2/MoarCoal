@@ -28,7 +28,6 @@ from moarcoal.storage import (
 )
 from moarcoal.values.engine import Values
 from moarcoal.values.findings import Finding, Severity
-from moarcoal.values.model import Amount, format_amount
 from moarcoal.web.links import (
     document_url,
     expected_documents_url,
@@ -36,12 +35,6 @@ from moarcoal.web.links import (
     issuers_url,
     site_url,
 )
-
-
-def format_eur(cents: int) -> str:
-    """Ganze Cent als deutscher Betrag, z. B. 123456 -> '1.234,56 €'."""
-    return format_amount(Amount.eur_cents(cents))
-
 
 MAX_YEARS = 10  # so viele Jahre mit Daten stehen höchstens zur Auswahl
 YEAR_COOKIE = "jahr"  # das globale Jahr merkt sich der Browser, kein Eintrag der Datenebene

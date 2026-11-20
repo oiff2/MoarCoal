@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.modules.work.common import TEXT_MAX
+from moarcoal.modules.work.workplace.depreciation import MAX_USEFUL_LIFE, gwg_limit
 from moarcoal.modules.work.workplace.entries import (
     DAYS_PER_WEEK,
     DEFAULT_WORKDAYS,
@@ -19,7 +20,7 @@ from moarcoal.modules.work.workplace.entries import (
     WorkEquipment,
 )
 from moarcoal.storage import Entry, EntryAddress
-from moarcoal.values.model import parse_cents
+from moarcoal.values.model import format_eur, parse_cents
 from moarcoal.web.helpers import validated
 
 type Fields = dict[str, str]
@@ -39,6 +40,7 @@ HINTS = {
     "description": f"Beschreibung: höchstens {TEXT_MAX} Zeichen",
     "amount_cents": "Betrag: größer als 0, mit höchstens zwei Nachkommastellen, z. B. 49,90",
     "date": "Datum: gültiges Datum",
+    "useful_life_years": f"Nutzungsdauer: ganze Zahl von 1 bis {MAX_USEFUL_LIFE} Jahren, oder leer",
 }
 EQUIPMENT_HINTS = {**HINTS, "description": f"Beschreibung: angeben, höchstens {TEXT_MAX} Zeichen"}
 
@@ -81,6 +83,7 @@ def build_equipment(fields: Fields, owner: str, entry_id: str) -> tuple[Entry | 
             "owner": owner,
             "year": fields.get("year", ""),
             "input": user_input.model_dump(),
+            "useful_life_years": fields.get("useful_life_years", "").strip() or None,
         },
         EQUIPMENT_HINTS,
     )
@@ -108,6 +111,15 @@ def entry_url(address: EntryAddress) -> str | None:
         if kind.model.__name__ == address.kind:
             return f"/arbeit/{kind.slug}/{address.id}"
     return None
+
+
+def useful_life_hint(year: int | None) -> str:
+    """Wann die Nutzungsdauer nötig ist, mit der GWG-Grenze des Jahrs, sofern geprüft."""
+    limit = None if year is None else gwg_limit(year)
+    border = (
+        "über der GWG-Grenze" if limit is None else f"über der GWG-Grenze von {format_eur(limit)}"
+    )
+    return f"nur {border} nötig; Computerhardware und Software: 1 Jahr (BMF)"
 
 
 def prefill_new(slug: str, year: int) -> Fields:
@@ -138,6 +150,9 @@ def prefill_from(entry: Entry | None) -> Fields:
                 "amount": f"{euros},{cents:02d}",
                 "date": entry.input.date.isoformat(),
                 "description": entry.input.description,
+                "useful_life_years": ""
+                if entry.useful_life_years is None
+                else str(entry.useful_life_years),
             }
         case _:
             return {}

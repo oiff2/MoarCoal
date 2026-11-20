@@ -11,6 +11,7 @@ from typing import Any
 from fastapi import Request
 from fastapi.responses import HTMLResponse
 
+from moarcoal.defaults import year_of
 from moarcoal.modules.work.common import MODULE_KEY
 from moarcoal.modules.work.trips.view import trips_context
 from moarcoal.modules.work.wage_tax.entries import WageTaxCertificate
@@ -25,10 +26,12 @@ from moarcoal.modules.work.workplace.forms import (
     KINDS,
     EntryForm,
     Fields,
+    entry_url,
     prefill_from,
     prefill_new,
+    useful_life_hint,
 )
-from moarcoal.modules.work.workplace.values import DISTANCE_KM, EQUIPMENT, WORKDAYS
+from moarcoal.modules.work.workplace.values import DISTANCE_KM, EQUIPMENT, WORKDAYS, shares
 from moarcoal.storage import Entry, entry_checksum
 from moarcoal.values.model import Period
 from moarcoal.web.helpers import module_state, render, user_of, values_of
@@ -45,6 +48,10 @@ class EntryFormView:
     values: Fields
     errors: tuple[str, ...] = ()
     open: bool = False
+
+    @property
+    def useful_life_hint(self) -> str:
+        return useful_life_hint(year_of(self.values.get("year", ""), in_range=True))
 
     @property
     def action(self) -> str:
@@ -119,6 +126,8 @@ def work_page(
     equipment = sorted(
         (e for e in state.all(WorkEquipment) if e.year == year), key=lambda e: e.input.date
     )
+    counted = shares(state, year)
+    share_of = {purchase.id: share for purchase, share in counted}
     place, gear = KINDS["erste-taetigkeitsstaette"], KINDS["arbeitsmittel"]
     return render(
         request,
@@ -134,9 +143,13 @@ def work_page(
             )
         ),
         new_workplace=_new_form(place, year, sent),
-        equipment=list(
-            zip(equipment, _forms(list(equipment), gear, open_entry, sent), strict=True)
-        ),
+        equipment=[
+            (entry, form, share_of.get(entry.id))
+            for entry, form in zip(
+                equipment, _forms(list(equipment), gear, open_entry, sent), strict=True
+            )
+        ],
+        running=[(p, share, entry_url(p.address)) for p, share in counted if p.year < year],
         new_equipment=_new_form(gear, year, sent),
         equipment_total=values.get(EQUIPMENT, user, period),
         wage_tax=_wage_tax(request, year),

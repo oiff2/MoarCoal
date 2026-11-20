@@ -32,4 +32,7 @@
 <label>Beschreibung
   <input name="description" value="{{ values.get('description', '') }}" required>
 </label>
+<label>Nutzungsdauer in Jahren ({{ form.useful_life_hint }})
+  <input name="useful_life_years" inputmode="numeric" value="{{ values.get('useful_life_years', '') }}">
+</label>
 {% endif %}
