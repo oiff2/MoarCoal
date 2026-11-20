@@ -26,6 +26,7 @@ from moarcoal.proposals import UNCONFIRMED, latest_proposal, template_of
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import AbortedExtraction, Change, Document, Proposal, Rejected, Store
 from moarcoal.values.model import Backing, DocumentLocator, Source
+from moarcoal.web.helpers import finding_url
 from moarcoal.web.links import document_url
 
 PORT = 4711
@@ -324,7 +325,7 @@ def test_open_fields_give_a_note_with_a_link_and_confirming_all_removes_it(
     setup, location = extracted(tmp_path)
     [finding] = findings(setup)
     assert finding.severity.value == "Hinweis"
-    assert finding.href == document_url(setup.document().id)
+    assert finding_url((), finding) == document_url(setup.document().id)
     assert "2 von 2" in finding.message
     page = setup.client.get("/befunde?year=2025").text
     assert f'href="{document_url(setup.document().id)}"' in page
@@ -488,7 +489,7 @@ def test_tools_abort_is_recorded_with_an_error_finding_linking_the_document(
     [finding] = aborted_findings(setup)
     assert finding.severity.value == "Fehler"
     assert finding.target == setup.document().address
-    assert finding.href == document_url(setup.document().id)
+    assert finding_url((), finding) == document_url(setup.document().id)
     assert (
         f'href="{document_url(setup.document().id)}"' in setup.client.get("/befunde?year=2025").text
     )

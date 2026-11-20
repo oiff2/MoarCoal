@@ -20,7 +20,8 @@
 <ul class="befunde">
   {% for finding in group %}
   <li>
-    {% if finding.href %}<a href="{{ finding.href }}">{{ finding.message }}</a>{% else %}{{ finding.message }}{% endif %}
+    {% set url = finding_url(finding) %}
+    {% if url %}<a href="{{ url }}">{{ finding.message }}</a>{% else %}{{ finding.message }}{% endif %}
     {% if year %}
     {% set failed = error == finding.identity %}
     {% set dialog_id = "ausblenden-" ~ loop.index ~ "-" ~ finding.fingerprint %}
@@ -50,7 +51,8 @@
 <ul class="befunde">
   {% for item in group %}
   <li>
-    {% if item.finding.href %}<a href="{{ item.finding.href }}">{{ item.finding.message }}</a>{% else %}{{ item.finding.message }}{% endif %}
+    {% set url = finding_url(item.finding) %}
+    {% if url %}<a href="{{ url }}">{{ item.finding.message }}</a>{% else %}{{ item.finding.message }}{% endif %}
     <br><em>ausgeblendet: {{ item.dismissal.note }} ({{ item.dismissal.noted_on.strftime("%d.%m.%Y") }})</em>
     <form method="post" action="/befunde/einblenden">
       <input type="hidden" name="year" value="{{ year }}">

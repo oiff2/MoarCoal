@@ -45,7 +45,6 @@ from moarcoal.storage.documents import (
     period_clash,
 )
 from moarcoal.values.findings import READ_IN_CHANGED, Finding, Severity
-from moarcoal.web.links import document_url
 
 if TYPE_CHECKING:
     from moarcoal.values.engine import Values
@@ -198,7 +197,6 @@ def duplicate_findings(state: State, user: str, kinds: Mapping[str, DocumentKind
                     Severity.NOTE,
                     d.address,
                     f"Existiert mehrfach: {kind.title} {year}: {d.path}",
-                    href=document_url(d.id),
                 )
             )
     return found
@@ -477,12 +475,11 @@ def rereading_findings(
     user: str,
     year: int,
     kinds: Mapping[str, DocumentKind],
-    entry_url: Callable[[EntryAddress], str | None],
 ) -> list[Finding]:
     """Ein Hinweis je Neueinlesung des Nutzers, deren Dokument das Jahr betrifft.
 
-    Dokumente ohne Bezugszeitraum gelten für jedes Jahr. Der Link führt zum ersten
-    eingelesenen Eintrag des Dokuments, wenn sein Modul eine Seite dafür hat.
+    Dokumente ohne Bezugszeitraum gelten für jedes Jahr. Der Befund verweist auf die
+    eingelesenen Einträge des Dokuments; der Link führt zum ersten, dessen Modul eine Seite hat.
     """
     found: list[Finding] = []
     for rereading in sorted(state.of_kind(Rereading), key=lambda r: (r.reread_at, r.id)):
@@ -501,11 +498,8 @@ def rereading_findings(
             f"{rereading.version_after}) hat {rereading.difference_count} Stelle(n) geändert: "
             f"{shown}" + (f" und {more} weitere." if more > 0 else ".")
         )
-        entries = read_entries_of(state, document.address)
-        href = next((url for e in entries if (url := entry_url(e.address))), None)
-        found.append(
-            Finding(READ_IN_CHANGED, Severity.NOTE, rereading.address, message, href=href or "")
-        )
+        link = tuple(e.address for e in read_entries_of(state, document.address))
+        found.append(Finding(READ_IN_CHANGED, Severity.NOTE, rereading.address, message, link=link))
     return found
 
 

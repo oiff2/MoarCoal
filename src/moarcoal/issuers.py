@@ -2,13 +2,12 @@
 
 from moarcoal.storage import Document, State
 from moarcoal.values.findings import Finding, Severity
-from moarcoal.web.links import document_url
 
 DOCUMENT_WITHOUT_ISSUER = "document_without_issuer"
 
 
 def issuer_findings(state: State, user: str) -> list[Finding]:
-    """Hinweis je Dokument des Nutzers ohne Aussteller; der Link führt in den Reiter Dokumente."""
+    """Hinweis je Dokument des Nutzers ohne Aussteller; das Ziel ist das Dokument."""
     documents = sorted(
         (d for d in state.of_kind(Document) if d.owner == user and d.issuer is None),
         key=lambda d: str(d.address),
@@ -19,7 +18,6 @@ def issuer_findings(state: State, user: str) -> list[Finding]:
             Severity.NOTE,
             d.address,
             f"Dokument ohne Aussteller: {d.path}",
-            href=document_url(d.id),
         )
         for d in documents
     ]

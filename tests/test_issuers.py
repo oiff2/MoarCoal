@@ -22,6 +22,7 @@ from moarcoal.storage import (
     open_store,
 )
 from moarcoal.values.testing import evaluate
+from moarcoal.web.helpers import finding_url
 from moarcoal.web.links import document_url, issuer_url
 
 SHA = "a" * 64
@@ -141,7 +142,7 @@ def test_note_for_each_document_without_issuer_of_the_user() -> None:
 
     notes = [f for f in found if f.kind == DOCUMENT_WITHOUT_ISSUER]
     assert [n.target for n in notes] == [plain.address]
-    assert notes[0].href == document_url(plain.id)
+    assert finding_url((), notes[0]) == document_url(plain.id)
 
 
 def test_only_private_persons_feed_the_denylist() -> None:

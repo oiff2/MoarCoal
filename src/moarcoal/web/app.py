@@ -26,6 +26,7 @@ from moarcoal.web.findings_pages import router as findings_router
 from moarcoal.web.helpers import (
     YEAR_COOKIE,
     entry_url,
+    finding_url,
     form_fields,
     format_eur,
     require_user,
@@ -66,6 +67,7 @@ def create_app(
     globals_: dict[str, Any] = environment.globals  # pyright: ignore[reportAssignmentType]
     globals_["preview_kind"] = preview_kind
     globals_["entry_url"] = lambda address: entry_url(app.state.modules, address)  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
+    globals_["finding_url"] = lambda finding: finding_url(app.state.modules, finding)  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
     app.state.templates = Jinja2Templates(env=environment)
     app.state.modules = tuple(modules)
     app.state.user = user

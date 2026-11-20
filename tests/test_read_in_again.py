@@ -37,6 +37,7 @@ from moarcoal.storage import (
 )
 from moarcoal.values.engine import Values
 from moarcoal.values.findings import READ_IN_CHANGED, Finding, Severity
+from moarcoal.web.helpers import finding_url
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PATH = "2025/protokoll.html"
@@ -251,7 +252,7 @@ def test_rereading_gives_a_note_with_the_changes_and_a_link(root: Path, site: Pa
         "ProtocolReading.lines[1].content „220“ → „221“; "
     )
     assert finding.message.endswith(" und 1 weitere.")
-    assert finding.href == f"/steuerjahr/uebertragungsprotokolle/{before.id}"
+    assert finding_url(modules, finding) == f"/steuerjahr/uebertragungsprotokolle/{before.id}"
     assert notes(modules, store, "anna", 2024) == []
     assert notes(modules, store, "ben", 2025) == []
 

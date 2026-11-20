@@ -11,9 +11,8 @@ from moarcoal.expected_documents import expected_document_findings
 from moarcoal.incoming import incoming_files
 from moarcoal.issuers import issuer_findings
 from moarcoal.proposals import aborted_extraction_findings, proposal_findings
-from moarcoal.storage import EntryAddress, SiteFile, State
+from moarcoal.storage import SiteFile, State
 from moarcoal.values.findings import INCOMING_FILES, Finding, Severity, fingerprint
-from moarcoal.web.links import site_url
 
 
 class BlockFindings(NamedTuple):
@@ -31,7 +30,6 @@ def block_findings(
     user: str,
     year: int,
     kinds: Mapping[str, DocumentKind],
-    entry_url: Callable[[EntryAddress], str | None],
     site_files: Callable[[], Sequence[SiteFile]] | None,
 ) -> BlockFindings:
     """Alle Befunde der Bausteine für `user` und `year`: Erwartete Belege, Aussteller, Dokumente
@@ -41,7 +39,7 @@ def block_findings(
     early = [*expected_document_findings(state, user, year, titles), *issuer_findings(state, user)]
     late = [
         *duplicate_findings(state, user, kinds),
-        *rereading_findings(state, user, year, kinds, entry_url),
+        *rereading_findings(state, user, year, kinds),
         *proposal_findings(state, user, year, titles),
         *aborted_extraction_findings(state, user),
     ]
@@ -56,7 +54,6 @@ def block_findings(
                 Severity.NOTE,
                 "eingang",
                 text,
-                href=site_url(),
                 fingerprint=fingerprint(*sorted(f.sha256 for f in waiting)),
             )
         )

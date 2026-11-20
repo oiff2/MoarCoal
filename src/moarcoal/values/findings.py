@@ -50,7 +50,10 @@ def target_text(target: ValueRef | EntryAddress | str) -> str:
 class Finding:
     """Ein Befund: Befundart (`kind`), Schweregrad, Ziel, Text und ggf. Kette.
 
-    `href` führt zur Stelle, an der man den Befund prüft (leer: kein Link). `fingerprint` ist der
+    Den Link zur Stelle, an der man den Befund prüft, baut die Anbindung (die Datenebene kennt
+    keine Routen): aus `href`, wenn ein Modul auf eine eigene Seite zeigt; sonst aus `link`, den
+    Einträgen, zu deren Seite der Befund führt (der erste mit Seite gilt); ohne beides aus dem
+    Ziel, wenn es eine Adresse ist. `fingerprint` ist der
     Fingerabdruck des Stands, aus dem der Erzeuger den Befund gebildet hat (`fingerprint(...)`);
     ohne Angabe ist es der des Texts. Ein Ziel als Text steht für etwas ohne Adresse (z. B. den
     Eingang). Erkannt wird ein Befund an Befundart und Ziel.
@@ -63,6 +66,7 @@ class Finding:
     chain: tuple[ValueRef, ...] = ()
     href: str = ""
     fingerprint: str = ""
+    link: tuple[EntryAddress, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.fingerprint:

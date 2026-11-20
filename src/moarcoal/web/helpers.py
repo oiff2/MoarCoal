@@ -13,6 +13,7 @@ from pydantic import BaseModel, ValidationError
 
 from moarcoal.defaults import DEFAULT_YEAR, year_of
 from moarcoal.documents import DocumentKind
+from moarcoal.expected_documents import DUPLICATE, PENDING
 from moarcoal.incoming import all_site_files, incoming_files
 from moarcoal.personal_details import details_of
 from moarcoal.registration import ModuleRegistration, ModuleState
@@ -27,7 +28,7 @@ from moarcoal.storage import (
     Store,
 )
 from moarcoal.values.engine import Values
-from moarcoal.values.findings import Finding, Severity
+from moarcoal.values.findings import INCOMING_FILES, Finding, Severity
 from moarcoal.values.model import Amount, format_amount
 from moarcoal.web.links import (
     document_url,
@@ -89,6 +90,29 @@ def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) ->
     if address.kind == Issuer.__name__:  # Baustein der Datenebene
         return issuer_url(address.id)
     return next((url for m in modules if (url := m.entry_url(address)) is not None), None)
+
+
+# Befunde der Bausteine, deren Stelle eine Seite ohne eigenen Eintrag ist.
+FINDING_PAGES: dict[str, str] = {
+    INCOMING_FILES: site_url(),
+    PENDING: expected_documents_url(),
+    DUPLICATE: expected_documents_url(),
+}
+
+
+def finding_url(modules: tuple[ModuleRegistration, ...], finding: Finding) -> str | None:
+    """Link zur Stelle, an der man den Befund prüft; ohne passende Seite kein Link.
+
+    Vorrang hat `href` (ein Modul zeigt auf eine eigene Seite), dann die Seite der Befundart,
+    dann der erste verwiesene Eintrag mit Seite (`link`, sonst das Ziel, wenn es eine Adresse ist).
+    """
+    if finding.href:
+        return finding.href
+    if page := FINDING_PAGES.get(finding.kind):
+        return page
+    target = finding.target
+    addresses = finding.link or ((target,) if isinstance(target, EntryAddress) else ())
+    return next((url for a in addresses if (url := entry_url(modules, a)) is not None), None)
 
 
 def values_on(request: Request, state: State) -> Values:

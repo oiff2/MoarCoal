@@ -264,6 +264,40 @@ def test_the_fastapi_import_check_fails_on_an_injected_import(tmp_path: Path) ->
     assert fastapi_importers(tmp_path) == ["documents.py", "issuers.py"]
 
 
+# Wer die Anbindung kennen darf: sie selbst, die Module (ihre Seiten), der Vertrag und der Start.
+BINDING_KNOWERS = ("web", "modules", "registration.py", "__main__.py")
+
+
+def binding_importers(root: Path = SRC) -> list[str]:
+    """Dateien der Datenebene, die aus der Anbindung (`moarcoal.web`) importieren."""
+    found: list[str] = []
+    for path in sorted(root.rglob("*.py")):
+        relative = path.relative_to(root)
+        if relative.parts[0] in BINDING_KNOWERS:
+            continue
+        names = imported_names(path.read_text(encoding="utf-8"))
+        if any(n == "moarcoal.web" or n.startswith("moarcoal.web.") for n in names):
+            found.append(relative.as_posix())
+    return found
+
+
+def test_the_data_layer_imports_nothing_from_the_binding() -> None:
+    """Prinzip 1: Die Datenebene kennt keine Adressen der Seiten; den Link eines Befunds baut die
+    Anbindung aus Ziel und Verweisen (#154)."""
+    assert binding_importers() == []
+
+
+def test_the_binding_import_check_fails_on_an_injected_import(tmp_path: Path) -> None:
+    for folder in ("web", "modules"):
+        (tmp_path / folder).mkdir()
+        (tmp_path / folder / "pages.py").write_text("from moarcoal.web.links import x\n", "utf-8")
+    (tmp_path / "__main__.py").write_text("from moarcoal.web.app import create_app\n", "utf-8")
+    (tmp_path / "documents.py").write_text("from moarcoal.web.links import document_url\n", "utf-8")
+    (tmp_path / "issuers.py").write_text("import moarcoal.web\n", encoding="utf-8")
+    (tmp_path / "website.py").write_text("import moarcoal.website\n", encoding="utf-8")
+    assert binding_importers(tmp_path) == ["documents.py", "issuers.py"]
+
+
 def test_layer_check_finds_a_route_and_fastapi() -> None:
     prefixes = {"belege", "aussteller"}
     assert layer_breaches('href = "/belege"', prefixes) == ['"/belege"']
