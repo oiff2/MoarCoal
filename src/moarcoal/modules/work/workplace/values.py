@@ -7,7 +7,15 @@ gelten je erster Tätigkeitsstätte (Bezugsobjekt); die Arbeitsmittel eines Jahr
 from decimal import Decimal
 
 from moarcoal.modules.work.common import work_url
+from moarcoal.modules.work.workplace.depreciation import (
+    GWG_SOURCE,
+    Depreciation,
+    depreciation,
+    gwg_limit,
+    needs_useful_life,
+)
 from moarcoal.modules.work.workplace.entries import FirstWorkplace, WorkEquipment
+from moarcoal.modules.work.workplace.forms import entry_url
 from moarcoal.registration import ModuleState
 from moarcoal.values.calculation import Calculation, ValueSource
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
@@ -21,6 +29,7 @@ from moarcoal.values.model import (
     UserInputLocator,
     ValueKey,
     ValueRef,
+    format_amount,
 )
 
 WORKDAYS = ValueKey("work.workdays")
@@ -89,46 +98,104 @@ def compute_car_distance(calculation: Calculation) -> Amount:
 
 
 def _purchases(state: ModuleState, year: int) -> list[WorkEquipment]:
-    return [e for e in state.all(WorkEquipment) if e.year == year]
+    """Die Anschaffungen, die in `year` zählen könnten: aus dem Jahr und allen früheren."""
+    return sorted(
+        (e for e in state.all(WorkEquipment) if e.year <= year),
+        key=lambda e: (e.year, e.input.date, e.id),
+    )
+
+
+def shares(state: ModuleState, year: int) -> list[tuple[WorkEquipment, Depreciation | str]]:
+    """Je Anschaffung, was sie in `year` zählt (Text: warum es noch nicht feststeht); ohne die,
+    die in `year` nichts zählen."""
+    found = ((p, depreciation(p, year)) for p in _purchases(state, year))
+    return [(p, share) for p, share in found if share is not None]
+
+
+def _workings(calculation: Calculation, purchase: WorkEquipment, share: Depreciation) -> None:
+    """Der Rechenweg einer Anschaffung: Betrag, Grenze mit Quelle, Nutzungsdauer, Monate, AfA."""
+    name, bought = purchase.input.description, purchase.year
+    amount = format_amount(Amount.eur_cents(purchase.input.amount_cents))
+    limit = gwg_limit(bought)
+    assert limit is not None  # ohne geprüfte Grenze gibt es keinen Anteil
+    border = f"GWG-Grenze {bought}: {format_amount(Amount.eur_cents(limit))}"
+    if share.immediate:
+        calculation.decide(
+            f"„{name}“: {amount}, voll im Jahr der Anschaffung ({border}, {GWG_SOURCE})"
+        )
+        return
+    years = purchase.useful_life_years
+    calculation.decide(
+        f"„{name}“: {amount} über der {border}; AfA über {years} "
+        f"{'Jahr' if years == 1 else 'Jahre'}, {calculation.year} {share.months} von "
+        f"{share.total_months} Monaten: {format_amount(Amount.eur_cents(share.cents))}"
+    )
 
 
 def compute_equipment(calculation: Calculation) -> Amount:
-    """Summe der Anschaffungen; ohne Anschaffung 0, mit Hinweis, wenn das Vorjahr welche hatte."""
+    """Summe der Arbeitsmittel des Jahrs: GWG der Anschaffungen des Jahrs voll, darüber die AfA
+    aller laufenden Anschaffungen (auch aus Vorjahren). Ohne beides 0, mit Hinweis, wenn das
+    Vorjahr Arbeitsmittel hatte."""
     year = calculation.year
-    purchases = _purchases(calculation.own, year)
+    counted = shares(calculation.own, year)
+    for _, share in counted:
+        if isinstance(share, str):
+            calculation.not_yet(share)
     zero = Amount.of(Decimal(0), Unit.EUR)
-    if not purchases:
+    if not counted:
         previous = year - 1
         before = (
             f"im Vorjahr {previous} schon (siehe Hinweis)"
-            if _purchases(calculation.own, previous)
+            if shares(calculation.own, previous)
             else f"auch im Vorjahr {previous} keine"
         )
         calculation.decide(f"Für {year} sind keine Arbeitsmittel erfasst, {before}")
         return calculation.step("Keine Arbeitsmittel", zero)
-    total = Amount.of(Decimal(0), Unit.EUR)
-    for purchase in purchases:
-        amount = Amount.eur_cents(purchase.input.amount_cents)
+    total = zero
+    for purchase, share in counted:
+        assert isinstance(share, Depreciation)
+        _workings(calculation, purchase, share)
+        amount = Amount.eur_cents(share.cents)
         calculation.item(purchase.input.description, amount, UserInputLocator(purchase.address))
         total = Amount(total.value + amount.value, Unit.EUR)
     return calculation.step("Summe der Arbeitsmittel", total)
 
 
 EQUIPMENT_GAP = "work.equipment_gap"
+USEFUL_LIFE_MISSING = "work.useful_life_missing"
 
-FINDING_KINDS = (FindingKind(EQUIPMENT_GAP, "Arbeitsmittel im Vorjahr, im Steuerjahr keine"),)
+FINDING_KINDS = (
+    FindingKind(EQUIPMENT_GAP, "Arbeitsmittel im Vorjahr, im Steuerjahr keine"),
+    FindingKind(USEFUL_LIFE_MISSING, "Nutzungsdauer eines Arbeitsmittels fehlt"),
+)
 
 
 def equipment_findings(state: ModuleState, values: ValueSource, year: int) -> list[Finding]:
-    """Hinweis: Arbeitsmittel im Vorjahr, im Steuerjahr keine (vergessen?)."""
-    if _purchases(state, year) or not _purchases(state, year - 1):
-        return []
-    text = (
-        f"Für {year - 1} sind Arbeitsmittel erfasst, für {year} keine; "
-        "der Wert ist 0. Fehlt eine Anschaffung?"
-    )
-    ref = ValueRef(EQUIPMENT, state.user, Period.year(year), None)
-    return [Finding(EQUIPMENT_GAP, Severity.NOTE, ref, text, href=work_url(year))]
+    """Hinweis: Arbeitsmittel im Vorjahr, im Steuerjahr keine (vergessen?); laufende
+    Abschreibungen sind Arbeitsmittel des Jahrs. Warnung je Anschaffung über der GWG-Grenze ohne
+    Nutzungsdauer, die im Jahr zählt."""
+    counted = shares(state, year)
+    found = [
+        Finding(
+            USEFUL_LIFE_MISSING,
+            Severity.WARNING,
+            purchase.address,
+            f"„{purchase.input.description}“ ({purchase.year}) liegt über der GWG-Grenze; "
+            f"ohne Nutzungsdauer ist die Summe der Arbeitsmittel {year} noch nicht berechenbar. "
+            "Nutzungsdauer in Jahren angeben.",
+            href=entry_url(purchase.address) or "",
+        )
+        for purchase, _ in counted
+        if needs_useful_life(purchase)
+    ]
+    if not counted and shares(state, year - 1):
+        text = (
+            f"Für {year - 1} sind Arbeitsmittel erfasst, für {year} keine; "
+            "der Wert ist 0. Fehlt eine Anschaffung?"
+        )
+        ref = ValueRef(EQUIPMENT, state.user, Period.year(year), None)
+        found.append(Finding(EQUIPMENT_GAP, Severity.NOTE, ref, text, href=work_url(year)))
+    return found
 
 
 VALUES: tuple[ValueDefinition, ...] = (
@@ -201,7 +268,8 @@ VALUES: tuple[ValueDefinition, ...] = (
     ValueDefinition(
         CatalogEntry(
             EQUIPMENT,
-            "Summe der Arbeitsmittel, die im Steuerjahr angeschafft wurden",
+            "Summe der Arbeitsmittel im Steuerjahr: GWG des Jahrs und AfA aller laufenden "
+            "Anschaffungen",
             Unit.EUR,
             TimeKind.PERIOD,
         ),

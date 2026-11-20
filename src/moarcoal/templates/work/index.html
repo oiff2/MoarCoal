@@ -2,6 +2,13 @@
 {% from "_value.html" import value_view %}
 {% from "work/_entry_form.html" import entry_form %}
 {% block title %}Arbeit {{ year }} – MoarCoal{% endblock %}
+{#- Was eine Anschaffung im Jahr zählt: Betrag mit Monaten der AfA, oder warum es noch nicht feststeht. -#}
+{% macro afa(share) -%}
+{%- if share is none -%}–
+{%- elif share is string -%}<strong class="fehler">noch nicht berechenbar</strong><br><small>{{ share }}</small>
+{%- else -%}{{ share.cents | eur }}{% if not share.immediate %}<br><small>{{ share.months }} von {{ share.total_months }} Monaten</small>{% endif %}
+{%- endif -%}
+{%- endmacro %}
 {% block main %}
 {#- Eine Seite für das ganze Modul (docs/grundgeruest.md §6): drei Spalten, jede scrollt in sich, die Seite nie. -#}
 <div class="arbeit-seite">
@@ -25,13 +32,29 @@
       <h2>Arbeitsmittel</h2>
       {% if equipment %}
       <table class="arbeitsmittel">
-        {% for entry, form in equipment %}
+        <tr><th>Datum</th><th>Beschreibung</th><th class="zahl">Betrag</th><th class="zahl">{{ year }}</th></tr>
+        {% for entry, form, share in equipment %}
         <tr>
           <td>{{ entry.input.date.strftime("%d.%m.") }}</td>
-          <td>{{ entry.input.description }}</td>
+          <td>{{ entry.input.description }}{% if entry.useful_life_years %}<br><small>AfA über {{ entry.useful_life_years }} {{ "Jahr" if entry.useful_life_years == 1 else "Jahre" }}</small>{% endif %}</td>
           <td class="zahl">{{ entry.input.amount_cents | eur }}</td>
+          <td class="zahl">{{ afa(share) }}</td>
         </tr>
-        <tr class="bearbeiten"><td colspan="3">{{ entry_form(form, "Ändern") }}</td></tr>
+        <tr class="bearbeiten"><td colspan="4">{{ entry_form(form, "Ändern") }}</td></tr>
+        {% endfor %}
+      </table>
+      {% endif %}
+      {% if running %}
+      <h3>Laufende Abschreibungen aus Vorjahren</h3>
+      <table class="arbeitsmittel">
+        <tr><th>Datum</th><th>Beschreibung</th><th class="zahl">Betrag</th><th class="zahl">{{ year }}</th></tr>
+        {% for entry, share, url in running %}
+        <tr>
+          <td>{{ entry.input.date.strftime("%d.%m.%Y") }}</td>
+          <td><a href="{{ url }}">{{ entry.input.description }}</a>{% if entry.useful_life_years %}<br><small>AfA über {{ entry.useful_life_years }} {{ "Jahr" if entry.useful_life_years == 1 else "Jahre" }}</small>{% endif %}</td>
+          <td class="zahl">{{ entry.input.amount_cents | eur }}</td>
+          <td class="zahl">{{ afa(share) }}</td>
+        </tr>
         {% endfor %}
       </table>
       {% endif %}

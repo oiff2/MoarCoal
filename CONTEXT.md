@@ -82,7 +82,19 @@ Das Modul für die Angaben zur nichtselbständigen Arbeit (Anlage N): von Hand e
 Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die Arbeitstage und die einfache Entfernung in km von der Wohnung dorthin, freiwillig dazu Arbeitstage je Woche, Urlaubs- und Krankheitstage, Homeoffice-Tage und die davon mit dem eigenen Pkw gefahrenen km (Code: `FirstWorkplace`); sie ist das Bezugsobjekt dieser Ausgewiesenen Werte. Daraus kommen die Felder Nr. 28, 31 und 58 der Anlage N; Nr. 28 „Urlaubs-, Krankheits-, Heimarbeits- und Dienstreisetage“ ist die Summe aus den Urlaubs- und Krankheitstagen, den Homeoffice-Tagen und den Tagen der Dienstreisen. Nr. 27 (Ziel, Adresse, Zeitraum) berechnet MoarCoal noch nicht.
 
 **Arbeitsmittel**:
-Werkzeug und Material, das ein Nutzer für die Arbeit selbst gekauft hat; erfasst wird je Anschaffung ein Betrag als Nutzereingabe mit dem Steuerjahr, für das er gilt (Code: `WorkEquipment`).
+Werkzeug und Material, das ein Nutzer für die Arbeit selbst gekauft hat; erfasst wird je Anschaffung ein Betrag als Nutzereingabe mit dem Steuerjahr der Anschaffung und, über der GWG-Grenze, der Nutzungsdauer (Code: `WorkEquipment`). Bis zur GWG-Grenze zählt der volle Betrag im Steuerjahr der Anschaffung, darüber die AfA jedes Jahrs. Die „Summe der Arbeitsmittel“ eines Jahrs (Feld der Anlage N) ist die Summe aus beidem, auch für Anschaffungen aus Vorjahren. Rechtslage: `docs/recherche-arbeitsmittel-afa.md`.
+
+**geringwertiges Wirtschaftsgut** (Abkürzung: GWG):
+Ein Arbeitsmittel, dessen Anschaffung die **GWG-Grenze** nicht übersteigt und darum im Jahr der Anschaffung voll abgesetzt wird (§ 9 Abs. 1 Satz 3 Nr. 7 i. V. m. § 6 Abs. 2 EStG). Die Grenze ist 800 € ohne Umsatzsteuer, für Arbeitnehmer also 952,00 € brutto; MoarCoal führt sie je Steuerjahr mit Quelle und schreibt sie für ein neues Jahr nicht still fort.
+_Avoid_: Kleinbetrag, Sofortabschreibung
+
+**Nutzungsdauer**:
+Die Zahl der ganzen Jahre, über die ein Arbeitsmittel über der GWG-Grenze abgeschrieben wird (§ 7 Abs. 1 Satz 2 EStG); für Computerhardware und Software ein Jahr (BMF-Schreiben vom 22.02.2022). MoarCoal kennt keine AfA-Tabelle, der Nutzer gibt sie an.
+_Avoid_: Laufzeit, Lebensdauer
+
+**AfA** (Absetzung für Abnutzung):
+Der Teil der Anschaffung eines Arbeitsmittels über der GWG-Grenze, der auf ein Jahr entfällt: linear über die Nutzungsdauer, im ersten Jahr ab dem Monat der Anschaffung (§ 7 Abs. 1 EStG), bei einem Jahr Nutzungsdauer voll im Jahr der Anschaffung. Auf Cent so gerundet, dass alle Jahre zusammen genau den Betrag ergeben (Code: `Depreciation`). Läuft die AfA eines Arbeitsmittels in einem Jahr, ist es eine **laufende Abschreibung** dieses Jahrs.
+_Avoid_: Abschreibung über die Laufzeit, Abschreibungsrate
 
 **Dienstreise**:
 Eine berufliche Fahrt mit dem privaten Pkw im Steuerjahr: Start, Ende (leer = Start), die Orte in Reihenfolge mit ausdrücklichem Rückweg (A → B → A), die km der ganzen Reise und eine Notiz (Code: `BusinessTrip`). Nur die Fahrtkosten zählen, die Summe der km mal dem km-Satz des Jahrs; Verpflegung, Übernachtung und Nebenkosten rechnet der Arbeitgeber ab. Die Reisen eines Jahrs bearbeitet man in einer Tabelle, in einem Vorgang. Der Nutzer bestätigt sie je Jahr als vollständig, auch wenn es keine gab (Code: `TripsConfirmation`); sie gilt für genau diesen Stand, jede Änderung an den Reisen hebt sie auf. Bis dahin gibt es einen Hinweis. Daraus kommen die Felder Nr. 66 und 69 der Anlage N. Neben der Tabelle gibt es **Reiseaufstellungen**: Screenshots einer Reiseliste, aus denen Claude die Reisen als Vorschlag auslesen kann.
