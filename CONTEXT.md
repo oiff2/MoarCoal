@@ -93,7 +93,7 @@ Die Zahl der ganzen Jahre, über die ein Arbeitsmittel über der GWG-Grenze abge
 _Avoid_: Laufzeit, Lebensdauer
 
 **AfA** (Absetzung für Abnutzung):
-Der Teil der Anschaffung eines Arbeitsmittels über der GWG-Grenze, der auf ein Jahr entfällt: linear über die Nutzungsdauer, im ersten Jahr ab dem Monat der Anschaffung (§ 7 Abs. 1 EStG), bei einem Jahr Nutzungsdauer voll im Jahr der Anschaffung. Auf Cent so gerundet, dass alle Jahre zusammen genau den Betrag ergeben (Code: `Depreciation`). Läuft die AfA eines Arbeitsmittels in einem Jahr, ist es eine **laufende Abschreibung** dieses Jahrs.
+Der Teil eines abnutzbaren Wirtschaftsguts (z. B. Arbeitsmittel über der GWG-Grenze, später Gebäude), der auf ein Jahr entfällt: linear über die Gesamtdauer in Monaten, im ersten Jahr ab dem Monat des Beginns (§ 7 Abs. 1 EStG), auf Cent so gerundet, dass alle Jahre zusammen genau den Betrag ergeben. Ein Baustein der Datenebene, für jedes Modul gleich; was abgeschrieben wird und wie lange (Nutzungsdauer in Jahren oder Prozentsatz, 2 % = 600 Monate), entscheidet das Modul (Code: `Depreciation`). Bei Arbeitsmitteln mit einem Jahr Nutzungsdauer zählt der volle Betrag im Jahr der Anschaffung (BMF-Schreiben vom 22.02.2022). Läuft die AfA in einem Jahr, ist sie eine **laufende Abschreibung** dieses Jahrs.
 _Avoid_: Abschreibung über die Laufzeit, Abschreibungsrate
 
 **Dienstreise**:

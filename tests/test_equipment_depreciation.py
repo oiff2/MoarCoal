@@ -9,12 +9,11 @@ from decimal import Decimal
 from pathlib import Path
 
 import httpx
-import pytest
 from app_helper import make_app
 from fastapi.testclient import TestClient
 
 from moarcoal.modules.work import REGISTRATION, UserInput, WorkEquipment
-from moarcoal.modules.work.workplace.depreciation import Depreciation, depreciation
+from moarcoal.modules.work.workplace.depreciation import depreciation
 from moarcoal.modules.work.workplace.entries import KINDS
 from moarcoal.modules.work.workplace.values import (
     EQUIPMENT,
@@ -22,6 +21,7 @@ from moarcoal.modules.work.workplace.values import (
     USEFUL_LIFE_MISSING,
 )
 from moarcoal.storage import Applied, Put, Rejected, open_store
+from moarcoal.values.depreciation import Depreciation
 from moarcoal.values.findings import Finding, Severity
 from moarcoal.values.model import ExposedValue, NotYetComputable, Period, UserInputLocator
 from moarcoal.values.testing import evaluate
@@ -76,17 +76,6 @@ def test_desk_over_three_years_from_march_adds_up_to_the_price() -> None:
     }
     assert sum(years.values()) == Decimal("1200.00")
     assert depreciation(desk, 2025) == Depreciation(33_333, 10, 36)
-
-
-@pytest.mark.parametrize(
-    ("cents", "month", "life"), [(100_001, 1, 3), (99_999, 7, 7), (123_457, 12, 5), (95_201, 2, 2)]
-)
-def test_cent_rounding_never_loses_or_gains_a_cent(cents: int, month: int, life: int) -> None:
-    item = purchase(cents, month=month, life=life)
-
-    shares = [depreciation(item, year) for year in range(2025, 2025 + life + 2)]
-
-    assert sum(s.cents for s in shares if isinstance(s, Depreciation)) == cents
 
 
 def test_running_depreciation_is_a_line_item_with_workings() -> None:

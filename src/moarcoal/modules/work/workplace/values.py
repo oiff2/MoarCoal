@@ -9,7 +9,6 @@ from decimal import Decimal
 from moarcoal.modules.work.common import work_url
 from moarcoal.modules.work.workplace.depreciation import (
     GWG_SOURCE,
-    Depreciation,
     depreciation,
     gwg_limit,
     needs_useful_life,
@@ -19,6 +18,7 @@ from moarcoal.modules.work.workplace.forms import entry_url
 from moarcoal.registration import ModuleState
 from moarcoal.values.calculation import Calculation, ValueSource
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
+from moarcoal.values.depreciation import Depreciation
 from moarcoal.values.findings import Finding, FindingKind, Severity
 from moarcoal.values.model import (
     Amount,
