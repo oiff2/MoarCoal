@@ -6,6 +6,7 @@ Bestätigung als vollständig (dann 0); sonst sind die Werte noch nicht berechen
 
 from collections.abc import Callable
 
+from moarcoal.modules.work.common import work_url
 from moarcoal.modules.work.trips.entries import BusinessTrip
 from moarcoal.modules.work.trips.table import (
     KM_RATES,
@@ -96,7 +97,7 @@ def trip_findings(state: ModuleState, values: ValueSource, year: int) -> list[Fi
         "(auch wenn es keine gab)."
     )
     ref = ValueRef(TRAVEL_FARE, state.user, Period.year(year), None)
-    return [Finding(TRIPS_TO_FILL, Severity.NOTE, ref, text, href=f"/arbeit/dienstreisen/{year}")]
+    return [Finding(TRIPS_TO_FILL, Severity.NOTE, ref, text, href=work_url(year))]
 
 
 VALUES: tuple[ValueDefinition, ...] = (

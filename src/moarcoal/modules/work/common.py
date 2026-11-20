@@ -17,3 +17,8 @@ class YearlyEntry(Protocol):
 
 def yearly_path(entry: YearlyEntry) -> str:
     return f"users/{entry.owner}/work/{entry.year}.json"
+
+
+def work_url(year: int) -> str:
+    """Die Seite Arbeit für ein Steuerjahr."""
+    return f"/arbeit?jahr={year}"

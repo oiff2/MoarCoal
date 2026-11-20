@@ -11,8 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import MAX_YEAR, MIN_YEAR
-from moarcoal.modules.work.common import MODULE_KEY
-from moarcoal.modules.work.overview import work_page, work_url
+from moarcoal.modules.work.common import MODULE_KEY, work_url
+from moarcoal.modules.work.overview import work_page
 from moarcoal.modules.work.trips.entries import trips_fingerprint
 from moarcoal.modules.work.trips.germany_map import germany_map
 from moarcoal.modules.work.trips.place_search import PlaceSearch, PlaceSearchError

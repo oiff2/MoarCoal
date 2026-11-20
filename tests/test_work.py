@@ -239,7 +239,7 @@ def test_no_equipment_after_previous_year_with_equipment_is_zero_with_note() -> 
     (note,) = found
     assert note.kind == EQUIPMENT_GAP and note.severity is Severity.NOTE
     assert "2024" in note.message and "2025" in note.message
-    assert note.href == "/arbeit"
+    assert note.href == "/arbeit?jahr=2025"  # das Jahr des Befunds, nicht das globale
 
 
 def test_equipment_this_year_gives_no_note() -> None:

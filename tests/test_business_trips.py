@@ -524,3 +524,10 @@ def test_header_offers_the_years_of_entries_newest_ten(tmp_path: Path) -> None:
     for year in range(2010, 2022):
         post_trip(client, year)
     assert header_years(client.get("/arbeit").text) == [2025, *range(2021, 2012, -1)]
+
+
+def test_finding_links_to_the_work_page_of_its_year() -> None:
+    (found,) = evaluate([WORK], []).finding_list(USER, 2024).visible
+
+    assert found.kind == TRIPS_TO_FILL
+    assert found.href == "/arbeit?jahr=2024"  # direkt, ohne Umleitung über die alte Adresse

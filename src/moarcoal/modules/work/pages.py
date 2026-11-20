@@ -10,8 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import year_of
-from moarcoal.modules.work.common import MODULE_KEY
-from moarcoal.modules.work.overview import submitted, work_page, work_url
+from moarcoal.modules.work.common import MODULE_KEY, work_url
+from moarcoal.modules.work.overview import submitted, work_page
 from moarcoal.modules.work.trips.view import chosen_year
 from moarcoal.modules.work.workplace.entries import FirstWorkplace, WorkEquipment
 from moarcoal.modules.work.workplace.forms import KINDS, EntryForm, Fields, prefill_from

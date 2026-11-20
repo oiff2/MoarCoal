@@ -6,6 +6,7 @@ gelten je erster Tätigkeitsstätte (Bezugsobjekt); die Arbeitsmittel eines Jahr
 
 from decimal import Decimal
 
+from moarcoal.modules.work.common import work_url
 from moarcoal.modules.work.workplace.entries import FirstWorkplace, WorkEquipment
 from moarcoal.registration import ModuleState
 from moarcoal.values.calculation import Calculation, ValueSource
@@ -127,7 +128,7 @@ def equipment_findings(state: ModuleState, values: ValueSource, year: int) -> li
         "der Wert ist 0. Fehlt eine Anschaffung?"
     )
     ref = ValueRef(EQUIPMENT, state.user, Period.year(year), None)
-    return [Finding(EQUIPMENT_GAP, Severity.NOTE, ref, text, href="/arbeit")]
+    return [Finding(EQUIPMENT_GAP, Severity.NOTE, ref, text, href=work_url(year))]
 
 
 VALUES: tuple[ValueDefinition, ...] = (

@@ -35,11 +35,6 @@ from moarcoal.web.helpers import module_state, render, user_of, values_of
 from moarcoal.web.links import document_url
 
 
-def work_url(year: int) -> str:
-    """Die Seite Arbeit für ein Steuerjahr."""
-    return f"/arbeit?jahr={year}"
-
-
 @dataclass(frozen=True)
 class EntryFormView:
     """Ein Formular der Seite: zu einem Eintrag (`entry_id`) oder neu (leer); `open` = offen."""
