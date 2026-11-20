@@ -35,10 +35,10 @@ from moarcoal.values.model import (
     Period,
     Subject,
     Unit,
+    format_eur,
     parse_cents,
 )
 from moarcoal.values.testing import evaluate
-from moarcoal.web.helpers import format_eur
 
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}

@@ -18,7 +18,7 @@ from moarcoal.modules import MODULES
 from moarcoal.modules.work.trips.place_search import NominatimSearch, PlaceSearch
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import open_store
-from moarcoal.values.model import format_amount
+from moarcoal.values.model import format_amount, format_eur
 from moarcoal.web.document_list import router as document_list_router
 from moarcoal.web.document_pages import router as document_router
 from moarcoal.web.expected_documents_pages import router as expected_documents_router
@@ -27,7 +27,6 @@ from moarcoal.web.helpers import (
     YEAR_COOKIE,
     entry_url,
     form_fields,
-    format_eur,
     require_user,
 )
 from moarcoal.web.issuer_field_pages import router as issuer_field_router

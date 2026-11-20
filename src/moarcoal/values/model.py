@@ -57,6 +57,11 @@ def format_amount(amount: Amount, *, whole_euros: bool = False) -> str:
     return f"{_german(value, places)} {amount.unit.value}"
 
 
+def format_eur(cents: int) -> str:
+    """Ganze Cent als deutscher Betrag, z. B. 123456 -> '1.234,56 €'."""
+    return format_amount(Amount.eur_cents(cents))
+
+
 GERMAN_NUMBER = re.compile(r"-?\d{1,3}(\.\d{3})*(,\d+)?|-?\d+(,\d+)?")
 
 
