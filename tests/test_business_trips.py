@@ -311,24 +311,31 @@ NEW = {
 
 def test_page_is_empty_prefilled_and_get_never_writes(tmp_path: Path) -> None:
     client = make_client(tmp_path)
-    response = client.get("/arbeit/dienstreisen/2025")
+    response = client.get("/arbeit?jahr=2025")
     assert response.status_code == 200
     assert "noch nicht berechenbar" in response.text
     assert "Verpflegung, Übernachtung und Nebenkosten rechnet der Arbeitgeber ab" in response.text
     assert "0,30 € je km" in response.text
     assert "<script>" not in response.text and 'src="/static/trip_table.js"' in response.text
     assert [p.name for p in tmp_path.rglob("*.json")] == ["personal_details.json"]  # nur der Nutzer
-    assert client.get("/arbeit/dienstreisen/1800").status_code == 404
-    assert "/arbeit/dienstreisen/2025" in client.get("/arbeit").text
 
 
-def test_chosen_year_outside_the_list_is_added_and_marked(tmp_path: Path) -> None:
+def test_the_old_trip_address_redirects_to_arbeit_with_the_year(tmp_path: Path) -> None:
     client = make_client(tmp_path)
-    for url in ("/arbeit?jahr=2010", "/arbeit/dienstreisen/2010"):
-        page = client.get(url).text
-        assert len(re.findall(r'href="/arbeit\?jahr=2010" aria-current="true"', page)) == 1
-        assert page.count('aria-current="true"') == 1
-    assert 'href="/arbeit?jahr=2010"' not in client.get("/arbeit").text
+    response = client.get("/arbeit/dienstreisen/2023")
+    assert response.status_code == 308
+    assert response.headers["location"] == "/arbeit?jahr=2023"
+    assert client.get("/arbeit/dienstreisen/1800").status_code == 404
+
+
+def test_saving_returns_to_arbeit_and_errors_show_the_whole_page(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    saved = client.post("/arbeit/dienstreisen/2024", data=post_data(2024), headers=ORIGIN)
+    assert saved.status_code == 303 and saved.headers["location"] == "/arbeit?jahr=2024"
+    bad = client.post("/arbeit/dienstreisen/2024", data=NEW | {"km-1": "abc"}, headers=ORIGIN)
+    assert bad.status_code == 422
+    assert "Erste Tätigkeitsstätte" in bad.text and "Arbeitsmittel" in bad.text
+    assert "Lohnsteuerbescheinigung" in bad.text
 
 
 def test_save_table_in_one_step_and_show_fare(tmp_path: Path) -> None:
@@ -336,7 +343,7 @@ def test_save_table_in_one_step_and_show_fare(tmp_path: Path) -> None:
     response = client.post("/arbeit/dienstreisen/2025", data=NEW, headers=ORIGIN)
     assert response.status_code == 303
     assert sorted(t["distance_km"] for t in trips_in(tmp_path)) == [52, 101]  # type: ignore[type-var]
-    page = client.get("/arbeit/dienstreisen/2025").text
+    page = client.get("/arbeit?jahr=2025").text
     assert "45,90 €" in page and "153 km" in page and "Altstadt → Seehafen → Altstadt" in page
     assert "Altstadt → " in page  # Startort der letzten Reise vorbelegt
     assert "Noch nicht als vollständig bestätigt" in page
@@ -354,7 +361,7 @@ def test_invalid_cell_saves_nothing_and_keeps_input(tmp_path: Path) -> None:
 def test_change_and_delete_with_the_shown_checksums(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     client.post("/arbeit/dienstreisen/2025", data=NEW, headers=ORIGIN)
-    page = client.get("/arbeit/dienstreisen/2025").text
+    page = client.get("/arbeit?jahr=2025").text
     ids = re.findall(r'name="id-(\d)" value="([A-Z2-7]{10})"', page)
     sums = dict(re.findall(r'name="pruefsumme-(\d)" value="([0-9a-f]{64})"', page))
     assert len(ids) == 2  # die neue, leere Reise hat keine Kennung
@@ -379,7 +386,7 @@ def test_stale_table_is_rejected(tmp_path: Path) -> None:
         data={k: v for k, v in NEW.items() if not k.endswith("-1")} | {"zeilen": "1"},
         headers=ORIGIN,
     )
-    page = client.get("/arbeit/dienstreisen/2025").text
+    page = client.get("/arbeit?jahr=2025").text
     entry_id, checksum = hidden(page, "id-0"), hidden(page, "pruefsumme-0")
     row = {
         "zeilen": "1", "id-0": entry_id, "pruefsumme-0": checksum,
@@ -399,13 +406,13 @@ def test_stale_table_is_rejected(tmp_path: Path) -> None:
 def test_confirm_withdraw_and_any_change_ends_the_confirmation(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     client.post("/arbeit/dienstreisen/2025", data=NEW, headers=ORIGIN)
-    page = client.get("/arbeit/dienstreisen/2025").text
+    page = client.get("/arbeit?jahr=2025").text
     stand = hidden(page, "stand")
     done = client.post(
         "/arbeit/dienstreisen/2025/vollstaendig", data={"stand": stand}, headers=ORIGIN
     )
     assert done.status_code == 303
-    page = client.get("/arbeit/dienstreisen/2025").text
+    page = client.get("/arbeit?jahr=2025").text
     assert "Vollständig bestätigt am" in page
     findings = client.get("/befunde?year=2025").text
     assert "Dienstreisen 2025 noch auszufüllen" not in findings
@@ -415,24 +422,24 @@ def test_confirm_withdraw_and_any_change_ends_the_confirmation(tmp_path: Path) -
         client.post("/arbeit/dienstreisen/2025/vollstaendig/aufheben", headers=ORIGIN).status_code
         == 303
     )
-    assert "Noch nicht als vollständig bestätigt" in client.get("/arbeit/dienstreisen/2025").text
+    assert "Noch nicht als vollständig bestätigt" in client.get("/arbeit?jahr=2025").text
     assert "Dienstreisen 2025 noch auszufüllen" in client.get("/befunde?year=2025").text
 
     # erneut bestätigen, dann eine Reise ändern: Bestätigung gilt nicht mehr
-    stand = hidden(client.get("/arbeit/dienstreisen/2025").text, "stand")
+    stand = hidden(client.get("/arbeit?jahr=2025").text, "stand")
     client.post("/arbeit/dienstreisen/2025/vollstaendig", data={"stand": stand}, headers=ORIGIN)
-    page = client.get("/arbeit/dienstreisen/2025").text
+    page = client.get("/arbeit?jahr=2025").text
     row = {
         "zeilen": "1", "id-0": hidden(page, "id-0"), "pruefsumme-0": hidden(page, "pruefsumme-0"),
         "start-0": "2025-02-03", "orte-0": "A → B → A", "km-0": "9",
     }  # fmt: skip
     client.post("/arbeit/dienstreisen/2025", data=row, headers=ORIGIN)
-    assert "Noch nicht als vollständig bestätigt" in client.get("/arbeit/dienstreisen/2025").text
+    assert "Noch nicht als vollständig bestätigt" in client.get("/arbeit?jahr=2025").text
 
 
 def test_confirming_an_unseen_state_is_rejected(tmp_path: Path) -> None:
     client = make_client(tmp_path)
-    stand = hidden(client.get("/arbeit/dienstreisen/2025").text, "stand")
+    stand = hidden(client.get("/arbeit?jahr=2025").text, "stand")
     client.post("/arbeit/dienstreisen/2025", data=NEW, headers=ORIGIN)
     response = client.post(
         "/arbeit/dienstreisen/2025/vollstaendig", data={"stand": stand}, headers=ORIGIN
@@ -443,9 +450,9 @@ def test_confirming_an_unseen_state_is_rejected(tmp_path: Path) -> None:
 
 def test_confirming_with_no_trips_gives_an_explicit_zero(tmp_path: Path) -> None:
     client = make_client(tmp_path)
-    stand = hidden(client.get("/arbeit/dienstreisen/2025").text, "stand")
+    stand = hidden(client.get("/arbeit?jahr=2025").text, "stand")
     client.post("/arbeit/dienstreisen/2025/vollstaendig", data={"stand": stand}, headers=ORIGIN)
-    page = client.get("/arbeit/dienstreisen/2025").text
+    page = client.get("/arbeit?jahr=2025").text
     assert "Vollständig bestätigt am" in page and "0,00 €" in page
 
 
@@ -453,7 +460,7 @@ def test_trips_of_another_user_and_other_origins(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     client.post("/arbeit/dienstreisen/2025", data=NEW, headers=ORIGIN)
     ben = make_client(tmp_path, "ben")
-    assert "Altstadt" not in ben.get("/arbeit/dienstreisen/2025").text
+    assert "Altstadt" not in ben.get("/arbeit?jahr=2025").text
     assert client.post("/arbeit/dienstreisen/2025", data=NEW).status_code == 403
 
 
@@ -461,7 +468,7 @@ def test_text_is_escaped(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     data = {"zeilen": "1", "start-0": "03.02.", "orte-0": "<b>A</b> → B", "km-0": "5"}
     client.post("/arbeit/dienstreisen/2025", data=data, headers=ORIGIN)
-    page = client.get("/arbeit/dienstreisen/2025").text
+    page = client.get("/arbeit?jahr=2025").text
     assert "<b>A</b>" not in page and "&lt;b&gt;A&lt;/b&gt;" in page
 
 
@@ -484,38 +491,36 @@ def test_trip_days_without_trips_need_the_confirmation() -> None:
     assert isinstance(result, ExposedValue) and result.amount == Amount.of(0, Unit.DAYS)
 
 
-def year_links(page: str) -> list[int]:
-    nav = page.split('<nav class="liste"', 1)[1].split("</nav>", 1)[0]
-    return [int(y) for y in re.findall(r'href="/arbeit\?jahr=(\d+)"', nav)]
+def post_data(year: int) -> dict[str, str]:
+    return {"zeilen": "1", "start-0": f"03.02.{year}", "orte-0": "A → B → A", "km-0": "9"}
 
 
 def post_trip(client: httpx.Client, year: int) -> None:
-    data = {"zeilen": "1", "start-0": f"03.02.{year}", "orte-0": "A → B → A", "km-0": "9"}
-    client.post(f"/arbeit/dienstreisen/{year}", data=data, headers=ORIGIN)
+    client.post(f"/arbeit/dienstreisen/{year}", data=post_data(year), headers=ORIGIN)
 
 
-def test_arbeit_selects_year_with_trip_page_on_the_right(tmp_path: Path) -> None:
+def header_years(page: str) -> list[int]:
+    select = page.split('<select name="year">', 1)[1].split("</select>", 1)[0]
+    return [int(y) for y in re.findall(r'<option value="(\d+)"', select)]
+
+
+def test_arbeit_shows_one_year_chosen_in_the_header(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     page = client.get("/arbeit").text
-    assert year_links(page) == [2025]  # ohne Reisen nur das aktuelle Steuerjahr
-    assert 'aria-current="true"' in page and "Dienstreisen 2025" in page
+    assert '<nav class="liste"' not in page  # keine eigene Jahresleiste mehr
+    assert "Dienstreisen 2025" in page
     assert '<form method="post" action="/arbeit/dienstreisen/2025"' in page
     assert "<script>" not in page and " style=" not in page
     post_trip(client, 2023)
-    page = client.get("/arbeit").text
-    assert year_links(page) == [2025, 2023]
-    assert "Dienstreisen 2025" in page  # ohne Auswahl das neueste Jahr
     chosen = client.get("/arbeit?jahr=2023").text
     assert "Dienstreisen 2023" in chosen and 'action="/arbeit/dienstreisen/2023"' in chosen
     assert "Dienstreisen 2025" not in chosen
+    assert '<option value="2023" selected>' in chosen  # die Kopfleiste zeigt das Jahr der Seite
     assert "Dienstreisen 2025" in client.get("/arbeit?jahr=abc").text
-    assert "Dienstreisen 2023" in client.get("/arbeit/dienstreisen/2023").text
 
 
-def test_year_selection_has_at_most_ten_years_newest_first(tmp_path: Path) -> None:
+def test_header_offers_the_years_of_entries_newest_ten(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     for year in range(2010, 2022):
         post_trip(client, year)
-    years = year_links(client.get("/arbeit").text)
-    assert years == [2025, *range(2021, 2012, -1)]
-    assert year_links(client.get("/arbeit/dienstreisen/2025").text) == years
+    assert header_years(client.get("/arbeit").text) == [2025, *range(2021, 2012, -1)]

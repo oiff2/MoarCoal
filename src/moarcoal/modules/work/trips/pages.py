@@ -1,4 +1,7 @@
-"""Seite Dienstreisen je Steuerjahr: eine Tabelle, ein Vorgang; vollständig bestätigen."""
+"""Dienstreisen je Steuerjahr: eine Tabelle, ein Vorgang; vollständig bestätigen.
+
+Sie stehen auf der Seite Arbeit (`/arbeit?jahr=`); hier sind nur die Formular-Ziele, und die
+frühere Jahresadresse leitet dorthin."""
 
 import datetime
 from collections.abc import Sequence
@@ -9,6 +12,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.modules.work.common import MODULE_KEY
+from moarcoal.modules.work.overview import work_page, work_url
 from moarcoal.modules.work.trips.entries import trips_fingerprint
 from moarcoal.modules.work.trips.germany_map import germany_map
 from moarcoal.modules.work.trips.place_search import PlaceSearch, PlaceSearchError
@@ -30,18 +34,12 @@ from moarcoal.modules.work.trips.table import (
     plan_changes,
     rows_from_form,
 )
-from moarcoal.modules.work.trips.view import (
-    PlaceSearchView,
-    places_of,
-    trips_context,
-    trips_of,
-)
+from moarcoal.modules.work.trips.view import PlaceSearchView, places_of, trips_of
 from moarcoal.storage import Applied, Change, Delete, Proposal, entry_checksum
 from moarcoal.web.helpers import (
     form_fields,
     module_state,
     rejection_text,
-    render,
     store_of,
     user_of,
 )
@@ -65,20 +63,22 @@ def _page(
     problems: dict[int, str] | None = None,
     search: PlaceSearchView | None = None,
 ) -> HTMLResponse:
-    context = trips_context(request, year, rows=rows, error=error, problems=problems, search=search)
-    return render(request, "work/trips.html", status_code, **context)
+    return work_page(
+        request, year, status_code, rows=rows, error=error, problems=problems, search=search
+    )
 
 
 def _apply(request: Request, year: int, changes: Sequence[Change]) -> Response:
     result = store_of(request).apply(changes)
     if isinstance(result, Applied):
-        return RedirectResponse(f"/arbeit/dienstreisen/{year}", status_code=303)
+        return RedirectResponse(work_url(year), status_code=303)
     return _page(request, year, error=rejection_text(result), status_code=409)
 
 
-@router.get("/{year}", response_class=HTMLResponse)
-def show(request: Request, year: int) -> HTMLResponse:
-    return _page(request, _year(year))
+@router.get("/{year}")
+def show(year: int) -> Response:
+    """Die frühere Seite der Dienstreisen: jetzt Teil der Seite Arbeit."""
+    return RedirectResponse(work_url(_year(year)), status_code=308)
 
 
 @router.post("/{year}")
@@ -92,7 +92,7 @@ def save(
     except TripTableError as error:
         return _page(request, year, rows=rows, error=str(error), status_code=422)
     if not changes:
-        return RedirectResponse(f"/arbeit/dienstreisen/{year}", status_code=303)
+        return RedirectResponse(work_url(year), status_code=303)
     return _apply(request, year, changes)
 
 
@@ -122,7 +122,7 @@ def withdraw(request: Request, year: int) -> Response:
     year = _year(year)
     confirmation = confirmation_in(module_state(request, MODULE_KEY), year)
     if confirmation is None:
-        return RedirectResponse(f"/arbeit/dienstreisen/{year}", status_code=303)
+        return RedirectResponse(work_url(year), status_code=303)
     return _apply(request, year, [Delete(confirmation.address, entry_checksum(confirmation))])
 
 
@@ -255,5 +255,5 @@ def forget_place(
     name = _known_place(request, year, fields.get("ort", ""))
     changes = forget_changes(_stored(request, name))
     if not changes:
-        return RedirectResponse(f"/arbeit/dienstreisen/{year}", status_code=303)
+        return RedirectResponse(work_url(year), status_code=303)
     return _apply(request, year, changes)

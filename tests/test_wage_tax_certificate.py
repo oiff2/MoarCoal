@@ -1,11 +1,16 @@
 """Tests: Dokumentart Lohnsteuerbescheinigung (eDaten) einlesen, Felder 4 bis 7 (nur tmp_path)."""
 
 import datetime
+import json
 import re
 import shutil
 from pathlib import Path
 
+import httpx
 import pytest
+from app_helper import make_app
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 from moarcoal.documents import IntakeRejected, ReadInError, TakenIn, take_in
 from moarcoal.modules import MODULES
@@ -310,3 +315,31 @@ def test_protocol_is_compared_against_the_computed_fields(store: Store) -> None:
 def test_deviating_protocol_gives_a_finding(store: Store) -> None:
     found = comparison(store, {**MATCHING, "E0200301": "6.500,00"})
     assert found == {(DEVIATION, str(N_INCOME_TAX))}
+
+
+def page_client(app: FastAPI) -> httpx.Client:
+    return TestClient(app, base_url="http://127.0.0.1:4711")
+
+
+def test_arbeit_shows_the_four_values_with_a_link_to_the_document(
+    tmp_path: Path, site: Path
+) -> None:
+    root = tmp_path / "app"
+    sites = root / "common" / "sites.json"
+    sites.parent.mkdir(parents=True)
+    sites.write_text(
+        json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
+    )
+    app = make_app(4711, root, user=USER)
+    client = page_client(app)
+    empty = client.get("/arbeit?jahr=2025").text
+    assert "Lohnsteuerbescheinigung" in empty and "Für 2025 ist keine" in empty
+
+    taken = take(app.state.store)
+    assert isinstance(taken, TakenIn)
+    page = client.get("/arbeit?jahr=2025").text
+    section = page.split("<h2>Lohnsteuerbescheinigung</h2>", 1)[1].split("</section>", 1)[0]
+    for label in ("Steuerklasse", "Bruttoarbeitslohn", "Lohnsteuer", "Solidaritätszuschlag"):
+        assert f"{label}:" in section
+    assert "45.678,90 €" in section and "6.543,21 €" in section
+    assert f'href="/belege/dokumente?dokument={taken.document.id}"' in section

@@ -223,13 +223,18 @@ def _findings_summary(request: Request, year: int) -> FindingsSummary:
 
 
 def _year_choices(request: Request, year: int) -> list[int]:
-    """Jahre der Kopfleiste: die Bezugsjahre der Dokumente des Nutzers."""
+    """Jahre der Kopfleiste: die Bezugsjahre der Dokumente und die Steuerjahre der Einträge des
+    Nutzers (jede Eintragsart mit einem Feld `year` meint das Steuerjahr)."""
     user = user_of(request)
-    found = {
-        d.period_start.year
-        for d in store_of(request).state().of_kind(Document)
-        if d.owner == user and d.period_start is not None
-    }
+    found: set[int] = set()
+    for entry in store_of(request).state().entries.values():
+        if entry.owner != user:
+            continue
+        if isinstance(entry, Document):
+            if entry.period_start is not None:
+                found.add(entry.period_start.year)
+        elif isinstance(tax_year := getattr(entry, "year", None), int):
+            found.add(tax_year)
     return year_choices(found, year)
 
 

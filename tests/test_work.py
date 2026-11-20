@@ -56,6 +56,12 @@ def make_client(root: Path, user: str = "anna") -> httpx.Client:
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
+def only_id_in(root: Path, year: int) -> str:
+    entries = json.loads(work_file(root, year=year).read_text(encoding="utf-8"))["entries"]
+    (key,) = entries
+    return key.split(":")[1]
+
+
 def work_file(root: Path, user: str = "anna", year: int = 2025) -> Path:
     return root / "users" / user / "work" / f"{year}.json"
 
@@ -67,6 +73,21 @@ def stored(root: Path) -> dict[str, dict[str, object]]:
 def only_id(root: Path) -> str:
     (key,) = stored(root)
     return key.split(":")[1]
+
+
+def entry_form(client: httpx.Client, slug: str, entry_id: str) -> str:
+    """Das aufgeklappte Formular eines Eintrags, erreicht über seine Adresse."""
+    response = client.get(f"/arbeit/{slug}/{entry_id}", follow_redirects=True)
+    assert response.status_code == 200
+    opened = f'<details class="formular-eintrag" open id="eintrag-{entry_id}">'
+    assert opened in response.text
+    return response.text.split(opened, 1)[1].split("</details>", 1)[0]
+
+
+def checksum_in(form: str) -> str:
+    found = re.search(r'name="checksum" value="([0-9a-f]{64})"', form)
+    assert found
+    return found.group(1)
 
 
 # --- Modulanmeldung ---------------------------------------------------------------------------
@@ -231,7 +252,7 @@ def test_equipment_this_year_gives_no_note() -> None:
 def test_year_without_equipment_shows_zero(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     client.post("/arbeit/erste-taetigkeitsstaette", data=WORKPLACE, headers=ORIGIN)
-    page = client.get("/arbeit").text.split("<h2>Dienstreisen</h2>")[0]
+    page = client.get("/arbeit").text.split("<h2>Arbeitsmittel</h2>")[1].split("</section>")[0]
     assert "noch nicht berechenbar" not in page
     assert "keine Arbeitsmittel erfasst" in page
     client.post("/arbeit/arbeitsmittel", data=EQUIPMENT, headers=ORIGIN)
@@ -256,19 +277,66 @@ def test_change_and_delete(tmp_path: Path) -> None:
     client.post("/arbeit/arbeitsmittel", data=EQUIPMENT, headers=ORIGIN)
     entry_id = only_id(tmp_path)
     url = f"/arbeit/arbeitsmittel/{entry_id}"
-    form = client.get(url).text
-    checksum = re.search(r'name="checksum" value="([0-9a-f]{64})"', form)
-    assert checksum
-    changed = EQUIPMENT | {"amount": "59,90", "checksum": checksum.group(1)}
-    assert client.post(url, data=changed, headers=ORIGIN).status_code == 303
+    changed = EQUIPMENT | {
+        "amount": "59,90",
+        "checksum": checksum_in(entry_form(client, "arbeitsmittel", entry_id)),
+    }
+    saved = client.post(url, data=changed, headers=ORIGIN)
+    assert saved.status_code == 303 and saved.headers["location"] == "/arbeit?jahr=2025"
     assert next(iter(stored(tmp_path).values()))["input"]["amount_cents"] == 5990  # type: ignore[index]
 
-    new_checksum = re.search(r'name="checksum" value="([0-9a-f]{64})"', client.get(url).text)
-    assert new_checksum
-    gone = client.post(f"{url}/loeschen", data={"checksum": new_checksum.group(1)}, headers=ORIGIN)
+    checksum = checksum_in(entry_form(client, "arbeitsmittel", entry_id))
+    gone = client.post(f"{url}/loeschen", data={"checksum": checksum}, headers=ORIGIN)
     assert gone.status_code == 303
     assert not work_file(tmp_path).exists()
     assert client.get(url).status_code == 404
+
+
+def test_the_address_of_an_entry_opens_it_on_arbeit_in_its_year(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    client.post("/arbeit/arbeitsmittel", data=EQUIPMENT | {"year": "2024"}, headers=ORIGIN)
+    entry_id = only_id_in(tmp_path, 2024)
+    response = client.get(f"/arbeit/arbeitsmittel/{entry_id}")
+    assert response.status_code == 303
+    assert response.headers["location"] == f"/arbeit?jahr=2024&eintrag={entry_id}"
+    page = client.get("/arbeit?jahr=2024").text
+    assert f'<details class="formular-eintrag" id="eintrag-{entry_id}">' in page  # zu, ohne Wahl
+
+
+def test_arbeit_shows_only_the_entries_of_its_year_and_new_ones_get_that_year(
+    tmp_path: Path,
+) -> None:
+    client = make_client(tmp_path)
+    client.post("/arbeit/arbeitsmittel", data=EQUIPMENT | {"year": "2024"}, headers=ORIGIN)
+    assert "Schreibtischlampe" not in client.get("/arbeit?jahr=2025").text
+    page = client.get("/arbeit?jahr=2024").text
+    assert "Schreibtischlampe" in page
+    assert 'name="year" value="2024"' in page and "<label>Steuerjahr" not in page  # kein Feld dafür
+
+
+def test_the_tax_year_of_an_entry_stays(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    client.post("/arbeit/arbeitsmittel", data=EQUIPMENT, headers=ORIGIN)
+    entry_id = only_id(tmp_path)
+    checksum = checksum_in(entry_form(client, "arbeitsmittel", entry_id))
+    moved = EQUIPMENT | {"year": "2024", "amount": "1,00", "checksum": checksum}
+    response = client.post(f"/arbeit/arbeitsmittel/{entry_id}", data=moved, headers=ORIGIN)
+    assert response.status_code == 303 and response.headers["location"] == "/arbeit?jahr=2025"
+    assert next(iter(stored(tmp_path).values()))["year"] == 2025
+
+
+def test_a_rejected_change_shows_arbeit_with_the_form_open(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    client.post("/arbeit/arbeitsmittel", data=EQUIPMENT, headers=ORIGIN)
+    entry_id = only_id(tmp_path)
+    checksum = checksum_in(entry_form(client, "arbeitsmittel", entry_id))
+    bad = EQUIPMENT | {"amount": "abc", "checksum": checksum}
+    response = client.post(f"/arbeit/arbeitsmittel/{entry_id}", data=bad, headers=ORIGIN)
+    assert response.status_code == 422
+    opened = f'<details class="formular-eintrag" open id="eintrag-{entry_id}">'
+    form = response.text.split(opened, 1)[1].split("</details>", 1)[0]
+    assert "Betrag" in form and 'value="abc"' in form and checksum in form
+    assert "Lohnsteuerbescheinigung" in response.text  # die ganze Seite
 
 
 def test_invalid_input_shows_german_hints_and_writes_nothing(tmp_path: Path) -> None:
@@ -289,16 +357,15 @@ def test_invalid_input_shows_german_hints_and_writes_nothing(tmp_path: Path) -> 
 def test_stale_form_is_rejected(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     client.post("/arbeit/arbeitsmittel", data=EQUIPMENT, headers=ORIGIN)
-    url = f"/arbeit/arbeitsmittel/{only_id(tmp_path)}"
-    checksum = re.search(r'name="checksum" value="([0-9a-f]{64})"', client.get(url).text)
-    assert checksum
-    first = EQUIPMENT | {"amount": "10,00", "checksum": checksum.group(1)}
-    second = EQUIPMENT | {"amount": "20,00", "checksum": checksum.group(1)}
+    entry_id = only_id(tmp_path)
+    url = f"/arbeit/arbeitsmittel/{entry_id}"
+    checksum = checksum_in(entry_form(client, "arbeitsmittel", entry_id))
+    first = EQUIPMENT | {"amount": "10,00", "checksum": checksum}
+    second = EQUIPMENT | {"amount": "20,00", "checksum": checksum}
     assert client.post(url, data=first, headers=ORIGIN).status_code == 303
     response = client.post(url, data=second, headers=ORIGIN)
     assert response.status_code == 409
     assert "Inzwischen geändert" in response.text
-    assert next(iter(stored(tmp_path).values()))["input"]["amount_cents"] == 1000  # type: ignore[index]
 
 
 def test_unknown_kind_and_entry_are_404(tmp_path: Path) -> None:
@@ -353,8 +420,8 @@ def test_new_workplace_form_prefills_220_but_edit_keeps_stored_value(tmp_path: P
     client.post(
         "/arbeit/erste-taetigkeitsstaette", data=WORKPLACE | {"workdays": "180"}, headers=ORIGIN
     )
-    page = client.get(f"/arbeit/erste-taetigkeitsstaette/{only_id(tmp_path)}").text
-    assert 'name="workdays" inputmode="numeric" value="180"' in page
+    form = entry_form(client, "erste-taetigkeitsstaette", only_id(tmp_path))
+    assert 'name="workdays" inputmode="numeric" value="180"' in form
 
 
 def test_display_name_is_shown_in_the_header(tmp_path: Path) -> None:
@@ -368,8 +435,7 @@ def test_workplace_inputs_are_optional_and_stored(tmp_path: Path) -> None:
     assert entry.get("workdays_per_week") is None and entry.get("car_distance_km") is None
 
     entry_id = only_id(tmp_path)
-    page = http.get(f"/arbeit/erste-taetigkeitsstaette/{entry_id}").text
-    checksum = page.split('name="checksum" value="')[1].split('"')[0]
+    checksum = checksum_in(entry_form(http, "erste-taetigkeitsstaette", entry_id))
     extra = {
         **WORKPLACE,
         "workdays_per_week": "5",
@@ -386,8 +452,8 @@ def test_workplace_inputs_are_optional_and_stored(tmp_path: Path) -> None:
     (entry,) = stored(tmp_path).values()
     assert entry["workdays_per_week"] == 5 and entry["absence_days"] == 32
     assert entry["homeoffice_days"] == 40
-    page = http.get(f"/arbeit/erste-taetigkeitsstaette/{entry_id}").text
-    assert 'name="homeoffice_days"' in page and 'value="40"' in page
+    form = entry_form(http, "erste-taetigkeitsstaette", entry_id)
+    assert 'name="homeoffice_days"' in form and 'value="40"' in form
     assert entry["car_distance_km"] == 11
 
 

@@ -1,75 +1,58 @@
 {% extends "base.html" %}
 {% from "_value.html" import value_view %}
-{% block title %}Arbeit – MoarCoal{% endblock %}
+{% from "work/_entry_form.html" import entry_form %}
+{% block title %}Arbeit {{ year }} – MoarCoal{% endblock %}
 {% block main %}
-<h1>Arbeit</h1>
-<p>Angaben für die Anlage N, von Hand erfasst. Sie gelten als angenommen, bis ein Beleg dazukommt.</p>
+{#- Eine Seite für das ganze Modul (docs/grundgeruest.md §6): drei Spalten, jede scrollt in sich, die Seite nie. -#}
+<div class="arbeit-seite">
+  <div class="spalte teile">
+    <section>
+      <h2>Erste Tätigkeitsstätte</h2>
+      {% for entry, form, workdays, distance in workplaces %}
+      <div class="eintrag">
+        <h3>{{ entry.description or "Ohne Beschreibung" }}</h3>
+        {{ value_view("Arbeitstage", workdays) }}
+        {{ value_view("Einfache Entfernung", distance) }}
+        {{ entry_form(form, "Ändern") }}
+      </div>
+      {% else %}
+      <p>Für {{ year }} noch keine Angaben.</p>
+      {% endfor %}
+      {{ entry_form(new_workplace, "Neue erste Tätigkeitsstätte") }}
+    </section>
 
-{% for year in years %}
-<section class="werte">
-  <h2>Ausgewiesene Werte {{ year.year }}</h2>
-  {% for entry, workdays, distance in year.workplaces %}
-  <h3>Erste Tätigkeitsstätte{% if entry.description %} ({{ entry.description }}){% endif %}</h3>
-  {{ value_view("Arbeitstage", workdays) }}
-  {{ value_view("Einfache Entfernung", distance) }}
-  {% endfor %}
-  <h3>Arbeitsmittel</h3>
-  {{ value_view("Summe der Arbeitsmittel", year.equipment) }}
-</section>
-{% endfor %}
+    <section>
+      <h2>Arbeitsmittel</h2>
+      {% if equipment %}
+      <table class="arbeitsmittel">
+        {% for entry, form in equipment %}
+        <tr>
+          <td>{{ entry.input.date.strftime("%d.%m.") }}</td>
+          <td>{{ entry.input.description }}</td>
+          <td class="zahl">{{ entry.input.amount_cents | eur }}</td>
+        </tr>
+        <tr class="bearbeiten"><td colspan="3">{{ entry_form(form, "Ändern") }}</td></tr>
+        {% endfor %}
+      </table>
+      {% endif %}
+      {{ value_view("Summe der Arbeitsmittel", equipment_total) }}
+      {{ entry_form(new_equipment, "Neues Arbeitsmittel") }}
+    </section>
 
-<h2>Dienstreisen</h2>
-{% include "work/_trip_select.html" %}
+    <section>
+      <h2>Lohnsteuerbescheinigung</h2>
+      {% for label, result in wage_tax["values"] %}{{ value_view(label, result) }}{% endfor %}
+      {% for url in wage_tax.documents %}<p><a href="{{ url }}">Beleg ansehen</a></p>{% endfor %}
+      {% if not wage_tax.documents %}<p>Die Bescheinigung nehmen Sie im Reiter Belege auf (Dokumentart „Lohnsteuerbescheinigung“, Jahr {{ year }}).</p>{% endif %}
+    </section>
+  </div>
 
-<h2>Erste Tätigkeitsstätte</h2>
-{% if workplaces %}
-<table>
-  <tr><th>Jahr</th><th>Arbeitstage</th><th>Einfache Entfernung</th><th>Beschreibung</th><th></th></tr>
-  {% for entry, checksum in workplaces %}
-  <tr>
-    <td>{{ entry.year }}</td>
-    <td>{{ entry.workdays }}</td>
-    <td>{{ entry.distance_km }} km</td>
-    <td>{{ entry.description }}</td>
-    <td><a href="/arbeit/erste-taetigkeitsstaette/{{ entry.id }}">Ändern</a></td>
-  </tr>
-  {% endfor %}
-</table>
-{% else %}
-<p>Noch keine Angaben.</p>
-{% endif %}
-<h3>Neue erste Tätigkeitsstätte</h3>
-{% with kind = kinds["erste-taetigkeitsstaette"], errors = errors.get("erste-taetigkeitsstaette", []), values = values["erste-taetigkeitsstaette"] %}
-{% include "work/_errors.html" %}
-<form method="post" action="/arbeit/{{ kind.slug }}">
-  {% include "work/_fields.html" %}
-  <button type="submit">Speichern</button>
-</form>
-{% endwith %}
+  <div class="spalte dienstreisen">
+    {% include "work/_trips.html" %}
+  </div>
 
-<h2>Arbeitsmittel</h2>
-{% if equipment %}
-<table>
-  <tr><th>Jahr</th><th>Betrag</th><th>Datum</th><th>Beschreibung</th><th></th></tr>
-  {% for entry, checksum in equipment %}
-  <tr>
-    <td>{{ entry.year }}</td>
-    <td>{{ entry.input.amount_cents | eur }}</td>
-    <td>{{ entry.input.date.strftime("%d.%m.%Y") }}</td>
-    <td>{{ entry.input.description }}</td>
-    <td><a href="/arbeit/arbeitsmittel/{{ entry.id }}">Ändern</a></td>
-  </tr>
-  {% endfor %}
-</table>
-{% else %}
-<p>Noch keine Angaben.</p>
-{% endif %}
-<h3>Neues Arbeitsmittel</h3>
-{% with kind = kinds["arbeitsmittel"], errors = errors.get("arbeitsmittel", []), values = values["arbeitsmittel"] %}
-{% include "work/_errors.html" %}
-<form method="post" action="/arbeit/{{ kind.slug }}">
-  {% include "work/_fields.html" %}
-  <button type="submit">Speichern</button>
-</form>
-{% endwith %}
+  <div class="spalte">
+    {% include "work/_trip_map.html" %}
+  </div>
+</div>
 {% endblock %}

@@ -1,4 +1,4 @@
-"""Der Inhalt der Dienstreiseseite eines Jahrs, geteilt von `/arbeit` und der Jahresadresse."""
+"""Der Inhalt der Dienstreisen eines Jahrs auf der Seite Arbeit."""
 
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -28,7 +28,6 @@ from moarcoal.web.helpers import (
     module_state,
     user_of,
     values_of,
-    year_choices,
 )
 from moarcoal.web.links import document_url
 
@@ -49,13 +48,6 @@ def trips_of(request: Request, year: int) -> list[BusinessTrip]:
 
 def places_of(request: Request) -> list[Place]:
     return module_state(request, MODULE_KEY).all(Place)
-
-
-def trip_years(request: Request, chosen: int) -> list[int]:
-    """Jahre zur Auswahl: Jahre mit Dienstreisen und das aktuelle Steuerjahr, neueste zuerst.
-    Ein gewähltes Jahr außerhalb der Liste steht zusätzlich an seinem Platz."""
-    found = {t.year for t in module_state(request, MODULE_KEY).all(BusinessTrip)}
-    return year_choices(found, chosen)
 
 
 def chosen_year(request: Request) -> int:
@@ -92,7 +84,7 @@ def trips_context(
     problems: dict[int, str] | None = None,
     search: PlaceSearchView | None = None,
 ) -> dict[str, Any]:
-    """Die Vorlagenwerte der Dienstreiseseite (`work/_trips.html`) samt Jahresauswahl."""
+    """Die Vorlagenwerte der Dienstreisen (`work/_trips.html`) eines Jahrs."""
     trips = trips_of(request, year)
     rate = KM_RATES.get(year)
     if rows is None:
@@ -101,8 +93,8 @@ def trips_context(
     period = Period.year(year)
     values = values_of(request)
     user = user_of(request)
+    found = _statements(request, year, trips)
     return {
-        "trip_years": trip_years(request, year),
         "year": year,
         "rows": rows,
         "error": error,
@@ -113,7 +105,8 @@ def trips_context(
         "stand": trips_fingerprint(trips),
         "fare": values.get(TRAVEL_FARE, user, period),
         "total": values.get(TRAVEL_TOTAL, user, period),
-        "statements": _statements(request, year, trips),
+        "statements": found,
+        "to_take": sum(1 for s in found for t in s["trips"] if not t.taken),
         "germany": germany_map(),
         "map_places": sort_places(place_uses(trips), places_of(request), germany_map()),
         "search": search,

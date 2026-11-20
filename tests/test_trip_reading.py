@@ -274,7 +274,7 @@ class Setup:
         return sorted(self.store.state().of_kind(BusinessTrip), key=lambda t: t.start)
 
     def page(self) -> str:
-        response = self.client.get(f"/arbeit/dienstreisen/{YEAR}")
+        response = self.client.get(f"/arbeit?jahr={YEAR}")
         assert response.status_code == 200
         return response.text
 

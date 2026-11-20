@@ -2,14 +2,13 @@
 {% macro cell(row, n, name, col, value, size, extra="") -%}
 <input name="{{ name }}-{{ n }}" value="{{ value }}" size="{{ size }}" data-col="{{ col }}"{{ extra | safe }}{% if row.errors[name] %} class="ungueltig" title="{{ row.errors[name] }}"{% endif %}>
 {%- endmacro %}
-<h3>Dienstreisen {{ year }}</h3>
-<p>Nur Fahrten mit dem privaten Pkw: Summe der km mal km-Satz{% if rate %} ({{ rate | string | replace(".", ",") }} € je km){% endif %}. Verpflegung, Übernachtung und Nebenkosten rechnet der Arbeitgeber ab und stehen hier nicht.</p>
+<h2>Dienstreisen {{ year }}</h2>
+<p class="hinweis">Nur Fahrten mit dem privaten Pkw: Summe der km mal km-Satz{% if rate %} ({{ rate | string | replace(".", ",") }} € je km){% endif %}. Verpflegung, Übernachtung und Nebenkosten rechnet der Arbeitgeber ab und stehen hier nicht.</p>
 
-<section class="werte">
-  <h3>Ausgewiesene Werte {{ year }}</h3>
+<div class="werte">
   {{ value_view("Fahrtkosten", fare, whole=true) }}
   {{ value_view("Summe der Reisekosten", total, whole=true) }}
-</section>
+</div>
 
 <p class="stand">
   {% if confirmation %}
@@ -24,10 +23,8 @@
   {% endif %}
 </p>
 
-{% include "work/_trip_map.html" %}
-
-<section class="aufstellungen">
-  <h3>Reiseaufstellungen (Screenshots)</h3>
+<details class="aufstellungen"{% if to_take or problems %} open{% endif %}>
+  <summary>Reiseaufstellungen (Screenshots){% if statements %}: {{ statements | length }}{% endif %}{% if to_take %}, {{ to_take }} {{ "Reise" if to_take == 1 else "Reisen" }} zu übernehmen{% endif %}</summary>
   {% if not statements %}
   <p>Eine Aufstellung nehmen Sie im Reiter Belege auf (Dokumentart „Reiseaufstellung (Screenshot)“, Jahr {{ year }}); Claude liest sie dort aus, und die Reisen erscheinen hier als Vorschlag.</p>
   {% endif %}
@@ -77,12 +74,13 @@
   </form>
   {% endif %}
   {% endfor %}
-</section>
+</details>
 
-<p>Orte in Reihenfolge, Rückweg ausdrücklich (A → B → A). Pfeiltasten ↑/↓ wechseln die Reise, Enter speichert die ganze Tabelle.</p>
+<p class="hinweis">Orte in Reihenfolge, Rückweg ausdrücklich (A → B → A). Pfeiltasten ↑/↓ wechseln die Reise, Enter speichert die ganze Tabelle.</p>
 {% if error %}<ul class="fehler"><li>{{ error }}</li></ul>{% endif %}
 <form method="post" action="/arbeit/dienstreisen/{{ year }}" id="dienstreisen">
   <input type="hidden" name="zeilen" value="{{ rows | length }}">
+  <div class="tabelle">
   <table class="reisen">
     <thead><tr><th>Nr.</th><th>Start</th><th title="ohne Angabe = Start">Ende</th><th>Orte</th><th>km</th><th>Betrag</th><th>Notiz</th><th></th></tr></thead>
     <tbody>
@@ -113,8 +111,11 @@
       </tr>
     </tfoot>
   </table>
-  <button type="button" id="reise-dazu" hidden>+ Reise</button>
-  <button type="submit">Speichern</button>
-  <button type="button" id="abbrechen" hidden>Abbrechen</button>
+  </div>
+  <div class="knoepfe">
+    <button type="button" id="reise-dazu" hidden>+ Reise</button>
+    <button type="submit">Speichern</button>
+    <button type="button" id="abbrechen" hidden>Abbrechen</button>
+  </div>
 </form>
 <script src="/static/trip_table.js" defer></script>
