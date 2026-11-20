@@ -5,7 +5,7 @@ Die Hinweise je Feld nennen die Grenzen der Modelle (`workplace.entries`), nicht
 
 from collections.abc import Callable
 
-from moarcoal.defaults import DEFAULT_YEAR, MAX_YEAR, MIN_YEAR
+from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.modules.work.common import TEXT_MAX
 from moarcoal.modules.work.workplace.entries import (
     DAYS_PER_WEEK,
@@ -103,18 +103,18 @@ KINDS = {
 
 
 def entry_url(address: EntryAddress) -> str | None:
-    """Link zur Änderungsseite eines Eintrags des Moduls, sonst `None`."""
+    """Link zu einem Eintrag des Moduls (führt auf Arbeit, Eintrag offen), sonst `None`."""
     for kind in KINDS.values():
         if kind.model.__name__ == address.kind:
             return f"/arbeit/{kind.slug}/{address.id}"
     return None
 
 
-def prefill_new(slug: str) -> Fields:
-    """Vorbelegung eines neuen Formulars."""
+def prefill_new(slug: str, year: int) -> Fields:
+    """Vorbelegung eines neuen Formulars für das Steuerjahr der Seite."""
     if slug == "erste-taetigkeitsstaette":
-        return {"year": str(DEFAULT_YEAR), "workdays": str(DEFAULT_WORKDAYS)}
-    return {"year": str(DEFAULT_YEAR)}
+        return {"year": str(year), "workdays": str(DEFAULT_WORKDAYS)}
+    return {"year": str(year)}
 
 
 def prefill_from(entry: Entry | None) -> Fields:
@@ -140,4 +140,4 @@ def prefill_from(entry: Entry | None) -> Fields:
                 "description": entry.input.description,
             }
         case _:
-            return {"year": str(DEFAULT_YEAR)}
+            return {}

@@ -26,7 +26,7 @@
 
   {% if map_places.unplaced %}
   <h4 id="ohne-lage">Ohne Lage ({{ map_places.unplaced | length }})</h4>
-  <p>„Suchen“ fragt bei OpenStreetMap (Nominatim) nur nach dem Text im Feld, und nur auf diesen Klick. Die gewählte Lage gilt für alle Jahre.</p>
+  <p>„Suchen“ fragt auf Klick die Ortsdaten bei OpenStreetMap (Nominatim) ab.</p>
   <ul class="orte">
     {% for use in map_places.unplaced %}
     <li>

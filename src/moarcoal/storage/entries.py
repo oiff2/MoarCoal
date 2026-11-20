@@ -65,7 +65,8 @@ class EntryKind:
     ganzen Vorgang, mit `check_on_load` auch jeden geladenen beim Start, `denylist` bildet aus
     allen Einträgen der Art die Werte der Sperrliste, `merge` führt zwei Einträge der Art zusammen
     (Quelle, Ziel -> neues Ziel), `former_ids` nennt die Kennungen früherer, zusammengeführter
-    Einträge, die jetzt auf diesen auflösen. `label` ist die Bezeichnung der Art auf Seiten (z. B. „Vorschlag“), leer gilt der Name im Code.
+    Einträge, die jetzt auf diesen auflösen. `label` ist die Bezeichnung der Art auf Seiten
+    (z. B. „Vorschlag“), leer gilt der Name im Code.
 
     Zwei Merkmale regeln das Löschen des Eintrags, auf den andere verweisen: `falls_with` nennt das
     Feld, dessen Ziel diesen Eintrag beim Löschen mitnimmt (er fällt mit ihm weg, `Store.apply`

@@ -105,8 +105,37 @@ button.auge svg { display: block; }
 .vorschau iframe { width: 100%; height: 100%; border: 0; }
 .vorschau img { max-width: 100%; }
 .ausgeblendet { margin-top: 1rem; }
-/* Arbeit, Dienstreisen: dieselbe Aufteilung, die Liste links nur eine schmale Leiste */
-.arbeit.schmal { grid-template-columns: 6rem minmax(0, 1fr); align-items: start; }
+/* Arbeit: eine Seite, drei Spalten (Teile, Dienstreisen, Karte); jede scrollt in sich, die Seite nie */
+main:has(.arbeit-seite) { display: flex; flex-direction: column; overflow: hidden; }
+.arbeit-seite { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(20rem, 1fr) minmax(0, 2.6fr) minmax(20rem, 0.9fr); grid-template-rows: minmax(0, 1fr); gap: 1.5rem; }
+.arbeit-seite .spalte { min-height: 0; overflow: auto; }
+.arbeit-seite h2 { font-size: 1.1rem; margin: 0 0 0.4rem; }
+.arbeit-seite h3 { font-size: 1rem; margin: 0.5rem 0 0.2rem; }
+.arbeit-seite .spalte > section + section { margin-top: 1.5rem; }
+.arbeit-seite .hinweis { opacity: 0.75; margin: 0.25rem 0; }
+.arbeit-seite .zahl { text-align: right; white-space: nowrap; }
+.formular-eintrag { margin: 0.2rem 0; }
+.formular-eintrag > summary { cursor: pointer; color: var(--akzent); }
+.formular-eintrag[open] { padding: 0.25rem 0.5rem 0.5rem; border: 1px solid var(--linie); border-radius: 0.25rem; background: var(--flaeche); }
+.formular-eintrag label { display: flex; justify-content: space-between; gap: 0.75rem; }
+.formular-eintrag label input { width: 9rem; }
+.arbeitsmittel { width: 100%; }
+.arbeitsmittel tr:not(.bearbeiten) td { border-bottom: 0; padding-bottom: 0; }
+.arbeitsmittel tr.bearbeiten td { padding-top: 0; }
+.spalte.dienstreisen { display: flex; flex-direction: column; overflow: hidden; }
+.dienstreisen > * { flex: none; }
+.dienstreisen .stand { margin: 0.4rem 0; }
+.dienstreisen .aufstellungen { max-height: 40%; overflow: auto; margin: 0.25rem 0; }
+.dienstreisen .aufstellungen > summary { cursor: pointer; }
+.dienstreisen #dienstreisen { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.dienstreisen .tabelle { flex: 0 1 auto; min-height: 0; max-width: 100%; overflow: auto; margin-bottom: 0.4rem; }
+.dienstreisen .tabelle thead th, .dienstreisen .tabelle tfoot td { position: sticky; background: var(--grund); }
+.dienstreisen .tabelle thead th { top: 0; }
+.dienstreisen .reisen td { white-space: nowrap; padding-top: 0.15rem; padding-bottom: 0.15rem; }
+.dienstreisen .reisen td label { display: inline; margin-left: 0.4rem; }
+.dienstreisen .reisen input[data-col="4"] { width: 9rem; }
+.dienstreisen .knoepfe { display: flex; gap: 0.5rem; }
+.dienstreisen .tabelle tfoot td { bottom: 0; }
 
 /* Belege: das Jahr nur bei Dokumentarten mit Bezugszeitraum */
 form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
@@ -131,7 +160,7 @@ form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
 .reisen tfoot td { font-weight: bold; }
 
 /* Dienstreisen: Karte von Deutschland (Farben aus dem Seitenschema, kein Inline-Style wegen der CSP) */
-.deutschlandkarte { width: 100%; max-width: 28rem; height: auto; }
+.deutschlandkarte { width: 100%; height: auto; }
 .deutschlandkarte .land { fill: color-mix(in srgb, currentColor 6%, var(--flaeche)); stroke: currentColor; stroke-width: 1.2; }
 .deutschlandkarte .grenzen { fill: none; stroke: var(--linie); stroke-width: 0.6; }
 .marke.ziel { fill: color-mix(in srgb, var(--akzent) 25%, var(--flaeche)); stroke: var(--akzent); stroke-width: 2; }

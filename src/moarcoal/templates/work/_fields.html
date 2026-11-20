@@ -1,7 +1,5 @@
-{# Felder einer Art; `kind.slug` wählt, `values` belegt vor #}
-<label>Steuerjahr
-  <input name="year" inputmode="numeric" value="{{ values.get('year', '') }}" required>
-</label>
+{# Felder einer Art; `kind.slug` wählt, `values` belegt vor. Das Steuerjahr ist das der Seite. #}
+<input type="hidden" name="year" value="{{ values.get('year', '') }}">
 {% if kind.slug == "erste-taetigkeitsstaette" %}
 <label>Arbeitstage
   <input name="workdays" inputmode="numeric" value="{{ values.get('workdays', '') }}" required>

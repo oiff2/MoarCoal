@@ -255,7 +255,7 @@ class Setup:
         return self.post("lage", **(data | extra))
 
     def page(self) -> str:
-        return self.client.get(NODE).text
+        return self.client.get(f"/arbeit?jahr={YEAR}").text
 
     def places(self) -> list[Place]:
         return self.store.state().of_kind(Place)
@@ -312,7 +312,7 @@ def test_picking_a_hit_stores_the_place_once_for_all_years(setup: Setup) -> None
     assert "1 Ort auf der Karte, 3 ohne Lage" in html
     assert '<input name="suche" value="MS"' not in html
     # another year has other trips but would use the same stored position
-    other = setup.client.get("/arbeit/dienstreisen/2024").text
+    other = setup.client.get("/arbeit?jahr=2024").text
     assert "0 Orte auf der Karte" in other
 
 

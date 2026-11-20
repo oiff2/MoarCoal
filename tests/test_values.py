@@ -301,18 +301,12 @@ def test_page_shows_values_with_workings_and_backing(tmp_path: Path) -> None:
 
     html = client.get("/arbeit").text
 
-    assert "Ausgewiesene Werte 2025" in html
     assert "180 Tage" in html and "12 km" in html and "49,90 €" in html
     assert "status-assumed" in html and "Belegstand:" not in html
     assert "<details>" in html and "Rechenweg" in html and "Einzelposten" in html
     assert "Summe der Arbeitsmittel" in html
     assert 'href="/arbeit/arbeitsmittel/' in html  # Fundstelle verlinkt die Nutzereingabe
     assert " style=" not in html and " onclick=" not in html  # CSP verbietet Inline
-
-
-def test_page_without_entries_shows_no_value_section(tmp_path: Path) -> None:
-    page = make_client(tmp_path).get("/arbeit").text
-    assert "Ausgewiesene Werte" not in page.split("<h2>Dienstreisen</h2>")[0]
 
 
 # --- Doppelte Fundstellen -----------------------------------------------------------------------

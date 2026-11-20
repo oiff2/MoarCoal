@@ -1,0 +1,20 @@
+{#- Ein Formular der Seite Arbeit, aufklappend: zu einem Eintrag (mit Löschen) oder neu. Nach einer Abweisung steht es offen, mit den Gründen. -#}
+{% macro entry_form(form, label) %}
+<details class="formular-eintrag"{% if form.open %} open{% endif %}{% if form.entry_id %} id="eintrag-{{ form.entry_id }}"{% endif %}>
+  <summary>{{ label }}</summary>
+  {% with errors = form.errors, values = form.values, kind = form.kind %}
+  {% include "work/_errors.html" %}
+  <form method="post" action="{{ form.action }}">
+    {% if form.entry_id %}<input type="hidden" name="checksum" value="{{ form.checksum }}">{% endif %}
+    {% include "work/_fields.html" %}
+    <button type="submit">Speichern</button>
+  </form>
+  {% if form.entry_id %}
+  <form method="post" action="{{ form.action }}/loeschen" class="inline">
+    <input type="hidden" name="checksum" value="{{ form.checksum }}">
+    <button type="submit">Löschen</button>
+  </form>
+  {% endif %}
+  {% endwith %}
+</details>
+{% endmacro %}
