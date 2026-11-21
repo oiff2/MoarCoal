@@ -1,4 +1,8 @@
-{#- Karte der Dienstreisen: Startorte als Raute mit S, Reiseziele als Kreis mit der Zahl der Fahrten; der Name steht neben dem Punkt und im Tooltip. Die Lage eines Orts sucht nur der Klick auf „Suchen“ (ADR 0008). -#}
+{#- Karte der Dienstreisen: Startorte als Raute mit Haus-Symbol, Reiseziele als Kreis mit der Zahl der Fahrten; der Name steht neben dem Punkt und im Tooltip. Die Lage eines Orts sucht nur der Klick auf „Suchen“ (ADR 0008). -#}
+{#- Haus aus Lucide „house“ (ISC-Lizenz), 24er Raster, hier auf Rautengröße verkleinert und mittig gesetzt. -#}
+{% macro house() -%}
+<g class="haus" transform="translate(-7.2 -7.2) scale(0.6)"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></g>
+{%- endmacro %}
 {% macro place_button(place, action, label) -%}
 <form method="post" action="/arbeit/dienstreisen/{{ year }}/orte/{{ action }}" class="inline">
   <input type="hidden" name="ort" value="{{ place }}"><button type="submit">{{ label }}</button>
@@ -8,7 +12,7 @@
   <h3>Karte der Orte</h3>
   <p>
     {{ map_places.points | length }} {{ "Ort" if map_places.points | length == 1 else "Orte" }} auf der Karte{% if map_places.unplaced %}, {{ map_places.unplaced | length }} ohne Lage{% endif %}.
-    <span class="legende"><svg viewBox="-11 -11 22 22" aria-hidden="true"><path class="marke start" d="M0 -10L10 0L0 10L-10 0Z"/></svg> Startort (S)
+    <span class="legende"><svg viewBox="-11 -11 22 22" aria-hidden="true"><path class="marke start" d="M0 -10L10 0L0 10L-10 0Z"/><g transform="scale(0.7)">{{ house() }}</g></svg> Startort
     <svg viewBox="-11 -11 22 22" aria-hidden="true"><circle class="marke ziel" r="9"/></svg> Reiseziel, Zahl = Fahrten</span>
   </p>
   <svg class="deutschlandkarte" viewBox="0 0 {{ germany.width }} {{ germany.height }}" role="img" aria-label="Karte von Deutschland mit den Orten der Dienstreisen {{ year }}">
@@ -17,8 +21,8 @@
     {% for point in map_places.points %}
     <g class="pt" transform="translate({{ point.x }} {{ point.y }})" role="img" aria-label="{{ point.tooltip }}">
       <title>{{ point.tooltip }}</title>
-      {% if point.use.is_start %}<path class="marke start" d="M0 -14L14 0L0 14L-14 0Z"/>{% else %}<circle class="marke ziel" r="11"/>{% endif %}
-      <text class="innen" y="4.2">{% if point.use.is_start %}S{% endif %}{{ point.use.destination_trips or "" }}</text>
+      {% if point.use.is_start %}<path class="marke start" d="M0 -14L14 0L0 14L-14 0Z"/>{{ house() }}{% else %}<circle class="marke ziel" r="11"/>
+      <text class="innen" y="4.2">{{ point.use.destination_trips or "" }}</text>{% endif %}
       <text class="name"{% if point.label_left %} text-anchor="end" x="-18"{% else %} x="18"{% endif %} y="4.5">{{ point.use.name }}</text>
     </g>
     {% endfor %}

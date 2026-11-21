@@ -172,6 +172,7 @@ form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
 .deutschlandkarte .grenzen { fill: none; stroke: var(--linie); stroke-width: 0.6; }
 .marke.ziel { fill: color-mix(in srgb, var(--akzent) 25%, var(--flaeche)); stroke: var(--akzent); stroke-width: 2; }
 .marke.start { fill: color-mix(in srgb, var(--warnung) 30%, var(--flaeche)); stroke: var(--warnung); stroke-width: 2.4; stroke-linejoin: round; }
+.haus { fill: none; stroke: var(--text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .deutschlandkarte .pt .innen { text-anchor: middle; font-size: 11px; font-weight: 700; fill: currentColor; }
 .deutschlandkarte .pt .name { font-size: 13px; fill: currentColor; paint-order: stroke; stroke: var(--flaeche); stroke-width: 3px; }
 .karte .legende { margin-left: 1rem; }

@@ -325,7 +325,10 @@ def test_the_map_marks_startort_and_reiseziele_not_by_colour_alone(setup: Setup)
     assert "<title>Probenburg · 2 Fahrten</title>" in html
     assert "<title>Testfurt · 1 Fahrt</title>" in html
     assert '<path class="marke start"' in html and '<circle class="marke ziel"' in html
-    assert ">S</text>" in html and ">2</text>" in html and ">Probenburg</text>" in html
+    assert ">2</text>" in html and ">Probenburg</text>" in html
+    # the Startort carries a house symbol, no letter and no number
+    assert ">S</text>" not in html and html.count('class="haus"') == 2  # marker + legend
+    assert "Startort (S)" not in html and "</svg> Startort\n" in html
 
 
 def test_a_network_error_and_no_hit_and_empty_text_show_a_message_and_store_nothing(
