@@ -183,7 +183,9 @@ def test_head_and_preview_scroll_on_their_own() -> None:
 
 def test_no_choice_is_unselected_without_multiple_selection(root: Path, site: Path) -> None:
     page = make_client(root, site).get("/belege?datei=0000").text
-    assert "Datei oder Beleg wählen" in page and 'type="checkbox"' not in page
+    # Kästchen gibt es nur für den Dateityp-Filter, keine zur Mehrfachauswahl von Dateien
+    boxes = page.count('type="checkbox"')
+    assert "Datei oder Beleg wählen" in page and boxes == page.count('name="typ"')
 
 
 # --- Weiter zur nächsten ---------------------------------------------------------------------

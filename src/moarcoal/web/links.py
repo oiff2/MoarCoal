@@ -4,20 +4,29 @@ Wer außerhalb einer Routen-Angabe eine Adresse braucht (Befund, Seitenleiste, V
 hier; der Testkern weist Routen in `storage/` und `values/` ab.
 """
 
+from collections.abc import Iterable
 from urllib.parse import urlencode
 
 
-def site_url(*, document_kind: str | None = None, year: int | None = None) -> str:
+def site_url(
+    *,
+    document_kind: str | None = None,
+    year: int | None = None,
+    query: str = "",
+    types: Iterable[str] = (),
+) -> str:
     """Die Belege-Seite; mit `document_kind` (Schlüssel einer angemeldeten Dokumentart) und `year`
-    ist das Aufnehmen-Formular so vorbelegt, und die Seite zeigt dieses Jahr."""
-    query = urlencode(
-        {
-            name: value
-            for name, value in (("dokumentart", document_kind), ("jahr", year))
-            if value is not None
-        }
-    )
-    return f"/belege?{query}" if query else "/belege"
+    ist das Aufnehmen-Formular so vorbelegt, und die Seite zeigt dieses Jahr. `query` (Suche) und
+    `types` (Werte der Dateitypen) sind Suche und Filter der Seite."""
+    pairs = [
+        (name, value)
+        for name, value in (("dokumentart", document_kind), ("jahr", year))
+        if value is not None
+    ]
+    if query.strip():
+        pairs.append(("suche", query.strip()))
+    pairs.extend(("typ", value) for value in types)
+    return f"/belege?{urlencode(pairs)}" if pairs else "/belege"
 
 
 def site_file_url(sha256: str) -> str:

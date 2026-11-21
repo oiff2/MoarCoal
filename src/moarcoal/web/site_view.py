@@ -5,15 +5,23 @@ gehört in `documents.py`, wann ein Erwarteter Beleg erfüllt ist in `expected_d
 hier steht, wie die Seite es zeigt.
 """
 
+from collections import Counter
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
-from moarcoal.document_filter import DocumentState, document_state
-from moarcoal.documents import DocumentKind, belongs_to_year
+from moarcoal.document_filter import (
+    DocumentState,
+    FileType,
+    SearchFilter,
+    document_state,
+    file_type,
+)
+from moarcoal.documents import DocumentKind, belongs_to_year, document_name
 from moarcoal.expected_documents import matching_documents, previous_year_issuer
 from moarcoal.incoming import hidden_files, hidden_folders, in_hidden_folder, incoming_files
 from moarcoal.storage import (
     Document,
+    EntryAddress,
     ExpectedDocument,
     HiddenFile,
     HiddenFolder,
@@ -219,3 +227,73 @@ def year_documents(
             title = f"{title}, {document.period_start.year}"
         rows.append(DocumentRow(document, title, document_state(state, kinds, document)))
     return rows
+
+
+def _issuer_name(state: State, issuer: EntryAddress | None) -> str:
+    found = state.get(issuer) if issuer else None
+    return found.name if isinstance(found, Issuer) else ""
+
+
+def filter_new(section: NewSection, flt: SearchFilter) -> NewSection:
+    """Der Abschnitt Neu mit den Dateien, die Suche (Ablageort, Pfad mit Ordner und Name) und
+    Dateityp treffen. Die Ausblendungen bleiben stehen: sie sind eine Pflegeliste."""
+    return replace(
+        section,
+        groups=[
+            NewGroup(
+                g.site,
+                [
+                    f
+                    for f in g.files
+                    if flt.matches([f.file.site, f.file.path], [file_type(f.file.path)])
+                ],
+            )
+            for g in section.groups
+        ],
+    )
+
+
+def filter_expected(rows: Sequence[ExpectedRow], flt: SearchFilter) -> list[ExpectedRow]:
+    """Die Erwarteten Belege, die Suche (Belegtyp, Beschreibung, Aussteller) und Dateityp treffen;
+    ein Dateityp haben nur die Dokumente, die den Eintrag erfüllen, ein ausstehender keinen."""
+    return [
+        r
+        for r in rows
+        if flt.matches(
+            [r.title, r.entry.description or "", r.issuer.name if r.issuer else ""],
+            [file_type(d.path) for d in r.documents],
+        )
+    ]
+
+
+def filter_documents(
+    rows: Sequence[DocumentRow], flt: SearchFilter, state: State
+) -> list[DocumentRow]:
+    """Die Aufgenommenen Belege, die Suche (Ablageort, Pfad, Name, Bezeichnung, Aussteller) und
+    Dateityp treffen."""
+    return [
+        r
+        for r in rows
+        if flt.matches(
+            [
+                r.document.site,
+                r.document.path,
+                document_name(r.document, state),
+                r.document.label or "",
+                _issuer_name(state, r.document.issuer),
+            ],
+            [file_type(r.document.path)],
+        )
+    ]
+
+
+def type_counts(
+    new: NewSection, documents: Sequence[DocumentRow], flt: SearchFilter, state: State
+) -> dict[FileType, int]:
+    """Wie viele Dateien (Neu und Aufgenommen) je Dateityp die Suche trifft; die Wahl der
+    Dateitypen bleibt außen vor, sonst zeigte jeder Typ nur „0“, sobald ein anderer gewählt ist."""
+    search = flt.without_types()
+    paths = [f.file.path for f in filter_new(new, search).files()]
+    paths += [r.document.path for r in filter_documents(documents, search, state)]
+    counts = Counter(file_type(p) for p in paths)
+    return {t: counts[t] for t in FileType}

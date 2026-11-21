@@ -270,6 +270,9 @@ _Avoid_: externer Ordner, Quellordner, Mount
 Ein Ablageort, der zu einem Steuerjahr gehört (z. B. der Ordner der Erklärung 2025); die Belege-Seite eines Jahrs zeigt seinen Eingang zuerst. Ein Ablageort ohne Jahr gilt für kein bestimmtes Jahr (z. B. „Scan-Eingang“).
 _Avoid_: Jahresablage, Steuerordner
 
+**Dateityp**:
+Die Art einer Datei nach ihrer Endung: PDF, eDaten (HTML und XML aus Mein ELSTER), Bild, Tabelle (xlsx, ods, csv) oder Sonstiges (Code: `FileType`). Die Belege-Seite sucht und filtert danach (mehrere Typen gelten als „oder“); die Suche trifft Dateiname, Ordner, Aussteller und Bezeichnung in allen drei Abschnitten, Suche und gewählte Typen stehen in der Adresse. Ein ausstehender Erwarteter Beleg hat keine Datei und damit keinen Dateityp.
+
 **Eingang** _(geprägt)_:
 Die Dateien in den Ablageorten, die weder aufgenommen noch ausgeblendet sind; in der Oberfläche der Abschnitt „Neu im Jahresordner“ der Belege-Seite (mit den Ablageorten ohne Jahr darunter), im Befund „n Dateien im Eingang“ gezählt. Daraus wird nichts von selbst übernommen.
 _Avoid_: Inbox, Import, Vorschlag

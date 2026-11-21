@@ -65,6 +65,15 @@
 {% endmacro %}
 {% block main %}
 <h1>Belege {{ year }}</h1>
+<form class="suche" method="get" action="/belege" role="search">
+  {% if linked.year %}<input type="hidden" name="jahr" value="{{ linked.year }}">{% endif %}
+  {% if linked.kind %}<input type="hidden" name="dokumentart" value="{{ linked.kind }}">{% endif %}
+  <input type="search" name="suche" value="{{ search.query }}" placeholder="Suche in Name, Ordner, Aussteller, Bezeichnung" aria-label="Suche">
+  {% for type, count in type_counts.items() %}<label class="typ"><input type="checkbox" name="typ" value="{{ type.value }}"{% if type in search.types %} checked{% endif %}> {{ type.label }} ({{ count }})</label>
+  {% endfor %}
+  <button type="submit">Filtern</button>
+  {% if search.active %}<a href="/belege{% if linked.year %}?jahr={{ linked.year }}{% endif %}">Zurücksetzen</a>{% endif %}
+</form>
 <p class="werkzeug"><button type="button" class="nur-js" data-detailspalte-schalter aria-controls="detailspalte" aria-expanded="true">Detailspalte ausblenden</button></p>
 {% if notice and not selected_document %}<p class="fehler">{{ notice }}</p>{% endif %}
 <div class="arbeit">

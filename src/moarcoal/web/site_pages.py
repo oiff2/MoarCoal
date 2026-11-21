@@ -3,10 +3,11 @@ Jahrs, dazu Aufnehmen und Ausblenden der Dateien (Abschnitt Neu)."""
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import year_of
+from moarcoal.document_filter import SearchFilter, parse_file_types
 from moarcoal.documents import IntakeRejected, read_document_choice, take_in
 from moarcoal.incoming import (
     all_site_files,
@@ -42,8 +43,12 @@ from moarcoal.web.links import document_file_url, document_url, site_file_url, s
 from moarcoal.web.previews import file_response, preview_kind
 from moarcoal.web.site_view import (
     expected_rows,
+    filter_documents,
+    filter_expected,
+    filter_new,
     new_section,
     next_open,
+    type_counts,
     year_documents,
 )
 
@@ -105,6 +110,7 @@ def belege_page(
     expected_errors: list[str] | None = None,
     expected_values: Fields | None = None,
     linked: Prefill | None = None,
+    search: SearchFilter | None = None,
 ) -> HTMLResponse:
     """Die Seite des gewählten Jahrs. Rechts steht, was gewählt ist: eine Datei des Eingangs oder
     eine ausgeblendete (`selected`: SHA-256) oder ein Dokument (`document`). `rejected`, `values`
@@ -112,18 +118,21 @@ def belege_page(
     bei „Existiert bereits“; `issuer_text` und `year_text` stellen die abgewiesene Eingabe eines
     Dokuments wieder her); `expected_errors` und `expected_values`
     gehören zum Formular für einen Erwarteten Beleg. `linked` ist die Vorbelegung aus der Adresse
-    (Dokumentart und Jahr, `site_url`); sie geht der aus dem Dateinamen vor."""
+    (Dokumentart und Jahr, `site_url`); sie geht der aus dem Dateinamen vor. `search` sind Suche
+    und Dateityp-Filter der Adresse; sie wirken auf alle drei Abschnitte."""
     store = store_of(request)
     state = store.state()
     user = user_of(request)
     linked = linked or Prefill()
+    search = search or SearchFilter()
     year = linked.year or global_year(request)
     files = all_site_files(store)
     open_files = incoming_files(files, state, user)
-    new = new_section(files, store.sites, state, user, year)
+    whole_new = new_section(files, store.sites, state, user, year)
+    new = filter_new(whole_new, search)
     kinds = document_kinds(request)
     chosen = next((f for f in open_files if f.sha256 == selected), None)
-    hidden_chosen = None if chosen else new.hidden_file(selected)
+    hidden_chosen = None if chosen else whole_new.hidden_file(selected)
     # Vorbelegen nur für eine offene Datei und nur, solange keine abgewiesene Eingabe dasteht
     suggestion = (
         prefill_from_name(state, kinds.values(), chosen.path)
@@ -141,6 +150,7 @@ def belege_page(
         preview_url, preview_path = document_file_url(document.id), document.path
     else:
         preview_url = preview_path = ""
+    taken_in = year_documents(state, store.sites, kinds, user, year)
     return render(
         request,
         "belege.html",
@@ -148,15 +158,17 @@ def belege_page(
         open_files=len(open_files),
         year=year,
         new=new,
-        expected=expected_rows(state, user, year, kinds),
+        expected=filter_expected(expected_rows(state, user, year, kinds), search),
         expected_kinds={k.key: k for k in kinds.values() if k.has_period},
         expected_errors=expected_errors or [],
         expected_values=expected_values or {"start_year": str(year)},
-        taken_in=year_documents(state, store.sites, kinds, user, year),
+        taken_in=filter_documents(taken_in, search, state),
+        search=search,
+        type_counts=type_counts(whole_new, taken_in, search, state),
         selected=chosen,
         linked=linked,
         linked_kind=kinds[linked.kind] if linked.kind else None,
-        carry=_carry(linked),
+        carry=_carry(linked, search),
         selected_document=document,
         detail=document_detail(request, document, issuer_text, year_text) if document else None,
         selected_hidden=hidden_chosen,
@@ -193,9 +205,19 @@ def _linked(request: Request, dokumentart: str, jahr: str) -> Prefill:
     return Prefill(year=year_of(jahr, in_range=True), kind=kind)
 
 
-def _carry(linked: Prefill) -> str:
-    """Die Vorbelegung als Anhang der Adresse einer Datei, damit sie beim Wählen bleibt."""
-    query = site_url(document_kind=linked.kind, year=linked.year).partition("?")[2]
+def _search_of(suche: str, typ: list[str]) -> SearchFilter:
+    return SearchFilter(suche, parse_file_types(typ))
+
+
+def _carry(linked: Prefill, search: SearchFilter) -> str:
+    """Vorbelegung, Suche und Dateitypen als Anhang der Adresse einer Datei, damit sie beim
+    Wählen bleiben."""
+    query = site_url(
+        document_kind=linked.kind,
+        year=linked.year,
+        query=search.query,
+        types=sorted(t.value for t in search.types),
+    ).partition("?")[2]
     return f"&{query}" if query else ""
 
 
@@ -206,6 +228,8 @@ def index(
     dokument: str = "",
     dokumentart: str = "",
     jahr: str = "",
+    suche: str = "",
+    typ: Annotated[list[str], Query()] = [],  # noqa: B006 (FastAPI kopiert den Vorgabewert)
 ) -> HTMLResponse:
     state, user = store_of(request).state(), user_of(request)
     document = next(
@@ -216,6 +240,7 @@ def index(
         selected=datei,
         document=document,
         linked=_linked(request, dokumentart, jahr),
+        search=_search_of(suche, typ),
     )
 
 

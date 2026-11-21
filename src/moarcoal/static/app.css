@@ -90,6 +90,9 @@ form.direkt { display: inline; margin-left: auto; }
 button.auge { padding: 0 0.25rem; line-height: 1; vertical-align: middle; }
 button.auge svg { display: block; }
 .datei a[aria-current] { font-weight: bold; }
+.suche { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin: 0.5rem 0; }
+.suche input[type=search] { flex: 1 1 16rem; }
+.suche label.typ { white-space: nowrap; }
 .arbeit { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(18rem, 2fr) 3fr; grid-template-rows: minmax(0, 1fr); gap: 1rem; }
 /* Rechts: der Kopf ist so hoch wie sein Inhalt, höchstens 45 % und scrollt darüber in sich; darunter scrollt die Vorschau in sich */
 .nur-js { display: none; }
