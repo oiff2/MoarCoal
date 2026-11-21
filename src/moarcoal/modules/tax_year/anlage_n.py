@@ -9,8 +9,9 @@ gerundet, wie das Feld es verlangt (`fields`); der Rundungsschritt steht im Rech
 des Moduls Arbeit bleiben genau.
 """
 
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from functools import partial
+from typing import Any
 
 from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.assessment import (
@@ -22,11 +23,17 @@ from moarcoal.modules.tax_year.assessment import (
     MEAL_ALLOWANCE,
     SOLI_WITHHELD,
 )
+from moarcoal.modules.tax_year.field_catalog import (
+    Compute,
+    catalog_field,
+    rounded,
+    work_total,
+)
+from moarcoal.modules.tax_year.field_catalog import values_for as define_values
 from moarcoal.modules.tax_year.fields import Direction, FormField, Forms, Rounding, TypedInput
-from moarcoal.modules.tax_year.form_names import form_name
 from moarcoal.modules.tax_year.structure import FormStructure, load_structure
 from moarcoal.values.calculation import Calculation
-from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
+from moarcoal.values.catalog import ValueDefinition
 from moarcoal.values.model import Amount, Unit, ValueKey
 
 FORM = "N"  # Anlage N (Person A)
@@ -69,14 +76,24 @@ N_REFUND_TAX_FREE = ValueKey("tax_year.n_refund_tax_free")
 N_REFUND_FLAT_TAXED = ValueKey("tax_year.n_refund_flat_taxed")
 
 
-def _rounded(calculation: Calculation, field: FormField, amount: Amount) -> Amount:
-    """Rundet den Endwert nach dem Feld, mit Schritt im Rechenweg; passt er schon, ohne Schritt."""
-    rounded, reason = field.round(amount.value)
-    if reason is None:
-        return amount
-    return calculation.step(
-        f"{field.show(amount.value)} → {field.show(rounded)} ({reason})",
-        Amount(rounded, amount.unit),
+def _known(
+    structure: FormStructure,
+    name: str,
+    elster_id: str,
+    unit: Unit | None,
+    rounding: Rounding,
+    **meaning: Any,
+) -> FormField:
+    """Ein Feld des Katalogs, das MoarCoal bisher nicht berechnet."""
+    return catalog_field(
+        FORM,
+        structure,
+        ValueKey(f"tax_year.n_{name}"),
+        elster_id,
+        unit,
+        rounding,
+        computed=False,
+        **meaning,
     )
 
 
@@ -86,101 +103,10 @@ def _rounded(calculation: Calculation, field: FormField, amount: Amount) -> Amou
 # bekannten Felder mit; berechnet werden bisher nur die mit Quelle im Modul Arbeit
 # (`computed`). Die Positionen des EStB (`assessment`) und welche er gerundet druckt, hat der
 # Mensch an einem echten EStB zugeordnet (#54).
-def _catalog_field(
-    structure: FormStructure,
-    key: ValueKey,
-    elster_id: str,
-    unit: Unit | None,
-    rounding: Rounding,
-    direction: Direction | None,
-    *,
-    computed: bool,
-    assessment: tuple[str, ...],
-    printed_rounded: bool,
-    previous: str | None,
-    typed: TypedInput | None,
-) -> FormField:
-    """Ein Feld des Katalogs: Bedeutung aus den Argumenten, Nr. und Bezeichnung aus der Struktur."""
-    described = structure.get(elster_id)
-    return FormField(
-        key,
-        elster_id,
-        described.line,
-        described.label,
-        unit,
-        rounding,
-        direction,
-        computed=computed,
-        assessment=assessment,
-        printed_rounded=printed_rounded,
-        previous=previous,
-        typed=typed,
-        form=FORM,
-    )
-
-
-def _known(
-    structure: FormStructure,
-    name: str,
-    elster_id: str,
-    unit: Unit | None,
-    rounding: Rounding,
-    direction: Direction | None = None,
-    *,
-    assessment: tuple[str, ...] = (),
-    printed_rounded: bool = False,
-    previous: str | None = None,
-    typed: TypedInput | None = None,
-) -> FormField:
-    """Ein Feld des Katalogs, das MoarCoal bisher nicht berechnet."""
-    return _catalog_field(
-        structure,
-        ValueKey(f"tax_year.n_{name}"),
-        elster_id,
-        unit,
-        rounding,
-        direction,
-        computed=False,
-        assessment=assessment,
-        printed_rounded=printed_rounded,
-        previous=previous,
-        typed=typed,
-    )
-
-
-def _computed(
-    structure: FormStructure,
-    key: ValueKey,
-    elster_id: str,
-    unit: Unit,
-    rounding: Rounding,
-    direction: Direction | None = None,
-    *,
-    assessment: tuple[str, ...] = (),
-    printed_rounded: bool = False,
-    previous: str | None = None,
-    typed: TypedInput | None = None,
-) -> FormField:
-    """Ein Feld des Katalogs, das MoarCoal berechnet."""
-    return _catalog_field(
-        structure,
-        key,
-        elster_id,
-        unit,
-        rounding,
-        direction,
-        computed=True,
-        assessment=assessment,
-        printed_rounded=printed_rounded,
-        previous=previous,
-        typed=typed,
-    )
-
-
 def fields_n(structure: FormStructure) -> tuple[FormField, ...]:
     """Die Felder der Anlage N: Bedeutung aus dem Katalog, Bezeichnung und Nr. aus der Struktur."""
     known = partial(_known, structure)
-    computed = partial(_computed, structure)
+    computed = partial(catalog_field, FORM, structure, computed=True)
     return (
         computed(N_TAX_CLASS, "E0200002", Unit.TAX_CLASS, Rounding.NONE),
         computed(
@@ -301,15 +227,6 @@ FIELDS_2025 = fields_n(STRUCTURES[2025])
 FORMS: Forms = {2025: FIELDS_2025}
 
 
-def _field(calculation: Calculation, forms: Forms, key: ValueKey) -> FormField:
-    """Das Feld im Katalog des Steuerjahrs; ohne Katalog ist es noch nicht berechenbar."""
-    year = calculation.year
-    field = next((f for f in forms.get(year, ()) if f.key == key), None)
-    if field is None:
-        calculation.not_yet(f"{form_name(FORM)} {year} deckt MoarCoal noch nicht ab")
-    return field
-
-
 def _work_value(calculation: Calculation, field: FormField, source: ValueKey, label: str) -> Amount:
     """Übernimmt den Wert je erster Tätigkeitsstätte; mehrere sind noch nicht zugeordnet."""
     year = calculation.year
@@ -325,7 +242,7 @@ def _work_value(calculation: Calculation, field: FormField, source: ValueKey, la
     if item is None:
         calculation.not_applicable(f"{label} entfällt")
     amount = calculation.step(f"{label} übernommen", item.amount)
-    return _rounded(calculation, field, amount)
+    return rounded(calculation, field, amount)
 
 
 def compute_workplace_days(calculation: Calculation, field: FormField) -> Amount:
@@ -374,20 +291,11 @@ def compute_absence_days(calculation: Calculation, field: FormField) -> Amount:
     )
 
 
-def _work_total(calculation: Calculation, field: FormField, source: ValueKey, label: str) -> Amount:
-    """Übernimmt den Wert des Jahrs aus dem Modul Arbeit; entfällt er, entfällt das Feld."""
-    item = calculation.use(source, label=label)
-    if item is None:
-        calculation.not_applicable(f"{label} entfällt")
-    amount = calculation.step(f"{label} übernommen", item.amount)
-    return _rounded(calculation, field, amount)
-
-
 def compute_equipment(calculation: Calculation, field: FormField) -> Amount:
-    return _work_total(calculation, field, WORK_EQUIPMENT, "Summe der Arbeitsmittel")
+    return work_total(calculation, field, WORK_EQUIPMENT, "Summe der Arbeitsmittel")
 
 
-_COMPUTE: dict[ValueKey, Callable[[Calculation, FormField], Amount]] = {
+_COMPUTE: dict[ValueKey, Compute] = {
     N_WORKPLACE_DAYS: compute_workplace_days,
     N_WORKPLACE_DISTANCE: compute_workplace_distance,
     N_WORKDAYS_PER_WEEK: compute_workdays_per_week,
@@ -395,47 +303,26 @@ _COMPUTE: dict[ValueKey, Callable[[Calculation, FormField], Amount]] = {
     N_CAR_DISTANCE: compute_car_distance,
     N_HOMEOFFICE_DAYS: compute_homeoffice_days,
     N_EQUIPMENT: compute_equipment,
-    N_TAX_CLASS: partial(_work_total, source=WORK_TAX_CLASS, label="Steuerklasse"),
-    N_GROSS_WAGES: partial(_work_total, source=WORK_GROSS_WAGES, label="Bruttoarbeitslohn"),
-    N_GROSS_WAGES_SINGLE: partial(_work_total, source=WORK_GROSS_WAGES, label="Bruttoarbeitslohn"),
-    N_INCOME_TAX: partial(_work_total, source=WORK_INCOME_TAX, label="Lohnsteuer"),
-    N_INCOME_TAX_SINGLE: partial(_work_total, source=WORK_INCOME_TAX, label="Lohnsteuer"),
-    N_SOLI: partial(_work_total, source=WORK_SOLI, label="Solidaritätszuschlag"),
-    N_SOLI_SINGLE: partial(_work_total, source=WORK_SOLI, label="Solidaritätszuschlag"),
-    N_TRAVEL_FARE: partial(_work_total, source=WORK_TRAVEL_FARE, label="Fahrtkosten"),
-    N_TRAVEL_TOTAL: partial(_work_total, source=WORK_TRAVEL_TOTAL, label="Summe der Reisekosten"),
+    N_TAX_CLASS: partial(work_total, source=WORK_TAX_CLASS, label="Steuerklasse"),
+    N_GROSS_WAGES: partial(work_total, source=WORK_GROSS_WAGES, label="Bruttoarbeitslohn"),
+    N_GROSS_WAGES_SINGLE: partial(work_total, source=WORK_GROSS_WAGES, label="Bruttoarbeitslohn"),
+    N_INCOME_TAX: partial(work_total, source=WORK_INCOME_TAX, label="Lohnsteuer"),
+    N_INCOME_TAX_SINGLE: partial(work_total, source=WORK_INCOME_TAX, label="Lohnsteuer"),
+    N_SOLI: partial(work_total, source=WORK_SOLI, label="Solidaritätszuschlag"),
+    N_SOLI_SINGLE: partial(work_total, source=WORK_SOLI, label="Solidaritätszuschlag"),
+    N_TRAVEL_FARE: partial(work_total, source=WORK_TRAVEL_FARE, label="Fahrtkosten"),
+    N_TRAVEL_TOTAL: partial(work_total, source=WORK_TRAVEL_TOTAL, label="Summe der Reisekosten"),
     N_REFUND_TAX_FREE: partial(
-        _work_total, source=WORK_BENEFITS_TAX_FREE, label="Arbeitgeberleistungen laut Nr. 17"
+        work_total, source=WORK_BENEFITS_TAX_FREE, label="Arbeitgeberleistungen laut Nr. 17"
     ),
     N_REFUND_FLAT_TAXED: partial(
-        _work_total, source=WORK_BENEFITS_FLAT_TAXED, label="Arbeitgeberleistungen laut Nr. 18"
+        work_total, source=WORK_BENEFITS_FLAT_TAXED, label="Arbeitgeberleistungen laut Nr. 18"
     ),
 }
 
 
-def _compute(forms: Forms, key: ValueKey) -> Callable[[Calculation], Amount]:
-    def compute(calculation: Calculation) -> Amount:
-        return _COMPUTE[key](calculation, _field(calculation, forms, key))
-
-    return compute
-
-
 def values_for(forms: Forms) -> tuple[ValueDefinition, ...]:
-    """Ein Wert je berechnetes Feld, das in einem der Jahre vorkommt; die Bezeichnung aus dem
-    jüngsten Jahr. Felder, die MoarCoal noch nicht berechnet, haben keinen Wert."""
-    latest: dict[ValueKey, FormField] = {}
-    for year in sorted(forms):
-        latest.update((field.key, field) for field in forms[year] if field.computed)
-    return tuple(
-        ValueDefinition(
-            CatalogEntry(
-                field.key, f"{form_name(FORM)}, {field.label}", field.unit, TimeKind.PERIOD
-            ),
-            _compute(forms, field.key),
-        )
-        for field in latest.values()
-        if field.unit is not None  # berechnete Felder haben immer eine Einheit
-    )
+    return define_values(FORM, forms, _COMPUTE)
 
 
 ANLAGE_N = Anlage(FORM, FORMS, STRUCTURES, values_for)
