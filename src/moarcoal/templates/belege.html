@@ -4,7 +4,6 @@
 {% from "_belege.html" import preview, rejection %}
 {% from "documents/_detail.html" import document_detail with context %}
 {% block title %}Belege {{ year }} – MoarCoal{% endblock %}
-{% macro size(file) %}{{ (file.size / 1024) | round(1) | string | replace(".", ",") }} KB{% endmacro %}
 {% macro hide_button(sha256="", site="", path="") %}
 <form class="direkt" method="post" action="{{ keep_filter('/belege/ausblenden-direkt') }}">
   {% if sha256 %}<input type="hidden" name="sha256" value="{{ sha256 }}">{% else %}<input type="hidden" name="site" value="{{ site }}"><input type="hidden" name="path" value="{{ path }}">{% endif %}
@@ -17,7 +16,6 @@
   {{ file_type(file.path) }}
   <a class="name" href="{{ keep_filter('/belege?datei=' ~ file.sha256 ~ carry) }}"{% if selected and selected.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
   <span class="ordner-name">{{ row.folder }}{% if row.folder %} {{ hide_button(site=site, path=row.folder) }}{% endif %}</span>
-  <span class="groesse">{{ size(file) }}</span>
   <a class="aktion" href="{{ keep_filter('/belege?datei=' ~ file.sha256 ~ carry) }}">aufnehmen</a>
   <a class="aktion" href="{{ row.preview_url }}" target="_blank" rel="noopener">öffnen</a>
   {{ hide_button(sha256=file.sha256) }}
@@ -27,7 +25,7 @@
 {% set file = selected %}
 {% set form = values if values.get("sha256") == file.sha256 else {} %}
 <div class="formular">
-  <p class="dateiname">{{ file.site }}/{{ file.path }} ({{ size(file) }})</p>
+  <p class="dateiname">{{ file.site }}/{{ file.path }}</p>
   {% for message in errors.get(file.sha256, []) %}{{ rejection(message, existing) }}{% endfor %}
   <form method="post" action="{{ keep_filter('/belege/aufnehmen') }}">
     <input type="hidden" name="sha256" value="{{ file.sha256 }}">
@@ -53,7 +51,7 @@
 {% macro hidden_pane() %}
 {% set entry, checksum, file = selected_hidden.entry, selected_hidden.checksum, selected_hidden.file %}
 <div class="formular">
-  <p class="dateiname">{{ entry.site }}/{{ entry.path }}{% if file %} ({{ size(file) }}){% endif %}</p>
+  <p class="dateiname">{{ entry.site }}/{{ entry.path }}</p>
   <p>Für alle Nutzer ausgeblendet, bis jemand die Datei wieder einblendet; sie zählt in keinem Zähler.{% if entry.note %} Notiz: {{ entry.note }}{% endif %}</p>
   <form method="post" action="{{ keep_filter('/belege/einblenden') }}">
     <input type="hidden" name="sha256" value="{{ entry.sha256 }}">
@@ -77,6 +75,7 @@
 <p class="werkzeug"><button type="button" class="nur-js" data-detailspalte-schalter aria-controls="detailspalte" aria-expanded="true">Detailspalte ausblenden</button></p>
 {% if notice and not selected_document %}<p class="fehler">{{ notice }}</p>{% endif %}
 <div class="arbeit">
+<div class="griff nur-js" role="separator" aria-orientation="vertical" aria-label="Breite der Liste" tabindex="0" title="Breite ziehen, Doppelklick setzt zurück" data-griff-var="--belege-links" data-griff-key="belege-links" data-griff-min="288" data-griff-max="1600" data-griff-rest="320" data-griff-ziel=".baum"></div>
 <div class="baum">
   {% if not configured %}
   <p class="fehler">Es ist noch kein Ablageort eingerichtet (common/sites.json im Datenverzeichnis).</p>
@@ -95,7 +94,7 @@
     {% for group in new.groups %}
     <h3>{{ group.site }}{% if group.site == new.year_folder %} (Jahresordner){% endif %}</h3>
     {% if group.files %}
-    <div class="datei kopf"><span class="name">Datei</span><span class="ordner-name">Unterordner</span><span class="groesse">Größe</span></div>
+    <div class="datei kopf"><span class="name">Datei</span><span class="ordner-name">Unterordner</span></div>
     {% for row in group.files %}{{ new_row(row, group.site) }}{% endfor %}
     {% else %}<p>Keine neuen Dateien.</p>{% endif %}
     {% endfor %}
@@ -108,7 +107,7 @@
       {% for row in new.hidden_folders %}{% set entry, checksum, count = row.entry, row.checksum, row.count %}
       <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
         <span class="name">{{ entry.path }}/</span>
-        <span class="groesse">{{ count }} {{ "Datei" if count == 1 else "Dateien" }}</span>
+        <span class="zahl">{{ count }} {{ "Datei" if count == 1 else "Dateien" }}</span>
         <span class="stand">ausgeblendet</span>
         <form class="direkt" method="post" action="{{ keep_filter('/belege/einblenden-ordner') }}">
           <input type="hidden" name="site" value="{{ entry.site }}">
@@ -122,7 +121,6 @@
       <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
         {{ file_type(entry.path) }}
         <a class="name" href="{{ keep_filter('/belege?datei=' ~ entry.sha256) }}"{% if selected_hidden and selected_hidden.entry.sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a>
-        {% if file %}<span class="groesse">{{ size(file) }}</span>{% endif %}
         <span class="stand">ausgeblendet</span>
       </div>
       {% endfor %}

@@ -107,13 +107,13 @@ def test_three_collapsible_sections_with_counts_in_the_title(client: httpx.Clien
 # --- Neu im Jahresordner --------------------------------------------------------------------
 
 
-def test_new_shows_the_year_folder_with_subfolder_and_size_and_the_sites_without_year(
+def test_new_shows_the_year_folder_with_subfolder_and_the_sites_without_year(
     client: httpx.Client,
 ) -> None:
     neu = section(main_of(client), "neu")
     assert "steuer25" in neu and "Unterordner" in neu
     assert "auszug25.txt" in neu and "brief25.txt" in neu and "bank" in neu
-    assert "0,0 KB" in neu
+    assert "KB" not in neu
     assert "brief24.txt" not in neu  # Jahresordner eines anderen Jahrs
     assert "scans" in neu and "scan.txt" in neu
     assert neu.index("brief25.txt") < neu.index("scan.txt")  # erst der Jahresordner

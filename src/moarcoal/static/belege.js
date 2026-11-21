@@ -78,3 +78,5 @@ document.querySelector(".baum")?.addEventListener("click", (event) => {
     });
   }
 })();
+// Spaltengriff: Breite der Liste ziehen (Logik und Speicher wie bei der Seitenleiste, rahmen.js); sofort, damit die gemerkte Breite nicht springt.
+for (const grip of document.querySelectorAll(".arbeit > .griff")) window.moarcoalGriff?.init(grip);

@@ -416,3 +416,37 @@ def test_sections_remember_open_state_without_flicker(two: httpx.Client) -> None
     js = Path("src/moarcoal/static/belege.js").read_text(encoding="utf-8")
     assert "details.abschnitt" in js and '"toggle"' in js and "a[aria-current]" in js
     assert "http" not in js
+
+
+def test_column_grip_shares_the_sidebar_grip_logic(two: httpx.Client) -> None:
+    page = two.get("/belege").text
+    grip = page.split('<div class="arbeit">')[1].split("</div>")[0]
+    for needle in (
+        'class="griff nur-js"',
+        'role="separator"',
+        'aria-orientation="vertical"',
+        'tabindex="0"',
+        'data-griff-var="--belege-links"',
+        'data-griff-key="belege-links"',
+        "data-griff-min=",
+        "data-griff-max=",
+    ):
+        assert needle in grip
+    side = page.split('<aside class="seitenleiste">')[1].split("</aside>")[0]
+    assert 'class="griff"' in side and 'data-griff-var="--seitenleiste"' in side
+    assert 'role="separator"' in side and 'aria-orientation="vertical"' in side
+    rahmen = Path("src/moarcoal/static/rahmen.js").read_text(encoding="utf-8")
+    belege = Path("src/moarcoal/static/belege.js").read_text(encoding="utf-8")
+    assert "moarcoalGriff" in rahmen and "dblclick" in rahmen and "ArrowLeft" in rahmen
+    assert "catch" in rahmen and "moarcoalGriff" in belege
+    assert "mousedown" not in belege  # keine zweite Kopie der Zieh-Logik
+    assert "http" not in rahmen
+    css = Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
+    assert "var(--belege-links, 1fr)" in css and "style=" not in page.split("<main>")[1]
+
+
+def test_belege_page_shows_no_file_size(two: httpx.Client) -> None:
+    for url in ("/belege", f"/belege?datei={doc(two, 'bescheid.txt').sha256}"):
+        page = two.get(url).text.split("<main>")[1]
+        assert "KB" not in page and "groesse" not in page
+    assert "groesse" not in Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")

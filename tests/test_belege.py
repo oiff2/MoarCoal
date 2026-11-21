@@ -489,7 +489,6 @@ def test_hidden_file_missing_in_the_site_has_no_preview_but_can_be_shown(
     (site / "2025" / "protokoll.html").unlink()
     chosen = main_of(client, f"/belege?datei={SHA}")
     assert "Keine Vorschau." in chosen and "<iframe" not in chosen
-    assert "KB</span>" not in chosen.split("Ausgeblendet (")[1].split("</details>")[0]
     assert "Wieder einblenden" in chosen
 
 
