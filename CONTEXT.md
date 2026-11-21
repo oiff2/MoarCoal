@@ -324,7 +324,7 @@ Wie ein Erwarteter Beleg zu beschaffen ist, aus einer festen Liste (Post, Online
 _Avoid_: Bezugsweg („Bezug“ heißt sonst Referenz, im Steuerrecht sind Bezüge Einkünfte), Kanal, Quelle (die Quelle ist der Weg in MoarCoal, nicht zum Nutzer)
 
 **Vertrag**:
-Eine Vereinbarung eines Nutzers mit einem Aussteller als Vertragspartner (z. B. Versicherung, Darlehen, Mietvertrag, Strom) mit Vertragsnummer und Laufzeit, dem Dokumente zugeordnet werden; nach ihrem Ende bleibt sie ein Vertrag. Was der Vertrag fachlich bedeutet, weiß das Modul.
+Eine Vereinbarung eines Nutzers mit einem Aussteller als Vertragspartner (z. B. Versicherung, Darlehen, Mietvertrag, Strom) mit Bezeichnung, Vertragsnummer (sensibel), Art (freier kurzer Text) und Laufzeit (Beginn und Ende, beide optional), dem Dokumente zugeordnet werden; nach ihrem Ende bleibt sie ein Vertrag (Code: `Agreement`). Was der Vertrag fachlich bedeutet, weiß das Modul.
 _Avoid_: Police, Konto, Abo; für die Vereinbarung zwischen Schnittstellen heißt es Contract
 
 **sensibel**:

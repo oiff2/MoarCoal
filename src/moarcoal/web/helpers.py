@@ -18,6 +18,7 @@ from moarcoal.incoming import Incoming, all_site_files
 from moarcoal.personal_details import details_of
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import (
+    Agreement,
     Document,
     Entry,
     EntryAddress,
@@ -33,6 +34,8 @@ from moarcoal.values.engine import Values
 from moarcoal.values.findings import INCOMING_TARGET, Finding, FindingList, HiddenFinding, Severity
 from moarcoal.values.model import ValueRef
 from moarcoal.web.links import (
+    agreement_url,
+    agreements_url,
     document_url,
     expected_documents_url,
     issuer_url,
@@ -86,6 +89,8 @@ def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) ->
         return expected_documents_url(address.id)
     if address.kind == Issuer.__name__:  # Baustein der Datenebene
         return issuer_url(address.id)
+    if address.kind == Agreement.__name__:  # Baustein der Datenebene
+        return agreement_url(address.id)
     return next((url for m in modules if (url := m.entry_url(address)) is not None), None)
 
 
@@ -289,7 +294,7 @@ def validated[M: BaseModel](
 
 
 def _sidebar(request: Request, open_files: int | None) -> list[tuple[str, list[NavEntry]]]:
-    """Die Seitenleiste: Module unter „Bereiche“, Belege und Aussteller unter „Allgemein“."""
+    """Die Seitenleiste: Module unter „Bereiche“, Bausteine unter „Allgemein“."""
     registrations: tuple[ModuleRegistration, ...] = request.app.state.modules
     if open_files is None:
         open_files = len(incoming_of(request).open_files())
@@ -297,6 +302,7 @@ def _sidebar(request: Request, open_files: int | None) -> list[tuple[str, list[N
     general = [
         NavEntry("Belege", site_url(), "belege", open_files),
         NavEntry("Aussteller", issuers_url(), "aussteller"),
+        NavEntry("Verträge", agreements_url(), "vertrag"),
     ]
     return [("Bereiche", areas), ("Allgemein", general)]
 

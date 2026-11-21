@@ -102,3 +102,11 @@ def mein_elster_url() -> str:
     """Die Anmeldung bei Mein ELSTER: der einzige Link nach außen, nur ein Klick öffnet ihn
     (PRINCIPLES.md 8)."""
     return "https://www.elster.de/eportal/login/softpse"
+
+
+def agreements_url() -> str:
+    return "/vertraege"
+
+
+def agreement_url(agreement_id: str) -> str:
+    return f"/vertraege/{agreement_id}"

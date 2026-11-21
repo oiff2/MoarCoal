@@ -8,6 +8,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
+from moarcoal.agreements import agreements_of_document
 from moarcoal.defaults import year_of
 from moarcoal.documents import (
     CHANGED_SINCE_SHOWN,
@@ -97,6 +98,7 @@ def document_detail(
     return {
         "document": document,
         "issuer": state.get(document.issuer) if document.issuer else None,
+        "agreements": agreements_of_document(state, document),
         "issuer_text": issuer_text,
         "year": year,
         "kinds": list(kinds.values()),

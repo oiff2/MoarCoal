@@ -9,7 +9,7 @@ import pytest
 
 from moarcoal.modules import MODULES
 from moarcoal.registration import open_module_store
-from moarcoal.storage import COMMON_OWNER, Document, Issuer, PersonalDetails, Put, State
+from moarcoal.storage import COMMON_OWNER, Agreement, Document, Issuer, PersonalDetails, Put, State
 
 FIXTURES = Path(__file__).parent / "fixtures"
 PROTOCOL = (FIXTURES / "uebertragungsprotokoll_2025.html").read_bytes()
@@ -29,6 +29,13 @@ def beleg(
         "pfad": f"{id}.bin",
         "pruefsumme": "sha256:" + hashlib.sha256(content).hexdigest(),
     }
+
+
+def entry(issuer: str, label: str, beleg_id: str | None = None) -> dict[str, object]:
+    found: dict[str, object] = {"schluessel": {"aussteller": issuer, "bezeichnung": label}}
+    if beleg_id is not None:
+        found["beleg"] = {"beleg": beleg_id}
+    return found
 
 
 @pytest.fixture
@@ -71,7 +78,15 @@ def setup(tmp_path: Path) -> tuple[Path, Path]:
                     beleg("b3", LETTER, typ="Sonstiges", issuer="bank"),
                     beleg("b4", OUTSIDE),
                 ],
-                "eintraege": [{"wert": "99999"}],
+                "eintraege": [
+                    {"wert": "99999"},
+                    entry("bank", "Depot Eins", "b2"),
+                    entry("bank", "Depot Eins", "b3"),
+                    entry("bank", "Tagesgeld"),
+                    entry("bank", "", "b2"),
+                    entry("selbst", "Eigenes"),
+                    entry("amt-alt", "Steuer", "b4"),
+                ],
             }
         ),
         encoding="utf-8",
@@ -185,3 +200,62 @@ def test_unreadable_source_stops_with_a_message(
     code = ki.main([str(tmp_path), "--data-dir", str(tmp_path / "daten")])
     assert code == 1
     assert "Abbruch" in capsys.readouterr().err
+
+
+def agreements(data: Path) -> dict[str, Agreement]:
+    return {a.name: a for a in state_of(data).of_kind(Agreement)}
+
+
+def test_agreements_are_created_and_documents_assigned(setup: tuple[Path, Path]) -> None:
+    root, data = setup
+    report = ki.run(root, data, 2025, "ich")
+    found = agreements(data)
+    assert set(found) == {"Depot Eins", "Tagesgeld", "Steuer"}  # nicht „selbst“, nicht ohne Namen
+    issuers = {i.name: i for i in state_of(data).of_kind(Issuer)}
+    assert found["Depot Eins"].issuer == issuers["Beispielbank AG"].address
+    assert found["Steuer"].issuer == issuers["Finanzamt Beispielstadt"].address  # frühere Kennung
+    assert found["Depot Eins"].owner == "ich"
+    docs = documents(data)
+    assert docs["2025/lohn.html"].assignments == (found["Depot Eins"].address,)
+    assert docs["2025/brief.txt"].assignments == (found["Depot Eins"].address,)
+    assert docs["2025/protokoll.html"].assignments == ()
+    assert report.counts["Vertrag angelegt"] == 3
+    assert report.counts["Beleg einem Vertrag zugeordnet"] == 2
+    assert report.counts["Zuordnung ohne aufgenommenes Beleg-Dokument"] == 1  # b4 liegt außerhalb
+
+
+def test_second_run_changes_no_agreement_or_assignment(setup: tuple[Path, Path]) -> None:
+    root, data = setup
+    ki.run(root, data, 2025, "ich")
+    before = state_of(data).entries
+    report = ki.run(root, data, 2025, "ich")
+    assert state_of(data).entries == before
+    assert report.counts["Vertrag vorhanden"] == 3
+    assert report.counts["Zuordnung vorhanden"] == 2
+    assert "Vertrag angelegt" not in report.counts
+    assert "Beleg einem Vertrag zugeordnet" not in report.counts
+
+
+def test_agreement_with_unresolved_issuer_is_skipped(setup: tuple[Path, Path]) -> None:
+    root, data = setup
+    open_module_store(data, MODULES).apply(
+        [
+            Put(Issuer(owner=COMMON_OWNER, name="Beispielbank AG")),
+            Put(Issuer(owner=COMMON_OWNER, name="Andere Bank", aliases=("Beispielbank",))),
+        ]
+    )
+    report = ki.run(root, data, 2025, "ich")
+    assert set(agreements(data)) == {"Steuer"}
+    assert report.counts["Vertrag ohne Aussteller übersprungen"] == 2
+
+
+def test_existing_agreement_is_found_by_partner_and_name(setup: tuple[Path, Path]) -> None:
+    root, data = setup
+    bank = Issuer(owner=COMMON_OWNER, name="Beispielbank AG")
+    known = Agreement(owner="ich", issuer=bank.address, name="depot eins", number="XY-1234567")
+    open_module_store(data, MODULES).apply([Put(bank), Put(known)])
+    report = ki.run(root, data, 2025, "ich")
+    assert report.counts["Vertrag vorhanden"] == 1
+    assert report.counts["Vertrag angelegt"] == 2
+    assert agreements(data)["depot eins"].number == "XY-1234567"  # nichts überschrieben
+    assert "Depot Eins" not in agreements(data)

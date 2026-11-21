@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "_ui.html" import abschnitt, bt %}
+{% block title %}Verträge – MoarCoal{% endblock %}
+{% block main %}
+<h1>Verträge</h1>
+{% call abschnitt("vertraege-liste", "Verträge", rows | length) %}
+{% if rows %}
+<table class="liste stapel">
+  <thead><tr><th>Bezeichnung</th><th>Vertragspartner</th><th>Art</th><th>Beginn</th><th>Ende</th><th class="zahl">Dokumente</th></tr></thead>
+  <tbody>
+  {% for agreement, issuer, documents in rows %}
+  <tr>
+    <td data-label="Bezeichnung"><a href="{{ entry_url(agreement.address) }}">{{ agreement.name }}</a></td>
+    <td data-label="Vertragspartner">{% if issuer %}<a href="{{ entry_url(issuer.address) }}">{{ issuer.name }}</a>{% endif %}</td>
+    <td class="gedaempft" data-label="Art">{{ agreement.category }}</td>
+    <td data-label="Beginn">{{ agreement.start or "unbekannt" }}</td>
+    <td data-label="Ende">{{ agreement.end or "" }}</td>
+    <td class="zahl" data-label="Dokumente">{{ documents }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Noch keine Verträge.</p>
+{% endif %}
+{% endcall %}
+
+{% call abschnitt("vertrag-anlegen", "Vertrag anlegen", none) %}
+{% include "work/_errors.html" %}
+<form class="formular-seite" method="post" action="{{ agreements_url() }}">
+  {% set default_issuer = "" %}{% include "agreements/_fields.html" %}
+  <div>{{ bt("plus", "Anlegen") }}</div>
+</form>
+{% endcall %}
+{% endblock %}

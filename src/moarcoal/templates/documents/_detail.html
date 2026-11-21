@@ -5,6 +5,13 @@
 {% macro document_detail(d) %}
 {% set document = d.document %}
 {{ document_form(document, d.kinds, d.bound, d.default_year, d.issuer_text, d.year) }}
+{% if d.agreements %}
+{% call abschnitt("dokument-vertraege", "Verträge", d.agreements | length) %}
+<ul>
+  {% for agreement in d.agreements %}<li><a href="{{ entry_url(agreement.address) }}">{{ agreement.name }}</a></li>{% endfor %}
+</ul>
+{% endcall %}
+{% endif %}
 
 {% if d.proposal %}
 {% call abschnitt("dokument-vorschlag", "Vorschlag bestätigen", none, "Claude hat diese Felder ausgelesen. Erst was Sie bestätigen, gilt; eine Korrektur ersetzt den ausgelesenen Inhalt, der daneben stehen bleibt.") %}

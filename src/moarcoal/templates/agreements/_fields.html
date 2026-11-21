@@ -1,0 +1,21 @@
+{# Felder eines Vertrags; `values` belegt vor, `default_issuer` ist die Kennung des Vertragspartners
+   beim Ändern. Das versteckte Feld `kind` hält die Vorbelegung „zuletzt verwendeter Aussteller“
+   des Aussteller-Felds fern (sie gilt Dokumenten, nicht Verträgen). #}
+{% from "_issuer_field.html" import issuer_field %}
+<input type="hidden" name="kind" value="Agreement">
+{{ issuer_field(default_issuer, issuer_text) }}
+<label>Bezeichnung
+  <input name="name" value="{{ values.get('name', '') }}" required>
+</label>
+<label>Vertragsnummer (sensibel, steht in der Sperrliste)
+  <input name="number" value="{{ values.get('number', '') }}" autocomplete="off">
+</label>
+<label>Art (z. B. Versicherung, Darlehen, Strom)
+  <input name="category" value="{{ values.get('category', '') }}">
+</label>
+<label>Beginn
+  <input name="start" type="date" value="{{ values.get('start', '') }}">
+</label>
+<label>Ende (ohne Angabe: läuft)
+  <input name="end" type="date" value="{{ values.get('end', '') }}">
+</label>

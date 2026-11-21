@@ -24,6 +24,7 @@ class Document(Entry):
     Bezugszeitraum, stehen Beginn und Ende hier. `taken_in_at` ist der Zeitpunkt des Aufnehmens
     (UTC; bei älteren Dokumenten leer). `issuer` verweist freiwillig auf einen Aussteller,
     `label` ist die freiwillige Bezeichnung (was das Dokument ist).
+    `assignments` auf die Einträge, denen es zugeordnet ist (z. B. ein Vertrag; Glossar: zuordnen).
     """
 
     site: str = Field(min_length=1)
@@ -32,6 +33,7 @@ class Document(Entry):
     document_kind: str | None = None
     issuer: EntryAddress | None = None
     label: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+    assignments: tuple[EntryAddress, ...] = ()
     period_start: datetime.date | None = None
     period_end: datetime.date | None = None
     taken_in_at: datetime.datetime | None = None
@@ -40,6 +42,12 @@ class Document(Entry):
     def _issuer_is_an_issuer(self) -> Self:
         if self.issuer is not None and self.issuer.kind != "Issuer":
             raise ValueError("Aussteller verweist nicht auf einen Aussteller")
+        return self
+
+    @model_validator(mode="after")
+    def _assigned_once(self) -> Self:
+        if len(set(self.assignments)) < len(self.assignments):
+            raise ValueError("Zuordnung kommt doppelt vor")
         return self
 
     @model_validator(mode="after")
@@ -148,10 +156,14 @@ def document_entry_kind(once_per_period: Mapping[str, str] | None = None) -> Ent
     once = once_per_period or {}
 
     def check(document: Document, entries: Mapping[EntryAddress, Entry]) -> str | None:
-        """Aussteller existiert; eine Datei je Nutzer nur einmal; je Bezugszeitraum nur ein
-        Dokument, wo verlangt."""
+        """Aussteller und Zuordnungen existieren; eine Datei je Nutzer nur einmal; je Bezugszeitraum
+        nur ein Dokument, wo verlangt."""
         if document.issuer is not None and document.issuer not in entries:
             return "Aussteller existiert nicht."
+        for assigned in document.assignments:
+            target = entries.get(assigned)
+            if target is None or target.owner != document.owner:
+                return "Zuordnung existiert nicht."
         if any(
             d.id != document.id for d in documents_of_file(entries, document.owner, document.sha256)
         ):

@@ -19,6 +19,7 @@ from moarcoal.modules import MODULES
 from moarcoal.modules.work.trips.place_search import NominatimSearch, PlaceSearch
 from moarcoal.registration import ModuleRegistration, open_module_store
 from moarcoal.values.model import format_amount, format_eur
+from moarcoal.web.agreement_pages import router as agreement_router
 from moarcoal.web.document_pages import router as document_router
 from moarcoal.web.expected_documents_pages import router as expected_documents_router
 from moarcoal.web.findings_pages import router as findings_router
@@ -30,7 +31,13 @@ from moarcoal.web.helpers import (
 )
 from moarcoal.web.issuer_field_pages import router as issuer_field_router
 from moarcoal.web.issuer_pages import router as issuer_router
-from moarcoal.web.links import findings_url, mein_elster_url, site_url
+from moarcoal.web.links import (
+    agreement_url,
+    agreements_url,
+    findings_url,
+    mein_elster_url,
+    site_url,
+)
 from moarcoal.web.person_pages import router as person_router
 from moarcoal.web.previews import preview_kind
 from moarcoal.web.security import SecurityMiddleware
@@ -67,6 +74,8 @@ def create_app(
     globals_["mein_elster_url"] = mein_elster_url
     globals_["site_url"] = site_url
     globals_["findings_url"] = findings_url
+    globals_["agreements_url"] = agreements_url
+    globals_["agreement_url"] = agreement_url
     app.state.templates = Jinja2Templates(env=environment)
     app.state.modules = tuple(modules)
     app.state.user = user
@@ -87,6 +96,7 @@ def create_app(
     app.include_router(document_router)
     app.include_router(expected_documents_router)
     app.include_router(issuer_router)
+    app.include_router(agreement_router)
     app.include_router(issuer_field_router)
     app.include_router(person_router)
     app.include_router(findings_router)

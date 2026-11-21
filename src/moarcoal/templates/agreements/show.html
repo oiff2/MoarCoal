@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "_ui.html" import abschnitt, bt, ib, dateityp %}
+{% block title %}{{ agreement.name }} – MoarCoal{% endblock %}
+{% block main %}
+<h1>{{ agreement.name }}</h1>
+<p><a href="{{ agreements_url() }}">Zurück zu Verträge</a></p>
+{% include "work/_errors.html" %}
+{% call abschnitt("vertrag-angaben", "Angaben zum Vertrag", none) %}
+<form class="formular-seite" method="post" action="{{ agreement_url(agreement.id) }}">
+  <input type="hidden" name="checksum" value="{{ checksum }}">
+  {% set default_issuer = agreement.issuer.id %}{% include "agreements/_fields.html" %}
+  <div>{{ bt("speichern", "Speichern") }}</div>
+</form>
+<p>Vertragspartner: {% if issuer %}<a href="{{ entry_url(issuer.address) }}">{{ issuer.name }}</a>{% endif %}</p>
+{% endcall %}
+
+{% call abschnitt("vertrag-dokumente", "Dokumente", documents | length) %}
+{% if documents %}
+<table class="liste stapel">
+  <thead><tr><th>Dokument</th><th class="aktionen"></th></tr></thead>
+  <tbody>
+  {% for document in documents %}
+  <tr>
+    <td data-label="Dokument"><div class="datei-zelle">{{ dateityp(document.path) }}<span class="zelle-text"><a href="{{ entry_url(document.address) }}">{{ document_name(document) }}</a><small class="pfad">{{ document.site }}/{{ document.path }}</small></span></div></td>
+    <td class="aktionen">{{ ib("abbrechen", "Zuordnung lösen", action=agreement_url(agreement.id) ~ "/dokumente/" ~ document.id ~ "/loesen") }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Keine Dokumente zugeordnet.</p>
+{% endif %}
+{% if candidates %}
+<form class="formular-seite" method="post" action="{{ agreement_url(agreement.id) }}/dokumente">
+  <label>Dokument zuordnen
+    <select name="document" required>
+      {% for document in candidates %}<option value="{{ document.id }}">{{ document.site }}: {{ document.path }}</option>{% endfor %}
+    </select>
+  </label>
+  <div>{{ bt("plus", "Zuordnen") }}</div>
+</form>
+{% endif %}
+{% endcall %}
+
+{% call abschnitt("vertrag-loeschen", "Löschen", none) %}
+{% if documents %}
+<p>Dem Vertrag sind noch Dokumente zugeordnet (siehe oben). Er lässt sich löschen, sobald nichts mehr auf ihn verweist.</p>
+{% else %}
+<form method="post" action="{{ agreement_url(agreement.id) }}/loeschen" class="inline">
+  <input type="hidden" name="checksum" value="{{ checksum }}">
+  {{ bt("loeschen", "Löschen") }}
+</form>
+{% endif %}
+{% endcall %}
+{% endblock %}

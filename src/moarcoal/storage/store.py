@@ -24,6 +24,7 @@ from pydantic import ValidationError
 
 from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.storage.aborted_extractions import ABORTED_EXTRACTION_KIND
+from moarcoal.storage.agreements import AGREEMENT_KIND
 from moarcoal.storage.dismissals import DISMISSAL_KIND
 from moarcoal.storage.documents import REREADING_KIND, document_entry_kind
 from moarcoal.storage.entries import (
@@ -672,7 +673,8 @@ def open_store(
 ) -> Store:
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
 
-    Die Arten der Datenebene (Dokument, Neueinlesung, Aussteller, Ausblendungen, Erwarteter Beleg,
+    Die Arten der Datenebene (Dokument, Neueinlesung, Aussteller, Vertrag, Ausblendungen,
+    Erwarteter Beleg,
     Schnappschuss) kommen immer dazu.
     `sites` nennt die Ablageorte (Name -> Ordner), `site_years` dazu die Jahresordner (Name ->
     Jahr); ohne `sites` gilt `common/sites.json`.
@@ -687,6 +689,7 @@ def open_store(
         HIDDEN_FILE_KIND,
         HIDDEN_FOLDER_KIND,
         issuer_entry_kind(check_own_issuer),
+        AGREEMENT_KIND,
         PERSONAL_DETAILS_KIND,
         expected_document_entry_kind(kinds_with_period),
         PROPOSAL_KIND,
