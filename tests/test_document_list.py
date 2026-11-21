@@ -176,7 +176,7 @@ def test_detail_shows_form_with_preview_and_locks_when_something_hangs(
     assert "Dokument löschen" in locked  # Einlesung fällt mit weg, Schnappschuss sperrt nicht
     assert f"/dokumente/{protocol.id}/datei" in locked
     assert f'href="/dokumente/{protocol.id}">Dokument</a>' not in locked  # kein Link je Zeile
-    assert "<h2>Aussteller</h2>" in locked  # der Kopf des Dokuments, auf der Seite
+    assert "Einträge mit diesem Beleg" in locked  # die Detailspalte, auf der Seite
     free = main_of(two, f"/belege?dokument={bescheid.id}")
     assert "gesperrt" not in free and "disabled" not in free and "Dokument löschen" in free
 
@@ -192,7 +192,7 @@ def test_old_document_address_redirects_to_the_page(two: httpx.Client) -> None:
 
 def tab_of(response: httpx.Response) -> str:
     """Die Belege-Seite einer Antwort: das gewählte Dokument rechts."""
-    return response.text.split("<main>")[1].split('<div class="rechts">')[1]
+    return response.text.split("<main>")[1].split('<div class="rechts" id="detailspalte">')[1]
 
 
 # --- Ändern ---------------------------------------------------------------------------------
@@ -358,3 +358,51 @@ def test_other_users_documents_are_not_listed(two: httpx.Client) -> None:
     assert "Aufgenommene Belege (2)" in main_of(two, "/belege")
     assert two.get(f"/dokumente/{foreign.id}/datei").status_code == 404
     assert f"/dokumente/{foreign.id}/aendern" not in main_of(two, document_url(foreign.id))
+
+
+# --- Detailspalte (#185) -----------------------------------------------------------------
+
+
+def test_detail_column_order_fields_entries_actions_then_the_file_view(two: httpx.Client) -> None:
+    protocol = doc(two, "protokoll.html")
+    right = tab_of(two.get(document_url(protocol.id)))
+    marks = [
+        f"/dokumente/{protocol.id}/aendern",  # Felder und Speichern
+        "Einträge mit diesem Beleg",
+        "Datei öffnen",
+        "Dokument löschen",
+        "<iframe",  # ganz unten die Dateiansicht
+    ]
+    positions = [right.index(m) for m in marks]
+    assert positions == sorted(positions)
+    assert ">Speichern<" in right
+    assert f'href="/dokumente/{protocol.id}/datei"' in right  # Datei öffnen
+
+
+def test_detail_column_lists_the_entries_of_the_document(two: httpx.Client) -> None:
+    protocol = doc(two, "protokoll.html")
+    entries = tab_of(two.get(document_url(protocol.id))).split("Einträge mit diesem Beleg")[1]
+    assert "Einlesung" in entries.split("Datei öffnen")[0]
+    free = tab_of(two.get(document_url(doc(two, "bescheid.txt").id)))
+    assert "Kein Eintrag hängt an diesem Beleg." in free
+
+
+def test_the_document_is_rendered_once_in_the_column(two: httpx.Client) -> None:
+    bescheid = doc(two, "bescheid.txt")
+    page = two.get(document_url(bescheid.id)).text
+    assert page.count(f"/dokumente/{bescheid.id}/aendern") == 1
+    assert page.count('class="vorschau"') == 1
+
+
+def test_column_can_be_hidden_and_the_browser_remembers_it(two: httpx.Client) -> None:
+    page = two.get("/belege").text
+    assert "data-detailspalte-schalter" in page and "Detailspalte ausblenden" in page
+    assert 'class="rechts" id="detailspalte"' in page
+    js = Path("src/moarcoal/static/belege.js").read_text(encoding="utf-8")
+    assert "localStorage" in js and "catch" in js  # nur Bequemlichkeit, die Seite geht ohne
+    assert "http" not in js
+
+
+def test_a_click_on_a_row_selects_it(two: httpx.Client) -> None:
+    js = Path("src/moarcoal/static/belege.js").read_text(encoding="utf-8")
+    assert "a.name" in js and 'closest("a, button, form, input, select, summary")' in js

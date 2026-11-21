@@ -90,6 +90,10 @@ button.auge svg { display: block; }
 .datei a[aria-current] { font-weight: bold; }
 .arbeit { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(18rem, 2fr) 3fr; grid-template-rows: minmax(0, 1fr); gap: 1rem; }
 /* Rechts: der Kopf ist so hoch wie sein Inhalt, höchstens 45 % und scrollt darüber in sich; darunter scrollt die Vorschau in sich */
+.nur-js { display: none; }
+html.js .nur-js { display: inline; }
+.arbeit.ohne-detail { grid-template-columns: minmax(0, 1fr); }
+.arbeit.ohne-detail .rechts { display: none; }
 .rechts { display: flex; flex-direction: column; gap: 0.5rem; min-height: 0; }
 .formular { flex: 0 1 auto; max-height: 45%; overflow: auto; }
 .formular h2 { font-size: 1rem; margin: 0.75rem 0 0.25rem; }

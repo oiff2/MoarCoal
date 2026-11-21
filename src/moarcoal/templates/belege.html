@@ -65,6 +65,7 @@
 {% endmacro %}
 {% block main %}
 <h1>Belege {{ year }}</h1>
+<p class="werkzeug"><button type="button" class="nur-js" data-detailspalte-schalter aria-controls="detailspalte" aria-expanded="true">Detailspalte ausblenden</button></p>
 {% if notice and not selected_document %}<p class="fehler">{{ notice }}</p>{% endif %}
 <div class="arbeit">
 <div class="baum">
@@ -154,7 +155,7 @@
     {% endfor %}
   </details>
 </div>
-<div class="rechts">
+<div class="rechts" id="detailspalte">
   {% if selected %}{{ pane() }}
   {% elif selected_hidden %}{{ hidden_pane() }}
   {% elif selected_document %}

@@ -1,9 +1,11 @@
-{# Formular zum Ändern eines Dokuments (Aussteller, Bezeichnung, Art, Jahr) und Löschen; wie beim Aufnehmen.
+{# Teile der Detailspalte eines Dokuments: Felder (Aussteller, Bezeichnung, Art, Jahr), Einträge am
+   Dokument und Aktionen (Datei öffnen, Löschen); wie beim Aufnehmen.
    `bound` sind alle Einträge, die am Dokument hängen: solange es welche gibt, sind Art und Jahr
    gesperrt. `references` sind die, die das Löschen sperren (was mit dem Dokument wegfällt oder nur
    schwach verweist, zählt nicht): solange es welche gibt, ist Löschen nicht möglich. #}
 {% from "_issuer_field.html" import issuer_field %}
-{% macro document_form(document, kinds, references, bound, checksum, labels, default_year, issuer_text="", year="") %}
+{% macro entry_link(ref, labels) %}{% set url = entry_url(ref.address) %}{% if url %}<a href="{{ url }}">{{ labels.get(ref.address.kind, ref.address.kind) }}</a>{% else %}{{ labels.get(ref.address.kind, ref.address.kind) }}{% endif %}{% endmacro %}
+{% macro document_form(document, kinds, bound, default_year, issuer_text="", year="") %}
 {% set locked = bound | length > 0 %}
 <form method="post" action="/dokumente/{{ document.id }}/aendern">
   {{ issuer_field(default=document.issuer.id if document.issuer else "", text=issuer_text) }}
@@ -15,15 +17,24 @@
   </label>
   <label>Bezeichnung (freiwillig) <input type="text" name="label" value="{{ document.label or '' }}" maxlength="500"></label>
   <label class="jahr">Jahr <input name="year" value="{{ year or (document.period_start.year if document.period_start else default_year) }}" size="6"{% if locked %} disabled{% endif %}></label>
-  <button type="submit">Ändern</button>
+  <button type="submit">Speichern</button>
 </form>
-{% if locked %}
-<p>Daran hängt etwas, deshalb sind Art und Jahr gesperrt:
-  {% for ref in bound %}{% set url = entry_url(ref.address) %}{% if url %}<a href="{{ url }}">{{ labels.get(ref.address.kind, ref.address.kind) }}</a>{% else %}{{ labels.get(ref.address.kind, ref.address.kind) }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}.</p>
+{% endmacro %}
+{% macro document_entries(bound, labels) %}
+<h2>Einträge mit diesem Beleg</h2>
+{% if bound %}
+<ul>{% for ref in bound %}<li>{{ entry_link(ref, labels) }}</li>{% endfor %}</ul>
+<p><small>Daran hängt etwas, deshalb sind Art und Jahr gesperrt.</small></p>
+{% else %}
+<p>Kein Eintrag hängt an diesem Beleg.</p>
 {% endif %}
+{% endmacro %}
+{% macro document_actions(document, file_url, references, bound, checksum, labels) %}
+<h2>Aktionen</h2>
+<p><a href="{{ file_url }}" target="_blank" rel="noopener">Datei öffnen</a></p>
 {% if references %}
 <p>Das Dokument lässt sich nicht löschen, solange daran hängt:
-  {% for ref in references %}{% set url = entry_url(ref.address) %}{% if url %}<a href="{{ url }}">{{ labels.get(ref.address.kind, ref.address.kind) }}</a>{% else %}{{ labels.get(ref.address.kind, ref.address.kind) }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}.</p>
+  {% for ref in references %}{{ entry_link(ref, labels) }}{% if not loop.last %}, {% endif %}{% endfor %}.</p>
 {% else %}
 <form method="post" action="/dokumente/{{ document.id }}/loeschen">
   <input type="hidden" name="checksum" value="{{ checksum }}">

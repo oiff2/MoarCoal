@@ -73,6 +73,7 @@ def document_detail(
         "kinds": list(kinds.values()),
         "references": store.references_to(document.address),
         "bound": store.references_to(document.address, with_derived=True),
+        "file_url": document_file_url(document.id),
         "checksum": entry_checksum(document),
         "labels": store.kind_labels(),
         "default_year": global_year(request),

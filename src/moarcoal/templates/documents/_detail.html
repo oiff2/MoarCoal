@@ -1,12 +1,10 @@
-{# Kopf eines Dokuments: Aussteller und Ändern, Vorschlag bestätigen, Auslesen. `d` kommt von
+{# Detailspalte eines Dokuments: Felder, Vorschlag bestätigen, Auslesen, Einträge, Aktionen. `d` kommt von
    `document_detail` (site_pages.py). Eingebunden rechts auf der Belege-Seite. #}
-{% from "_document_form.html" import document_form %}
+{% from "_document_form.html" import document_form, document_entries, document_actions %}
 {% macro document_detail(d) %}
 {% set document = d.document %}
-<h2>Aussteller</h2>
-<p>{% if d.issuer %}{{ d.issuer.name }}{% else %}Kein Aussteller angegeben.{% endif %}</p>
-<h2>Ändern</h2>
-{{ document_form(document, d.kinds, d.references, d.bound, d.checksum, d.labels, d.default_year, d.issuer_text, d.year) }}
+<p>Aussteller: {% if d.issuer %}{{ d.issuer.name }}{% else %}Kein Aussteller angegeben.{% endif %}</p>
+{{ document_form(document, d.kinds, d.bound, d.default_year, d.issuer_text, d.year) }}
 
 {% if d.proposal %}
 <h2>Vorschlag bestätigen</h2>
@@ -53,4 +51,6 @@
 {% else %}
 <p>Diese Dokumentart wird nicht ausgelesen.</p>
 {% endif %}
+{{ document_entries(d.bound, d.labels) }}
+{{ document_actions(document, d.file_url, d.references, d.bound, d.checksum, d.labels) }}
 {% endmacro %}
