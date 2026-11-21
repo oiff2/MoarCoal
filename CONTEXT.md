@@ -247,6 +247,7 @@ _Avoid_: Cache, Snapshot (das ist der Schnappschuss), Kontext
 
 **Dokument**:
 Eine aufgenommene Datei, auf die MoarCoal an einem Ablageort verweist oder die es ins Datenverzeichnis übernommen hat (z. B. Rechnung, Kontoauszug, Bescheid, Mietvertrag), mit Aussteller, Datum und höchstens einer Dokumentart; vor dem Aufnehmen heißt sie Datei (Code: `Document`). Im Reiter Dokumente zeigt es einen bei jeder Anfrage abgeleiteten, nicht gespeicherten Zustand: „zu bestätigen“ (der neueste Vorschlag hat offene Felder), „auszulesen“ (die Dokumentart hat eine Auslese-Vorlage, aber es gibt noch keinen Vorschlag) oder „fertig“; ein Dokument ohne Dokumentart zeigt statt eines Zustands „Beleg“, kein Mangel (Code: `DocumentState`).
+Ein Dokument gehört zu einem Jahr, wenn sein Bezugszeitraum das Jahr berührt oder, ohne Bezugszeitraum, wenn es im Jahresordner dieses Jahrs liegt; ein Dokument ohne Bezugszeitraum an einem Ablageort ohne Jahr gehört zu den Jahren, deren Einträge auf es verweisen. Die **Bezeichnung** ist ein freier Text, der sagt, was das Dokument ist (z. B. „Religionszugehörigkeit“); die Belege-Seite zeigt es als „Aussteller · Bezeichnung“, ohne Bezeichnung mit dem Dateinamen.
 _Avoid_: Unterlage, Anhang
 
 **Datenverzeichnis**:
@@ -256,6 +257,10 @@ _Avoid_: Datenordner, Speicherort
 **Ablageort** _(geprägt)_:
 Ein benannter, für alle Nutzer gemeinsamer Ordner außerhalb des Datenverzeichnisses, in dem Dokumente liegen (z. B. „Belege“, „Scan-Eingang“); MoarCoal liest dort nur und verweist auf Dokumente über Ablageort, relativen Pfad und Prüfsumme.
 _Avoid_: externer Ordner, Quellordner, Mount
+
+**Jahresordner**:
+Ein Ablageort, der zu einem Steuerjahr gehört (z. B. der Ordner der Erklärung 2025); die Belege-Seite eines Jahrs zeigt seinen Eingang zuerst. Ein Ablageort ohne Jahr gilt für kein bestimmtes Jahr (z. B. „Scan-Eingang“).
+_Avoid_: Jahresablage, Steuerordner
 
 **Eingang** _(geprägt)_:
 Die Dateien in den Ablageorten, die weder aufgenommen noch ausgeblendet sind; in der Oberfläche der Filter „offen“ der Ablage, im Befund „n Dateien im Eingang“ gezählt. Daraus wird nichts von selbst übernommen.
