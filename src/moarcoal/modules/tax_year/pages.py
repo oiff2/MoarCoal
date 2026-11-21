@@ -19,7 +19,6 @@ from moarcoal.storage import Applied, Document, EntryAddress
 from moarcoal.values.model import Period
 from moarcoal.web.helpers import (
     entry_of,
-    finding_list_of,
     form_fields,
     global_year,
     module_state,
@@ -127,7 +126,6 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             printed=printed,
             transferred=None if anlage.catalogued else protocol_contents(reading, anlage.form),
             anlagen=year_anlagen(anlagen, year, reading),
-            findings=finding_list_of(request, year),  # Vorlage zeigt die sichtbaren Befunde
         )
 
     @router.post("/anlage-{form}/{year}/eingabe/{elster_id}", response_class=HTMLResponse)

@@ -467,7 +467,7 @@ def http(app: FastAPI) -> httpx.Client:
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
-def test_whole_flow_page_shows_frozen_next_to_current_and_finding_list_the_deviation(
+def test_whole_flow_page_shows_frozen_next_to_current_and_findings_the_deviation(
     http: httpx.Client, app: FastAPI, anlage_n_text: Callable[[httpx.Client], str]
 ) -> None:
     form = {"year": "2025", "workdays": "219", "distance_km": "12", "description": "Büro"}
@@ -503,14 +503,13 @@ def test_whole_flow_page_shows_frozen_next_to_current_and_finding_list_the_devia
     )
     assert "Abweichung zum Schnappschuss" in http.get("/befunde?year=2025").text
     page = anlage_n_text(http)
-    assert "Abweichung zum Schnappschuss" in page
-    # Befundtext und Spalte „Bei Abgabe“ zeigen den eingefrorenen Betrag gleich
-    assert "eingefroren 219 Tage" in page
+    assert "Abweichung zum Schnappschuss" not in page  # Befunde nur unter /befunde
+    assert "eingefroren 219 Tage" in http.get("/befunde?year=2025").text
     assert "<td>219 Tage</td>" in page
     assert "<td>87 €</td>" in page
     store.apply([Put(equipment(1000))])
     page = anlage_n_text(http)
-    assert "eingefroren 87 €, jetzt 97 €" in page
+    assert "eingefroren 87 €, jetzt 97 €" in http.get("/befunde?year=2025").text
     assert "<td>87 €</td>" in page  # dieselbe Schreibweise in der Spalte „Bei Abgabe“
 
 

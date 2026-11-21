@@ -366,7 +366,7 @@ def test_whole_flow_finding_list_links_to_the_protocol(http: httpx.Client) -> No
     assert target.status_code == 200
     assert f'id="{anchor}"' in target.text
     anlage = http.get("/steuerjahr/anlage-n/2025")
-    assert "Wert 219 Tage, Protokoll 220 Tage" in anlage.text
+    assert "Wert 219 Tage, Protokoll 220 Tage" not in anlage.text  # Befunde nur unter /befunde
     assert "Befunde" in http.get("/").text
 
 

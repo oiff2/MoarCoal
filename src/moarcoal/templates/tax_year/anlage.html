@@ -1,7 +1,6 @@
 {% extends "tax_year/_rahmen.html" %}
 {% from "_value.html" import value_view %}
 {% from "tax_year/_eingabe.html" import input_cell %}
-{% from "_findings.html" import finding_list %}
 {% block title %}{{ anlage.name }} {{ year }} – MoarCoal{% endblock %}
 {% block inhalt %}
 <h1>{{ anlage.name }} {{ year }}</h1>
@@ -14,11 +13,6 @@
 {% endif %}
 
 <h2>{{ page.title }}</h2>
-
-{% if findings.visible %}
-<h2>Befunde</h2>
-{{ finding_list(findings.visible) }}
-{% endif %}
 
 {% if printed %}
 <p>In der Spalte „Laut EStB“ steht, was der bestätigte EStB je Feld druckt; ein gedrucktes Minus ist weggelassen.</p>
