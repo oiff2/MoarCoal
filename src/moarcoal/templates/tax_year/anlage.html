@@ -18,12 +18,10 @@
 
 <h2>{{ page.title }}</h2>
 {% if anlage.form == "ESt1A" and page == anlage.pages[0] %}
-<section class="feld" id="bearbeitungsnotiz">
-  <div class="feld-rumpf">
-    <div class="feld-kopf">Persönliche Bearbeitungsnotiz <span class="einheit">wird nicht übermittelt</span></div>
-    <div class="feld-wert">{% if note %}<span class="inhalt notiz">{{ note }}</span>{% else %}<span class="offen">keine Notiz</span> (<a href="/steuerjahr">in der Übersicht</a> eintragen){% endif %}</div>
-  </div>
-</section>
+<aside class="notiz-kasten" id="bearbeitungsnotiz">
+  <div class="feld-kopf">Persönliche Bearbeitungsnotiz <span class="einheit">wird nicht übermittelt</span></div>
+  <div class="feld-wert">{% if note %}<span class="inhalt notiz">{{ note }}</span>{% else %}<span class="offen">keine Notiz</span> (<a href="/steuerjahr">in der Übersicht</a> eintragen){% endif %}</div>
+</aside>
 {% endif %}
 
 {% for row, result, checks in rows %}
