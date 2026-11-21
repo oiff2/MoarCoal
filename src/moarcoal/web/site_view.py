@@ -31,7 +31,7 @@ from moarcoal.storage import (
     State,
     entry_checksum,
 )
-from moarcoal.web.links import site_file_url
+from moarcoal.web.links import document_url, site_file_url, with_filter
 
 
 @dataclass(frozen=True)
@@ -52,6 +52,21 @@ class NewFile:
     @property
     def preview_url(self) -> str:
         return site_file_url(self.file.sha256)
+
+
+@dataclass(frozen=True)
+class DuplicateHint:
+    """Ein Hinweis im Abschnitt Neu: die Datei hat denselben Inhalt wie ein aufgenommenes
+    Dokument und wird nicht noch einmal aufgenommen."""
+
+    file: SiteFile
+    document: Document
+    document_name: str
+    document_url: str
+
+    @property
+    def name(self) -> str:
+        return self.file.path.rsplit("/", 1)[-1]
 
 
 @dataclass(frozen=True)
@@ -97,6 +112,7 @@ class NewSection:
     year: int
     year_folder: str | None
     groups: list[NewGroup]
+    duplicates: list[DuplicateHint]
     hidden_files: list[HiddenFileRow]
     hidden_folders: list[HiddenFolderRow]
 
@@ -122,6 +138,32 @@ def next_open(shas: Sequence[str], sha256: str) -> str | None:
     return others[0] if others else None
 
 
+def duplicate_hints(
+    files: Sequence[SiteFile], ordered: Sequence[SiteFile], state: State, user: str
+) -> list[DuplicateHint]:
+    """Je nicht ausgeblendeter Datei in `ordered`, deren Inhalt (SHA-256) ein Dokument von `user`
+    schon hat, ein Hinweis auf dieses Dokument (bei mehreren das erste nach Pfad). Die Datei, die
+    das Dokument selbst ist (Ablageort und Pfad), bekommt keinen; ebenso keine im Ablageort des
+    Dokuments, wenn dessen Datei dort fehlt (sie wurde verschoben, `relocate_documents` führt den
+    Pfad beim Start nach)."""
+    present = {(f.site, f.path, f.sha256) for f in files}
+    documents: dict[str, Document] = {}
+    for d in sorted(state.of_kind(Document), key=lambda d: (d.path, d.site, d.id)):
+        if d.owner == user:
+            documents.setdefault(d.sha256, d)
+    hidden = {h.sha256 for h in state.of_kind(HiddenFile)}
+    folders = state.of_kind(HiddenFolder)
+    return [
+        DuplicateHint(f, d, document_name(d, state), document_url(d.id))
+        for f in ordered
+        if (d := documents.get(f.sha256)) is not None
+        and (f.site, f.path) != (d.site, d.path)
+        and ((d.site, d.path, d.sha256) in present or f.site != d.site)
+        and f.sha256 not in hidden
+        and not in_hidden_folder(f, folders)
+    ]
+
+
 def new_section(
     files: Sequence[SiteFile], sites: Sites, state: State, user: str, year: int
 ) -> NewSection:
@@ -140,6 +182,7 @@ def new_section(
         groups=[
             NewGroup(site, [NewFile(f) for f in open_files if f.site == site]) for site in shown
         ],
+        duplicates=duplicate_hints(files, ordered, state, user),
         hidden_files=[
             HiddenFileRow(
                 h, entry_checksum(h), next((f for f in files if f.sha256 == h.sha256), None)
@@ -236,7 +279,8 @@ def _issuer_name(state: State, issuer: EntryAddress | None) -> str:
 
 def filter_new(section: NewSection, flt: SearchFilter) -> NewSection:
     """Der Abschnitt Neu mit den Dateien, die Suche (Ablageort, Pfad mit Ordner und Name) und
-    Dateityp treffen. Die Ausblendungen bleiben stehen: sie sind eine Pflegeliste."""
+    Dateityp treffen, ebenso die Hinweise auf gleichen Inhalt. Die Ausblendungen bleiben stehen:
+    sie sind eine Pflegeliste."""
     return replace(
         section,
         groups=[
@@ -249,6 +293,11 @@ def filter_new(section: NewSection, flt: SearchFilter) -> NewSection:
                 ],
             )
             for g in section.groups
+        ],
+        duplicates=[
+            replace(h, document_url=with_filter(h.document_url, flt))
+            for h in section.duplicates
+            if flt.matches([h.file.site, h.file.path], [file_type(h.file.path)])
         ],
     )
 

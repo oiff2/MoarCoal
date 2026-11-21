@@ -92,6 +92,9 @@
     {% for row in group.files %}{{ new_row(row, group.site) }}{% endfor %}
     {% else %}<p>Keine neuen Dateien.</p>{% endif %}
     {% endfor %}
+    {% for hint in new.duplicates %}
+    <p class="hinweis">{{ hint.name }} hat denselben Inhalt wie <a href="{{ hint.document_url }}">{{ hint.document_name }}</a> und wird nicht noch einmal aufgenommen.</p>
+    {% endfor %}
     {% if new.hidden_files or new.hidden_folders %}
     <details class="ausgeblendet"{% if selected_hidden %} open{% endif %}>
       <summary>Ausgeblendet ({{ new.hidden_files | length + new.hidden_folders | length }})</summary>
