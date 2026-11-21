@@ -21,7 +21,7 @@ from moarcoal.storage import (
 from moarcoal.values.calculation import ValueSource
 from moarcoal.values.catalog import ValueDefinition
 from moarcoal.values.findings import Finding, FindingKind
-from moarcoal.values.model import DocumentLocator, Source
+from moarcoal.values.model import DocumentLocator, Source, Subject, TimeRef, ValueKey
 
 type FindingSource = Callable[[ModuleState, ValueSource, int], Iterable[Finding]]
 """Befunde eines Moduls für ein Jahr: eigener Stand, Werte (auch fremde) und das Jahr."""
@@ -44,6 +44,11 @@ class ModuleRegistration:
     icon: str = "modul"  # Datei `templates/icons/<icon>.svg`, Icon in der Seitenleiste
     values: tuple[ValueDefinition, ...] = ()
     entry_url: Callable[[EntryAddress], str | None] = lambda address: None
+    # Wo man erfasst, woraus ein eigener Schlüssel rechnet: (Beschriftung, Adresse) oder `None`;
+    # Vorauswahl Zeitbezug und Bezugsobjekt, nie ein Feld eines anderen Moduls (#176).
+    capture_url: Callable[[ValueKey, TimeRef, Subject | None], tuple[str, str] | None] = (
+        lambda key, time, subject: None
+    )
     document_kinds: tuple[DocumentKind, ...] = ()
     finding_kinds: tuple[FindingKind, ...] = ()
     findings: FindingSource | None = None

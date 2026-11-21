@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse
 
 from moarcoal.modules.tax_year.anlage_n import FORMS, STRUCTURES
 from moarcoal.modules.tax_year.assessment_check import current_assessment
+from moarcoal.modules.tax_year.capture import foreign_refs
 from moarcoal.modules.tax_year.entries import MODULE_KEY, TRANSFER_PROTOCOL_KEY, ProtocolReading
 from moarcoal.modules.tax_year.fields import FormField
 from moarcoal.modules.tax_year.inputs import changes_for_input, current_input, typed_field
@@ -17,6 +18,7 @@ from moarcoal.registration import ModuleState
 from moarcoal.storage import Applied, Document, EntryAddress
 from moarcoal.values.model import Period
 from moarcoal.web.helpers import (
+    capture_links,
     entry_of,
     form_fields,
     module_state,
@@ -92,6 +94,12 @@ def _anlage_n_page(request: Request, year: int, slug: str | None) -> HTMLRespons
         )
         for row in page.rows
     ]
+    modules = request.app.state.modules
+    captures = {
+        row.field.key: capture_links(modules, foreign_refs(result))
+        for row, result in rows
+        if result is not None
+    }
     snapshot = latest_snapshot(state, year)
     assessment = current_assessment(state, year, fields)
     printed = {} if assessment is None else assessment[1]
@@ -118,6 +126,7 @@ def _anlage_n_page(request: Request, year: int, slug: str | None) -> HTMLRespons
             if row.field.typed and (entry := current_input(state, year, row.field))
         },
         printed=printed,
+        captures=captures,
         findings=values.finding_list(user, year),  # Vorlage zeigt die sichtbaren Befunde
     )
 
