@@ -158,7 +158,11 @@ def values_on(request: Request, state: State) -> Values:
     """`Values` der Anwendung auf einem beliebigen Stand (z. B. einem vorläufigen)."""
     store = store_of(request)
     return Values(
-        request.app.state.modules, state, site_files=lambda: all_site_files(store), store=store
+        request.app.state.modules,
+        state,
+        site_files=lambda: all_site_files(store),
+        sites=store.sites,
+        entry_kinds=store.entry_kinds,
     )
 
 

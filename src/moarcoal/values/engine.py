@@ -5,7 +5,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from moarcoal.block_findings import block_findings
 from moarcoal.documents import DocumentKind
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import Dismissal, SiteFile, Snapshot, State, Store
+from moarcoal.storage import Dismissal, EntryKind, SiteFile, Sites, Snapshot, State
 from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYetSignal
 from moarcoal.values.catalog import TimeKind, ValueCatalog
 from moarcoal.values.findings import (
@@ -66,15 +66,18 @@ class Values:
         state: State,
         foreign: Foreign | None = None,
         site_files: Callable[[], Sequence[SiteFile]] | None = None,
-        store: Store | None = None,
+        sites: Sites | None = None,
+        entry_kinds: Mapping[str, EntryKind] | None = None,
     ) -> None:
         """`site_files` listet die Dateien der Ablageorte, erst wenn die Befunde sie brauchen;
-        ohne Angabe gibt es keinen Befund „Dateien im Eingang“. `store` liefert Ablageorte und
-        Eintragsarten (nur lesend); ohne ihn gibt es keinen Befund „Auf diesen Beleg verweist
+        ohne Angabe gibt es keinen Befund „Dateien im Eingang“.
+        `sites` (Ablageorte) und `entry_kinds`
+        (Eintragsarten) sind nur lesend; ohne beide gibt es keinen Befund „Auf diesen Beleg verweist
         kein Eintrag“."""
         self._modules = {m.key: m for m in modules}
         self._site_files = site_files
-        self._store = store
+        self._sites = sites
+        self._entry_kinds = entry_kinds
         self._state = state
         self.catalog = ValueCatalog.of((m.key, m.values) for m in modules)
         self._foreign = dict(foreign or {})
@@ -197,8 +200,8 @@ class Values:
             year,
             self._document_kinds(),
             self._site_files,
-            None if self._store is None else self._store.sites,
-            None if self._store is None else self._store.entry_kinds,
+            self._sites,
+            self._entry_kinds,
         )
         found.extend(blocks.early)
         if self._state.denylist_failed:
