@@ -74,6 +74,9 @@ form.inline { display: inline; }
 .ausgewiesen { margin: 0.25rem 0; }
 .ausgewiesen summary { cursor: pointer; }
 .rechenweg { margin: 0.25rem 0; }
+.rechenweg-symbol { display: inline-flex; align-items: center; color: var(--akzent); }
+.rechenweg-symbol svg { display: block; }
+.nur-vorlesen { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .befunde { padding-left: 1.25rem; }
 tr:target { outline: 2px solid var(--warnung); }
 /* Belege, Ablage: kein Seiten-Scrollen, der Baum scrollt in sich */

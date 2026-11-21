@@ -51,7 +51,7 @@ class ValueSource(Protocol):
     def subjects(self, key: str, user: str, time: TimeRef) -> list[Subject]: ...
 
     def label(self, key: str) -> str:
-        """Die Bezeichnung des Werts im Wertekatalog (ohne Eintrag: der Schlüssel)."""
+        """Der kurze Titel des Werts im Wertekatalog (ohne Eintrag: der Schlüssel)."""
         ...
 
 

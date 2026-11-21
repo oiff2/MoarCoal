@@ -135,6 +135,15 @@ def test_every_value_key_a_module_names_is_in_the_catalog() -> None:
     assert unknown_value_keys(catalog, module_namespaces()) == []
 
 
+def test_every_catalog_entry_has_a_short_title_without_key() -> None:
+    """Begründungen und Rechenweg nennen den Titel; er ist kürzer als die Bedeutung."""
+    catalog = ValueCatalog.of((m.key, m.values) for m in MODULES)
+    for entry in catalog.entries():
+        assert entry.title.strip(), entry.key
+        assert str(entry.key) not in entry.title, entry.key
+        assert len(entry.title) <= len(entry.meaning), entry.key
+
+
 def test_value_key_check_finds_a_typo() -> None:
     catalog = ValueCatalog.of((m.key, m.values) for m in MODULES)
     namespace = {"WORK_DAYS": ValueKey("work.workday"), "OTHER": "work.workday"}

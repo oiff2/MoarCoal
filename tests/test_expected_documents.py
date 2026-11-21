@@ -183,7 +183,11 @@ def test_a_value_with_expected_document_locator_is_pending() -> None:
         nav_url="/demo",
         router=APIRouter(),
         kinds=(),
-        values=(ValueDefinition(CatalogEntry(key, "Zinsen", Unit.EUR, TimeKind.PERIOD), compute),),
+        values=(
+            ValueDefinition(
+                CatalogEntry(key, "Zinsen", "Zinsen", Unit.EUR, TimeKind.PERIOD), compute
+            ),
+        ),
     )
 
     result = evaluate([module], [entry]).get(key, "anna", Period.year(2025))

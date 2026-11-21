@@ -358,6 +358,7 @@ class NotYetComputable:
     subject: Subject | None
     reason: str
     chain: tuple[ValueRef, ...] = ()
+    chain_titles: tuple[str, ...] = ()  # die kurzen Titel der `chain`, gleiche Reihenfolge
 
     @property
     def ref(self) -> ValueRef:

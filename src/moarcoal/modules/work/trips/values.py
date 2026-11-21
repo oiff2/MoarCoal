@@ -105,6 +105,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             TRIP_DAYS,
             "Tage der Dienstreisen im Steuerjahr",
+            "Dienstreisetage",
             Unit.DAYS,
             TimeKind.PERIOD,
         ),
@@ -114,6 +115,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             TRAVEL_FARE,
             "Fahrtkosten der Dienstreisen mit dem privaten Pkw im Steuerjahr",
+            "Fahrtkosten",
             Unit.EUR,
             TimeKind.PERIOD,
         ),
@@ -123,6 +125,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             TRAVEL_TOTAL,
             "Summe der Reisekosten der Dienstreisen im Steuerjahr",
+            "Summe der Reisekosten",
             Unit.EUR,
             TimeKind.PERIOD,
         ),

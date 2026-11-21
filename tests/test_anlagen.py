@@ -173,7 +173,7 @@ STRUCTURE = FormStructure(
 def define_values(forms: object) -> tuple[ValueDefinition, ...]:
     return (
         ValueDefinition(
-            CatalogEntry(KEY, "Anlage KAP, Beispiel", Unit.EUR, TimeKind.PERIOD),
+            CatalogEntry(KEY, "Anlage KAP, Beispiel", "Beispiel", Unit.EUR, TimeKind.PERIOD),
             lambda calculation: Amount.eur_cents(1000),
         ),
     )

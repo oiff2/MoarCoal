@@ -106,7 +106,11 @@ def values_for(
         assert field.unit is not None  # berechnete Felder haben immer eine Einheit
         return ValueDefinition(
             CatalogEntry(
-                field.key, f"{form_name(form)}, {field.label}", field.unit, TimeKind.PERIOD
+                field.key,
+                f"{form_name(form)}, {field.label}",
+                field.label,
+                field.unit,
+                TimeKind.PERIOD,
             ),
             calculate,
         )

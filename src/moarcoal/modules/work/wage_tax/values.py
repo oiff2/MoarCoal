@@ -188,6 +188,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             TAX_CLASS,
             "Steuerklasse laut Lohnsteuerbescheinigung",
+            "Steuerklasse",
             Unit.TAX_CLASS,
             TimeKind.PERIOD,
         ),
@@ -197,6 +198,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             GROSS_WAGES,
             "Bruttoarbeitslohn laut Lohnsteuerbescheinigung",
+            "Bruttoarbeitslohn",
             Unit.EUR,
             TimeKind.PERIOD,
         ),
@@ -206,6 +208,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             INCOME_TAX_WITHHELD,
             "Einbehaltene Lohnsteuer laut Lohnsteuerbescheinigung",
+            "Einbehaltene Lohnsteuer",
             Unit.EUR,
             TimeKind.PERIOD,
         ),
@@ -215,6 +218,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             SOLI_WITHHELD,
             "Einbehaltener Solidaritätszuschlag laut Lohnsteuerbescheinigung",
+            "Einbehaltener Solidaritätszuschlag",
             Unit.EUR,
             TimeKind.PERIOD,
         ),
@@ -224,6 +228,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             BENEFITS_TAX_FREE,
             "Arbeitgeberleistungen laut Nr. 17 der Lohnsteuerbescheinigung (steuerfrei ersetzt)",
+            "Arbeitgeberleistungen, steuerfrei ersetzt (Nr. 17)",
             Unit.EUR,
             TimeKind.PERIOD,
         ),
@@ -233,6 +238,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             BENEFITS_FLAT_TAXED,
             "Arbeitgeberleistungen laut Nr. 18 der Lohnsteuerbescheinigung (pauschal besteuert)",
+            "Arbeitgeberleistungen, pauschal besteuert (Nr. 18)",
             Unit.EUR,
             TimeKind.PERIOD,
         ),
@@ -243,6 +249,7 @@ VALUES: tuple[ValueDefinition, ...] = (
             CatalogEntry(
                 key,
                 f"{label} laut Nr. {number} der Lohnsteuerbescheinigung",
+                f"{label} (Nr. {number})",
                 Unit.EUR,
                 TimeKind.PERIOD,
             ),

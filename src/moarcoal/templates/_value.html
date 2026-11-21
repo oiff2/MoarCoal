@@ -43,9 +43,9 @@
   <span class="titel">{{ title }}:</span> {{ not_yet(result.reason) }}
   {% if result.chain %}
   <details>
-    <summary>Kette</summary>
+    <summary class="rechenweg-symbol" title="Rechenweg" aria-label="Rechenweg">{% include "icons/rechenweg.svg" %}<span class="nur-vorlesen">Rechenweg</span></summary>
     <ol class="kette">
-      {% for link in result.chain %}<li>{{ link.key }}</li>{% endfor %}
+      {% for title in result.chain_titles %}<li>{{ title }}</li>{% endfor %}
     </ol>
   </details>
   {% endif %}

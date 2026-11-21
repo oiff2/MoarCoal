@@ -198,7 +198,7 @@ Der stabile, fachlich benannte Name eines Ausgewiesenen Werts im Wertekatalog (z
 _Avoid_: Kennung (das ist der zufällige Teil einer Adresse), Kennzahl
 
 **Wertekatalog** _(geprägt)_:
-Die Liste aller Schlüssel, die Module anmelden, mit Bedeutung, Einheit und Zeitbezug (Zeitraum oder Stichtag) (Code: `ValueCatalog`).
+Die Liste aller Schlüssel, die Module anmelden, mit Bedeutung, kurzem Titel, Einheit und Zeitbezug (Zeitraum oder Stichtag). Der Titel (z. B. „Arbeitstage“) steht in Begründungen und im Rechenweg, nie der Schlüssel (Code: `ValueCatalog`, `CatalogEntry`).
 _Avoid_: Registry, Verzeichnis, Katalog (allein)
 
 **Schnappschuss**:

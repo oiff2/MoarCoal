@@ -117,7 +117,15 @@ class Values:
         try:
             amount = definition.compute(calculation)
         except NotYetSignal as signal:
-            result = NotYetComputable(entry.key, user, time, subject, signal.reason, signal.chain)
+            result = NotYetComputable(
+                entry.key,
+                user,
+                time,
+                subject,
+                signal.reason,
+                signal.chain,
+                tuple(self.label(str(r.key)) for r in signal.chain),
+            )
         except NotApplicableSignal as signal:
             result = NotApplicable(entry.key, user, time, subject, signal.reason)
         else:
@@ -222,9 +230,9 @@ class Values:
         return {k.key: k for m in self._modules.values() for k in m.document_kinds}
 
     def label(self, key: str) -> str:
-        """Die Bezeichnung des Werts im Katalog; vorgegebene fremde Werte haben keine."""
+        """Der kurze Titel des Werts im Katalog; vorgegebene fremde Werte haben keinen."""
         try:
-            return self.catalog.definition(key).entry.meaning
+            return self.catalog.definition(key).entry.title
         except UnknownValueKey:
             return key
 

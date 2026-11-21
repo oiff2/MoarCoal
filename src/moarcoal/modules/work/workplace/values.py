@@ -203,6 +203,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             WORKDAYS,
             "Arbeitstage an einer ersten Tätigkeitsstätte im Steuerjahr",
+            "Arbeitstage",
             Unit.DAYS,
             TimeKind.PERIOD,
             has_subject=True,
@@ -214,6 +215,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             DISTANCE_KM,
             "Einfache Entfernung zu einer ersten Tätigkeitsstätte im Steuerjahr",
+            "Einfache Entfernung",
             Unit.KM,
             TimeKind.PERIOD,
             has_subject=True,
@@ -225,6 +227,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             WORKDAYS_PER_WEEK,
             "Arbeitstage je Woche an einer ersten Tätigkeitsstätte",
+            "Arbeitstage je Woche",
             Unit.DAYS,
             TimeKind.PERIOD,
             has_subject=True,
@@ -236,6 +239,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             ABSENCE_DAYS,
             "Urlaubs- und Krankheitstage bei einer ersten Tätigkeitsstätte im Steuerjahr",
+            "Urlaubs- und Krankheitstage",
             Unit.DAYS,
             TimeKind.PERIOD,
             has_subject=True,
@@ -247,6 +251,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             HOMEOFFICE_DAYS,
             "Homeoffice-Tage bei einer ersten Tätigkeitsstätte im Steuerjahr",
+            "Homeoffice-Tage",
             Unit.DAYS,
             TimeKind.PERIOD,
             has_subject=True,
@@ -258,6 +263,7 @@ VALUES: tuple[ValueDefinition, ...] = (
         CatalogEntry(
             CAR_DISTANCE_KM,
             "Mit dem eigenen Pkw gefahrene km zu einer ersten Tätigkeitsstätte im Steuerjahr",
+            "Mit dem Pkw gefahrene km",
             Unit.KM,
             TimeKind.PERIOD,
             has_subject=True,
@@ -270,6 +276,7 @@ VALUES: tuple[ValueDefinition, ...] = (
             EQUIPMENT,
             "Summe der Arbeitsmittel im Steuerjahr: GWG des Jahrs und AfA aller laufenden "
             "Anschaffungen",
+            "Arbeitsmittel",
             Unit.EUR,
             TimeKind.PERIOD,
         ),

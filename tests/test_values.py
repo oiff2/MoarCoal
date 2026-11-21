@@ -84,7 +84,7 @@ def definition(
     time_kind: TimeKind = TimeKind.PERIOD,
 ) -> ValueDefinition:
     return ValueDefinition(
-        CatalogEntry(ValueKey(key), "Beispiel", unit, time_kind),
+        CatalogEntry(ValueKey(key), "Beispiel", "Beispiel", unit, time_kind),
         compute,
     )
 
@@ -247,7 +247,7 @@ def test_catalog_rejects_foreign_prefix_and_duplicate_keys() -> None:
 
 
 def test_catalog_rejects_subject_flag_without_enumeration() -> None:
-    entry = CatalogEntry(ValueKey("demo.s"), "x", Unit.EUR, TimeKind.PERIOD, has_subject=True)
+    entry = CatalogEntry(ValueKey("demo.s"), "x", "x", Unit.EUR, TimeKind.PERIOD, has_subject=True)
 
     with pytest.raises(CatalogError, match="Aufzählung"):
         evaluate([custom(ValueDefinition(entry, lambda c: Amount.of(1, Unit.EUR)))], [])

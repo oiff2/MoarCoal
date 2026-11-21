@@ -85,7 +85,7 @@ def custom(*definitions: ValueDefinition) -> ModuleRegistration:
 
 def definition(key: str, compute: Callable[[Calculation], Amount]) -> ValueDefinition:
     return ValueDefinition(
-        CatalogEntry(ValueKey(key), "Beispiel", Unit.EUR, TimeKind.PERIOD), compute
+        CatalogEntry(ValueKey(key), "Beispiel", "Beispiel", Unit.EUR, TimeKind.PERIOD), compute
     )
 
 
@@ -323,7 +323,9 @@ def test_use_checks_unit_and_subject_like_get() -> None:
         return Amount.eur_cents(0)
 
     per_subject = ValueDefinition(
-        CatalogEntry(ValueKey("other.per_subject"), "Beispiel", Unit.EUR, TimeKind.PERIOD, True),
+        CatalogEntry(
+            ValueKey("other.per_subject"), "Beispiel", "Beispiel", Unit.EUR, TimeKind.PERIOD, True
+        ),
         lambda calc: Amount.eur_cents(0),
         lambda state, time: [],
     )

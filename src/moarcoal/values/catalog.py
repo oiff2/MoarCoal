@@ -21,10 +21,15 @@ class TimeKind(StrEnum):
 
 @dataclass(frozen=True)
 class CatalogEntry:
-    """Ein Schlüssel im Wertekatalog."""
+    """Ein Schlüssel im Wertekatalog.
+
+    `meaning` sagt, was der Wert ist (oft ein ganzer Satz); `title` ist die kurze Bezeichnung für
+    Begründungen und Rechenweg.
+    """
 
     key: ValueKey
     meaning: str
+    title: str
     unit: Unit
     time_kind: TimeKind
     has_subject: bool = False

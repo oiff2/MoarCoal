@@ -580,3 +580,35 @@ def test_not_applicable_reason_is_a_focusable_tooltip(tmp_path: Path) -> None:
     assert 'class="kurzinfo" tabindex="0" title="abgeschaltet"' in text
     assert ">entfällt</strong>" in text
     assert "entfällt</strong> (" not in text
+
+
+def chain_titles_of(page: str) -> list[str]:
+    """Alle Einträge der aufklappbaren Rechenwege (Kette) der Seite."""
+    lists = re.findall(r'<ol class="kette">(.*?)</ol>', page, re.S)
+    return [html.unescape(t) for ol in lists for t in re.findall(r"<li>(.*?)</li>", ol)]
+
+
+@pytest.mark.parametrize(
+    "path", ["/arbeit?jahr=2025", "/steuerjahr/anlage-n/2025", "/steuerjahr/anlage-vor/2025"]
+)
+def test_chain_shows_short_titles_and_opens_with_the_calculator_symbol(
+    tmp_path: Path, path: str
+) -> None:
+    page = make_client(tmp_path).get(path).text
+
+    titles = chain_titles_of(page)
+    assert titles or path != "/steuerjahr/anlage-n/2025"
+    for title in titles:
+        assert not KEY_PATTERN.search(title), title
+    summaries = re.findall(r'<summary class="rechenweg-symbol"[^>]*>.*?</summary>', page, re.S)
+    assert len(summaries) == page.count('<ol class="kette">')
+    for summary in summaries:
+        assert 'title="Rechenweg" aria-label="Rechenweg"' in summary
+        assert "<svg" in summary and "Rechenweg</span>" in summary
+    assert "<summary>Kette</summary>" not in page
+
+
+def test_chain_titles_are_catalog_titles(tmp_path: Path) -> None:
+    page = make_client(tmp_path).get("/steuerjahr/anlage-n/2025").text
+
+    assert "Einbehaltene Lohnsteuer" in chain_titles_of(page)
