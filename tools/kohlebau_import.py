@@ -38,11 +38,14 @@ from moarcoal.registration import ModuleRegistration, open_module_store
 from moarcoal.storage import (
     COMMON_OWNER,
     Applied,
+    Document,
     EntryAddress,
     Issuer,
     PersonalDetails,
     Put,
+    Rejected,
     Store,
+    entry_checksum,
     name_key,
 )
 from moarcoal.storage.documents import documents_of_file
@@ -248,6 +251,26 @@ def document_kind_key(document: KohlebauDocument) -> str:
     return KIND_BY_DOCUMENT_TYPE.get(document.document_type, "")
 
 
+def _fill_label(
+    ctx: Context, documents: Sequence[Document], document_type: str, report: Report
+) -> None:
+    """Trägt Kohlebaus Belegtyp als Bezeichnung nach, wo ein schon aufgenommenes Dokument keine
+    hat; eine vorhandene (auch von Hand geänderte) bleibt."""
+    if not document_type:
+        return
+    for existing in documents:
+        if existing.label is not None:
+            continue
+        updated = existing.model_copy(update={"label": document_type})
+        result = ctx.store.apply([Put(updated, entry_checksum(existing))])
+        if isinstance(result, Rejected):
+            report.count(
+                "Bezeichnung abgewiesen", f"{existing.path}: {'; '.join(result.reasons.values())}"
+            )
+        else:
+            report.count("Bezeichnung nachgetragen")
+
+
 def import_documents(ctx: Context, source: Source, report: Report) -> None:
     """Nimmt jeden Beleg des Jahrs auf, dessen Datei (SHA-256) in einem Ablageort liegt, wie die
     Ablage es tut (`take_in`, mit Einlesen). Ohne passende Dokumentart: Beleg ohne Art."""
@@ -264,8 +287,10 @@ def import_documents(ctx: Context, source: Source, report: Report) -> None:
                 f"{label}: Datei liegt in keinem Ablageort, übersprungen.",
             )
             continue
-        if documents_of_file(ctx.store.state().entries, ctx.user, document.sha256):
+        existing = documents_of_file(ctx.store.state().entries, ctx.user, document.sha256)
+        if existing:
             report.count("Beleg schon aufgenommen")
+            _fill_label(ctx, existing, document.document_type, report)
             continue
         issuer = ctx.issuers.get(document.issuer_id) if document.issuer_id else None
         site, path = found
@@ -281,6 +306,7 @@ def import_documents(ctx: Context, source: Source, report: Report) -> None:
                 ctx.modules, state, site_files=lambda: all_site_files(ctx.store)
             ),
             issuer=issuer,
+            label=document.document_type or None,
         )
         if isinstance(result, IntakeRejected):
             report.count("Beleg abgewiesen", f"{label}: abgewiesen ({'; '.join(result.reasons)})")
