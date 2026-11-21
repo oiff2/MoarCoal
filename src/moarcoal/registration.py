@@ -48,10 +48,11 @@ class ModuleRegistration:
     values: tuple[ValueDefinition, ...] = ()
     entry_url: Callable[[EntryAddress], str | None] = lambda address: None
     # Wo man erfasst, woraus ein eigener Schlüssel rechnet: (Beschriftung, Adresse) oder `None`;
-    # Vorauswahl Zeitbezug und Bezugsobjekt, nie ein Feld eines anderen Moduls (#176).
-    capture_url: Callable[[ValueKey, TimeRef, Subject | None], tuple[str, str] | None] = (
-        lambda key, time, subject: None
-    )
+    # Vorauswahl Zeitbezug und Bezugsobjekt, nie ein Feld eines anderen Moduls (#176). Der Stand
+    # des Moduls zeigt, ob es den Beleg schon gibt (dann führt die Adresse zu ihm, #181).
+    capture_url: Callable[
+        [ValueKey, TimeRef, Subject | None, "ModuleState"], tuple[str, str] | None
+    ] = lambda key, time, subject, state: None
     document_kinds: tuple[DocumentKind, ...] = ()
     finding_kinds: tuple[FindingKind, ...] = ()
     findings: FindingSource | None = None

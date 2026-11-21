@@ -88,7 +88,7 @@ def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) ->
 
 
 def capture_links(
-    modules: Sequence[ModuleRegistration], refs: Iterable[ValueRef]
+    modules: Sequence[ModuleRegistration], state: State, user: str, refs: Iterable[ValueRef]
 ) -> list[tuple[str, str]]:
     """Je Wert die Erfassungsstelle des Moduls, dem sein Schlüssel gehört (Beschriftung,
     Adresse); gleiche Adressen einmal, Werte ohne Erfassungsstelle fallen weg."""
@@ -96,7 +96,11 @@ def capture_links(
     links: list[tuple[str, str]] = []
     for ref in refs:
         owner = owners.get(ref.key)
-        link = None if owner is None else owner.capture_url(ref.key, ref.time, ref.subject)
+        link = (
+            None
+            if owner is None
+            else owner.capture_url(ref.key, ref.time, ref.subject, ModuleState(state, owner, user))
+        )
         if link is not None and all(url != link[1] for _, url in links):
             links.append(link)
     return links

@@ -6,6 +6,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
+from moarcoal.defaults import year_of
 from moarcoal.documents import IntakeRejected, read_document_choice, take_in
 from moarcoal.incoming import (
     all_site_files,
@@ -102,17 +103,20 @@ def belege_page(
     year_text: str = "",
     expected_errors: list[str] | None = None,
     expected_values: Fields | None = None,
+    linked: Prefill | None = None,
 ) -> HTMLResponse:
     """Die Seite des gewählten Jahrs. Rechts steht, was gewählt ist: eine Datei des Eingangs oder
     eine ausgeblendete (`selected`: SHA-256) oder ein Dokument (`document`). `rejected`, `values`
     und `notice` gehören zu der Wahl und bleiben dort stehen (`existing` ist das vorhandene Dokument
     bei „Existiert bereits“; `issuer_text` und `year_text` stellen die abgewiesene Eingabe eines
     Dokuments wieder her); `expected_errors` und `expected_values`
-    gehören zum Formular für einen Erwarteten Beleg."""
+    gehören zum Formular für einen Erwarteten Beleg. `linked` ist die Vorbelegung aus der Adresse
+    (Dokumentart und Jahr, `site_url`); sie geht der aus dem Dateinamen vor."""
     store = store_of(request)
     state = store.state()
     user = user_of(request)
-    year = global_year(request)
+    linked = linked or Prefill()
+    year = linked.year or global_year(request)
     files = all_site_files(store)
     open_files = incoming_files(files, state, user)
     new = new_section(files, store.sites, state, user, year)
@@ -124,6 +128,9 @@ def belege_page(
         prefill_from_name(state, kinds.values(), chosen.path)
         if chosen and not values
         else Prefill()
+    )
+    suggestion = Prefill(
+        suggestion.issuer, linked.year or suggestion.year, linked.kind or suggestion.kind
     )
     if chosen:
         preview_url, preview_path = site_file_url(chosen.sha256), chosen.path
@@ -146,6 +153,9 @@ def belege_page(
         expected_values=expected_values or {"start_year": str(year)},
         taken_in=year_documents(state, store.sites, kinds, user, year),
         selected=chosen,
+        linked=linked,
+        linked_kind=kinds[linked.kind] if linked.kind else None,
+        carry=_carry(linked),
         selected_document=document,
         detail=document_detail(request, document, issuer_text, year_text) if document else None,
         selected_hidden=hidden_chosen,
@@ -175,13 +185,37 @@ def _after(request: Request, sha256: str) -> RedirectResponse | None:
     return RedirectResponse(f"{site_url()}?datei={following}", status_code=303)
 
 
+def _linked(request: Request, dokumentart: str, jahr: str) -> Prefill:
+    """Die Vorbelegung der Adresse; eine unbekannte Dokumentart und ein ungültiges Jahr zählen
+    nicht."""
+    kind = dokumentart if dokumentart in document_kinds(request) else None
+    return Prefill(year=year_of(jahr, in_range=True), kind=kind)
+
+
+def _carry(linked: Prefill) -> str:
+    """Die Vorbelegung als Anhang der Adresse einer Datei, damit sie beim Wählen bleibt."""
+    query = site_url(document_kind=linked.kind, year=linked.year).partition("?")[2]
+    return f"&{query}" if query else ""
+
+
 @router.get("", response_class=HTMLResponse)
-def index(request: Request, datei: str = "", dokument: str = "") -> HTMLResponse:
+def index(
+    request: Request,
+    datei: str = "",
+    dokument: str = "",
+    dokumentart: str = "",
+    jahr: str = "",
+) -> HTMLResponse:
     state, user = store_of(request).state(), user_of(request)
     document = next(
         (d for d in state.of_kind(Document) if d.id == dokument and d.owner == user), None
     )
-    return belege_page(request, selected=datei, document=document)
+    return belege_page(
+        request,
+        selected=datei,
+        document=document,
+        linked=_linked(request, dokumentart, jahr),
+    )
 
 
 @router.get("/datei/{sha256}")

@@ -15,10 +15,10 @@
 {% set file = row.file %}
 <div class="datei" title="{{ file.site }}/{{ file.path }}">
   {{ file_type(file.path) }}
-  <a class="name" href="/belege?datei={{ file.sha256 }}"{% if selected and selected.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
+  <a class="name" href="/belege?datei={{ file.sha256 }}{{ carry }}"{% if selected and selected.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
   <span class="ordner-name">{{ row.folder }}{% if row.folder %} {{ hide_button(site=site, path=row.folder) }}{% endif %}</span>
   <span class="groesse">{{ size(file) }}</span>
-  <a class="aktion" href="/belege?datei={{ file.sha256 }}">aufnehmen</a>
+  <a class="aktion" href="/belege?datei={{ file.sha256 }}{{ carry }}">aufnehmen</a>
   <a class="aktion" href="{{ row.preview_url }}" target="_blank" rel="noopener">öffnen</a>
   {{ hide_button(sha256=file.sha256) }}
 </div>
@@ -32,14 +32,14 @@
   <form method="post" action="/belege/aufnehmen">
     <input type="hidden" name="sha256" value="{{ file.sha256 }}">
     {{ issuer_field(default=suggestion.issuer.id if suggestion.issuer else "", text=form.get("issuer_text", ""), from_name=suggestion.issuer is not none) }}
-    <label>Dokumentart{% if suggestion.kind %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %}
+    <label>Dokumentart{% if suggestion.kind and not linked.kind %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %}
       <select name="kind">
         <option value="" data-ohne-zeitraum{% if not form.get("kind", suggestion.kind) %} selected{% endif %}>Beleg</option>
         {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if form.get("kind", suggestion.kind) == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
       </select>
     </label>
     <label>Bezeichnung (freiwillig) <input type="text" name="label" value="{{ form.get('label', '') }}" maxlength="500"></label>
-    <label class="jahr">Jahr{% if suggestion.year %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %} <input name="year" value="{{ form.get('year', suggestion.year or default_year) }}" size="6"></label>
+    <label class="jahr">Jahr{% if suggestion.year and not linked.year %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %} <input name="year" value="{{ form.get('year', suggestion.year or default_year) }}" size="6"></label>
     <button type="submit">Aufnehmen</button>
   </form>
   <form method="post" action="/belege/ausblenden">
@@ -164,6 +164,7 @@
     {{ document_detail(detail) }}
   </div>
   {{ preview(preview_kind, preview_url, selected_document.path) }}
+  {% elif linked_kind %}<p>{{ linked_kind.title }}{% if linked.year %} {{ linked.year }}{% endif %} aufnehmen: Datei wählen, Dokumentart und Jahr sind vorbelegt.</p>
   {% else %}<p>Datei oder Beleg wählen (Pfeiltasten, Enter).</p>{% endif %}
 </div>
 </div>

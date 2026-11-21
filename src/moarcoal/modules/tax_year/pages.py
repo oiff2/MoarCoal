@@ -164,7 +164,9 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
         ]
         modules = request.app.state.modules
         captures = {
-            row.field.key: capture_links(modules, foreign_refs(result))
+            row.field.key: capture_links(
+                modules, store_of(request).state(), user, foreign_refs(result)
+            )
             for row, result, _ in rows
             if result is not None
         }

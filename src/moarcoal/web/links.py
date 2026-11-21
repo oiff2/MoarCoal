@@ -4,10 +4,20 @@ Wer außerhalb einer Routen-Angabe eine Adresse braucht (Befund, Seitenleiste, V
 hier; der Testkern weist Routen in `storage/` und `values/` ab.
 """
 
+from urllib.parse import urlencode
 
-def site_url() -> str:
-    """Die Belege-Seite des gewählten Jahrs."""
-    return "/belege"
+
+def site_url(*, document_kind: str | None = None, year: int | None = None) -> str:
+    """Die Belege-Seite; mit `document_kind` (Schlüssel einer angemeldeten Dokumentart) und `year`
+    ist das Aufnehmen-Formular so vorbelegt, und die Seite zeigt dieses Jahr."""
+    query = urlencode(
+        {
+            name: value
+            for name, value in (("dokumentart", document_kind), ("jahr", year))
+            if value is not None
+        }
+    )
+    return f"/belege?{query}" if query else "/belege"
 
 
 def site_file_url(sha256: str) -> str:
