@@ -13,7 +13,7 @@ Ein Themenblock, den ein Nutzer als Ganzes abschalten kann (z. B. Steuerjahr, Im
 _Avoid_: Plugin, Tool, Feature
 
 **Modulanmeldung** _(geprägt)_:
-Was ein Modul beim Start der App über sich bekannt gibt, u. a.: seine Schlüssel im Wertekatalog samt Rechnung und Aufzählung der Bezugsobjekte, seine Eintragsarten, seine Dokumentarten (optional mit Namensmustern, aus denen das Aufnehmen-Formular die Art vorbelegt) und Auslese-Vorlagen, seine Befundarten und seine Seiten in der Oberfläche (Code: `ModuleRegistration`).
+Was ein Modul beim Start der App über sich bekannt gibt, u. a.: seine Schlüssel im Wertekatalog samt Rechnung und Aufzählung der Bezugsobjekte, seine Eintragsarten, seine Dokumentarten (optional mit Namensmustern, aus denen das Aufnehmen-Formular die Art vorbelegt) und Auslese-Vorlagen, seine Befundarten, seine Seiten in der Oberfläche und je Schlüssel, wo man erfasst, woraus er rechnet: eine Eintragsart des Moduls oder, wo der Wert aus einem Beleg kommt, das Aufnehmen des Belegs (Code: `ModuleRegistration`).
 _Avoid_: Registry, Manifest, Plugin-Deklaration; „Anmeldung“ allein (klingt nach Login eines Nutzers oder nach Steueranmeldung)
 
 **abschalten**:
