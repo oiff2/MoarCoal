@@ -7,6 +7,7 @@ def protocol_url(reading_id: str, data_name: str = "") -> str:
     return f"{base}#{data_name}" if data_name else base
 
 
-def anlage_n_url(year: int) -> str:
-    """Die erste Seite der Anlage N des Jahrs."""
-    return f"/steuerjahr/anlage-n/{year}"
+def anlage_url(slug: str, year: int, page: str = "") -> str:
+    """Die Anlage mit dem Adressteil `slug` im Jahr; ohne `page` ihre erste Seite."""
+    base = f"/steuerjahr/anlage-{slug}/{year}"
+    return f"{base}/{page}" if page else base

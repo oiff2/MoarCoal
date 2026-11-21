@@ -9,6 +9,7 @@ import pytest
 
 from moarcoal.modules.tax_year.anlage_n import FIELDS_2025, FORMS, STRUCTURES, fields_n
 from moarcoal.modules.tax_year.fields import NEW_FIELD, FormField, check_previous_years
+from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.structure import (
     DIRECTORY,
     FormStructure,
@@ -57,8 +58,10 @@ def test_tool_output_loads_as_structure():
     assert not structure.provisional
 
 
-def test_structure_files_are_there_for_every_year_of_the_catalog():
-    assert {p.name for p in DIRECTORY.glob("*.json")} == {f"n-{year}.json" for year in FORMS}
+def test_structure_files_are_there_for_every_registered_anlage_and_year():
+    expected = {f"{a.form.lower()}-{year}.json" for a in ANLAGEN for year in a.structures}
+    assert {p.name for p in DIRECTORY.glob("*.json")} == expected
+    assert {f"n-{year}.json" for year in FORMS} <= expected
 
 
 def test_parse_rejects_other_schema_and_doubled_e_kennung():

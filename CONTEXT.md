@@ -72,14 +72,14 @@ Der Kanal, über den Daten von außen in MoarCoal gelangen: eDaten-Abruf aus Mei
 _Avoid_: Herkunft, Import, Datenquelle
 
 **Nutzereingabe**:
-Eine von Hand erfasste Angabe, eingebettet in eine eigene Eintragsart des Moduls: Womit ein Modul rechnet oder was es als Wert weitergibt, ist eine Eintragsart dieses Moduls (in Arbeit z. B. ein Betrag mit Datum und Beschreibung, Code: `UserInput`); nur ein Feld der Anlage, das bloß abgeschrieben wird (Ja/Nein, Text), nimmt seinen Inhalt direkt im Steuerjahr (Code: `FormInput`). Als Fundstelle ergibt sie den Belegstand angenommen.
+Eine von Hand erfasste Angabe, eingebettet in eine eigene Eintragsart des Moduls: Womit ein Modul rechnet oder was es als Wert weitergibt, ist eine Eintragsart dieses Moduls (in Arbeit z. B. ein Betrag mit Datum und Beschreibung, Code: `UserInput`); nur ein Feld der Anlage, das bloß abgeschrieben wird (Auswahl wie Ja/Nein, Text, Zeitraum TT.MM-TT.MM), nimmt seinen Inhalt direkt im Steuerjahr (Code: `FormInput`, die Art der Eingabe `TypedInput`). Als Fundstelle ergibt sie den Belegstand angenommen.
 _Avoid_: manuelle Buchung, Handeingabe
 
 **Arbeit**:
 Das Modul für die Angaben zur nichtselbständigen Arbeit (Anlage N): von Hand erfasst die Erste Tätigkeitsstätte und die Arbeitsmittel, dazu die eingelesene Lohnsteuerbescheinigung und die Dienstreisen. Ein Steuerjahr steht auf einer Seite; jeder Eintrag außer den Orten gehört zu genau einem Steuerjahr. Modulschlüssel `work`.
 
 **Erste Tätigkeitsstätte**:
-Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die Arbeitstage und die einfache Entfernung in km von der Wohnung dorthin, freiwillig dazu Arbeitstage je Woche, Urlaubs- und Krankheitstage, Homeoffice-Tage und die davon mit dem eigenen Pkw gefahrenen km (Code: `FirstWorkplace`); sie ist das Bezugsobjekt dieser Ausgewiesenen Werte. Daraus kommen die Felder Nr. 28, 31 und 58 der Anlage N; Nr. 28 „Urlaubs-, Krankheits-, Heimarbeits- und Dienstreisetage“ ist die Summe aus den Urlaubs- und Krankheitstagen, den Homeoffice-Tagen und den Tagen der Dienstreisen. Nr. 27 (Ziel, Adresse, Zeitraum) berechnet MoarCoal noch nicht.
+Der Ort, an dem ein Nutzer dauerhaft arbeitet; erfasst werden je Steuerjahr die Arbeitstage und die einfache Entfernung in km von der Wohnung dorthin, freiwillig dazu Arbeitstage je Woche, Urlaubs- und Krankheitstage, Homeoffice-Tage und die davon mit dem eigenen Pkw gefahrenen km (Code: `FirstWorkplace`); sie ist das Bezugsobjekt dieser Ausgewiesenen Werte. Daraus kommen die Felder Nr. 28, 31 und 58 der Anlage N; Nr. 28 „Urlaubs-, Krankheits-, Heimarbeits- und Dienstreisetage“ ist die Summe aus den Urlaubs- und Krankheitstagen, den Homeoffice-Tagen und den Tagen der Dienstreisen. Nr. 27 (Ziel des Weges, Anschrift, Zeitraum) leitet MoarCoal nicht aus ihr ab; der Nutzer gibt sie als Eingabe im Steuerjahr an.
 
 **Arbeitsmittel**:
 Werkzeug und Material, das ein Nutzer für die Arbeit selbst gekauft hat; erfasst wird je Anschaffung ein Betrag als Nutzereingabe mit dem Steuerjahr der Anschaffung und, über der GWG-Grenze, der Nutzungsdauer (Code: `WorkEquipment`). Bis zur GWG-Grenze zählt der volle Betrag im Steuerjahr der Anschaffung, darüber die AfA jedes Jahrs. Die „Summe der Arbeitsmittel“ eines Jahrs (Feld der Anlage N) ist die Summe aus beidem, auch für Anschaffungen aus Vorjahren. Rechtslage: `docs/recherche-arbeitsmittel-afa.md`.
@@ -106,7 +106,7 @@ Ein Screenshot einer Liste von Dienstreisen (z. B. aus dem Reisekostentool des A
 Ein Name aus den Orten der Dienstreisen, wie dort geschrieben. Der erste Ort einer Reise ist ein **Startort**, jeder andere ein **Reiseziel** (je Reise einmal gezählt, ein am Ende wiederholter Startort ist keines). Ein Ort hat entweder eine Lage auf der Deutschlandkarte neben der Tabelle oder ist als „nicht zeigen“ markiert (Code: `Place`); beides gilt für alle Jahre, nicht je Steuerjahr. Die Lage kommt nie von selbst: erst der Klick auf „Suchen“ fragt bei OpenStreetMap nach dem Text im Feld, und der Nutzer wählt einen Treffer.
 
 **Lohnsteuerbescheinigung**:
-Die Bescheinigung des Arbeitgebers über Bruttoarbeitslohn und einbehaltene Steuern eines Jahres; als eDaten-HTML aus „Meine Bescheinigungen“ in Mein ELSTER (`Belegart: VaSt_LStB`) Dokumentart des Moduls Arbeit mit Bezugszeitraum, je Nutzer und Jahr eindeutig. Sie wird exakt eingelesen; der Eintrag hält Steuerklasse, Bruttoarbeitslohn, Lohnsteuer und Solidaritätszuschlag in Cent, je mit Fundstelle im Dokument (Code: `WageTaxCertificate`). Was die Datei nicht nennt, bleibt leer und ist noch nicht berechenbar, nie 0. Daraus kommen die Felder Nr. 4 bis 7 der Anlage N.
+Die Bescheinigung des Arbeitgebers über Bruttoarbeitslohn und einbehaltene Steuern eines Jahres; als eDaten-HTML aus „Meine Bescheinigungen“ in Mein ELSTER (`Belegart: VaSt_LStB`) Dokumentart des Moduls Arbeit mit Bezugszeitraum, je Nutzer und Jahr eindeutig. Sie wird exakt eingelesen; der Eintrag hält Steuerklasse, Bruttoarbeitslohn, Lohnsteuer und Solidaritätszuschlag in Cent, je mit Fundstelle im Dokument, dazu die Pfade der Datei, die die Einlese-Regel nicht kennt (Code: `WageTaxCertificate`). Was die Datei nicht nennt, bleibt leer und ist noch nicht berechenbar, nie 0. Ausnahme sind die **Arbeitgeberleistungen** für Wege zur ersten Tätigkeitsstätte laut Nr. 17 (steuerfrei) und Nr. 18 (pauschal besteuert): Kennt die Einlese-Regel jeden Pfad der Datei, sind sie nicht bescheinigt und 0 €, mit dieser Entscheidung im Rechenweg; sonst noch nicht berechenbar. Daraus kommen die Felder Nr. 4 bis 7 und 51 der Anlage N.
 _Avoid_: Lohnsteuerkarte, Lohnbescheinigung
 
 **Kapitalvermögen**:
@@ -142,8 +142,14 @@ _Avoid_: Steuerbescheid, EStBescheid
 **Bescheid-Abgleich** _(geprägt)_:
 Der Vergleich der bestätigten Positionen des EStB mit dem eingefrorenen Wert des Schnappschusses der Abgabe, je Feld der Anlage; zeigt, wo das Finanzamt anders angesetzt hat als abgegeben. Verglichen wird mit einer Spanne: bei ganzen Euro und bei Positionen, die der EStB gerundet druckt, passt jeder ganze Euro zwischen abgerundetem und aufgerundetem Wert (bei einem Feld mit ganzen Euro einen Euro darunter bis einen darüber), sonst exakt; das gedruckte Vorzeichen zählt nicht. Abweichung ergibt einen Befund (Warnung); ohne Schnappschuss gibt es nur einen Hinweis. Felder, die MoarCoal noch nicht berechnet, haben keinen Schnappschuss-Wert und bleiben ohne Abgleich. Nicht zu verwechseln mit dem Abgleich mit dem Übertragungsprotokoll.
 
+**Anlage**:
+Ein Vordruck der Steuererklärung, wie Mein ELSTER ihn in der Formularliste zeigt und das Übertragungsprotokoll ihn nennt: ESt 1 A, VOR, SA, N, KAP, V. Das Steuerjahr führt je Anlage und Jahr einen Katalog der Felder und eine Struktur; seine Seiten, Unterseiten und die drei Gegenproben sind für jede Anlage dieselben. Eine neue Anlage meldet man mit Schlüssel, Katalog, Strukturen und (wo sie rechnet) ihren Werten an (Code: `Anlage`); für ein Jahr gibt es sie, sobald sie einen Katalog oder Zeilen im Übertragungsprotokoll hat (Code: `YearAnlage`).
+
+**Gegenprobe**:
+Je Feld der Anlage der Vergleich mit einer Gegenseite: dem Übertragungsprotokoll (Abgleich), dem Schnappschuss der Abgabe oder dem EStB (Bescheid-Abgleich). Die Zeile des Felds zeigt je Gegenprobe den Inhalt der Gegenseite und ob er passt; eine Abweichung ist ein Befund der Gegenprobe, die Zeile ordnet ihn nur ihrem Feld zu. Felder, die MoarCoal nicht berechnet, zeigen die Gegenseite ohne Urteil (Code: `FieldCheck`).
+
 **Feld**:
-Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im Vordruck und E-Kennung (solange unbekannt, leer); das Steuerjahr ordnet jedem Feld, das MoarCoal berechnet, einen Ausgewiesenen Wert zu (Code: `FormField`, dessen Rundung `Rounding`). Das Steuerjahr führt die Felder je Steuerjahr und nimmt alle bekannten mit (Anlage N 2025: 23, auch solche ohne Betrag wie Text und Ja/Nein); berechnet werden bisher drei. Ein Euro-Feld nimmt entweder ganze Euro (gerundet nach seiner Richtung) oder Euro mit Cent (exakt, z. B. Steuerbeträge laut Bescheinigung); km werden auf volle Kilometer abgerundet.
+Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im Vordruck und E-Kennung (solange unbekannt, leer); das Steuerjahr ordnet jedem Feld, das MoarCoal berechnet, einen Ausgewiesenen Wert zu (Code: `FormField`, dessen Rundung `Rounding`). Das Steuerjahr führt die Felder je Anlage und Steuerjahr und nimmt alle bekannten mit (Anlage N 2025: 23, auch solche ohne Betrag wie Text und Ja/Nein); in Anlage N ist jedes Feld mit Betrag berechnet, jedes ohne Betrag eine Eingabe im Steuerjahr. Ein Euro-Feld nimmt entweder ganze Euro (gerundet nach seiner Richtung) oder Euro mit Cent (exakt, z. B. Steuerbeträge laut Bescheinigung); km werden auf volle Kilometer abgerundet.
 
 **Richtung**:
 Ob ein Euro-Feld als Einnahme oder als Ausgabe zählt; sie bestimmt, wie sein Wert auf ganze Euro gerundet wird: zugunsten des Steuerpflichtigen, Einnahmen ab, Ausgaben auf. Erstattungen, Zuschüsse und Arbeitgeberanteile, die einen Abzug mindern, zählen als Einnahme (Code: `Direction`).
@@ -153,7 +159,7 @@ Die Kennung eines Felds in ELSTER (E und sieben Ziffern; Code: `ElsterId`); der 
 _Avoid_: Feldnummer
 
 **Struktur**:
-Die Felder einer Anlage in einem Steuerjahr, wie Mein ELSTER sie zeigt: Seite, Überschriften, Bezeichnung, Nummer im Vordruck, E-Kennung und bei Auswahlfeldern die festen Optionen (bei einer Vorschlagsliste mit dem Vermerk, dass sie auch eigenen Text nimmt), nie Werte. Das Werkzeug `tools/elster_page_fields.py` erzeugt sie aus gespeicherten Seiten als Datei je Jahr im Repo und meldet die Änderungen zum Vorjahr; solange die Seiten fehlen, ist eine Struktur vorläufig und aus dem Katalog abgeleitet. Die Bedeutung eines Felds (Wert, Richtung, Runden, EStB) bleibt im Katalog des Steuerjahrs und verweist per E-Kennung auf die Struktur; ändert sich die E-Kennung eines Felds gegenüber dem Vorjahr, braucht es eine ausdrückliche Zuordnung (Code: `FormStructure`).
+Die Felder einer Anlage in einem Steuerjahr, wie Mein ELSTER sie zeigt: Seite, Überschriften, Bezeichnung, Nummer im Vordruck, E-Kennung, Einheit (€, km, m², wo Mein ELSTER sie am Feld zeigt; das Übertragungsprotokoll druckt keine) und bei Auswahlfeldern die festen Optionen (bei einer Vorschlagsliste mit dem Vermerk, dass sie auch eigenen Text nimmt), nie Werte. Das Werkzeug `tools/elster_page_fields.py` erzeugt sie aus gespeicherten Seiten als Datei je Jahr im Repo und meldet die Änderungen zum Vorjahr; solange die Seiten fehlen, ist eine Struktur vorläufig und aus den Zeilen der Anlage im Übertragungsprotokoll des Jahrs abgeleitet (Seite aus dem ersten Teil des Pfads, mit dem Titel aus Mein ELSTER, wo er bekannt ist; ohne Überschriften; Nummer und Bezeichnung aus der Zeile); ihre Felder berechnet MoarCoal noch nicht. Die Bedeutung eines Felds (Wert, Richtung, Runden, EStB) bleibt im Katalog des Steuerjahrs und verweist per E-Kennung auf die Struktur; ändert sich die E-Kennung eines Felds gegenüber dem Vorjahr, braucht es eine ausdrückliche Zuordnung (Code: `FormStructure`).
 
 **Belegstand** _(geprägt)_:
 Ob ein Einzelposten durch einen Beleg gedeckt ist; er ergibt sich aus der Art der Fundstelle: belegt (Fundstelle ist eine Stelle in einem Dokument oder ein eDaten-Satz), ausstehend (Fundstelle ist ein Erwarteter Beleg, der Betrag gilt, bis der Beleg da ist) oder angenommen (Fundstelle ist eine Nutzereingabe, kein Beleg zu erwarten). Stützt sich ein Einzelposten auf einen anderen Ausgewiesenen Wert, erbt er dessen schwächsten Belegstand. Vom schwächsten zum stärksten: ausstehend, angenommen, belegt. Der Belegstand eines Ausgewiesenen Werts ist der schwächste seiner Einzelposten; ohne Einzelposten (z. B. ausdrücklich 0) ist er belegt (Code: `Backing`).
@@ -241,6 +247,7 @@ _Avoid_: Cache, Snapshot (das ist der Schnappschuss), Kontext
 
 **Dokument**:
 Eine aufgenommene Datei, auf die MoarCoal an einem Ablageort verweist oder die es ins Datenverzeichnis übernommen hat (z. B. Rechnung, Kontoauszug, Bescheid, Mietvertrag), mit Aussteller, Datum und höchstens einer Dokumentart; vor dem Aufnehmen heißt sie Datei (Code: `Document`). Im Reiter Dokumente zeigt es einen bei jeder Anfrage abgeleiteten, nicht gespeicherten Zustand: „zu bestätigen“ (der neueste Vorschlag hat offene Felder), „auszulesen“ (die Dokumentart hat eine Auslese-Vorlage, aber es gibt noch keinen Vorschlag) oder „fertig“; ein Dokument ohne Dokumentart zeigt statt eines Zustands „Beleg“, kein Mangel (Code: `DocumentState`).
+Ein Dokument gehört zu einem Jahr, wenn sein Bezugszeitraum das Jahr berührt oder, ohne Bezugszeitraum, wenn es im Jahresordner dieses Jahrs liegt; ein Dokument ohne Bezugszeitraum an einem Ablageort ohne Jahr gehört zu den Jahren, deren Einträge auf es verweisen. Die **Bezeichnung** ist ein freier Text, der sagt, was das Dokument ist (z. B. „Religionszugehörigkeit“); die Belege-Seite zeigt es als „Aussteller · Bezeichnung“, ohne Bezeichnung mit dem Dateinamen.
 _Avoid_: Unterlage, Anhang
 
 **Datenverzeichnis**:
@@ -250,6 +257,10 @@ _Avoid_: Datenordner, Speicherort
 **Ablageort** _(geprägt)_:
 Ein benannter, für alle Nutzer gemeinsamer Ordner außerhalb des Datenverzeichnisses, in dem Dokumente liegen (z. B. „Belege“, „Scan-Eingang“); MoarCoal liest dort nur und verweist auf Dokumente über Ablageort, relativen Pfad und Prüfsumme.
 _Avoid_: externer Ordner, Quellordner, Mount
+
+**Jahresordner**:
+Ein Ablageort, der zu einem Steuerjahr gehört (z. B. der Ordner der Erklärung 2025); die Belege-Seite eines Jahrs zeigt seinen Eingang zuerst. Ein Ablageort ohne Jahr gilt für kein bestimmtes Jahr (z. B. „Scan-Eingang“).
+_Avoid_: Jahresablage, Steuerordner
 
 **Eingang** _(geprägt)_:
 Die Dateien in den Ablageorten, die weder aufgenommen noch ausgeblendet sind; in der Oberfläche der Filter „offen“ der Ablage, im Befund „n Dateien im Eingang“ gezählt. Daraus wird nichts von selbst übernommen.

@@ -16,6 +16,8 @@ class WageTaxCertificate(ReadInEntry):
     Angabe nicht (nie 0). `places` nennt je Angabe den vollen Feldnamen `data-name` als Fundstelle.
     Dokument und Fassung der Einlese-Regel trägt `ReadInEntry`. Die Bescheinigung fällt mit dem
     Dokument weg; nach dem Löschen lässt sich die Datei erneut aufnehmen und wird neu eingelesen.
+    `unrecognized` nennt die Pfade der Datei, die die Einlese-Regel nicht kennt; nur ohne sie steht
+    fest, dass die Bescheinigung eine Angabe nicht nennt (Nr. 17 und 18).
     """
 
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
@@ -24,6 +26,7 @@ class WageTaxCertificate(ReadInEntry):
     income_tax_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)
     soli_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)
     places: dict[str, str] = Field(default_factory=dict)
+    unrecognized: list[str] = Field(default_factory=list)
 
 
 KINDS: tuple[EntryKind, ...] = (

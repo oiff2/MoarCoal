@@ -1,12 +1,13 @@
-{% extends "base.html" %}
+{% extends "tax_year/_rahmen.html" %}
 {% block title %}Steuerjahr – MoarCoal{% endblock %}
-{% block main %}
-<h1>Steuerjahr</h1>
+{% block inhalt %}
+<h1>Steuerjahr {{ year }}</h1>
 
-<h2>Anlagen</h2>
-<ul>
-  <li><a href="/steuerjahr/anlage-n/2025">Anlage N 2025</a></li>
-</ul>
+{% if anlagen %}
+<p>Links die Anlagen {{ year }} in der Reihenfolge von Mein ELSTER, je mit ihren Seiten. „aus dem Protokoll“: die Seiten sind aus dem Übertragungsprotokoll abgeleitet, bis gespeicherte Seiten aus Mein ELSTER vorliegen.</p>
+{% else %}
+<p>Für {{ year }} kennt MoarCoal noch keine Anlagen. Mit einem aufgenommenen Übertragungsprotokoll {{ year }} erscheinen sie hier.</p>
+{% endif %}
 
 <h2>Übertragungsprotokolle</h2>
 {% if readings %}

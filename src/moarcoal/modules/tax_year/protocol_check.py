@@ -1,4 +1,4 @@
-"""Gegenprobe mit dem Übertragungsprotokoll: Felder der Anlage N und Struktur des Jahres (Befunde).
+"""Gegenprobe mit dem Übertragungsprotokoll: Felder und Struktur jeder Anlage des Jahres (Befunde).
 
 Verglichen wird exakt und ohne Toleranz gegen den gerundeten Wert des Felds (das Steuerjahr rundet
 nach Einheit und Richtung, siehe `fields`). Weicht das Protokoll nur durch Rundung ab, nennt der
@@ -6,12 +6,14 @@ Text Differenz und Richtung. Mehrere Zeilen derselben E-Kennung werden bei EUR-F
 bei Tagen und km sind sie mehrdeutig.
 """
 
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Sequence
 
-from moarcoal.modules.tax_year.anlage_n import FORMS, STRUCTURES
+from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading, taken_order
-from moarcoal.modules.tax_year.fields import AmbiguousLines, FormField, Forms, NotANumber
+from moarcoal.modules.tax_year.fields import AmbiguousLines, FormField, NotANumber
+from moarcoal.modules.tax_year.form_names import form_name
 from moarcoal.modules.tax_year.links import protocol_url
+from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.structure import FormStructure
 from moarcoal.registration import ModuleState
 from moarcoal.values.calculation import ValueSource
@@ -112,7 +114,7 @@ def _structure_findings(reading: ProtocolReading, structure: FormStructure) -> I
             continue
         seen.add((line.elster_id, line.form_line))
         number = line.form_line or "–"
-        name = f"Anlage {structure.form} Nr. {number}, {line.label} ({line.elster_id})"
+        name = f"{form_name(structure.form)} Nr. {number}, {line.label} ({line.elster_id})"
         href = protocol_url(reading.id, line.data_name)
         if field is None:
             where = f"nach der Seite „{page}“" if page else "am Anfang"
@@ -137,40 +139,39 @@ def _structure_findings(reading: ProtocolReading, structure: FormStructure) -> I
             )
 
 
-def protocol_findings(
-    state: ModuleState,
-    values: ValueSource,
-    year: int,
-    forms: Forms = FORMS,
-    structures: Mapping[int, FormStructure] = STRUCTURES,
-) -> list[Finding]:
-    """Befunde des Abgleichs für das Jahr; ohne aufgenommenes Protokoll gibt es keinen Abgleich."""
-    fields = forms.get(year)
-    reading = latest_reading(state, year)
-    if reading is None:
-        return []
-    found: list[Finding] = []
-    if (structure := structures.get(year)) is not None:
-        found.extend(_structure_findings(reading, structure))
-    if fields is None:
-        return found
-    for field in fields:
+def _anlage_findings(
+    anlage: Anlage, state: ModuleState, values: ValueSource, year: int, reading: ProtocolReading
+) -> Iterator[Finding]:
+    if (structure := anlage.structures.get(year)) is not None:
+        yield from _structure_findings(reading, structure)
+    for field in anlage.forms.get(year, ()):
         if not field.computed:
             continue  # kein Wert, also nichts zu vergleichen
         period = Period.year(year)
         result = values.get(field.key, state.user, period)
         ref = ValueRef(field.key, state.user, period, None)
         if field.elster_id is None:
-            found.append(
-                Finding(
-                    UNKNOWN_ELSTER_ID,
-                    Severity.NOTE,
-                    ref,
-                    f"Anlage N, {field.label}: E-Kennung unbekannt, nicht abgleichbar.",
-                    href=protocol_url(reading.id),
-                    fingerprint=fingerprint(field.key, field.label),
-                )
+            yield Finding(
+                UNKNOWN_ELSTER_ID,
+                Severity.NOTE,
+                ref,
+                f"{form_name(field.form)}, {field.label}: E-Kennung unbekannt, nicht abgleichbar.",
+                href=protocol_url(reading.id),
+                fingerprint=fingerprint(field.key, field.label),
             )
         elif isinstance(result, ExposedValue):  # sonst gibt es nichts zu vergleichen
-            found.extend(_field_findings(field, ref, result, reading))
-    return found
+            yield from _field_findings(field, ref, result, reading)
+
+
+def protocol_findings(
+    state: ModuleState,
+    values: ValueSource,
+    year: int,
+    anlagen: Sequence[Anlage] = ANLAGEN,
+) -> list[Finding]:
+    """Befunde des Abgleichs für das Jahr über alle Anlagen; ohne aufgenommenes Protokoll gibt es
+    keinen Abgleich."""
+    reading = latest_reading(state, year)
+    if reading is None:
+        return []
+    return [f for anlage in anlagen for f in _anlage_findings(anlage, state, values, year, reading)]
