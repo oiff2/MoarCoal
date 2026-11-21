@@ -1,8 +1,9 @@
 """Felder der Anlage N je Steuerjahr und die Zuordnung der Werte zu ihnen.
 
 Der Katalog enthält alle für 2025 bekannten Felder: jedes mit Betrag ist berechnet
-(`FormField.computed`), jedes ohne Betrag nimmt eine Eingabe im Steuerjahr (`typed`). Ein Feld zeigt die erfassten Angaben wie ELSTER sie verlangt, ohne
-Steuerrechnung (keine Entfernungspauschale). Die Werte kommen aus dem Modul Arbeit, das das
+(`FormField.computed`), jedes ohne Betrag nimmt eine Eingabe im Steuerjahr (`typed`). Ein Feld
+zeigt die erfassten Angaben wie ELSTER sie verlangt, ohne Steuerrechnung (keine
+Entfernungspauschale). Die Werte kommen aus dem Modul Arbeit, das das
 Steuerjahr nur über ihre Schlüssel kennt. Die Werte der Felder sind
 gerundet, wie das Feld es verlangt (`fields`); der Rundungsschritt steht im Rechenweg, die Werte
 des Moduls Arbeit bleiben genau.
@@ -11,6 +12,7 @@ des Moduls Arbeit bleiben genau.
 from collections.abc import Callable, Mapping
 from functools import partial
 
+from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.assessment import (
     BUSINESS_TRAVEL,
     COMMUTE_DAYS,
@@ -21,6 +23,7 @@ from moarcoal.modules.tax_year.assessment import (
     SOLI_WITHHELD,
 )
 from moarcoal.modules.tax_year.fields import Direction, FormField, Forms, Rounding, TypedInput
+from moarcoal.modules.tax_year.form_names import form_name
 from moarcoal.modules.tax_year.structure import FormStructure, load_structure
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
@@ -112,6 +115,7 @@ def _catalog_field(
         printed_rounded=printed_rounded,
         previous=previous,
         typed=typed,
+        form=FORM,
     )
 
 
@@ -302,7 +306,7 @@ def _field(calculation: Calculation, forms: Forms, key: ValueKey) -> FormField:
     year = calculation.year
     field = next((f for f in forms.get(year, ()) if f.key == key), None)
     if field is None:
-        calculation.not_yet(f"Anlage N {year} deckt MoarCoal noch nicht ab")
+        calculation.not_yet(f"{form_name(FORM)} {year} deckt MoarCoal noch nicht ab")
     return field
 
 
@@ -424,9 +428,14 @@ def values_for(forms: Forms) -> tuple[ValueDefinition, ...]:
         latest.update((field.key, field) for field in forms[year] if field.computed)
     return tuple(
         ValueDefinition(
-            CatalogEntry(field.key, f"Anlage N, {field.label}", field.unit, TimeKind.PERIOD),
+            CatalogEntry(
+                field.key, f"{form_name(FORM)}, {field.label}", field.unit, TimeKind.PERIOD
+            ),
             _compute(forms, field.key),
         )
         for field in latest.values()
         if field.unit is not None  # berechnete Felder haben immer eine Einheit
     )
+
+
+ANLAGE_N = Anlage(FORM, FORMS, STRUCTURES, values_for)

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{# Steuerjahr: links die Anlagen des Jahrs mit ihren Seiten wie die Formularliste in Mein ELSTER, rechts die gewählte Seite. #}
+{% block main %}
+<div class="steuerjahr">
+  <nav class="anlagen-baum" aria-label="Anlagen {{ year }}">
+    <a class="uebersicht" href="/steuerjahr"{% if not anlage %} aria-current="page"{% endif %}>Übersicht {{ year }}</a>
+    {% for a in anlagen %}
+    {% set current = anlage and a.slug == anlage.slug %}
+    <details{% if current %} open{% endif %}>
+      <summary><a href="/steuerjahr/anlage-{{ a.slug }}/{{ year }}"{% if current %} class="aktuell"{% endif %}>{{ a.name }}</a>{% if a.provisional %} <small title="Seiten abgeleitet aus dem Übertragungsprotokoll {{ year }}">aus dem Protokoll</small>{% endif %}</summary>
+      <ul>
+        {% for p in a.pages %}
+        <li><a href="/steuerjahr/anlage-{{ a.slug }}/{{ year }}/{{ p.slug }}"{% if current and p.slug == page.slug %} aria-current="page"{% endif %}>{{ p.title }}</a></li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endfor %}
+  </nav>
+  <section class="steuerjahr-inhalt">
+    {% block inhalt %}{% endblock %}
+  </section>
+</div>
+{% endblock %}

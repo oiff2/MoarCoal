@@ -11,8 +11,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-from moarcoal.modules.tax_year.entries import ElsterId
+from moarcoal.modules.tax_year.entries import ElsterId, ProtocolLine
 from moarcoal.modules.tax_year.fields import FormField
+from moarcoal.modules.tax_year.form_names import form_name, protocol_page, protocol_unit
 
 SCHEMA = 1  # wie im Werkzeug
 DIRECTORY = Path(__file__).parent / "strukturen"
@@ -33,6 +34,7 @@ class StructureField:
     label: str
     options: tuple[str, ...] = ()  # feste Auswahl; leer: keine
     free_text: bool = False  # Vorschlagsliste: nimmt auch einen eigenen Text
+    unit: str = ""  # Einheit, wie Mein ELSTER sie am Feld zeigt (€, km, m²); leer: keine
 
 
 @dataclass(frozen=True)
@@ -69,6 +71,7 @@ def parse_structure(text: str) -> FormStructure:
             f["label"],
             tuple(f.get("options", ())),
             bool(f.get("free_text", False)),
+            f.get("unit", ""),
         )
         for f in data["fields"]
     )
@@ -98,6 +101,35 @@ class FormPage:
     slug: str
     title: str
     rows: tuple[PageRow, ...]
+
+
+_PROTOCOL_PATH = re.compile(r"^id-[^-]+-(?P<path>.*)-E\d{7}(_.*)?$")
+
+
+def provisional_structure(form: str, year: int, lines: Iterable[ProtocolLine]) -> FormStructure:
+    """Die vorläufige Struktur einer Anlage aus den Zeilen des Übertragungsprotokolls.
+
+    Je E-Kennung ein Feld (die erste Zeile gilt; Wiederholzeilen bleiben eines). Nr. und Bezeichnung
+    stehen in der Zeile; die Seite folgt dem ersten Segment des Pfads nach der Anlage, mit dem
+    Titel aus Mein ELSTER, wo er bekannt ist (`protocol_page`). Überschriften gibt es keine, denn
+    die übrigen Segmente sind interne Kürzel. Die Reihenfolge ist die des Protokolls. Zeilen
+    anderer Anlagen übergeht sie.
+    """
+    fields: dict[str, StructureField] = {}
+    for line in lines:
+        if line.form != form or line.elster_id in fields:
+            continue
+        match = _PROTOCOL_PATH.match(line.data_name)
+        segment = match["path"].split("-")[0] if match else ""
+        fields[line.elster_id] = StructureField(
+            line.elster_id,
+            protocol_page(form, segment) if segment else form_name(form),
+            (),
+            line.form_line,
+            line.label,
+            unit=protocol_unit(line.elster_id),
+        )
+    return FormStructure(form, year, True, tuple(fields.values()))
 
 
 def _slug(title: str) -> str:

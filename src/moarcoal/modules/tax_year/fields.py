@@ -5,6 +5,7 @@ Die Werte der Felder sind gesetzlich gerundet, je nach Einheit und Richtung des 
 das Feld aus derselben Angabe ab: bei Euro die Richtung, km zählen wie eine Ausgabe, Tage ohne.
 """
 
+import dataclasses
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from enum import StrEnum
 
 from moarcoal.modules.tax_year.entries import ElsterId
+from moarcoal.modules.tax_year.form_names import form_name
 from moarcoal.values.model import Amount, Unit, ValueKey, format_amount, parse_german_number
 
 
@@ -119,6 +121,7 @@ class FormField:
     printed_rounded: bool = False
     previous: str | None = None
     typed: TypedInput | None = None
+    form: str = dataclasses.field(kw_only=True)  # die Anlage, Schlüssel wie im Protokoll
 
     def __post_init__(self) -> None:
         if (self.rounding is Rounding.WHOLE_EUROS) != (self.direction is not None):
@@ -131,7 +134,7 @@ class FormField:
     @property
     def name(self) -> str:
         """Das Feld, wie Befunde es nennen: „Anlage N Nr. …, Bezeichnung“."""
-        return f"Anlage N Nr. {self.form_line}, {self.label}"
+        return f"{form_name(self.form)} Nr. {self.form_line}, {self.label}"
 
     @property
     def whole_euros(self) -> bool:
@@ -226,7 +229,7 @@ class FormField:
 
 
 type Forms = Mapping[int, tuple[FormField, ...]]
-"""Felder der Anlage N je Steuerjahr."""
+"""Felder einer Anlage je Steuerjahr."""
 
 
 def check_previous_years(forms: Mapping[int, Sequence[FormField]]) -> list[str]:

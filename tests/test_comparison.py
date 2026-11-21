@@ -22,6 +22,7 @@ from moarcoal.modules.elster_html import parse_elster_html
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registration
 from moarcoal.modules.tax_year.anlage_n import (
+    ANLAGE_N,
     FORMS,
     N_EQUIPMENT,
     WORK_ABSENCE_DAYS,
@@ -152,7 +153,8 @@ def test_field_without_elster_id_gets_a_note() -> None:
     fields = tuple(replace(f, elster_id=None) if f.key == N_EQUIPMENT else f for f in FORMS[2025])
 
     found = findings(
-        protocol([line(DAYS, "220"), line(KM, "12")]), tax_year=registration({2025: fields})
+        protocol([line(DAYS, "220"), line(KM, "12")]),
+        tax_year=registration([replace(ANLAGE_N, forms={2025: fields})]),
     )
 
     assert kinds(found) == [UNKNOWN_ELSTER_ID]
@@ -368,7 +370,7 @@ def test_whole_flow_finding_list_links_to_the_protocol(http: httpx.Client) -> No
     assert target.status_code == 200
     assert f'id="{anchor}"' in target.text
     anlage = http.get("/steuerjahr/anlage-n/2025")
-    assert "Wert 219 Tage, Protokoll 220 Tage" in anlage.text
+    assert "Wert 219 Tage, Protokoll 220 Tage" not in anlage.text  # Befunde nur unter /befunde
     assert "Befunde" in http.get("/").text
 
 
@@ -420,7 +422,8 @@ def test_unknown_elster_id_fingerprint_follows_the_field() -> None:
             for f in FORMS[2025]
         )
         found = findings(
-            protocol([line(DAYS, "220"), line(KM, "12")]), tax_year=registration({2025: fields})
+            protocol([line(DAYS, "220"), line(KM, "12")]),
+            tax_year=registration([replace(ANLAGE_N, forms={2025: fields})]),
         )
         return only(found, UNKNOWN_ELSTER_ID)
 

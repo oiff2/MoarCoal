@@ -26,6 +26,7 @@ from moarcoal.proposals import UNCONFIRMED, latest_proposal, template_of
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import AbortedExtraction, Change, Document, Proposal, Rejected, Store
 from moarcoal.values.model import Backing, DocumentLocator, Source
+from moarcoal.web.helpers import linked_findings
 from moarcoal.web.links import document_url
 
 PORT = 4711
@@ -120,8 +121,11 @@ def make(tmp_path: Path, *answers: Extracted | ExtractionFailed) -> Setup:
 def findings(setup: Setup, year: int = 2025) -> list[Any]:
     from moarcoal.values.engine import Values
 
-    values = Values([REGISTRATION], setup.store.state())
-    return [f for f in values.finding_list("anna", year).visible if f.kind == UNCONFIRMED]
+    state = setup.store.state()
+    found = linked_findings(
+        (REGISTRATION,), state, Values([REGISTRATION], state).finding_list("anna", year)
+    )
+    return [f for f in found.visible if f.kind == UNCONFIRMED]
 
 
 # --- Vorlage -----------------------------------------------------------------------------------
@@ -471,8 +475,11 @@ TOOLS = ExtractionFailed(FailureReason.TOOLS_REPORTED, "Claude meldet Werkzeuge.
 def aborted_findings(setup: Setup) -> list[Any]:
     from moarcoal.values.engine import Values
 
-    values = Values([REGISTRATION], setup.store.state())
-    return [f for f in values.finding_list("anna", 2025).visible if f.kind == "claude_tools"]
+    state = setup.store.state()
+    found = linked_findings(
+        (REGISTRATION,), state, Values([REGISTRATION], state).finding_list("anna", 2025)
+    )
+    return [f for f in found.visible if f.kind == "claude_tools"]
 
 
 def test_tools_abort_is_recorded_with_an_error_finding_linking_the_document(

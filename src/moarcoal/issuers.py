@@ -2,7 +2,6 @@
 
 from moarcoal.storage import Document, State
 from moarcoal.values.findings import Finding, Severity
-from moarcoal.web.links import document_url
 
 DOCUMENT_WITHOUT_ISSUER = "document_without_issuer"
 
@@ -19,7 +18,6 @@ def issuer_findings(state: State, user: str) -> list[Finding]:
             Severity.NOTE,
             d.address,
             f"Dokument ohne Aussteller: {d.path}",
-            href=document_url(d.id),
         )
         for d in documents
     ]

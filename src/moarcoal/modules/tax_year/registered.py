@@ -1,0 +1,7 @@
+"""Die Anlagen, die das Steuerjahr kennt; eine neue meldet man hier an."""
+
+from moarcoal.modules.tax_year.anlage_n import ANLAGE_N
+from moarcoal.modules.tax_year.anlage_v import ANLAGE_V
+from moarcoal.modules.tax_year.anlagen import Anlage
+
+ANLAGEN: tuple[Anlage, ...] = (ANLAGE_N, ANLAGE_V)
