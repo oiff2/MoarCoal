@@ -11,13 +11,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import Environment, FileSystemLoader
 
-from moarcoal.defaults import year_of
-from moarcoal.documents import read_in_again
+from moarcoal.defaults import DEFAULT_USER, year_of
+from moarcoal.documents import document_name, read_in_again
 from moarcoal.extraction import ClaudeExtractor, Extractor
 from moarcoal.modules import MODULES
 from moarcoal.modules.work.trips.place_search import NominatimSearch, PlaceSearch
-from moarcoal.registration import ModuleRegistration
-from moarcoal.storage import open_store
+from moarcoal.registration import ModuleRegistration, open_module_store
 from moarcoal.values.model import format_amount, format_eur
 from moarcoal.web.document_list import router as document_list_router
 from moarcoal.web.document_pages import router as document_router
@@ -40,8 +39,6 @@ from moarcoal.web.site_pages import router as belege_router
 PACKAGE_DIR = Path(__file__).parent.parent
 TEMPLATES_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
-# Durchstich: ein fester Nutzer; Nutzerliste und Nutzerwechsel kommen mit dem Prototyp (#62).
-DEFAULT_USER = "ich"
 log = logging.getLogger(__name__)
 
 
@@ -64,6 +61,7 @@ def create_app(
     environment.filters["amount"] = format_amount
     globals_: dict[str, Any] = environment.globals  # pyright: ignore[reportAssignmentType]
     globals_["preview_kind"] = preview_kind
+    globals_["document_name"] = lambda document: document_name(document, app.state.store.state())  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
     globals_["entry_url"] = lambda address: entry_url(app.state.modules, address)  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
     app.state.templates = Jinja2Templates(env=environment)
     app.state.modules = tuple(modules)
@@ -72,17 +70,7 @@ def create_app(
     app.state.extractor = extractor if extractor is not None else ClaudeExtractor()
     # Ebenso die Ortssuche: der echte Baustein fragt nur nach Klick auf „Suchen“ (ADR 0008).
     app.state.place_search = place_search if place_search is not None else NominatimSearch()
-    app.state.store = open_store(
-        data_dir,
-        [kind for module in modules for kind in module.kinds],
-        once_per_period={
-            kind.key: kind.title
-            for module in modules
-            for kind in module.document_kinds
-            if kind.unique_per_period
-        },
-        kinds_with_period={k.key for m in modules for k in m.document_kinds if k.has_period},
-    )
+    app.state.store = open_module_store(data_dir, modules)
     document_kinds = {k.key: k for module in modules for k in module.document_kinds}
     for line in read_in_again(app.state.store, document_kinds):  # Start, Schritt 5
         log.info(line)

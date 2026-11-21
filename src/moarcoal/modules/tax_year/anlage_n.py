@@ -1,8 +1,9 @@
 """Felder der Anlage N je Steuerjahr und die Zuordnung der Werte zu ihnen.
 
-Der Katalog enthält alle für 2025 bekannten Felder; berechnet werden bisher nur die des Durchstichs
-(`FormField.computed`). Ein Feld zeigt die erfassten Angaben wie ELSTER sie verlangt, ohne
-Steuerrechnung (keine Entfernungspauschale). Die Werte kommen aus dem Modul Arbeit, das das
+Der Katalog enthält alle für 2025 bekannten Felder: jedes mit Betrag ist berechnet
+(`FormField.computed`), jedes ohne Betrag nimmt eine Eingabe im Steuerjahr (`typed`). Ein Feld
+zeigt die erfassten Angaben wie ELSTER sie verlangt, ohne Steuerrechnung (keine
+Entfernungspauschale). Die Werte kommen aus dem Modul Arbeit, das das
 Steuerjahr nur über ihre Schlüssel kennt. Die Werte der Felder sind
 gerundet, wie das Feld es verlangt (`fields`); der Rundungsschritt steht im Rechenweg, die Werte
 des Moduls Arbeit bleiben genau.
@@ -11,6 +12,7 @@ des Moduls Arbeit bleiben genau.
 from collections.abc import Callable, Mapping
 from functools import partial
 
+from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.assessment import (
     BUSINESS_TRAVEL,
     COMMUTE_DAYS,
@@ -21,6 +23,7 @@ from moarcoal.modules.tax_year.assessment import (
     SOLI_WITHHELD,
 )
 from moarcoal.modules.tax_year.fields import Direction, FormField, Forms, Rounding, TypedInput
+from moarcoal.modules.tax_year.form_names import form_name
 from moarcoal.modules.tax_year.structure import FormStructure, load_structure
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
@@ -43,6 +46,8 @@ WORK_HOMEOFFICE_DAYS = ValueKey("work.homeoffice_days")
 WORK_TRIP_DAYS = ValueKey("work.trip_days")
 WORK_TRAVEL_FARE = ValueKey("work.travel_fare")
 WORK_TRAVEL_TOTAL = ValueKey("work.travel_total")
+WORK_BENEFITS_TAX_FREE = ValueKey("work.employer_benefits_tax_free")
+WORK_BENEFITS_FLAT_TAXED = ValueKey("work.employer_benefits_flat_taxed")
 
 N_WORKPLACE_DAYS = ValueKey("tax_year.n_workplace_days")
 N_WORKPLACE_DISTANCE = ValueKey("tax_year.n_workplace_distance")
@@ -60,6 +65,8 @@ N_SOLI = ValueKey("tax_year.n_soli")
 N_SOLI_SINGLE = ValueKey("tax_year.n_soli_single")
 N_TRAVEL_FARE = ValueKey("tax_year.n_travel_fare")
 N_TRAVEL_TOTAL = ValueKey("tax_year.n_travel_total")
+N_REFUND_TAX_FREE = ValueKey("tax_year.n_refund_tax_free")
+N_REFUND_FLAT_TAXED = ValueKey("tax_year.n_refund_flat_taxed")
 
 
 def _rounded(calculation: Calculation, field: FormField, amount: Amount) -> Amount:
@@ -108,6 +115,7 @@ def _catalog_field(
         printed_rounded=printed_rounded,
         previous=previous,
         typed=typed,
+        form=FORM,
     )
 
 
@@ -216,9 +224,17 @@ def fields_n(structure: FormStructure) -> tuple[FormField, ...]:
             Unit.EUR,
             Rounding.EURO_CENTS,
         ),
-        known("workplace_target", "E0203003", None, Rounding.NONE),
-        known("workplace_address", "E0203501", None, Rounding.NONE),
-        known("workplace_period", "E0203101", None, Rounding.NONE),
+        known(
+            "workplace_target",
+            "E0203003",
+            None,
+            Rounding.NONE,
+            typed=TypedInput(structure.get("E0203003").options),
+        ),
+        known("workplace_address", "E0203501", None, Rounding.NONE, typed=TypedInput()),
+        known(
+            "workplace_period", "E0203101", None, Rounding.NONE, typed=TypedInput(day_range=True)
+        ),
         computed(N_WORKDAYS_PER_WEEK, "E0203508", Unit.DAYS, Rounding.NONE),
         computed(N_ABSENCE_DAYS, "E0203509", Unit.DAYS, Rounding.NONE),
         computed(
@@ -236,15 +252,15 @@ def fields_n(structure: FormStructure) -> tuple[FormField, ...]:
             assessment=(COMMUTE_KM,),
         ),
         computed(N_CAR_DISTANCE, "E0203505", Unit.KM, Rounding.WHOLE_KM),
-        known(
-            "refund_tax_free",
+        computed(
+            N_REFUND_TAX_FREE,
             "E0204103",
             Unit.EUR,
             Rounding.WHOLE_EUROS,
             Direction.INCOME,
         ),
-        known(
-            "refund_flat_taxed",
+        computed(
+            N_REFUND_FLAT_TAXED,
             "E0203901",
             Unit.EUR,
             Rounding.WHOLE_EUROS,
@@ -259,7 +275,7 @@ def fields_n(structure: FormStructure) -> tuple[FormField, ...]:
         ),
         computed(N_HOMEOFFICE_DAYS, "E0204507", Unit.DAYS, Rounding.NONE),
         known("company_car", "E0204901", None, Rounding.NONE, typed=TypedInput(YES_NO)),
-        known("travel_fare_kind", "E0205003", None, Rounding.NONE),
+        known("travel_fare_kind", "E0205003", None, Rounding.NONE, typed=TypedInput()),
         computed(
             N_TRAVEL_FARE,
             "E0205004",
@@ -290,7 +306,7 @@ def _field(calculation: Calculation, forms: Forms, key: ValueKey) -> FormField:
     year = calculation.year
     field = next((f for f in forms.get(year, ()) if f.key == key), None)
     if field is None:
-        calculation.not_yet(f"Anlage N {year} deckt MoarCoal noch nicht ab")
+        calculation.not_yet(f"{form_name(FORM)} {year} deckt MoarCoal noch nicht ab")
     return field
 
 
@@ -388,6 +404,12 @@ _COMPUTE: dict[ValueKey, Callable[[Calculation, FormField], Amount]] = {
     N_SOLI_SINGLE: partial(_work_total, source=WORK_SOLI, label="Solidaritätszuschlag"),
     N_TRAVEL_FARE: partial(_work_total, source=WORK_TRAVEL_FARE, label="Fahrtkosten"),
     N_TRAVEL_TOTAL: partial(_work_total, source=WORK_TRAVEL_TOTAL, label="Summe der Reisekosten"),
+    N_REFUND_TAX_FREE: partial(
+        _work_total, source=WORK_BENEFITS_TAX_FREE, label="Arbeitgeberleistungen laut Nr. 17"
+    ),
+    N_REFUND_FLAT_TAXED: partial(
+        _work_total, source=WORK_BENEFITS_FLAT_TAXED, label="Arbeitgeberleistungen laut Nr. 18"
+    ),
 }
 
 
@@ -406,9 +428,14 @@ def values_for(forms: Forms) -> tuple[ValueDefinition, ...]:
         latest.update((field.key, field) for field in forms[year] if field.computed)
     return tuple(
         ValueDefinition(
-            CatalogEntry(field.key, f"Anlage N, {field.label}", field.unit, TimeKind.PERIOD),
+            CatalogEntry(
+                field.key, f"{form_name(FORM)}, {field.label}", field.unit, TimeKind.PERIOD
+            ),
             _compute(forms, field.key),
         )
         for field in latest.values()
         if field.unit is not None  # berechnete Felder haben immer eine Einheit
     )
+
+
+ANLAGE_N = Anlage(FORM, FORMS, STRUCTURES, values_for)

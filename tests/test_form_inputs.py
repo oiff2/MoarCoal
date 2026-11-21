@@ -1,4 +1,4 @@
-"""Tests: Eingaben zu Eintippfeldern der Anlage N (Nr. 65 Firmenwagen)."""
+"""Tests: Eingaben zu Eintippfeldern der Anlage N (Nr. 27 Ziel des Weges, Nr. 65 Firmenwagen)."""
 
 import json
 from pathlib import Path
@@ -39,8 +39,30 @@ def stored(root: Path) -> dict[str, dict[str, object]]:
 
 
 def test_choices_accept_only_the_listed_texts() -> None:
-    assert TypedInput(YES_NO).check("Ja") is None
-    assert TypedInput(YES_NO).check("Vielleicht") is not None
+    assert TypedInput(YES_NO).check("Ja", 2025) is None
+    assert TypedInput(YES_NO).check("Vielleicht", 2025) is not None
+
+
+def test_free_text_accepts_any_text() -> None:
+    assert TypedInput().check("12345 Musterstadt, Beispielweg 1", 2025) is None
+
+
+@pytest.mark.parametrize("text", ["01.01-31.12", "29.02-29.02"])
+def test_day_range_accepts_days_of_the_year_in_order(text: str) -> None:
+    year = 2024 if text.startswith("29.02") else 2025
+    assert TypedInput(day_range=True).check(text, year) is None
+
+
+@pytest.mark.parametrize(
+    "text", ["1.1-31.12", "01.01.-31.12.", "31.02-01.03", "01.05-01.04", "29.02-01.03", "Januar"]
+)
+def test_day_range_rejects_other_formats_and_impossible_days(text: str) -> None:
+    assert TypedInput(day_range=True).check(text, 2025) is not None
+
+
+def test_a_day_range_cannot_also_have_choices() -> None:
+    with pytest.raises(ValueError, match="Auswahl"):
+        TypedInput(("a",), day_range=True)
 
 
 # --- Schreibweg ---------------------------------------------------------------------------------
@@ -57,7 +79,14 @@ def test_only_one_input_per_field_and_year_is_accepted_by_the_write_path(tmp_pat
 
 @pytest.mark.parametrize(
     ("elster_id", "content", "year"),
-    [("E0204901", "Vielleicht", 2025), ("E0204507", "20", 2025), ("E0204901", "Ja", 2024)],
+    [
+        ("E0204901", "Vielleicht", 2025),
+        ("E0204507", "20", 2025),
+        ("E0204901", "Ja", 2024),
+        ("E0203003", "Arbeitsplatz", 2025),
+        ("E0203101", "1.1.-31.12.", 2025),
+        ("E0203101", "01.07-30.06", 2025),
+    ],
 )
 def test_the_write_path_rejects_an_input_that_does_not_fit_the_field(
     tmp_path: Path, elster_id: str, content: str, year: int
@@ -67,6 +96,23 @@ def test_the_write_path_rejects_an_input_that_does_not_fit_the_field(
     result = store.apply([Put(entered(elster_id, content, year))])
 
     assert isinstance(result, Rejected)
+
+
+@pytest.mark.parametrize(
+    ("elster_id", "content"),
+    [
+        ("E0203003", "erste Tätigkeitsstätte"),
+        ("E0203501", "12345 Musterstadt, Beispielweg 1"),
+        ("E0203101", "01.01-31.12"),
+        ("E0205003", "Pkw 100km"),
+    ],
+)
+def test_the_write_path_accepts_inputs_to_nr_27_and_travel_fare_kind(
+    tmp_path: Path, elster_id: str, content: str
+) -> None:
+    store = open_store(tmp_path, TAX_YEAR.kinds)
+
+    assert isinstance(store.apply([Put(entered(elster_id, content))]), Applied)
 
 
 # --- Laden: Eingaben zu Feldern, die keine Eingabe mehr nehmen -----------------------------------
@@ -106,6 +152,28 @@ def test_company_car_takes_only_the_choices_and_stays_unanswered_by_default(tmp_
     assert '<option value="Nein" selected>' in response.text
     (entry,) = stored(tmp_path).values()
     assert entry["content"] == "Nein" and entry["elster_id"] == "E0204901"
+
+
+def test_nr_27_takes_its_choices_and_free_text(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    page = client.get("/steuerjahr/anlage-n/2025/wege-zwischen-wohnung").text
+    assert '<option value="Sammelpunkt / weiträumiges Tätigkeitsgebiet"' in page
+    assert 'name="content" type="text"' in page and 'placeholder="TT.MM-TT.MM"' in page
+
+    bad = client.post(
+        "/steuerjahr/anlage-n/2025/eingabe/E0203101",
+        data={"content": "1.1.-31.12."},
+        headers=ORIGIN,
+    )
+    assert "TT.MM-TT.MM" in bad.text and stored(tmp_path) == {}
+
+    client.post(
+        "/steuerjahr/anlage-n/2025/eingabe/E0203501",
+        data={"content": "12345 Musterstadt, Beispielweg 1"},
+        headers=ORIGIN,
+    )
+    (entry,) = stored(tmp_path).values()
+    assert entry["content"] == "12345 Musterstadt, Beispielweg 1"
 
 
 def test_field_without_input_and_unknown_year_are_not_found(tmp_path: Path) -> None:

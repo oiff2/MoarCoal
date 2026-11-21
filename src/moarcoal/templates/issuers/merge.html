@@ -18,7 +18,7 @@
 {% if documents %}
 <ul>
   {% for document in documents %}
-  <li><a href="{{ entry_url(document.address) }}">{{ document.site }}: {{ document.path }}</a></li>
+  <li><a href="{{ entry_url(document.address) }}">{{ document_name(document) }}</a></li>
   {% endfor %}
 </ul>
 {% else %}

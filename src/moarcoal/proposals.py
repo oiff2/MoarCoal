@@ -34,7 +34,6 @@ from moarcoal.storage import (
     Store,
 )
 from moarcoal.values.findings import Finding, Severity, fingerprint
-from moarcoal.web.links import document_url
 
 UNCONFIRMED = "unconfirmed_proposal"
 """Befundart „Unbestätigter Vorschlag“ (Hinweis)."""
@@ -156,7 +155,6 @@ def aborted_extraction_findings(state: State, user: str) -> list[Finding]:
                 Severity.ERROR,
                 document.address,
                 text,
-                href=document_url(document.id),
                 fingerprint=fingerprint(aborted.aborted_at.isoformat()),
             )
         )
@@ -256,7 +254,6 @@ def proposal_findings(
                 Severity.NOTE,
                 proposal.address,
                 text,
-                href=document_url(document.id),
                 fingerprint=fingerprint(*open_keys),
             )
         )

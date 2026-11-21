@@ -1,6 +1,7 @@
 """Ausgewiesene Werte der Lohnsteuerbescheinigung: genau wie eingelesen, nie geraten."""
 
 from moarcoal.modules.work.wage_tax.entries import WageTaxCertificate
+from moarcoal.modules.work.wage_tax.reading import READER_VERSION
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
 from moarcoal.values.model import Amount, DocumentLocator, Source, Unit, ValueKey
@@ -9,6 +10,8 @@ TAX_CLASS = ValueKey("work.tax_class")
 GROSS_WAGES = ValueKey("work.gross_wages")
 INCOME_TAX_WITHHELD = ValueKey("work.income_tax_withheld")
 SOLI_WITHHELD = ValueKey("work.soli_withheld")
+BENEFITS_TAX_FREE = ValueKey("work.employer_benefits_tax_free")
+BENEFITS_FLAT_TAXED = ValueKey("work.employer_benefits_flat_taxed")
 
 
 def _certificate(calculation: Calculation) -> WageTaxCertificate:
@@ -37,6 +40,46 @@ def _certified(calculation: Calculation, key: str, label: str, unit: Unit) -> Am
         label, amount, DocumentLocator(certificate.document, Source.READ_IN, key, place)
     )
     return calculation.step(f"{label} laut Lohnsteuerbescheinigung", amount)
+
+
+def _not_certified(calculation: Calculation, number: str, key: str, label: str) -> Amount:
+    """Arbeitgeberleistungen laut Nr. `number`: deren Pfad kam in keiner Bescheinigung vor. Kennt
+    die Einlese-Regel jeden Pfad der Datei, nennt die Bescheinigung sie nicht, und es sind 0 €;
+    sonst ist offen, ob ein unbekannter Pfad sie trägt (noch nicht berechenbar)."""
+    certificate = _certificate(calculation)
+    if certificate.reader_version < READER_VERSION:
+        calculation.not_yet(
+            f"Die Lohnsteuerbescheinigung {certificate.year} ist mit einer älteren Einlese-Regel "
+            "eingelesen; sie wird beim nächsten Start neu eingelesen"
+        )
+    if certificate.unrecognized:
+        calculation.not_yet(
+            f"Die Lohnsteuerbescheinigung {certificate.year} enthält Angaben, die MoarCoal nicht "
+            f"kennt ({', '.join(certificate.unrecognized)}); "
+            f"ob Nr. {number} darunter ist, ist offen"
+        )
+    zero = Amount.eur_cents(0)
+    place = f"Nr. {number} nicht bescheinigt"
+    calculation.item(label, zero, DocumentLocator(certificate.document, Source.READ_IN, key, place))
+    calculation.decide(
+        f"Nr. {number} ist nicht bescheinigt: der Arbeitgeber hat dafür nichts geleistet"
+    )
+    return calculation.step(f"{label} laut Lohnsteuerbescheinigung", zero)
+
+
+def compute_benefits_tax_free(calculation: Calculation) -> Amount:
+    return _not_certified(
+        calculation, "17", "employer_benefits_tax_free", "Arbeitgeberleistungen, steuerfrei"
+    )
+
+
+def compute_benefits_flat_taxed(calculation: Calculation) -> Amount:
+    return _not_certified(
+        calculation,
+        "18",
+        "employer_benefits_flat_taxed",
+        "Arbeitgeberleistungen, pauschal besteuert",
+    )
 
 
 def compute_tax_class(calculation: Calculation) -> Amount:
@@ -91,5 +134,23 @@ VALUES: tuple[ValueDefinition, ...] = (
             TimeKind.PERIOD,
         ),
         compute_soli,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            BENEFITS_TAX_FREE,
+            "Arbeitgeberleistungen laut Nr. 17 der Lohnsteuerbescheinigung (steuerfrei ersetzt)",
+            Unit.EUR,
+            TimeKind.PERIOD,
+        ),
+        compute_benefits_tax_free,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            BENEFITS_FLAT_TAXED,
+            "Arbeitgeberleistungen laut Nr. 18 der Lohnsteuerbescheinigung (pauschal besteuert)",
+            Unit.EUR,
+            TimeKind.PERIOD,
+        ),
+        compute_benefits_flat_taxed,
     ),
 )

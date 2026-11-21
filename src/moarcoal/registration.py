@@ -1,7 +1,8 @@
 """Modulanmeldung und eingegrenzter Stand eines Moduls (docs/grundgeruest.md, 3.4 und 4)."""
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 from fastapi import APIRouter
 
@@ -16,7 +17,9 @@ from moarcoal.storage import (
     Proposal,
     Snapshot,
     State,
+    Store,
     entry_checksum,
+    open_store,
 )
 from moarcoal.values.calculation import ValueSource
 from moarcoal.values.catalog import ValueDefinition
@@ -139,3 +142,19 @@ class ModuleState:
     def checksum(self, address: EntryAddress) -> str | None:
         entry = self.get(address)
         return None if entry is None else entry_checksum(entry)
+
+
+def open_module_store(data_dir: Path, modules: Sequence[ModuleRegistration]) -> Store:
+    """Öffnet das Datenverzeichnis mit den Eintrags- und Dokumentarten der Module; so öffnen es
+    die App und jedes Werkzeug, das über `apply` schreibt."""
+    return open_store(
+        data_dir,
+        [kind for module in modules for kind in module.kinds],
+        once_per_period={
+            kind.key: kind.title
+            for module in modules
+            for kind in module.document_kinds
+            if kind.unique_per_period
+        },
+        kinds_with_period={k.key for m in modules for k in m.document_kinds if k.has_period},
+    )

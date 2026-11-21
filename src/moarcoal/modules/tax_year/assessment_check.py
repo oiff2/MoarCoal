@@ -8,10 +8,11 @@ Positionen gehen ein; berechnete Felder ohne Gegenstück im Schnappschuss bleibe
 from collections.abc import Sequence
 from decimal import Decimal
 
-from moarcoal.modules.tax_year.anlage_n import FORMS
+from moarcoal.modules.tax_year.anlagen import Anlage, field_catalog
 from moarcoal.modules.tax_year.assessment import ASSESSMENT_KEY
 from moarcoal.modules.tax_year.entries import taken_order
-from moarcoal.modules.tax_year.fields import FormField, Forms
+from moarcoal.modules.tax_year.fields import FormField
+from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.snapshot_check import latest_snapshot
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Document, Snapshot
@@ -79,12 +80,14 @@ def _frozen_amount(snapshot: Snapshot, field: FormField, year: int) -> Decimal |
     return None
 
 
-def assessment_findings(state: ModuleState, year: int, forms: Forms = FORMS) -> list[Finding]:
+def assessment_findings(
+    state: ModuleState, year: int, anlagen: Sequence[Anlage] = ANLAGEN
+) -> list[Finding]:
     """Befunde des EStB-Abgleichs: je Feld, das der EStB anders ansetzt als der
     Schnappschuss der Abgabe. Ohne Schnappschuss gibt es keinen Abgleich, nur einen Hinweis."""
-    fields = forms.get(year)
-    current = None if fields is None else current_assessment(state, year, fields)
-    if fields is None or current is None:
+    fields = field_catalog(anlagen, year)
+    current = current_assessment(state, year, fields) if fields else None
+    if current is None:
         return []
     document, amounts = current
     snapshot = latest_snapshot(state, year)

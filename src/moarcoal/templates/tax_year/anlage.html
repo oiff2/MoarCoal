@@ -1,0 +1,41 @@
+{% extends "tax_year/_rahmen.html" %}
+{% from "_value.html" import value_view %}
+{% from "tax_year/_eingabe.html" import input_cell %}
+{% from "_status.html" import severity as status_severity, fits as status_fits %}
+{% block title %}{{ anlage.name }} {{ year }} – MoarCoal{% endblock %}
+{% block inhalt %}
+<h1>{{ anlage.name }} {{ year }}</h1>
+{% if anlage.provisional %}
+<p>Die Felder und ihre Seiten sind aus dem Übertragungsprotokoll {{ year }} abgeleitet, nicht aus gespeicherten Seiten von Mein ELSTER; MoarCoal berechnet für diese Felder noch nichts.</p>
+{% elif not anlage.catalogued %}
+<p>Die Felder und ihre Seiten wie in Mein ELSTER; MoarCoal berechnet für diese Felder noch nichts.</p>
+{% else %}
+<p>Die Angaben aus den Modulen und die Eingaben direkt am Feld, aufgeteilt wie die Seiten der {{ anlage.name }} in Mein ELSTER. Aufgeführt sind die Felder, die MoarCoal kennt; ein Betrag wird bisher nur für die Felder berechnet, die aus einem Modul kommen.</p>
+{% endif %}
+{% if snapshot %}
+<p>„Bei Abgabe“: eingefroren mit dem Schnappschuss am {{ snapshot.taken_at.strftime('%d.%m.%Y') }}. „Laut EStB“: was der bestätigte EStB druckt, ohne Minus.</p>
+{% endif %}
+
+<h2>{{ page.title }}</h2>
+
+{% for row, result, checks in rows %}
+{% set field = row.field %}
+{% for heading in row.headings %}
+<h3 class="feld-ueberschrift">{{ heading }}</h3>
+{% endfor %}
+<section class="feld" id="feld-{{ field.elster_id }}">
+  <div class="feld-nr" title="Nummer im Vordruck">Z. {{ field.form_line or "–" }}<small>{{ field.elster_id }}</small></div>
+  <div class="feld-rumpf">
+    <div class="feld-kopf">{{ field.label }}{% if row.structure.unit %} <span class="einheit">{{ row.structure.unit }}</span>{% endif %}</div>
+    <div class="feld-wert">{% if field.typed %}{{ input_cell(anlage.slug, year, field, inputs.get(field.elster_id), none) }}{% elif field.computed %}{{ value_view("Angabe", result, whole=field.whole_euros) }}{% for label, url in captures.get(field.key, []) %} <a href="{{ url }}">{{ label }}</a>{% endfor %}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}</div>
+    {% if checks %}
+    <ul class="gegenproben">
+      {% for check in checks %}
+      <li><span class="seite">{{ check.side }}</span> {{ check.shown }}{% if check.deviation %} {{ status_severity(check.severity, "weicht ab") }} <span class="text">{{ check.deviation }}</span>{% elif check.fits %} {{ status_fits() }}{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

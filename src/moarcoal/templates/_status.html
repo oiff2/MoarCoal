@@ -12,6 +12,10 @@
 <span class="status status-{{ value.name | lower }}" title="Belegstand"><span class="symbol" aria-hidden="true">{{ backing_symbols[value.name] }}</span> {{ value.label }}</span>
 {%- endmacro %}
 
+{% macro fits() -%}
+<span class="status status-fits" title="Gegenprobe"><span class="symbol" aria-hidden="true">✓</span> passt</span>
+{%- endmacro %}
+
 {% macro file_type(path) -%}
 {% set icon = {"pdf": "pdf", "image": "bild", "html": "html"}.get(preview_kind(path), "sonstige") -%}
 <span class="dateityp dateityp-{{ icon }}" title="{{ {'pdf': 'PDF', 'bild': 'Bild', 'html': 'HTML'}.get(icon, 'Datei') }}">{% include "icons/datei-" ~ icon ~ ".svg" %}</span>

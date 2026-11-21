@@ -15,12 +15,14 @@ from moarcoal.values.model import Unit, ValueKey
 
 KEY = ValueKey("demo.x")
 EXPENSE = FormField(
-    KEY, None, "56", "Arbeitsmittel", Unit.EUR, Rounding.WHOLE_EUROS, Direction.EXPENSE
+    KEY, None, "56", "Arbeitsmittel", Unit.EUR, Rounding.WHOLE_EUROS, Direction.EXPENSE, form="N"
 )
-INCOME = FormField(KEY, None, "1", "Erstattung", Unit.EUR, Rounding.WHOLE_EUROS, Direction.INCOME)
-CENTS = FormField(KEY, None, "2", "Lohnsteuer", Unit.EUR, Rounding.EURO_CENTS)
-KM = FormField(KEY, None, "30", "Entfernung", Unit.KM, Rounding.WHOLE_KM)
-DAYS = FormField(KEY, None, "29", "Tage", Unit.DAYS, Rounding.NONE)
+INCOME = FormField(
+    KEY, None, "1", "Erstattung", Unit.EUR, Rounding.WHOLE_EUROS, Direction.INCOME, form="N"
+)
+CENTS = FormField(KEY, None, "2", "Lohnsteuer", Unit.EUR, Rounding.EURO_CENTS, form="N")
+KM = FormField(KEY, None, "30", "Entfernung", Unit.KM, Rounding.WHOLE_KM, form="N")
+DAYS = FormField(KEY, None, "29", "Tage", Unit.DAYS, Rounding.NONE, form="N")
 
 
 # --- runden -------------------------------------------------------------------------------------
@@ -44,9 +46,9 @@ def test_round(field: FormField, value: str, rounded: str, reason: str | None) -
 
 def test_euro_field_needs_a_direction_exactly_when_it_takes_whole_euros() -> None:
     with pytest.raises(ValueError, match="Richtung"):
-        FormField(KEY, None, "1", "x", Unit.EUR, Rounding.WHOLE_EUROS)
+        FormField(KEY, None, "1", "x", Unit.EUR, Rounding.WHOLE_EUROS, form="N")
     with pytest.raises(ValueError, match="Richtung"):
-        FormField(KEY, None, "1", "x", Unit.EUR, Rounding.EURO_CENTS, Direction.EXPENSE)
+        FormField(KEY, None, "1", "x", Unit.EUR, Rounding.EURO_CENTS, Direction.EXPENSE, form="N")
 
 
 # --- anzeigen -----------------------------------------------------------------------------------
