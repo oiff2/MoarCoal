@@ -24,46 +24,56 @@
    "e_kennung": "E0200204",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5",
+    "Einzelne Einträge"
    ],
    "line": "5",
-   "label": "Bruttoarbeitslohn einschließlich Sachbezüge (Euro, Cent)"
+   "label": "Bruttoarbeitslohn einschließlich Sachbezüge (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200304",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5",
+    "Einzelne Einträge"
    ],
    "line": "6",
-   "label": "Lohnsteuer (Euro, Cent)"
+   "label": "Lohnsteuer (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200404",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5",
+    "Einzelne Einträge"
    ],
    "line": "7",
-   "label": "Solidaritätszuschlag (Euro, Cent)"
+   "label": "Solidaritätszuschlag (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200504",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5",
+    "Einzelne Einträge"
    ],
    "line": "8",
-   "label": "Kirchensteuer des Arbeitnehmers (Euro, Cent)"
+   "label": "Kirchensteuer des Arbeitnehmers (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200604",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5",
+    "Einzelne Einträge"
    ],
    "line": "9",
-   "label": "Kirchensteuer für den Ehegatten / Lebenspartner (nur bei Konfessionsverschiedenheit) (Euro, Cent)"
+   "label": "Kirchensteuer für den Ehegatten / Lebenspartner (nur bei Konfessionsverschiedenheit) (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200201",
@@ -72,7 +82,8 @@
     "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
    ],
    "line": "5",
-   "label": "Bruttoarbeitslohn einschließlich Sachbezüge (Euro)"
+   "label": "Bruttoarbeitslohn einschließlich Sachbezüge (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200301",
@@ -81,7 +92,8 @@
     "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
    ],
    "line": "6",
-   "label": "Lohnsteuer (Euro, Cent)"
+   "label": "Lohnsteuer (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200401",
@@ -90,7 +102,8 @@
     "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
    ],
    "line": "7",
-   "label": "Solidaritätszuschlag (Euro, Cent)"
+   "label": "Solidaritätszuschlag (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200501",
@@ -99,7 +112,8 @@
     "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
    ],
    "line": "8",
-   "label": "Kirchensteuer des Arbeitnehmers (Euro, Cent)"
+   "label": "Kirchensteuer des Arbeitnehmers (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200601",
@@ -108,52 +122,63 @@
     "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
    ],
    "line": "9",
-   "label": "Nur bei Konfessionsverschiedenheit:Kirchensteuer für den Ehegatten / Lebenspartner (Euro, Cent)"
+   "label": "Nur bei Konfessionsverschiedenheit:Kirchensteuer für den Ehegatten / Lebenspartner (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200202",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse",
+    "Einzelne Einträge"
    ],
    "line": "5",
-   "label": "Bruttoarbeitslohn einschließlich Sachbezüge (Euro, Cent)"
+   "label": "Bruttoarbeitslohn einschließlich Sachbezüge (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200302",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse",
+    "Einzelne Einträge"
    ],
    "line": "6",
-   "label": "Lohnsteuer (Euro, Cent)"
+   "label": "Lohnsteuer (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200402",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse",
+    "Einzelne Einträge"
    ],
    "line": "7",
-   "label": "Solidaritätszuschlag (Euro, Cent)"
+   "label": "Solidaritätszuschlag (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200502",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse",
+    "Einzelne Einträge"
    ],
    "line": "8",
-   "label": "Kirchensteuer des Arbeitnehmers (Euro, Cent)"
+   "label": "Kirchensteuer des Arbeitnehmers (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200602",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse",
+    "Einzelne Einträge"
    ],
    "line": "9",
-   "label": "Kirchensteuer für den Ehegatten / Lebenspartner (nur bei Konfessionsverschiedenheit) (Euro, Cent)"
+   "label": "Kirchensteuer für den Ehegatten / Lebenspartner (nur bei Konfessionsverschiedenheit) (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200203",
@@ -162,7 +187,8 @@
     "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
    ],
    "line": "5",
-   "label": "Bruttoarbeitslohn einschließlich Sachbezüge (Euro)"
+   "label": "Bruttoarbeitslohn einschließlich Sachbezüge (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200303",
@@ -171,7 +197,8 @@
     "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
    ],
    "line": "6",
-   "label": "Lohnsteuer (Euro, Cent)"
+   "label": "Lohnsteuer (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200403",
@@ -180,7 +207,8 @@
     "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
    ],
    "line": "7",
-   "label": "Solidaritätszuschlag (Euro, Cent)"
+   "label": "Solidaritätszuschlag (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200503",
@@ -189,7 +217,8 @@
     "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
    ],
    "line": "8",
-   "label": "Kirchensteuer des Arbeitnehmers (Euro, Cent)"
+   "label": "Kirchensteuer des Arbeitnehmers (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0200603",
@@ -198,7 +227,8 @@
     "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
    ],
    "line": "9",
-   "label": "Kirchensteuer für den Ehegatten / Lebenspartner (nur bei Konfessionsverschiedenheit) (Euro, Cent)"
+   "label": "Kirchensteuer für den Ehegatten / Lebenspartner (nur bei Konfessionsverschiedenheit) (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0201007",
@@ -216,7 +246,8 @@
     "Arbeitgeberleistungen, Fahrtkostenzuschüsse"
    ],
    "line": "51",
-   "label": "Arbeitgeberleistungen laut Nr. 17 der Lohnsteuerbescheinigung (steuerfrei ersetzt) (Euro)"
+   "label": "Arbeitgeberleistungen laut Nr. 17 der Lohnsteuerbescheinigung (steuerfrei ersetzt) (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0203901",
@@ -225,7 +256,8 @@
     "Arbeitgeberleistungen, Fahrtkostenzuschüsse"
    ],
    "line": "51",
-   "label": "Arbeitgeberleistungen laut Nr. 18 der Lohnsteuerbescheinigung (pauschal besteuert) (Euro)"
+   "label": "Arbeitgeberleistungen laut Nr. 18 der Lohnsteuerbescheinigung (pauschal besteuert) (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0204004",
@@ -234,7 +266,8 @@
     "Arbeitgeberleistungen, Fahrtkostenzuschüsse"
    ],
    "line": "52",
-   "label": "Von der Agentur für Arbeit oder dem Jobcenter gezahlte Fahrtkostenzuschüsse (Euro)"
+   "label": "Von der Agentur für Arbeit oder dem Jobcenter gezahlte Fahrtkostenzuschüsse (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0203003",
@@ -295,40 +328,47 @@
    "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
    "headings": [],
    "line": "30",
-   "label": "einfache Entfernung in Kilometern (auf volle Kilometer abgerundet) (km)"
+   "label": "einfache Entfernung in Kilometern (auf volle Kilometer abgerundet) (km)",
+   "unit": "km"
   },
   {
    "e_kennung": "E0203505",
    "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
    "headings": [],
    "line": "31",
-   "label": "davon mit eigenem oder zur Nutzung überlassenem PKW zurückgelegt (km)"
+   "label": "davon mit eigenem oder zur Nutzung überlassenem PKW zurückgelegt (km)",
+   "unit": "km"
   },
   {
    "e_kennung": "E0203510",
    "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
    "headings": [],
    "line": "32",
-   "label": "davon mit Sammelbeförderung des Arbeitgebers zurückgelegt (km)"
+   "label": "davon mit Sammelbeförderung des Arbeitgebers zurückgelegt (km)",
+   "unit": "km"
   },
   {
    "e_kennung": "E0203506",
    "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
    "headings": [],
    "line": "33",
-   "label": "davon mit öffentlichen Verkehrsmitteln, Motorrad, Fahrrad oder Ähnlichem, als Fußgänger und / oder als Mitfahrer einer Fahrgemeinschaft zurückgelegt (km)"
+   "label": "davon mit öffentlichen Verkehrsmitteln, Motorrad, Fahrrad oder Ähnlichem, als Fußgänger und / oder als Mitfahrer einer Fahrgemeinschaft zurückgelegt (km)",
+   "unit": "km"
   },
   {
    "e_kennung": "E0203611",
    "page": "Wege zwischen Wohnung und erster Tätigkeitsstätte / Sammelpunkt / weiträumigem Tätigkeitsgebiet1. Eintrag",
    "headings": [],
    "line": "34",
-   "label": "Aufwendungen für Fahrten mit öffentlichen Verkehrsmitteln (ohne Fähr- und Flugkosten) (Euro)"
+   "label": "Aufwendungen für Fahrten mit öffentlichen Verkehrsmitteln (ohne Fähr- und Flugkosten) (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0204401",
    "page": "10 - Aufwendungen für Arbeitsmittel",
-   "headings": [],
+   "headings": [
+    "Einzelne Einträge"
+   ],
    "line": "",
    "label": "Art der Arbeitsmittel",
    "options": [
@@ -345,16 +385,20 @@
   {
    "e_kennung": "E0204402",
    "page": "10 - Aufwendungen für Arbeitsmittel",
-   "headings": [],
+   "headings": [
+    "Einzelne Einträge"
+   ],
    "line": "",
-   "label": "Betrag (Euro)"
+   "label": "Betrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0204403",
    "page": "10 - Aufwendungen für Arbeitsmittel",
    "headings": [],
    "line": "56",
-   "label": "Summe (Euro)"
+   "label": "Summe (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0204507",
@@ -381,7 +425,8 @@
    "e_kennung": "E0205003",
    "page": "15 - Reisekosten bei beruflich veranlassten Auswärtstätigkeiten",
    "headings": [
-    "Fahrtkosten"
+    "Fahrtkosten",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Fahrtkosten"
@@ -390,16 +435,19 @@
    "e_kennung": "E0205004",
    "page": "15 - Reisekosten bei beruflich veranlassten Auswärtstätigkeiten",
    "headings": [
-    "Fahrtkosten"
+    "Fahrtkosten",
+    "Einzelne Einträge"
    ],
    "line": "",
-   "label": "Betrag (Euro)"
+   "label": "Betrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0206301",
    "page": "15 - Reisekosten bei beruflich veranlassten Auswärtstätigkeiten",
    "headings": [
-    "Übernachtungskosten"
+    "Übernachtungskosten",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Übernachtungskosten"
@@ -408,16 +456,19 @@
    "e_kennung": "E0206302",
    "page": "15 - Reisekosten bei beruflich veranlassten Auswärtstätigkeiten",
    "headings": [
-    "Übernachtungskosten"
+    "Übernachtungskosten",
+    "Einzelne Einträge"
    ],
    "line": "",
-   "label": "Betrag (Euro)"
+   "label": "Betrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0206402",
    "page": "15 - Reisekosten bei beruflich veranlassten Auswärtstätigkeiten",
    "headings": [
-    "Reisenebenkosten"
+    "Reisenebenkosten",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Reisenebenkosten"
@@ -426,10 +477,12 @@
    "e_kennung": "E0206406",
    "page": "15 - Reisekosten bei beruflich veranlassten Auswärtstätigkeiten",
    "headings": [
-    "Reisenebenkosten"
+    "Reisenebenkosten",
+    "Einzelne Einträge"
    ],
    "line": "",
-   "label": "Betrag (Euro)"
+   "label": "Betrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0205518",
@@ -438,7 +491,8 @@
     "Summe"
    ],
    "line": "69",
-   "label": "Gesamtsumme der Aufwendungen für Reisekosten (Euro)"
+   "label": "Gesamtsumme der Aufwendungen für Reisekosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0206501",
@@ -456,7 +510,8 @@
     "Steuerfreie Arbeitgeberleistungen / steuerfreier Ersatz"
    ],
    "line": "71",
-   "label": "Vom Arbeitgeber steuerfrei ersetzt (Euro)"
+   "label": "Vom Arbeitgeber steuerfrei ersetzt (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0205201",
@@ -492,7 +547,8 @@
     "Bei einer Auswärtstätigkeit im Inland:"
    ],
    "line": "75",
-   "label": "Kürzungsbeträge wegen Mahlzeitengestellung (eigene Zuzahlungen sind ggf. gegenzurechnen) (Euro)"
+   "label": "Kürzungsbeträge wegen Mahlzeitengestellung (eigene Zuzahlungen sind ggf. gegenzurechnen) (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0205629",
@@ -501,7 +557,8 @@
     "Bei einer Auswärtstätigkeit im Ausland:"
    ],
    "line": "76",
-   "label": "Kürzungsbeträge wegen Mahlzeitengestellung (eigene Zuzahlungen sind ggf. gegenzurechnen) (Euro)"
+   "label": "Kürzungsbeträge wegen Mahlzeitengestellung (eigene Zuzahlungen sind ggf. gegenzurechnen) (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0205630",
@@ -510,7 +567,8 @@
     "Bei einer Auswärtstätigkeit im Ausland:"
    ],
    "line": "76",
-   "label": "Summe Mehraufwendungen für Verpflegung bei einer Auswärtstätigkeit im Ausland (Euro)"
+   "label": "Summe Mehraufwendungen für Verpflegung bei einer Auswärtstätigkeit im Ausland (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0205108",
@@ -519,7 +577,8 @@
     "Steuerfreie Arbeitgeberleistungen / steuerfreier Ersatz"
    ],
    "line": "77",
-   "label": "Vom Arbeitgeber steuerfrei ersetzt (Euro)"
+   "label": "Vom Arbeitgeber steuerfrei ersetzt (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0206703",
@@ -537,7 +596,8 @@
     "Werbungskosten zu steuerbegünstigten Versorgungsbezügen laut Zeile 11"
    ],
    "line": "78",
-   "label": "Betrag (Euro)"
+   "label": "Betrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0206803",
@@ -555,7 +615,8 @@
     "Werbungskosten zu steuerbegünstigten Versorgungsbezügen für mehrere Jahre laut Zeile 16"
    ],
    "line": "79",
-   "label": "Betrag (Euro)"
+   "label": "Betrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0206503",
@@ -573,7 +634,8 @@
     "Werbungskosten zu Arbeitslohn für mehrere Jahre, Entschädigungen laut Zeile 17"
    ],
    "line": "80",
-   "label": "Betrag (Euro)"
+   "label": "Betrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0206401",
@@ -582,7 +644,8 @@
     "Werbungskosten zu steuerfreiem Arbeitslohn laut den Zeilen 21 und 22"
    ],
    "line": "81",
-   "label": "Werbungskosten zu steuerfreiem Arbeitslohn laut den Zeilen 21 und 22 (Summe aus den Zeilen 59 und 64 aller Anlagen N-AUS) (Euro)"
+   "label": "Werbungskosten zu steuerfreiem Arbeitslohn laut den Zeilen 21 und 22 (Summe aus den Zeilen 59 und 64 aller Anlagen N-AUS) (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0209501",
@@ -600,7 +663,8 @@
     "Werbungskosten zu steuerpflichtigem Arbeitslohn, von dem kein Steuerabzug vorgenommen worden ist laut Zeile 18"
    ],
    "line": "82",
-   "label": "Betrag (Euro)"
+   "label": "Betrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0206901",
@@ -609,7 +673,8 @@
     "Werbungskosten zu Arbeitslohn für eine Tätigkeit im Inland, wenn die Ansässigkeit in Belgien gegeben ist"
    ],
    "line": "83",
-   "label": "Werbungskosten zu Arbeitslohn für eine Tätigkeit im Inland, wenn die Ansässigkeit in Belgien gegeben ist – in den Zeilen 27 bis 77 und in der Anlage N-Doppelte Haushaltsführung enthalten – (Euro)"
+   "label": "Werbungskosten zu Arbeitslohn für eine Tätigkeit im Inland, wenn die Ansässigkeit in Belgien gegeben ist – in den Zeilen 27 bis 77 und in der Anlage N-Doppelte Haushaltsführung enthalten – (Euro)",
+   "unit": "€"
   }
  ]
 }

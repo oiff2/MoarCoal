@@ -37,6 +37,7 @@ from moarcoal.storage import (
 )
 from moarcoal.values.engine import Values
 from moarcoal.values.findings import READ_IN_CHANGED, Finding, Severity
+from moarcoal.web.helpers import linked_findings
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PATH = "2025/protokoll.html"
@@ -231,11 +232,9 @@ def notes(
     modules: tuple[ModuleRegistration, ...], store: Store, user: str, year: int
 ) -> list[Finding]:
     """Die Befunde „Einlesen hat einen Wert geändert“ des Nutzers im Jahr."""
-    return [
-        f
-        for f in Values(modules, store.state()).finding_list(user, year).visible
-        if f.kind == READ_IN_CHANGED
-    ]
+    state = store.state()
+    found = Values(modules, state).finding_list(user, year)
+    return [f for f in linked_findings(modules, state, found).visible if f.kind == READ_IN_CHANGED]
 
 
 def test_rereading_gives_a_note_with_the_changes_and_a_link(root: Path, site: Path) -> None:

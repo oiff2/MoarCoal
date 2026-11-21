@@ -16,6 +16,8 @@ from moarcoal.modules.work.common import MODULE_KEY
 from moarcoal.modules.work.trips.view import trips_context
 from moarcoal.modules.work.wage_tax.entries import WageTaxCertificate
 from moarcoal.modules.work.wage_tax.values import (
+    BENEFITS_FLAT_TAXED,
+    BENEFITS_TAX_FREE,
     GROSS_WAGES,
     INCOME_TAX_WITHHELD,
     SOLI_WITHHELD,
@@ -101,6 +103,8 @@ def _wage_tax(request: Request, year: int) -> dict[str, Any]:
                 ("Bruttoarbeitslohn", GROSS_WAGES),
                 ("Lohnsteuer", INCOME_TAX_WITHHELD),
                 ("Solidaritätszuschlag", SOLI_WITHHELD),
+                ("Arbeitgeberleistungen steuerfrei (Nr. 17)", BENEFITS_TAX_FREE),
+                ("Arbeitgeberleistungen pauschal besteuert (Nr. 18)", BENEFITS_FLAT_TAXED),
             )
         ],
         "documents": [document_url(c.document.id) for c in certificates],

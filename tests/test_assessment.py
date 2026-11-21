@@ -22,9 +22,12 @@ from fastapi.testclient import TestClient
 from moarcoal.modules.tax_year import ASSESSMENT, ProtocolReading, registration
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_n import (
+    ANLAGE_N,
     FORMS,
     N_EQUIPMENT,
     WORK_ABSENCE_DAYS,
+    WORK_BENEFITS_FLAT_TAXED,
+    WORK_BENEFITS_TAX_FREE,
     WORK_CAR_DISTANCE,
     WORK_DISTANCE_KM,
     WORK_EQUIPMENT,
@@ -96,6 +99,8 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
                 WORK_SOLI,
                 WORK_TRAVEL_FARE,
                 WORK_TRAVEL_TOTAL,
+                WORK_BENEFITS_TAX_FREE,
+                WORK_BENEFITS_FLAT_TAXED,
                 WORK_TRIP_DAYS,
             )
         },
@@ -119,7 +124,7 @@ def filing(foreign: Foreign, tax_year: ModuleRegistration = TAX_YEAR) -> list[En
     )
     taken: list[Entry] = [document, reading]
     values = evaluate([tax_year], taken, foreign)
-    changes = snapshot_on_filing(document, [reading], values, FORMS)
+    changes = snapshot_on_filing(document, [reading], values)
     return [*taken, *(c.entry for c in changes if isinstance(c, Put))]
 
 
@@ -335,7 +340,7 @@ def test_a_position_the_assessment_prints_rounded_matches_within_the_span(
     printed: str, deviates: bool
 ) -> None:
     forms = printed_rounded_forms()
-    tax_year = registration(forms)
+    tax_year = registration([replace(ANLAGE_N, forms=forms)])
     document = assessment()
     items = [
         *filing(work(cents=8640), tax_year),
@@ -356,6 +361,7 @@ def field(**given: object) -> FormField:
         "label": "Demo",
         "unit": Unit.EUR,
         "rounding": Rounding.EURO_CENTS,
+        "form": "N",
     }
     return FormField(**{**base, **given})  # type: ignore[arg-type]
 
@@ -527,8 +533,9 @@ def test_whole_flow_the_page_and_the_finding_list_show_the_assessment(
 
     page = anlage_n_text(http)
     assert "Laut EStB" in page
-    assert "<td>218 Tage</td>" in page and "<td>97.292 €</td>" in page
-    assert "wird noch nicht berechnet" in page
+    estb = '<span class="seite">Laut EStB</span> '
+    assert f"{estb}218 Tage" in page and f"{estb}97.292 €" in page
+    assert "wird noch nicht berechnet" not in page  # jedes Feld hat einen Wert oder eine Eingabe
     note = http.get("/befunde?year=2025").text
     assert "keinen Schnappschuss" in note
 

@@ -25,10 +25,12 @@ from moarcoal.storage import (
     Merge,
     Put,
     Rejected,
+    State,
     open_store,
 )
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
+from moarcoal.values.findings import Finding
 from moarcoal.values.model import (
     Amount,
     Backing,
@@ -39,6 +41,7 @@ from moarcoal.values.model import (
     ValueKey,
 )
 from moarcoal.values.testing import evaluate
+from moarcoal.web.helpers import finding_url
 from moarcoal.web.links import issuer_url
 
 PORT = 4711
@@ -72,6 +75,11 @@ def expected(start: int = 2025, end: int | None = None, owner: str = "anna") -> 
 def findings(entries: list[object], year: int = 2025, user: str = "anna"):
     values = evaluate([WORK, TAX_YEAR], entries)  # pyright: ignore[reportArgumentType]
     return [f for f in values.finding_list(user, year).visible if f.kind in (PENDING, DUPLICATE)]
+
+
+def linked(found: Finding, *entries: object) -> str | None:
+    state = State({e.address: e for e in entries})  # pyright: ignore[reportAttributeAccessIssue]
+    return finding_url((WORK, TAX_YEAR), state, found)
 
 
 # --- Eintragsart ------------------------------------------------------------------------------
@@ -108,6 +116,8 @@ def test_without_document_the_year_is_pending_and_with_it_the_note_is_gone() -> 
     (found,) = findings([entry])
     assert found.kind == PENDING and found.target == f"{entry.address}@2025"
     assert "2025" in found.message and "ausstehend" in found.message
+    assert found.href == ""  # den Link baut die Anbindung aus dem Ziel
+    assert linked(found, entry) == "/belege/erwartet"
     assert findings([entry, document(2025)]) == []
 
 
@@ -115,6 +125,7 @@ def test_two_matching_documents_make_a_possible_duplicate() -> None:
     entry = expected()
     (found,) = findings([entry, document(2025), document(2025, sha="b" * 64)])
     assert found.kind == DUPLICATE and "Dublette" in found.message
+    assert linked(found, entry) == "/belege/erwartet"
 
 
 def test_duplicate_fingerprint_changes_with_the_documents() -> None:
