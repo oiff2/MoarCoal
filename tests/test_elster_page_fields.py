@@ -232,3 +232,34 @@ def test_structure_command_orders_pages_ignores_non_pages_and_notes_unnumbered(
 
     assert "Lose.htm" in capsys.readouterr().err
     assert (out / "n-2025.json").exists()
+
+
+def test_unit_comes_from_the_placeholder_and_formats_are_no_unit():
+    page = """
+    <h1>1 - Seite</h1>
+    <label for="X_fields(aE0100001)">Betrag</label>
+    <input name="fields[aE0100001]" placeholder="Euro, Cent">
+    <label for="X_fields(aE0100002)">Datum</label>
+    <input name="fields[aE0100002]" placeholder="TT.MM.JJJJ">
+    """
+
+    fields = structure_of(page)["fields"]
+
+    assert fields[0]["unit"] == "€"
+    assert "unit" not in fields[1]
+
+
+def test_a_field_in_a_list_of_entries_gets_its_own_heading():
+    page = """
+    <h1>1 - Seite</h1>
+    <h2>Bescheinigungen</h2>
+    <label for="X_fields(aEinzE0100001)">Betrag</label>
+    <input name="mzbs[Liste].items[0].fields[aEinzE0100001]">
+    <label for="X_fields(aSumE0100002)">Betrag</label>
+    <input name="fields[aSumE0100002]">
+    """
+
+    entry, total = structure_of(page)["fields"]
+
+    assert entry["headings"] == ["Bescheinigungen", "Einzelne Einträge"]
+    assert total["headings"] == ["Bescheinigungen"]

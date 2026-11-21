@@ -47,6 +47,8 @@ SUGGESTIONS_ID_RE = re.compile(r"fields\(([A-Za-z0-9_]+)\)_suggestions$")
 LINE_TITLE_RE = re.compile(r"^Zeile\s+(\d+[a-z]?)$")
 # Screen-reader texts ELSTER puts into headings and labels.
 NOISE = ("Hilfe zum Begriff anzeigen", "Hinweis vorhanden.")
+# Units Mein ELSTER shows as the input's placeholder; other placeholders are formats, no unit.
+UNITS = {"Euro": "€", "Euro, Cent": "€", "km": "km", "m²": "m²"}
 VOID_TAGS = frozenset(
     {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "wbr"}
 )
@@ -63,6 +65,10 @@ class PageField:
     # is a suggestion list and also takes an own text.
     options: tuple[str, ...] = ()
     free_text: bool = False
+    unit: str = ""  # from the input's placeholder (UNITS); empty: none shown
+    # Inside a list of entries (Mein ELSTER: "Neuer Eintrag"); its Zeile repeats the one of the
+    # sum below it, so the structure puts it under its own heading (LIST_HEADING).
+    list_entry: bool = False
 
 
 def field_name(attribute: str | None) -> str | None:
@@ -99,6 +105,8 @@ class _PageParser(HTMLParser):
         self._select: str | None = None
         self._suggestions: str | None = None
         self._option: list[str] | None = None
+        self.units: dict[str, str] = {}
+        self.list_entries: set[str] = set()
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attributes = dict(attrs)
@@ -129,6 +137,10 @@ class _PageParser(HTMLParser):
         if tag in ("option", "li") and (self._select or self._suggestions):
             self._option = []
         if tag in ("input", "select", "textarea") and (name := field_name(attributes.get("name"))):
+            if unit := UNITS.get(attributes.get("placeholder") or ""):
+                self.units.setdefault(name, unit)
+            if (attributes.get("name") or "").startswith("mzbs["):
+                self.list_entries.add(name)
             self._add(name, self._group_label)
 
     def handle_endtag(self, tag: str) -> None:
@@ -195,6 +207,8 @@ def read_page(html: str) -> list[PageField]:
             item,
             options=tuple(parser.options.get(item.name, ())),
             free_text=item.name in parser.free_text,
+            unit=parser.units.get(item.name, ""),
+            list_entry=item.name in parser.list_entries,
         )
         for item in parser.fields.values()
     ]
@@ -212,6 +226,7 @@ def format_fields(fields: list[PageField]) -> list[str]:
     return lines
 
 
+LIST_HEADING = "Einzelne Einträge"  # German: shown as a heading in MoarCoal
 SCHEMA = 1  # read by src/moarcoal/modules/tax_year/structure.py
 DEFAULT_OUT = Path(__file__).parents[1] / "src/moarcoal/modules/tax_year/strukturen"
 
@@ -251,6 +266,8 @@ def build_structure(pages: list[tuple[str, str]], form: str, year: int) -> Struc
                 continue
             seen.add(item.e_kennung)
             page, *headings = item.headings or (Path(name).stem,)
+            if item.list_entry:
+                headings.append(LIST_HEADING)
             entry: dict[str, Any] = {
                 "e_kennung": item.e_kennung,
                 "page": page,
@@ -258,6 +275,8 @@ def build_structure(pages: list[tuple[str, str]], form: str, year: int) -> Struc
                 "line": item.line,
                 "label": item.label,
             }
+            if item.unit:
+                entry["unit"] = item.unit
             if item.options:
                 entry["options"] = list(item.options)
                 if item.free_text:
