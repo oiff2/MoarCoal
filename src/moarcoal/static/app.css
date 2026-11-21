@@ -76,13 +76,14 @@ form.inline { display: inline; }
 tr:target { outline: 2px solid var(--warnung); }
 /* Belege, Ablage: kein Seiten-Scrollen, der Baum scrollt in sich */
 main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
-.reiter { display: flex; gap: 1rem; margin-bottom: 0.5rem; }
-.reiter a[aria-current] { font-weight: bold; text-decoration: none; }
 .baum { flex: 1; min-height: 0; overflow: auto; }
-.ordner .ordner, .ordner .datei { margin-left: 1.25rem; }
-.ordner > summary { cursor: pointer; }
-.zaehler { padding: 0 0.4rem; border: 1px solid var(--linie); border-radius: 0.25rem; font-size: 0.85em; }
 .datei { display: flex; flex-wrap: wrap; gap: 0 0.75rem; align-items: baseline; padding: 0.15rem 0; }
+/* Belege: drei einklappbare Abschnitte */
+.abschnitt { margin-bottom: 1rem; }
+.abschnitt > summary { cursor: pointer; font-weight: bold; }
+.abschnitt h3 { font-size: 1rem; margin: 0.5rem 0 0.2rem; }
+.datei.kopf { opacity: 0.7; }
+.datei .aktion { font-size: 0.9em; }
 form.direkt { display: inline; margin-left: auto; }
 button.auge { padding: 0 0.25rem; line-height: 1; vertical-align: middle; }
 button.auge svg { display: block; }

@@ -418,4 +418,4 @@ def test_arbeit_shows_the_four_values_with_a_link_to_the_document(
     for label in ("Steuerklasse", "Bruttoarbeitslohn", "Lohnsteuer", "Solidaritätszuschlag"):
         assert f"{label}:" in section
     assert "45.678,90 €" in section and "6.543,21 €" in section
-    assert f'href="/belege/dokumente?dokument={taken.document.id}"' in section
+    assert f'href="/belege?dokument={taken.document.id}"' in section

@@ -19,7 +19,6 @@ from moarcoal.modules import MODULES
 from moarcoal.modules.work.trips.place_search import NominatimSearch, PlaceSearch
 from moarcoal.registration import ModuleRegistration, open_module_store
 from moarcoal.values.model import format_amount, format_eur
-from moarcoal.web.document_list import router as document_list_router
 from moarcoal.web.document_pages import router as document_router
 from moarcoal.web.expected_documents_pages import router as expected_documents_router
 from moarcoal.web.findings_pages import router as findings_router
@@ -81,7 +80,6 @@ def create_app(
         app.include_router(module.router)
     app.include_router(belege_router)
     app.include_router(moved_router)
-    app.include_router(document_list_router)
     app.include_router(document_router)
     app.include_router(expected_documents_router)
     app.include_router(issuer_router)

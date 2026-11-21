@@ -7,7 +7,8 @@ DOCUMENT_WITHOUT_ISSUER = "document_without_issuer"
 
 
 def issuer_findings(state: State, user: str) -> list[Finding]:
-    """Hinweis je Dokument des Nutzers ohne Aussteller; der Link führt in den Reiter Dokumente."""
+    """Hinweis je Dokument des Nutzers ohne Aussteller; der Link führt zum Dokument auf der
+    Belege-Seite."""
     documents = sorted(
         (d for d in state.of_kind(Document) if d.owner == user and d.issuer is None),
         key=lambda d: str(d.address),

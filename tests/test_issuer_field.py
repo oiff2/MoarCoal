@@ -240,15 +240,6 @@ def test_resolve_issuer_empty_choice_with_text_creates_new() -> None:
     assert result.address == put.entry.address
 
 
-# --- Ablage zeigt den Aussteller ---------------------------------------------------------------
-
-
-def test_ablage_row_shows_issuer_of_taken_in_file(client: httpx.Client) -> None:
-    take(client, issuer_choice="new", issuer_text="Beispiel GmbH")
-    html = client.get("/belege?stand=aufgenommen").text
-    assert '<span class="aussteller">Beispiel GmbH</span>' in html
-
-
 # --- Ändern am Dokument ------------------------------------------------------------------------
 
 

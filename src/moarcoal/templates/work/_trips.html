@@ -26,14 +26,14 @@
 <details class="aufstellungen"{% if to_take or problems %} open{% endif %}>
   <summary>Reiseaufstellungen (Screenshots){% if statements %}: {{ statements | length }}{% endif %}{% if to_take %}, {{ to_take }} {{ "Reise" if to_take == 1 else "Reisen" }} zu übernehmen{% endif %}</summary>
   {% if not statements %}
-  <p>Eine Aufstellung nehmen Sie im Reiter Belege auf (Dokumentart „Reiseaufstellung (Screenshot)“, Jahr {{ year }}); Claude liest sie dort aus, und die Reisen erscheinen hier als Vorschlag.</p>
+  <p>Eine Aufstellung nehmen Sie auf der Belege-Seite auf (Dokumentart „Reiseaufstellung (Screenshot)“, Jahr {{ year }}); Claude liest sie dort aus, und die Reisen erscheinen hier als Vorschlag.</p>
   {% endif %}
   {% for s in statements %}
   <h4>{{ s.document.path }}</h4>
   {% if not s.proposal %}
-  <p>Noch nicht ausgelesen. <a href="{{ s.url }}">Im Reiter Dokumente auslesen</a></p>
+  <p>Noch nicht ausgelesen. <a href="{{ s.url }}">Auf der Belege-Seite auslesen</a></p>
   {% else %}
-  <p>Vorschlag von Claude. Erst was Sie übernehmen, wird eine Dienstreise; Reisen ohne km lassen sich nicht übernehmen. Das Auslesen und Korrigieren einzelner Felder steht <a href="{{ s.url }}">im Reiter Dokumente</a>.
+  <p>Vorschlag von Claude. Erst was Sie übernehmen, wird eine Dienstreise; Reisen ohne km lassen sich nicht übernehmen. Das Auslesen und Korrigieren einzelner Felder steht <a href="{{ s.url }}">auf der Belege-Seite</a>.
     {% if s.ignored and s.ignored.content %}Nicht übernommen, das rechnet der Arbeitgeber ab: {{ s.ignored.content }}.{% endif %}</p>
   {% if s.trips %}
   <form method="post" action="/arbeit/dienstreisen/{{ year }}/vorschlag/{{ s.proposal.id }}/uebernehmen">

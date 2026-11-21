@@ -1,4 +1,4 @@
-"""Belege-Seite, Reiter Erwartet: Stand je Jahr, anlegen, ändern, löschen (Datenebene)."""
+"""Erwartete Belege: anlegen, ändern, löschen; sie stehen als Abschnitt auf der Belege-Seite."""
 
 from typing import Annotated
 
@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import DEFAULT_YEAR, MAX_YEAR, MIN_YEAR
 from moarcoal.documents import DocumentKind
-from moarcoal.expected_documents import previous_year_issuer, statuses
+from moarcoal.expected_documents import previous_year_issuer
 from moarcoal.storage import (
     Applied,
     Delete,
@@ -30,6 +30,7 @@ from moarcoal.web.helpers import (
     validated,
 )
 from moarcoal.web.links import expected_documents_url
+from moarcoal.web.site_pages import belege_page
 
 router = APIRouter(prefix="/belege/erwartet")
 
@@ -74,9 +75,7 @@ def _build(
     )
 
 
-def _prefill(entry: ExpectedDocument | None) -> Fields:
-    if entry is None:
-        return {"start_year": str(DEFAULT_YEAR)}
+def _prefill(entry: ExpectedDocument) -> Fields:
     return {
         "document_kind": entry.document_kind,
         "start_year": str(entry.start_year),
@@ -100,29 +99,6 @@ def _suggestion(request: Request, entry: ExpectedDocument) -> Issuer | None:
     return found if isinstance(found, Issuer) else None
 
 
-def _overview(
-    request: Request, errors: list[str], values: Fields, status_code: int = 200
-) -> HTMLResponse:
-    state = store_of(request).state()
-    user = user_of(request)
-    documents = [d for d in state.of_kind(Document) if d.owner == user]
-    expected = sorted(
-        (e for e in state.of_kind(ExpectedDocument) if e.owner == user),
-        key=lambda e: (e.start_year, e.id),
-    )
-    rows = [(e, statuses(documents, e, DEFAULT_YEAR), _suggestion(request, e)) for e in expected]
-    return render(
-        request,
-        "expected_documents/index.html",
-        status_code,
-        rows=rows,
-        kinds=_kinds(request),
-        titles={k.key: k.title for k in _all_kinds(request)},
-        errors=errors,
-        values=values,
-    )
-
-
 def _edit(
     request: Request,
     entry_id: str,
@@ -144,19 +120,22 @@ def _edit(
     )
 
 
-@router.get("", response_class=HTMLResponse)
-def index(request: Request) -> HTMLResponse:
-    return _overview(request, [], _prefill(None))
+@router.get("")
+def moved() -> RedirectResponse:
+    """Die Erwarteten Belege sind ein Abschnitt der Belege-Seite."""
+    return RedirectResponse(expected_documents_url(), status_code=308)
 
 
 @router.post("")
 def create(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
     entry, errors = _build(request, fields, user_of(request), new_id())
     if entry is None:
-        return _overview(request, errors, fields, 422)
+        return belege_page(request, 422, expected_errors=errors, expected_values=fields)
     result = store_of(request).apply([Put(entry)])
     if not isinstance(result, Applied):
-        return _overview(request, rejection_reasons(result), fields, 409)
+        return belege_page(
+            request, 409, expected_errors=rejection_reasons(result), expected_values=fields
+        )
     return RedirectResponse(expected_documents_url(), status_code=303)
 
 

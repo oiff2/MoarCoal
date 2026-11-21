@@ -10,6 +10,7 @@ import pytest
 from app_helper import make_app
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
+from test_belege_year import section
 
 from moarcoal.documents import DocumentKind, IntakeRejected, take_in
 from moarcoal.incoming import all_site_files, hide_file, incoming_files
@@ -29,7 +30,6 @@ from moarcoal.storage import (
     open_store,
 )
 from moarcoal.web.links import document_url
-from moarcoal.web.site_view import IntakeFilter, site_rows, site_tree
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uebertragungsprotokoll_2025.html"
 PORT = 4711
@@ -180,8 +180,8 @@ def test_hiding_stores_a_common_entry_with_optional_note(root: Path, site: Path)
 
 
 def waiting(client: httpx.Client) -> str:
-    """Der Teil der Seite Eingang oberhalb von „Ausgeblendet“."""
-    return client.get("/belege").text.split('<details class="ausgeblendet')[0]
+    """Der Abschnitt Neu oberhalb von „Ausgeblendet“."""
+    return section(client.get("/belege").text, "neu").split('<details class="ausgeblendet')[0]
 
 
 def hide(client: httpx.Client, note: str = "") -> None:
@@ -386,7 +386,7 @@ def test_year_input_is_hidden_for_kinds_without_period(root: Path, site: Path) -
     assert "form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }" in css
 
 
-# --- Belege: Ablage als Baum ---------------------------------------------------------------------
+# --- Belege: Neu im Jahresordner -----------------------------------------------------------------
 
 
 def add_files(site: Path) -> None:
@@ -396,63 +396,31 @@ def add_files(site: Path) -> None:
     (site / "lose.txt").write_text("lose", encoding="utf-8")
 
 
-def test_tree_nests_folders_and_counts_only_open_files(root: Path, site: Path) -> None:
-    add_files(site)
-    store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    rows = site_rows(all_site_files(store), store.state(), "anna")
-    (belege,) = site_tree(rows, ["Belege"], IntakeFilter.OPEN)
-    assert belege.waiting == 4
-    assert sorted(belege.folders) == ["2024", "2025"]
-    assert belege.folders["2024"].waiting == 2
-    assert belege.folders["2024"].folders["bank"].waiting == 1
-    assert [r.name for r in belege.rows] == ["lose.txt"]
-
-
-def test_filters_show_taken_in_files_and_keep_open_counts(root: Path, site: Path) -> None:
-    add_files(site)
-    client = make_client(root, site)
-    take(client)
-    store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    rows = site_rows(all_site_files(store), store.state(), "anna")
-    (taken,) = site_tree(rows, ["Belege"], IntakeFilter.TAKEN_IN)
-    assert sorted(taken.folders) == ["2025"] and taken.waiting == 3
-    (everything,) = site_tree(rows, ["Belege"], IntakeFilter.ALL)
-    assert sorted(everything.folders) == ["2024", "2025"]
-    page = main_of(client, "/belege?stand=aufgenommen")
-    assert "protokoll.html" in page and "aufgenommen" in page
-    assert "Übertragungsprotokoll, 2025" in page and "lose.txt" not in page
-    assert "lose.txt" in main_of(client, "/belege")
-    assert "protokoll.html" not in main_of(client, "/belege")
-    assert "protokoll.html" in main_of(client, "/belege?stand=alle")
-    assert "lose.txt" in main_of(client, "/belege?stand=unsinn")  # unbekannt: offen
-
-
-def test_each_file_has_one_place_hidden_ones_are_not_in_the_tree_or_counters(
+def test_each_file_has_one_place_hidden_ones_are_not_in_new_or_counters(
     root: Path, site: Path
 ) -> None:
     (site / "kopie.html").write_bytes(FIXTURE.read_bytes())
     (site / "lose.txt").write_text("lose", encoding="utf-8")
     client = make_client(root, site)
-    page = main_of(client, "/belege?stand=alle")
+    page = main_of(client, "/belege")
     assert page.count(">protokoll.html</a>") + page.count(">kopie.html</a>") == 1
     hide(client)
-    page = main_of(client, "/belege?stand=alle")
+    page = main_of(client, "/belege")
     assert "Ausgeblendet (1)" in page
     assert page.count("2025/protokoll.html") == 1  # nur im Abschnitt, mit Pfad
     assert '<span class="name">protokoll.html' not in page
-    assert '<span class="zaehler">1</span>' in page  # nur lose.txt zählt
-    assert belege_count(client.get("/").text) == 1
+    assert belege_count(client.get("/").text) == 1  # nur lose.txt zählt
 
 
-def test_taken_in_file_hidden_by_someone_else_stays_in_the_tree_only(
+def test_taken_in_file_hidden_by_someone_else_stays_in_taken_in_only(
     root: Path, site: Path
 ) -> None:
     anna = make_client(root, site, "anna")
     ben = make_client(root, site, "ben")
     take(anna)
     assert ben.post("/belege/ausblenden", data={"sha256": SHA}, headers=ORIGIN).status_code == 303
-    page = main_of(anna, "/belege?stand=alle")
-    assert ">protokoll.html</a>" in page
+    page = main_of(anna, "/belege")
+    assert ">protokoll.html</a>" in section(page, "aufgenommen")
     assert "Ausgeblendet" not in page
 
 
@@ -465,12 +433,6 @@ def test_navigation_counter_counts_open_files_per_user(root: Path, site: Path) -
     assert belege_count(make_client(root, site, "ben").get("/").text) == 2
 
 
-def test_tabs_point_to_existing_pages(root: Path, site: Path) -> None:
-    page = main_of(make_client(root, site), "/belege")
-    assert 'href="/belege/erwartet"' in page
-    assert 'href="/belege/dokumente"' in page
-
-
 def test_old_incoming_links_redirect(root: Path, site: Path) -> None:
     client = make_client(root, site)
     old = client.get("/eingang")
@@ -479,7 +441,7 @@ def test_old_incoming_links_redirect(root: Path, site: Path) -> None:
     assert post.status_code == 308 and post.headers["location"] == "/belege/ausblenden"
 
 
-def test_tree_scrolls_inside_not_the_page() -> None:
+def test_lists_scroll_inside_not_the_page() -> None:
     css = Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
     assert "main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }" in css
     assert ".baum { flex: 1; min-height: 0; overflow: auto; }" in css
@@ -508,7 +470,7 @@ def test_hidden_files_are_flat_clickable_rows_with_a_preview_and_the_note_in_the
     client = make_client(root, site)
     hide(client, "Muster-Notiz")
     page = main_of(client, "/belege")
-    assert f'<a class="name" href="/belege?stand=offen&datei={SHA}">protokoll.html</a>' in page
+    assert f'<a class="name" href="/belege?datei={SHA}">protokoll.html</a>' in page
     assert "<table" not in page and 'stand">ausgeblendet<' in page
     assert "Wieder einblenden" not in page  # erst nach Auswahl
     chosen = main_of(client, f"/belege?datei={SHA}")
@@ -547,9 +509,9 @@ def test_one_click_hides_a_file_in_its_row(root: Path, site: Path) -> None:
     assert page.count('action="/belege/ausblenden-direkt"') == 3  # Ordner 2025 + zwei Dateien
     assert page.count('class="auge" title="Ausblenden" aria-label="Ausblenden"><svg') == 3
     assert ">Ausblenden</button>" not in page
-    response = hide_directly(client, sha256=SHA, stand="alle")
-    assert response.status_code == 303 and response.headers["location"] == "/belege?stand=alle"
-    assert "Ausgeblendet (1)" in main_of(client, "/belege?stand=alle")
+    response = hide_directly(client, sha256=SHA)
+    assert response.status_code == 303 and response.headers["location"] == "/belege"
+    assert "Ausgeblendet (1)" in main_of(client, "/belege")
     assert hide_directly(client, sha256=SHA).status_code == 409  # nicht mehr offen
 
 
@@ -562,10 +524,9 @@ def test_hiding_a_folder_takes_its_content_with_it_also_later_files(root: Path, 
     assert (entry["owner"], entry["site"], entry["path"]) == ("common", "Belege", "2024")
     (site / "2024" / "neu.txt").write_text("neu", encoding="utf-8")
     store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    rows = site_rows(all_site_files(store), store.state(), "anna")
-    assert sorted(r.name for r in rows) == ["lose.txt", "protokoll.html"]
-    assert len(incoming_files(all_site_files(store), store.state(), "anna")) == 2
-    page = main_of(client, "/belege?stand=alle")
+    waiting_files = incoming_files(all_site_files(store), store.state(), "anna")
+    assert sorted(f.path for f in waiting_files) == ["2025/protokoll.html", "lose.txt"]
+    page = main_of(client, "/belege")
     assert "auszug.txt" not in page and "neu.txt" not in page
     assert "Ausgeblendet (1)" in page and "2024/</span>" in page
     assert "3 Dateien" in page  # der Ordner ist eine Zeile mit Zahl
@@ -612,7 +573,7 @@ def test_folder_hiding_is_by_path_and_keeps_taken_in_files(root: Path, site: Pat
     client = make_client(root, site)
     take(client)
     hide_directly(client, site="Belege", path="2025")
-    assert ">protokoll.html</a>" in main_of(client, "/belege?stand=alle")  # aufgenommen bleibt
+    assert ">protokoll.html</a>" in main_of(client, "/belege")  # aufgenommen bleibt
     (site / "kopie").mkdir()
     (site / "kopie" / "gleich.html").write_bytes(FIXTURE.read_bytes())
     ben = make_client(root, site, "ben")

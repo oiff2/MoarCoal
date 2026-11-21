@@ -1,4 +1,4 @@
-"""Tests: Reiter Dokumente (Filter, Suche, Zustand), Ändern und Löschen (nur tmp_path)."""
+"""Tests: aufgenommene Belege der Seite (Zustand), Ändern und Löschen (nur tmp_path)."""
 
 import datetime
 import hashlib
@@ -9,6 +9,7 @@ import httpx
 import pytest
 from app_helper import make_app
 from fastapi.testclient import TestClient
+from test_belege_year import section
 
 from moarcoal.storage import (
     COMMON_OWNER,
@@ -105,56 +106,32 @@ def two(client: httpx.Client, site: Path) -> httpx.Client:
     return client
 
 
-# --- Seite, Filter, Suche, Zustand ----------------------------------------------------------------
+# --- Seite, Zustand ----------------------------------------------------------------
 
 
-def test_tab_lists_all_documents_with_state_and_get_writes_nothing(two: httpx.Client) -> None:
+def taken_in(client: httpx.Client) -> str:
+    """Der Abschnitt Aufgenommene Belege der Seite."""
+    return section(main_of(client, "/belege"), "aufgenommen")
+
+
+def test_section_lists_the_documents_with_state_and_get_writes_nothing(two: httpx.Client) -> None:
     before = state_of(two)
-    page = main_of(two, "/belege/dokumente")
+    page = taken_in(two)
     assert "protokoll.html" in page and "bescheid.txt" in page
-    assert "2 Dokumente" in page
+    assert "Aufgenommene Belege (2)" in main_of(two, "/belege")
     assert page.count('<span class="stand">fertig</span>') == 1  # das eingelesene Protokoll
     assert page.count('<span class="stand">auszulesen</span>') == 1  # der Bescheid
     assert state_of(two) == before
 
 
-def test_filters_and_search_combine(two: httpx.Client) -> None:
-    def names(query: str) -> list[str]:
-        page = main_of(two, f"/belege/dokumente?{query}")
-        return [n for n in ("protokoll.html", "bescheid.txt") if n in page.split("Filtern")[1]]
-
-    assert names("art=assessment") == ["bescheid.txt"]
-    assert names("jahr=2025") == ["protokoll.html", "bescheid.txt"]
-    assert names("jahr=2024") == []
-    assert names("aussteller=none") == ["protokoll.html"]
-    assert names("q=BEISPIELBANK") == ["bescheid.txt"]
-    assert names("q=protokoll") == ["protokoll.html"]
-    assert names("art=assessment&aussteller=none") == []
-    assert names("art=transfer_protocol&jahr=2025&q=PROTO") == ["protokoll.html"]
-    assert names("art=none") == []
-
-
 def test_kind_with_template_and_no_proposal_is_to_extract(two: httpx.Client) -> None:
     """Ein nie ausgelesener Bescheid ist nicht „fertig“, sondern „auszulesen“; das Protokoll hat
     keine Auslese-Vorlage und ist fertig."""
-    rows = main_of(two, "/belege/dokumente").split('<div class="datei"')[1:]
+    rows = taken_in(two).split('<div class="datei"')[1:]
     [bescheid] = [r for r in rows if "bescheid.txt" in r]
     [protocol] = [r for r in rows if "protokoll.html" in r]
     assert '<span class="stand">auszulesen</span>' in bescheid
     assert '<span class="stand">fertig</span>' in protocol
-
-
-def test_state_filter(two: httpx.Client) -> None:
-    def names(query: str) -> list[str]:
-        page = main_of(two, f"/belege/dokumente?{query}")
-        return [n for n in ("protokoll.html", "bescheid.txt") if n in page.split("Filtern")[1]]
-
-    assert names("zustand=auszulesen") == ["bescheid.txt"]
-    assert names("zustand=fertig") == ["protokoll.html"]
-    assert names("zustand=zu+bestätigen") == []
-    assert names("zustand=") == ["protokoll.html", "bescheid.txt"]
-    page = main_of(two, "/belege/dokumente?zustand=fertig")
-    assert '<option value="fertig" selected>fertig</option>' in page
 
 
 def test_state_is_to_confirm_while_a_proposal_has_open_fields(two: httpx.Client) -> None:
@@ -168,59 +145,54 @@ def test_state_is_to_confirm_while_a_proposal_has_open_fields(two: httpx.Client)
         created_at=datetime.datetime.now(datetime.UTC),
     )
     store_of(two).apply([Put(proposal)])
-    assert '<span class="stand">zu bestätigen</span>' in main_of(two, "/belege/dokumente")
+    assert '<span class="stand">zu bestätigen</span>' in taken_in(two)
     confirmed = proposal.model_copy(
         update={"fields": {"x": proposal.fields["x"].model_copy(update={"confirmed": True})}}
     )
     store_of(two).apply([Put(confirmed, entry_checksum(proposal))])
-    page = main_of(two, "/belege/dokumente")
+    page = taken_in(two)
     assert '<span class="stand">zu bestätigen</span>' not in page
     assert page.count('<span class="stand">fertig</span>') == 2
 
 
-def test_document_without_kind_is_neutral(two: httpx.Client) -> None:
+def test_document_without_kind_has_no_period_and_so_belongs_to_no_year_here(
+    two: httpx.Client,
+) -> None:
     bescheid = doc(two, "bescheid.txt")
     assert change(two, bescheid, kind="", issuer_choice="").status_code == 303
-    page = main_of(two, "/belege/dokumente")
-    assert '<span class="stand">Beleg</span>' in page
     after = doc(two, "bescheid.txt")
     assert after.document_kind is None and after.period_start is None
-    assert "bescheid.txt" in main_of(two, "/belege/dokumente?art=none")
+    assert "bescheid.txt" not in taken_in(two)  # ohne Zeitraum an einem Ablageort ohne Jahr
+    assert "bescheid.txt" in main_of(two, document_url(after.id))  # die Seite zeigt es trotzdem
 
 
 def test_detail_shows_form_with_preview_and_locks_when_something_hangs(
     two: httpx.Client,
 ) -> None:
     protocol, bescheid = doc(two, "protokoll.html"), doc(two, "bescheid.txt")
-    locked = main_of(two, f"/belege/dokumente?dokument={protocol.id}")
+    locked = main_of(two, f"/belege?dokument={protocol.id}")
     assert "gesperrt" in locked and "Einlesung" in locked
     assert 'name="kind" disabled' in locked
     assert "Dokument löschen" in locked  # Einlesung fällt mit weg, Schnappschuss sperrt nicht
     assert f"/dokumente/{protocol.id}/datei" in locked
     assert f'href="/dokumente/{protocol.id}">Dokument</a>' not in locked  # kein Link je Zeile
-    assert "<h2>Aussteller</h2>" in locked  # der Kopf des Dokuments, im Reiter
-    free = main_of(two, f"/belege/dokumente?dokument={bescheid.id}")
+    assert "<h2>Aussteller</h2>" in locked  # der Kopf des Dokuments, auf der Seite
+    free = main_of(two, f"/belege?dokument={bescheid.id}")
     assert "gesperrt" not in free and "disabled" not in free and "Dokument löschen" in free
 
 
-def test_old_document_address_redirects_to_the_tab(two: httpx.Client) -> None:
+def test_old_document_address_redirects_to_the_page(two: httpx.Client) -> None:
     bescheid = doc(two, "bescheid.txt")
     old = two.get(f"/dokumente/{bescheid.id}")
     assert old.status_code == 308
-    assert (
-        old.headers["location"]
-        == document_url(bescheid.id)
-        == f"/belege/dokumente?dokument={bescheid.id}"
-    )
+    assert old.headers["location"] == document_url(bescheid.id) == f"/belege?dokument={bescheid.id}"
     protocol = doc(two, "protokoll.html")
     assert two.get(f"/dokumente/{protocol.id}/datei").status_code == 200  # die Datei bleibt
 
 
 def tab_of(response: httpx.Response) -> str:
-    """Der Reiter Dokumente einer Antwort, mit dem gewählten Dokument rechts."""
-    main = response.text.split("<main>")[1]
-    assert '<a href="/belege/dokumente" aria-current="page">Dokumente</a>' in main
-    return main.split('<div class="rechts">')[1]
+    """Die Belege-Seite einer Antwort: das gewählte Dokument rechts."""
+    return response.text.split("<main>")[1].split('<div class="rechts">')[1]
 
 
 # --- Ändern ---------------------------------------------------------------------------------
@@ -238,7 +210,7 @@ def test_refused_change_shows_the_tab_with_the_document_reason_and_input(
     assert 'value="zwanzig"' in right
 
 
-def test_refused_change_links_the_existing_document_in_the_tab(
+def test_refused_change_links_the_existing_document_on_the_page(
     two: httpx.Client, site: Path
 ) -> None:
     other = FIXTURE.read_bytes() + b"\n<!-- zweite Datei -->\n"  # lesbar als Protokoll
@@ -257,7 +229,7 @@ def test_issuer_changes_even_while_locked_and_keeps_kind_and_year(two: httpx.Cli
     werke = add_issuer(two, "Stadtwerke Beispielstadt")
     response = change(two, protocol, issuer_choice=f"id:{werke.id}")
     assert response.status_code == 303
-    assert response.headers["location"] == f"/belege/dokumente?dokument={protocol.id}"
+    assert response.headers["location"] == f"/belege?dokument={protocol.id}"
     after = doc(two, "protokoll.html")
     assert after.issuer == werke.address
     assert (after.document_kind, after.period_start) == (
@@ -308,7 +280,7 @@ def test_new_kind_reads_the_file_in_and_then_locks(client: httpx.Client) -> None
         e for e in state_of(client).entries.values() if "ProtocolReading" in str(e.address)
     ]
     assert isinstance(reading, Entry)
-    assert "gesperrt" in main_of(client, f"/belege/dokumente?dokument={document.id}")
+    assert "gesperrt" in main_of(client, f"/belege?dokument={document.id}")
 
 
 def test_new_kind_that_cannot_read_the_file_is_rejected(two: httpx.Client) -> None:
@@ -332,12 +304,12 @@ def test_delete_removes_only_the_document_and_the_file_is_open_again(
     two: httpx.Client, site: Path
 ) -> None:
     bescheid = doc(two, "bescheid.txt")
-    assert "bescheid.txt" not in main_of(two, "/belege")
+    assert "bescheid.txt" not in section(main_of(two, "/belege"), "neu")
     response = delete(two, bescheid, entry_checksum(bescheid))
-    assert response.status_code == 303 and response.headers["location"] == "/belege/dokumente"
+    assert response.status_code == 303 and response.headers["location"] == "/belege"
     assert [d.path for d in documents(two)] == ["2025/protokoll.html"]
     assert (site / "bescheid.txt").exists()
-    assert "bescheid.txt" in main_of(two, "/belege")  # wieder offen in der Ablage
+    assert "bescheid.txt" in section(main_of(two, "/belege"), "neu")  # wieder offen
     assert len(list(state_of(two).of_kind(Issuer))) == 1  # der Aussteller bleibt
 
 
@@ -364,14 +336,14 @@ def test_delete_is_refused_while_a_proposal_points_at_the_document(two: httpx.Cl
         created_at=datetime.datetime.now(datetime.UTC),
     )
     store_of(two).apply([Put(proposal)])
-    page = main_of(two, f"/belege/dokumente?dokument={protocol.id}")
+    page = main_of(two, f"/belege?dokument={protocol.id}")
     assert "Dokument löschen" not in page and "Vorschlag" in page
     response = delete(two, protocol, entry_checksum(protocol))
     assert response.status_code == 409 and "Wird noch verwendet." in response.text
     assert len(documents(two)) == 2
 
 
-def test_delete_with_stale_checksum_is_refused_in_the_tab(two: httpx.Client) -> None:
+def test_delete_with_stale_checksum_is_refused_on_the_page(two: httpx.Client) -> None:
     bescheid = doc(two, "bescheid.txt")
     response = delete(two, bescheid, "alt")
     assert response.status_code == 409
@@ -383,6 +355,6 @@ def test_delete_with_stale_checksum_is_refused_in_the_tab(two: httpx.Client) -> 
 def test_other_users_documents_are_not_listed(two: httpx.Client) -> None:
     foreign = doc(two, "protokoll.html").model_copy(update={"owner": "ben", "id": "ABCDEFGHIJ"})
     store_of(two).apply([Put(foreign)])
-    assert "2 Dokumente" in main_of(two, "/belege/dokumente")
+    assert "Aufgenommene Belege (2)" in main_of(two, "/belege")
     assert two.get(f"/dokumente/{foreign.id}/datei").status_code == 404
     assert f"/dokumente/{foreign.id}/aendern" not in main_of(two, document_url(foreign.id))

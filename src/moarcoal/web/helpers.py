@@ -109,7 +109,7 @@ def finding_url(
 
     Eine Adresse löst `entry_url` auf; ein Vorschlag führt zur Seite seines Dokuments, eine
     Neueinlesung zum ersten eingelesenen Eintrag ihres Dokuments. Text-Ziele: der Eingang zur
-    Ablage, `<Adresse>@<Jahr>` eines Erwarteten Belegs zum Reiter Erwartet.
+    Belege-Seite, `<Adresse>@<Jahr>` eines Erwarteten Belegs zu deren Abschnitt Erwartete Belege.
     """
     if finding.href:
         return finding.href

@@ -8,8 +8,8 @@ import httpx
 import pytest
 from test_belege import FIXTURE, ORIGIN, SHA, make_client, take
 
-from moarcoal.storage import Document, Put, SiteFile, Store, entry_checksum
-from moarcoal.web.site_view import Folder, Row, next_open
+from moarcoal.storage import Document, Put, Store, entry_checksum
+from moarcoal.web.site_view import next_open
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 20
 PDF = b"%PDF-1.4\n% Beispiel\n"
@@ -166,9 +166,9 @@ def test_page_without_choice_has_no_form_and_taken_file_links_its_document(
     root: Path, site: Path
 ) -> None:
     client = make_client(root, site)
-    assert "Datei wählen" in client.get("/belege").text
+    assert "Datei oder Beleg wählen" in client.get("/belege").text
     take(client)
-    page = preview_page(client, FIXTURE.read_bytes())
+    page = client.get(f"/belege?dokument={document_of(client).id}").text
     assert f"/dokumente/{document_of(client).id}/datei" in page
     assert "Aufnehmen</button>" not in page
 
@@ -183,7 +183,7 @@ def test_head_and_preview_scroll_on_their_own() -> None:
 
 def test_no_choice_is_unselected_without_multiple_selection(root: Path, site: Path) -> None:
     page = make_client(root, site).get("/belege?datei=0000").text
-    assert "Datei wählen" in page and 'type="checkbox"' not in page
+    assert "Datei oder Beleg wählen" in page and 'type="checkbox"' not in page
 
 
 # --- Weiter zur nächsten ---------------------------------------------------------------------
@@ -196,7 +196,7 @@ def location(response: httpx.Response) -> str:
 
 def test_taking_in_and_hiding_jump_to_the_next_open_file(root: Path, site: Path) -> None:
     client = make_client(root, site)
-    # Reihenfolge der Anzeige: Ordner zuerst, dann Dateien nach Pfad
+    # Reihenfolge der Anzeige: nach Pfad
     assert location(take(client)) == f"/belege?datei={sha(PNG)}"
     hide = client.post("/belege/ausblenden", data={"sha256": sha(PNG)}, headers=ORIGIN)
     assert location(hide) == f"/belege?datei={sha(b'Beispiel')}"
@@ -214,14 +214,11 @@ def test_without_another_open_file_taking_in_keeps_the_old_target(root: Path, si
 
 
 def test_next_open_goes_on_and_wraps_around() -> None:
-    def row(name: str) -> Row:
-        return Row(SiteFile("Belege", name, 1, name * 64))
-
-    root = Folder("Belege", rows=[row("a"), row("b"), row("c")])
-    assert next_open([root], "a" * 64) == "b" * 64
-    assert next_open([root], "c" * 64) == "a" * 64  # am Ende von vorn
-    assert next_open([root], "x") == "a" * 64
-    assert next_open([Folder("Belege", rows=[row("a")])], "a" * 64) is None
+    shas = ["a" * 64, "b" * 64, "c" * 64]
+    assert next_open(shas, "a" * 64) == "b" * 64
+    assert next_open(shas, "c" * 64) == "a" * 64  # am Ende von vorn
+    assert next_open(shas, "x") == "a" * 64
+    assert next_open(["a" * 64], "a" * 64) is None
     assert next_open([], "a" * 64) is None
 
 

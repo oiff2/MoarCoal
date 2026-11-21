@@ -151,7 +151,7 @@ def test_without_user_the_start_page_shows_the_form_only(tmp_path: Path) -> None
 
 def test_without_user_other_pages_redirect_to_the_start_page(tmp_path: Path) -> None:
     client = make_client(tmp_path)
-    for path in ("/belege", "/aussteller", "/befunde", "/arbeit", "/belege/dokumente"):
+    for path in ("/belege", "/aussteller", "/befunde", "/arbeit"):
         response = client.get(path)
         assert (response.status_code, response.headers["location"]) == (303, "/"), path
     posted = client.post("/aussteller/ABCDEFGHIJ", data={}, headers=ORIGIN)

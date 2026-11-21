@@ -1,7 +1,7 @@
 """Routen eines Dokuments: Ändern, Löschen, Auslesen, Bestätigen und die Datei (Spec 3.6).
 
-Die Details eines Dokuments stehen im Reiter Dokumente (`document_list.py`); `GET /dokumente/{id}`
-leitet dorthin um. Erfolg leitet in den Reiter, Abweisungen zeigen ihn mit den Gründen. Ändern,
+Die Details eines Dokuments stehen auf der Belege-Seite (`site_pages.py`); `GET /dokumente/{id}`
+leitet dorthin um. Erfolg leitet auf die Seite, Abweisungen zeigen sie mit den Gründen. Ändern,
 Löschen, Auslesen und Bestätigen sind POST und brauchen den Origin (Middleware).
 """
 
@@ -20,7 +20,6 @@ from moarcoal.proposals import (
     template_of,
 )
 from moarcoal.storage import Applied, Delete, Document
-from moarcoal.web.document_list import documents_page
 from moarcoal.web.helpers import (
     document_kinds,
     entry_of,
@@ -29,8 +28,9 @@ from moarcoal.web.helpers import (
     store_of,
     user_of,
 )
-from moarcoal.web.links import document_url
+from moarcoal.web.links import document_url, site_url
 from moarcoal.web.previews import file_response
+from moarcoal.web.site_pages import belege_page
 
 router = APIRouter(prefix="/dokumente")
 
@@ -42,18 +42,18 @@ def _document(request: Request, document_id: str) -> Document:
 
 
 def _refused(request: Request, document: Document, status_code: int, notice: str) -> HTMLResponse:
-    """Der Reiter Dokumente mit dem Dokument und dem Hinweis zur Abweisung."""
-    return documents_page(request, status_code, selected=document.id, notice=notice)
+    """Die Belege-Seite mit dem Dokument und dem Hinweis zur Abweisung."""
+    return belege_page(request, status_code, notice, document=document)
 
 
 def _in_list(document: Document) -> RedirectResponse:
-    """Zurück in den Reiter Dokumente, das Dokument gewählt."""
+    """Zurück auf die Belege-Seite, das Dokument gewählt."""
     return RedirectResponse(document_url(document.id), status_code=303)
 
 
 @router.get("/{document_id}")
 def moved(document_id: str) -> RedirectResponse:
-    """Die Details stehen im Reiter Dokumente; 308 wie bei den alten Adressen `/eingang…`."""
+    """Die Details stehen auf der Belege-Seite; 308 wie bei den alten Adressen `/eingang…`."""
     return RedirectResponse(document_url(document_id), status_code=308)
 
 
@@ -89,14 +89,14 @@ def change(
         )
     )
     if isinstance(result, IntakeRejected):
-        return documents_page(
+        return belege_page(
             request,
             422,
-            selected=document.id,
-            notice=" ".join(result.reasons),
+            " ".join(result.reasons),
+            document=document,
             existing=result.existing,
             issuer_text=fields.get("issuer_text", ""),
-            year=fields.get("year", ""),
+            year_text=fields.get("year", ""),
         )
     return _in_list(document)
 
@@ -111,7 +111,7 @@ def delete(
     result = store_of(request).apply([Delete(document.address, fields.get("checksum", ""))])
     if not isinstance(result, Applied):
         return _refused(request, document, 409, rejection_text(result))
-    return RedirectResponse("/belege/dokumente", status_code=303)
+    return RedirectResponse(site_url(), status_code=303)
 
 
 @router.post("/{document_id}/auslesen")

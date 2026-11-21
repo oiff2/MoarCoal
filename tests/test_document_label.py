@@ -128,7 +128,7 @@ def test_intake_and_document_form_carry_the_label(client: httpx.Client) -> None:
     (document,) = store_of(client).state().of_kind(Document)
     assert document.label == "Brief vom Amt"
 
-    listing = client.get(f"/belege/dokumente?dokument={document.id}").text
+    listing = client.get(f"/belege?dokument={document.id}").text
     assert "Brief vom Amt" in listing
     assert 'name="label" value="Brief vom Amt"' in listing
 

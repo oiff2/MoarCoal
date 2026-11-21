@@ -94,8 +94,8 @@ class Setup:
         response = self.client.post("/belege/aufnehmen", data=data, headers=ORIGIN)
         assert response.status_code == 303
         location = response.headers["location"]
-        if location.startswith("/belege/dokumente?dokument="):
-            return f"/dokumente/{location.removeprefix('/belege/dokumente?dokument=')}"
+        if location.startswith("/belege?dokument="):
+            return f"/dokumente/{location.removeprefix('/belege?dokument=')}"
         return location
 
     def post(self, url: str, **data: str) -> httpx.Response:
@@ -151,7 +151,7 @@ def test_take_in_leads_to_the_documents_tab_and_get_writes_nothing(tmp_path: Pat
     setup = make(tmp_path)
     data = {"sha256": SHA, "kind": "notice", "year": "2025"}
     response = setup.client.post("/belege/aufnehmen", data=data, headers=ORIGIN)
-    tab = f"/belege/dokumente?dokument={setup.document().id}"
+    tab = f"/belege?dokument={setup.document().id}"
     assert response.headers["location"] == tab
     before = setup.store.state().entries
     page = setup.client.get(tab)
@@ -585,19 +585,19 @@ def test_failed_recording_of_the_abort_is_said_on_the_page(
 def test_extract_and_confirm_redirect_into_the_documents_tab(tmp_path: Path) -> None:
     setup = make(tmp_path, answer())
     location = setup.take_in()
-    tab = f"/belege/dokumente?dokument={setup.document().id}"
+    tab = f"/belege?dokument={setup.document().id}"
     assert setup.post(f"{location}/auslesen").headers["location"] == tab
     assert setup.post(f"{location}/bestaetigen", all="1").headers["location"] == tab
-    page = setup.client.get(tab).text  # Kopf und Vorschau im selben Reiter, ohne Link „Dokument“
+    page = setup.client.get(tab).text  # Kopf und Vorschau auf derselben Seite, ohne Link „Dokument“
     assert "Alle Felder sind bestätigt." in page and "Seite 1, Zeile 4" in page
     assert '<ul class="vorschlag">' in page and 'class="vorschau"' in page
     assert "<table" not in page
 
 
-def test_taken_in_file_shows_the_document_head_in_the_ablage_tab(tmp_path: Path) -> None:
+def test_taken_in_document_shows_its_head_on_the_belege_page(tmp_path: Path) -> None:
     setup = make(tmp_path, answer())
     setup.take_in()
-    page = setup.client.get(f"/belege?stand=alle&datei={SHA}").text
+    page = setup.client.get(f"/belege?dokument={setup.document().id}").text
     assert f"/dokumente/{setup.document().id}/auslesen" in page
     assert f"/dokumente/{setup.document().id}/aendern" in page
     assert 'class="vorschau"' in page

@@ -334,7 +334,7 @@ def test_a_document_that_is_not_read_out_yet_points_to_the_documents_tab(tmp_pat
     setup = make(tmp_path, trip_row())
     setup.post("/belege/aufnehmen", sha256=SHA, kind=STATEMENT.key, year=str(YEAR))
     page = setup.page()
-    assert "Noch nicht ausgelesen" in page and "/belege/dokumente?dokument=" in page
+    assert "Noch nicht ausgelesen" in page and "/belege?dokument=" in page
     assert setup.fake.calls == []  # ausgelesen wird nur auf Wunsch
 
 
@@ -431,7 +431,7 @@ def test_text_from_claude_is_escaped(tmp_path: Path) -> None:
 def test_the_generic_document_tab_labels_the_trip_cells(tmp_path: Path) -> None:
     setup = make(tmp_path, trip_row())
     document = setup.read_out()
-    tab = setup.client.get(f"/belege/dokumente?dokument={document.id}").text
+    tab = setup.client.get(f"/belege?dokument={document.id}").text
     assert "km (Reise 1)" in tab and "Start (Reise 1)" in tab
 
 

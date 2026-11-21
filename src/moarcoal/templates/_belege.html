@@ -1,11 +1,4 @@
-{# Gemeinsames der Belege-Seite: Reiter, Vorschau und Abweisung (mit Link auf ein vorhandenes Dokument). #}
-{% macro tabs(active) %}
-<nav class="reiter">
-  <a href="/belege"{% if active == "ablage" %} aria-current="page"{% endif %}>Ablage</a>
-  <a href="/belege/dokumente"{% if active == "dokumente" %} aria-current="page"{% endif %}>Dokumente</a>
-  <a href="/belege/erwartet"{% if active == "erwartet" %} aria-current="page"{% endif %}>Erwartet</a>
-</nav>
-{% endmacro %}
+{# Gemeinsames der Belege-Seite: Vorschau und Abweisung (mit Link auf ein vorhandenes Dokument). #}
 {% macro preview(kind, url, path) %}
 <div class="vorschau">
   {% if kind == "image" %}<img src="{{ url }}" alt="{{ path }}">

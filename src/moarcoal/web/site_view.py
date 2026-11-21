@@ -1,68 +1,57 @@
-"""Seitenmodell der Ablage: Zeilen, Baum, Filter nach Stand und Ausgeblendete (Reiter Ablage).
+"""Seitenmodell der Belege-Seite eines Jahrs: die drei Abschnitte als reine Funktionen.
 
-Was offen ist und wie man ausblendet, steht in `incoming.py`; hier steht, wie die Seite es zeigt.
+Was offen ist und wie man ausblendet, steht in `incoming.py`, zu welchem Jahr ein Dokument
+gehört in `documents.py`, wann ein Erwarteter Beleg erfüllt ist in `expected_documents.py`;
+hier steht, wie die Seite es zeigt.
 """
 
-from collections.abc import Iterator, Sequence
-from dataclasses import dataclass, field
-from enum import StrEnum
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 
-from moarcoal.incoming import (
-    all_site_files,
-    hidden_files,
-    hidden_folders,
-    in_hidden_folder,
-    site_files_of,
-)
+from moarcoal.document_filter import DocumentState, document_state
+from moarcoal.documents import DocumentKind, belongs_to_year
+from moarcoal.expected_documents import matching_documents, previous_year_issuer
+from moarcoal.incoming import hidden_files, hidden_folders, in_hidden_folder, incoming_files
 from moarcoal.storage import (
     Document,
+    ExpectedDocument,
     HiddenFile,
     HiddenFolder,
+    Issuer,
     SiteFile,
+    Sites,
     State,
-    Store,
     entry_checksum,
 )
-from moarcoal.web.links import document_file_url, site_file_url
-
-
-class IntakeFilter(StrEnum):
-    """Filter der Ablage nach Stand (URL-Parameter `stand`); voreingestellt offen, der Eingang."""
-
-    OPEN = "offen"
-    TAKEN_IN = "aufgenommen"
-    ALL = "alle"
-
-    @classmethod
-    def of(cls, text: str) -> "IntakeFilter":
-        """Der Filter zu `text`; Unbekanntes gilt als offen."""
-        return next((f for f in cls if f.value == text), cls.OPEN)
-
-    def shows(self, waiting: bool) -> bool:
-        """Zeigt der Filter eine offene (`waiting`) bzw. aufgenommene Datei?"""
-        return self == IntakeFilter.ALL or (self == IntakeFilter.OPEN) == waiting
+from moarcoal.web.links import site_file_url
 
 
 @dataclass(frozen=True)
-class Row:
-    """Eine Zeile der Ablage: die Datei, bei einer aufgenommenen auch ihr Dokument."""
+class NewFile:
+    """Eine Zeile im Abschnitt Neu: eine Datei des Eingangs."""
 
     file: SiteFile
-    document: Document | None = None
 
     @property
     def name(self) -> str:
         return self.file.path.rsplit("/", 1)[-1]
 
     @property
-    def path(self) -> str:
-        return self.file.path
+    def folder(self) -> str:
+        """Der Ordner der Datei im Ablageort; leer, wenn sie dort lose liegt."""
+        return self.file.path.rpartition("/")[0]
 
     @property
     def preview_url(self) -> str:
-        if self.document is not None:
-            return document_file_url(self.document.id)
         return site_file_url(self.file.sha256)
+
+
+@dataclass(frozen=True)
+class NewGroup:
+    """Der Eingang eines Ablageorts."""
+
+    site: str
+    files: list[NewFile]
 
 
 @dataclass(frozen=True)
@@ -92,120 +81,141 @@ class HiddenFolderRow:
     count: int
 
 
-@dataclass
-class Folder:
-    """Ein Ordner der Ablage (der oberste ist der Ablageort). `waiting` zählt die offenen Dateien
-    darunter, auch wenn der Filter sie nicht zeigt; `shown` die sichtbaren."""
-
-    name: str
-    site: str = ""
-    path: str = ""  # relativ zum Ablageort; beim obersten leer
-    folders: dict[str, "Folder"] = field(default_factory=lambda: dict[str, Folder]())
-    rows: list[Row] = field(default_factory=list[Row])
-    waiting: int = 0
-    shown: int = 0
-
-    def walk(self) -> Iterator[Row]:
-        """Die sichtbaren Dateien in der Reihenfolge der Anzeige (erst Ordner, dann Dateien)."""
-        for folder in self.folders.values():
-            yield from folder.walk()
-        yield from self.rows
-
-    def contains(self, sha256: str) -> bool:
-        return any(row.file.sha256 == sha256 for row in self.walk())
-
-
-def next_open(tree: Sequence[Folder], sha256: str) -> str | None:
-    """SHA-256 der nächsten Datei nach `sha256` im Baum (des Filters „offen“), am Ende von vorn;
-    ohne weitere Datei `None`."""
-    shas = [row.file.sha256 for root in tree for row in root.walk()]
-    start = shas.index(sha256) + 1 if sha256 in shas else 0
-    others = [s for s in shas[start:] + shas[:start] if s != sha256]
-    return others[0] if others else None
-
-
-def site_rows(files: Sequence[SiteFile], state: State, user: str) -> list[Row]:
-    """Alle Zeilen der Ablage von `user` (`site_files_of`)."""
-    return [Row(file, document) for file, document in site_files_of(files, state, user)]
-
-
-def site_tree(
-    rows: Sequence[Row], sites: Sequence[str], intake_filter: IntakeFilter
-) -> list[Folder]:
-    """Die Ablageorte als Bäume. Der Filter bestimmt, welche Dateien erscheinen; Ordner ohne
-    sichtbare Datei fehlen."""
-    roots = {site: Folder(site, site) for site in sites}
-    for row in sorted(rows, key=lambda r: r.file.path):
-        folder = roots.get(row.file.site)
-        if folder is None:
-            continue
-        waiting = row.document is None
-        visible = intake_filter.shows(waiting)
-        *parents, _ = row.file.path.split("/")
-        path = [folder]
-        for name in parents:
-            sub = f"{folder.path}/{name}" if folder.path else name
-            folder = folder.folders.setdefault(name, Folder(name, row.file.site, sub))
-            path.append(folder)
-        for node in path:
-            node.waiting += waiting
-            node.shown += visible
-        if visible:
-            folder.rows.append(row)
-    return [_pruned(root) for root in roots.values()]
-
-
-def _pruned(folder: Folder) -> Folder:
-    kept = {n: _pruned(f) for n, f in sorted(folder.folders.items()) if f.shown}
-    folder.folders = kept
-    return folder
-
-
 @dataclass(frozen=True)
-class SiteListing:
-    """Die Ablage einer Anfrage, einmal aus den Dateien aller Ablageorte gebaut: Zeilen und
-    Ausgeblendete (Dateien ohne die, die in der Ablage stehen, und Ordner)."""
+class NewSection:
+    """Der Abschnitt „Neu im Jahresordner“: der Eingang des Jahresordners (falls es ihn gibt),
+    darunter die Ablageorte ohne Jahr, dazu die Ausblendungen dieser Ablageorte."""
 
-    files: list[SiteFile]
-    sites: list[str]
-    rows: list[Row]
+    year: int
+    year_folder: str | None
+    groups: list[NewGroup]
     hidden_files: list[HiddenFileRow]
     hidden_folders: list[HiddenFolderRow]
 
-    def tree(self, intake_filter: IntakeFilter) -> list[Folder]:
-        return site_tree(self.rows, self.sites, intake_filter)
+    @property
+    def sites(self) -> list[str]:
+        return [g.site for g in self.groups]
 
-    def open_files(self) -> list[SiteFile]:
-        """Der Eingang: die Zeilen ohne Dokument."""
-        return [row.file for row in self.rows if row.document is None]
+    def files(self) -> list[NewFile]:
+        """Alle Dateien des Abschnitts in der Reihenfolge der Anzeige."""
+        return [f for g in self.groups for f in g.files]
 
     def open_file(self, sha256: str) -> SiteFile | None:
-        return next((f for f in self.open_files() if f.sha256 == sha256), None)
-
-    def row(self, sha256: str) -> Row | None:
-        return next((r for r in self.rows if r.file.sha256 == sha256), None)
+        return next((f.file for f in self.files() if f.file.sha256 == sha256), None)
 
     def hidden_file(self, sha256: str) -> HiddenFileRow | None:
         return next((h for h in self.hidden_files if h.entry.sha256 == sha256), None)
 
 
-def site_listing(store: Store, state: State, user: str) -> SiteListing:
-    """Die Ablage von `user` auf dem Stand `state`."""
-    files = all_site_files(store)
-    rows = site_rows(files, state, user)
-    by_sha = {f.sha256: f for f in files}
-    in_tree = {r.file.sha256 for r in rows}
-    return SiteListing(
-        files=files,
-        sites=store.sites.names(),
-        rows=rows,
+def next_open(shas: Sequence[str], sha256: str) -> str | None:
+    """SHA-256 der nächsten Datei nach `sha256` in `shas`, am Ende von vorn; ohne weitere `None`."""
+    start = shas.index(sha256) + 1 if sha256 in shas else 0
+    others = [s for s in [*shas[start:], *shas[:start]] if s != sha256]
+    return others[0] if others else None
+
+
+def new_section(
+    files: Sequence[SiteFile], sites: Sites, state: State, user: str, year: int
+) -> NewSection:
+    """Der Abschnitt Neu von `user` für `year`: der Jahresordner zuerst, dann die Ablageorte
+    ohne Jahr (nach Name). Ablageorte, die zu einem anderen Jahr gehören, fehlen."""
+    year_folder = sites.year_folder(year)
+    shown = ([year_folder] if year_folder else []) + [
+        s for s in sites.names() if sites.year_of(s) is None
+    ]
+    ordered = [f for site in shown for f in files if f.site == site]  # erster Ort gewinnt
+    open_files = incoming_files(ordered, state, user)
+    taken = {d.sha256 for d in state.of_kind(Document) if d.owner == user}
+    return NewSection(
+        year=year,
+        year_folder=year_folder,
+        groups=[
+            NewGroup(site, [NewFile(f) for f in open_files if f.site == site]) for site in shown
+        ],
         hidden_files=[
-            HiddenFileRow(h, entry_checksum(h), by_sha.get(h.sha256))
+            HiddenFileRow(
+                h, entry_checksum(h), next((f for f in files if f.sha256 == h.sha256), None)
+            )
             for h in hidden_files(state)
-            if h.sha256 not in in_tree
+            if h.site in shown and h.sha256 not in taken
         ],
         hidden_folders=[
             HiddenFolderRow(h, entry_checksum(h), sum(1 for f in files if in_hidden_folder(f, [h])))
             for h in hidden_folders(state)
+            if h.site in shown
         ],
     )
+
+
+@dataclass(frozen=True)
+class ExpectedRow:
+    """Eine Zeile im Abschnitt Erwartete Belege: der Eintrag, sein Aussteller (der des erfüllenden
+    Dokuments, sonst der des Vorjahrs) und die Dokumente, die ihn im Jahr erfüllen."""
+
+    entry: ExpectedDocument
+    title: str
+    issuer: Issuer | None
+    documents: tuple[Document, ...]
+    checksum: str
+
+    @property
+    def pending(self) -> bool:
+        return not self.documents
+
+
+def expected_rows(
+    state: State, user: str, year: int, kinds: Mapping[str, DocumentKind]
+) -> list[ExpectedRow]:
+    """Die Erwarteten Belege von `user`, die in `year` fällig sind, nach Beginn und Kennung."""
+    documents = [d for d in state.of_kind(Document) if d.owner == user]
+    rows: list[ExpectedRow] = []
+    for entry in sorted(state.of_kind(ExpectedDocument), key=lambda e: (e.start_year, e.id)):
+        if entry.owner != user or not entry.due_in(year):
+            continue
+        found = tuple(matching_documents(documents, entry, year))
+        address = next((d.issuer for d in found if d.issuer), None) or previous_year_issuer(
+            documents, entry, year
+        )
+        issuer = None if address is None else state.get(address)
+        kind = kinds.get(entry.document_kind)
+        rows.append(
+            ExpectedRow(
+                entry,
+                kind.title if kind else entry.document_kind,
+                issuer if isinstance(issuer, Issuer) else None,
+                found,
+                entry_checksum(entry),
+            )
+        )
+    return rows
+
+
+@dataclass(frozen=True)
+class DocumentRow:
+    """Eine Zeile im Abschnitt Aufgenommene Belege."""
+
+    document: Document
+    kind: str  # Titel der Dokumentart mit Bezugsjahr; leer bei einem Beleg ohne Art
+    state: DocumentState
+
+
+def year_documents(
+    state: State, sites: Sites, kinds: Mapping[str, DocumentKind], user: str, year: int
+) -> list[DocumentRow]:
+    """Die Dokumente von `user`, die zu `year` gehören (`belongs_to_year`), nach Pfad."""
+    chosen = sorted(
+        (
+            d
+            for d in state.of_kind(Document)
+            if d.owner == user and belongs_to_year(d, year, state, sites)
+        ),
+        key=lambda d: (d.path, d.site, d.id),
+    )
+    rows: list[DocumentRow] = []
+    for document in chosen:
+        kind = kinds.get(document.document_kind or "")
+        title = kind.title if kind else (document.document_kind or "")
+        if title and document.period_start:
+            title = f"{title}, {document.period_start.year}"
+        rows.append(DocumentRow(document, title, document_state(state, kinds, document)))
+    return rows

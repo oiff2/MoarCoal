@@ -117,7 +117,7 @@ def test_without_document_the_year_is_pending_and_with_it_the_note_is_gone() -> 
     assert found.kind == PENDING and found.target == f"{entry.address}@2025"
     assert "2025" in found.message and "ausstehend" in found.message
     assert found.href == ""  # den Link baut die Anbindung aus dem Ziel
-    assert linked(found, entry) == "/belege/erwartet"
+    assert linked(found, entry) == "/belege#erwartet"
     assert findings([entry, document(2025)]) == []
 
 
@@ -125,7 +125,7 @@ def test_two_matching_documents_make_a_possible_duplicate() -> None:
     entry = expected()
     (found,) = findings([entry, document(2025), document(2025, sha="b" * 64)])
     assert found.kind == DUPLICATE and "Dublette" in found.message
-    assert linked(found, entry) == "/belege/erwartet"
+    assert linked(found, entry) == "/belege#erwartet"
 
 
 def test_duplicate_fingerprint_changes_with_the_documents() -> None:
@@ -216,10 +216,10 @@ def test_create_lists_status_per_year(tmp_path: Path) -> None:
     assert response.status_code == 303
     (entry,) = stored(tmp_path)
     assert entry.end_year is None and entry.owner == "anna"
-    page = client.get("/belege/erwartet").text
+    page = client.get("/belege").text
     assert "Übertragungsprotokoll" in page and "ausstehend" in page
     open_store(tmp_path, []).apply([Put(document(2025))])
-    assert "erfüllt durch" in make_client(tmp_path).get("/belege/erwartet").text
+    assert "da: " in make_client(tmp_path).get("/belege").text
 
 
 def test_pending_note_shows_on_findings_page_with_link(tmp_path: Path) -> None:
@@ -229,7 +229,7 @@ def test_pending_note_shows_on_findings_page_with_link(tmp_path: Path) -> None:
     page = client.get("/befunde?year=2025").text
 
     assert "Erwarteter Beleg für 2025 ausstehend" in page
-    assert 'href="/belege/erwartet"' in page
+    assert 'href="/belege#erwartet"' in page
 
 
 def test_invalid_input_is_rejected_with_hints(tmp_path: Path) -> None:
@@ -389,9 +389,9 @@ def test_pages_show_the_suggestion_and_follow_a_merge(tmp_path: Path) -> None:
     store.apply([Put(source), Put(target), Put(entry), Put(issued_by(source))])
     client = make_client(tmp_path)
 
-    for url in ("/belege/erwartet", f"/belege/erwartet/{entry.id}"):
-        page = client.get(url).text
-        assert f'Aussteller im Vorjahr: <a href="{issuer_url(source.id)}">Beispielbank</a>' in page
+    link = f'<a href="{issuer_url(source.id)}">Beispielbank</a>'
+    assert link in client.get("/belege").text  # die Zeile im Abschnitt Erwartete Belege
+    assert f"Aussteller im Vorjahr: {link}" in client.get(f"/belege/erwartet/{entry.id}").text
 
     state = store.state()
     store.apply(
@@ -404,11 +404,14 @@ def test_pages_show_the_suggestion_and_follow_a_merge(tmp_path: Path) -> None:
             )
         ]
     )
-    page = make_client(tmp_path).get("/belege/erwartet").text
+    page = make_client(tmp_path).get("/belege").text
     assert f'<a href="{issuer_url(target.id)}">Beispielbank AG</a>' in page
 
 
 def test_pages_show_no_suggestion_without_issuer(tmp_path: Path) -> None:
     open_store(tmp_path, []).apply([Put(expected(start=2024)), Put(document(2024))])
 
-    assert "Aussteller im Vorjahr" not in make_client(tmp_path).get("/belege/erwartet").text
+    client = make_client(tmp_path)
+    (entry,) = stored(tmp_path)
+    assert "Aussteller im Vorjahr" not in client.get(f"/belege/erwartet/{entry.id}").text
+    assert 'class="aussteller"></span>' in client.get("/belege").text
