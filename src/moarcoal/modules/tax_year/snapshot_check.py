@@ -4,10 +4,11 @@ aktuellen Werte davon melden (Befunde)."""
 import datetime
 from collections.abc import Sequence
 
-from moarcoal.modules.tax_year.anlage_n import FORMS
+from moarcoal.modules.tax_year.anlagen import Anlage, field_catalog
 from moarcoal.modules.tax_year.entries import MODULE_KEY, ProtocolReading
-from moarcoal.modules.tax_year.fields import FormField, Forms
-from moarcoal.modules.tax_year.links import anlage_n_url
+from moarcoal.modules.tax_year.fields import FormField
+from moarcoal.modules.tax_year.links import anlage_url
+from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Change, Document, Entry, FrozenValue, Occasion, Put, Snapshot
 from moarcoal.values.calculation import ValueSource
@@ -42,48 +43,53 @@ def describe_frozen(field: FormField, frozen: FrozenValue) -> str:
 
 
 def snapshot_findings(
-    state: ModuleState, values: ValueSource, year: int, forms: Forms = FORMS
+    state: ModuleState, values: ValueSource, year: int, anlagen: Sequence[Anlage] = ANLAGEN
 ) -> list[Finding]:
     """Warnung je Feld, dessen aktueller Wert vom eingefrorenen der Abgabe abweicht; verglichen
     wird mit dem neuesten Schnappschuss des Jahrs."""
-    fields = forms.get(year)
     snapshot = latest_snapshot(state, year)
-    if fields is None or snapshot is None:
+    if snapshot is None:
         return []
     deviations = compare(snapshot, values)
     period = Period.year(year)
     found: list[Finding] = []
-    for field in fields:
-        mine = [
-            d for d in deviations if d.ref.key == field.key and d.ref.time == frozen_time(period)
-        ]
-        if not mine:
-            continue
-        taken = snapshot.taken_at.strftime("%d.%m.%Y")
-        texts = [d.text_with(lambda amount, f=field: f.show(amount.value)) for d in mine]
-        found.append(
-            Finding(
-                SNAPSHOT_DEVIATION,
-                Severity.WARNING,
-                ValueRef(field.key, state.user, period, None),
-                f"{field.name}: Abweichung zum Schnappschuss bei Abgabe am {taken}. "
-                + "; ".join(texts),
-                href=anlage_n_url(year),
-                fingerprint=fingerprint(snapshot.id, field.key, *texts),
+    for anlage in anlagen:
+        for field in anlage.forms.get(year, ()):
+            mine = [
+                d
+                for d in deviations
+                if d.ref.key == field.key and d.ref.time == frozen_time(period)
+            ]
+            if not mine:
+                continue
+            taken = snapshot.taken_at.strftime("%d.%m.%Y")
+            texts = [d.text_with(lambda amount, f=field: f.show(amount.value)) for d in mine]
+            found.append(
+                Finding(
+                    SNAPSHOT_DEVIATION,
+                    Severity.WARNING,
+                    ValueRef(field.key, state.user, period, None),
+                    f"{field.name}: Abweichung zum Schnappschuss bei Abgabe am {taken}. "
+                    + "; ".join(texts),
+                    href=anlage_url(anlage.slug, year),
+                    fingerprint=fingerprint(snapshot.id, field.key, *texts),
+                )
             )
-        )
     return found
 
 
 def snapshot_on_filing(
-    document: Document, entries: Sequence[Entry], values: Values, forms: Forms = FORMS
+    document: Document,
+    entries: Sequence[Entry],
+    values: Values,
+    anlagen: Sequence[Anlage] = ANLAGEN,
 ) -> Sequence[Change]:
     """Ergänzung beim Aufnehmen eines Protokolls (Spec 3.6 Punkt 8): friert die Werte der Felder
-    des Jahrs als Schnappschuss der Abgabe ein. Jahre ohne Felder (vor 2025): keiner; gibt es für
-    das Jahr schon einen Schnappschuss der Abgabe, auch keiner (der alte gibt den Stand der Abgabe
-    wieder, etwa nach Löschen und erneutem Aufnehmen des Protokolls)."""
+    des Jahrs aller Anlagen als Schnappschuss der Abgabe ein. Jahre ohne Felder (vor 2025): keiner;
+    gibt es für das Jahr schon einen Schnappschuss der Abgabe, auch keiner (der alte gibt den
+    Stand der Abgabe wieder, etwa nach Löschen und erneutem Aufnehmen des Protokolls)."""
     reading = next((e for e in entries if isinstance(e, ProtocolReading)), None)
-    fields = None if reading is None else forms.get(reading.year)
+    fields = () if reading is None else field_catalog(anlagen, reading.year)
     if reading is None or not fields:
         return []
     if latest_snapshot(values.module_state(MODULE_KEY, document.owner), reading.year):

@@ -22,7 +22,8 @@ class Document(Entry):
 
     Die Datei bleibt am Ablageort und wird nur gelesen (ADR 0003). Hat die Dokumentart einen
     Bezugszeitraum, stehen Beginn und Ende hier. `taken_in_at` ist der Zeitpunkt des Aufnehmens
-    (UTC; bei älteren Dokumenten leer). `issuer` verweist freiwillig auf einen Aussteller.
+    (UTC; bei älteren Dokumenten leer). `issuer` verweist freiwillig auf einen Aussteller,
+    `label` ist die freiwillige Bezeichnung (was das Dokument ist).
     """
 
     site: str = Field(min_length=1)
@@ -30,6 +31,7 @@ class Document(Entry):
     sha256: str = Field(pattern=SHA256_PATTERN)
     document_kind: str | None = None
     issuer: EntryAddress | None = None
+    label: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
     period_start: datetime.date | None = None
     period_end: datetime.date | None = None
     taken_in_at: datetime.datetime | None = None

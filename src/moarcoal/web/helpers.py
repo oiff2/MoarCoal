@@ -1,7 +1,7 @@
 """Gemeinsame Helfer der Seiten: Vorlagen, Nutzer, Stand und Formularfelder."""
 
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import cache
 from typing import Any, Protocol
 from urllib.parse import parse_qs
@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ValidationError
 
 from moarcoal.defaults import DEFAULT_YEAR, year_of
-from moarcoal.documents import DocumentKind
+from moarcoal.documents import DocumentKind, read_entries_of
 from moarcoal.incoming import all_site_files, incoming_files
 from moarcoal.personal_details import details_of
 from moarcoal.registration import ModuleRegistration, ModuleState
@@ -22,12 +22,14 @@ from moarcoal.storage import (
     EntryAddress,
     ExpectedDocument,
     Issuer,
+    Proposal,
     Rejected,
+    Rereading,
     State,
     Store,
 )
 from moarcoal.values.engine import Values
-from moarcoal.values.findings import Finding, Severity
+from moarcoal.values.findings import INCOMING_TARGET, Finding, FindingList, HiddenFinding, Severity
 from moarcoal.web.links import (
     document_url,
     expected_documents_url,
@@ -82,6 +84,58 @@ def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) ->
     if address.kind == Issuer.__name__:  # Baustein der Datenebene
         return issuer_url(address.id)
     return next((url for m in modules if (url := m.entry_url(address)) is not None), None)
+
+
+def finding_url(
+    modules: tuple[ModuleRegistration, ...], state: State, finding: Finding
+) -> str | None:
+    """Link eines Befunds: ein gesetztes `href` geht vor, sonst baut ihn die Anbindung aus dem Ziel.
+
+    Eine Adresse löst `entry_url` auf; ein Vorschlag führt zur Seite seines Dokuments, eine
+    Neueinlesung zum ersten eingelesenen Eintrag ihres Dokuments. Text-Ziele: der Eingang zur
+    Ablage, `<Adresse>@<Jahr>` eines Erwarteten Belegs zum Reiter Erwartet.
+    """
+    if finding.href:
+        return finding.href
+    target = finding.target
+    if isinstance(target, EntryAddress):
+        entry = state.get(target)
+        if isinstance(entry, Proposal):
+            return entry_url(modules, entry.document)
+        if isinstance(entry, Rereading):
+            entries = read_entries_of(state, entry.document)
+            return next((url for e in entries if (url := entry_url(modules, e.address))), None)
+        return entry_url(modules, target)
+    if not isinstance(target, str):  # ein Wert: der Befund hat keinen eigenen Link
+        return None
+    if target == INCOMING_TARGET:
+        return site_url()
+    address, _, year = target.partition("@")
+    if year.isdigit() and address.startswith(f"{ExpectedDocument.__name__}:"):
+        return expected_documents_url()
+    return None
+
+
+def linked_findings(
+    modules: tuple[ModuleRegistration, ...], state: State, found: FindingList
+) -> FindingList:
+    """`found` mit dem Link jedes Befunds in `href`; die Vorlagen lesen ihn dort."""
+
+    def linked(finding: Finding) -> Finding:
+        return replace(finding, href=finding_url(modules, state, finding) or "")
+
+    return FindingList(
+        [linked(f) for f in found.visible],
+        [HiddenFinding(linked(h.finding), h.dismissal) for h in found.hidden],
+        found.earlier,
+    )
+
+
+def finding_list_of(request: Request, year: int) -> FindingList:
+    """Die Befundliste des Nutzers im Jahr, jeder Befund mit seinem Link."""
+    state = store_of(request).state()
+    found = values_on(request, state).finding_list(user_of(request), year)
+    return linked_findings(request.app.state.modules, state, found)
 
 
 def values_on(request: Request, state: State) -> Values:

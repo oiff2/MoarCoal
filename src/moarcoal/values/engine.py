@@ -5,7 +5,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from moarcoal.block_findings import block_findings
 from moarcoal.documents import DocumentKind
 from moarcoal.registration import ModuleRegistration, ModuleState
-from moarcoal.storage import Dismissal, EntryAddress, SiteFile, Snapshot, State
+from moarcoal.storage import Dismissal, SiteFile, Snapshot, State
 from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYetSignal
 from moarcoal.values.catalog import TimeKind, ValueCatalog
 from moarcoal.values.findings import (
@@ -187,9 +187,7 @@ class Values:
                 else:
                     self.get(entry.key, user, period)
         found = list(self.findings)
-        blocks = block_findings(
-            self._state, user, year, self._document_kinds(), self._entry_url, self._site_files
-        )
+        blocks = block_findings(self._state, user, year, self._document_kinds(), self._site_files)
         found.extend(blocks.early)
         if self._state.denylist_failed:
             text = "Abgeleitete Sperrliste konnte nicht geschrieben werden"
@@ -207,10 +205,6 @@ class Values:
 
     def _document_kinds(self) -> dict[str, DocumentKind]:
         return {k.key: k for m in self._modules.values() for k in m.document_kinds}
-
-    def _entry_url(self, address: EntryAddress) -> str | None:
-        found = (m.entry_url(address) for m in self._modules.values())
-        return next((url for url in found if url is not None), None)
 
     def subjects(self, key: str, user: str, time: TimeRef) -> list[Subject]:
         """Die Bezugsobjekte, die das Modul des Schlüssels zum Zeitbezug aufzählt."""

@@ -41,15 +41,25 @@ def path_error(path: str) -> str | None:
 
 
 class Sites:
-    """Die Ablageorte (Name -> Ordner); es wird nur gelesen. Die SHA-256 der gelisteten Dateien
-    werden zwischengespeichert, solange Größe und Änderungszeit gleich bleiben."""
+    """Die Ablageorte (Name -> Ordner, dazu das Jahr der Jahresordner); es wird nur gelesen.
+    Die SHA-256 der gelisteten Dateien werden zwischengespeichert, solange Größe und
+    Änderungszeit gleich bleiben."""
 
-    def __init__(self, folders: Mapping[str, Path]) -> None:
+    def __init__(self, folders: Mapping[str, Path], years: Mapping[str, int] | None = None) -> None:
         self._folders = dict(folders)
+        self._years = dict(years or {})
         self._hashes: dict[tuple[str, int, int], str] = {}  # (Datei, Größe, mtime) -> SHA-256
 
     def names(self) -> list[str]:
         return sorted(self._folders)
+
+    def year_of(self, site: str) -> int | None:
+        """Das Steuerjahr, zu dem der Ablageort gehört (Jahresordner); sonst `None`."""
+        return self._years.get(site)
+
+    def year_folder(self, year: int) -> str | None:
+        """Der Jahresordner des Jahrs (höchstens einer, das prüft `Store`); sonst `None`."""
+        return next((name for name, y in self._years.items() if y == year), None)
 
     def _folder(self, site: str) -> Path:
         folder = self._folders.get(site)

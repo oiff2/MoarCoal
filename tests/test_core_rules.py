@@ -264,6 +264,41 @@ def test_the_fastapi_import_check_fails_on_an_injected_import(tmp_path: Path) ->
     assert fastapi_importers(tmp_path) == ["documents.py", "issuers.py"]
 
 
+WEB_PACKAGE_MAY_IMPORT = ("web", "modules")  # dazu `registration.py` und `__main__.py`
+
+
+def web_importers(root: Path = SRC) -> list[str]:
+    """Dateien außer `web/`, `modules/`, `registration.py` und `__main__.py`, die aus
+    `moarcoal.web` importieren (Prinzip 1: die Datenebene kennt keine Anbindung)."""
+    found: list[str] = []
+    for path in sorted(root.rglob("*.py")):
+        relative = path.relative_to(root)
+        if relative.parts[0] in WEB_PACKAGE_MAY_IMPORT or path.name in (
+            "registration.py",
+            "__main__.py",
+        ):
+            continue
+        if any(
+            n == "moarcoal.web" or n.startswith("moarcoal.web.")
+            for n in imported_names(path.read_text("utf-8"))
+        ):
+            found.append(relative.as_posix())
+    return found
+
+
+def test_outside_web_and_modules_nothing_imports_moarcoal_web() -> None:
+    assert web_importers() == []
+
+
+def test_the_web_import_check_fails_on_an_injected_import(tmp_path: Path) -> None:
+    (tmp_path / "web").mkdir()
+    (tmp_path / "web" / "app.py").write_text("from moarcoal.web.links import x\n", "utf-8")
+    (tmp_path / "documents.py").write_text("from moarcoal.web.links import document_url\n", "utf-8")
+    (tmp_path / "issuers.py").write_text("import moarcoal.web.helpers\n", encoding="utf-8")
+    (tmp_path / "defaults.py").write_text("import datetime\n", encoding="utf-8")
+    assert web_importers(tmp_path) == ["documents.py", "issuers.py"]
+
+
 def test_layer_check_finds_a_route_and_fastapi() -> None:
     prefixes = {"belege", "aussteller"}
     assert layer_breaches('href = "/belege"', prefixes) == ['"/belege"']

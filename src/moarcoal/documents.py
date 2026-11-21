@@ -14,6 +14,7 @@ import json
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from types import EllipsisType
 from typing import TYPE_CHECKING, cast
 
 from pydantic import ValidationError
@@ -28,11 +29,13 @@ from moarcoal.storage import (
     Document,
     Entry,
     EntryAddress,
+    Issuer,
     Put,
     ReadInDifference,
     ReadInEntry,
     Rereading,
     SiteFileError,
+    Sites,
     State,
     Store,
     entry_checksum,
@@ -44,8 +47,8 @@ from moarcoal.storage.documents import (
     exists_already,
     period_clash,
 )
+from moarcoal.storage.entries import referenced_addresses
 from moarcoal.values.findings import READ_IN_CHANGED, Finding, Severity
-from moarcoal.web.links import document_url
 
 if TYPE_CHECKING:
     from moarcoal.values.engine import Values
@@ -115,7 +118,8 @@ class IntakeRejected:
 
 @dataclass(frozen=True)
 class DocumentChoice:
-    """Aussteller, Art und Jahr aus dem Formular eines Dokuments (Aufnehmen oder Ändern).
+    """Aussteller, Art, Jahr und Bezeichnung aus dem Formular eines Dokuments (Aufnehmen oder
+    Ändern).
 
     `kind_key` ist leer für „Beleg“ und `None`, wenn das Formular keine Art schickt (gesperrt);
     `year` ist `DEFAULT_YEAR`, wenn die Art keinen Bezugszeitraum hat.
@@ -124,13 +128,15 @@ class DocumentChoice:
     issuer: IssuerChoice
     kind_key: str | None
     year: int
+    label: str | None = None
 
 
 def read_document_choice(
     state: State, kinds: Mapping[str, DocumentKind], fields: Mapping[str, str]
 ) -> DocumentChoice | IntakeRejected:
-    """Liest Art, Jahr und Aussteller aus den Formularfeldern `kind`, `year` und denen des
-    Aussteller-Felds; was sich nicht lesen lässt, weist es ab wie `take_in`."""
+    """Liest Art, Jahr, Bezeichnung und Aussteller aus den Formularfeldern `kind`, `year`,
+    `label` (leer: keine) und denen des Aussteller-Felds; was sich nicht lesen lässt, weist es
+    ab wie `take_in`."""
     kind_key = fields.get("kind")
     kind = kinds.get(kind_key or "")
     if kind_key and kind is None:
@@ -141,10 +147,13 @@ def read_document_choice(
         if given is None:
             return IntakeRejected((YEAR_NOT_A_NUMBER,))
         year = given
+    label = fields.get("label", "").strip() or None
+    if label is not None and len(label) > TEXT_MAX:
+        return IntakeRejected((f"Die Bezeichnung ist länger als {TEXT_MAX} Zeichen.",))
     issuer = resolve_issuer(state, fields)
     if isinstance(issuer, str):
         return IntakeRejected((issuer,))
-    return DocumentChoice(issuer, kind_key, year)
+    return DocumentChoice(issuer, kind_key, year, label)
 
 
 def _year_problem(year: int) -> str | None:
@@ -198,10 +207,35 @@ def duplicate_findings(state: State, user: str, kinds: Mapping[str, DocumentKind
                     Severity.NOTE,
                     d.address,
                     f"Existiert mehrfach: {kind.title} {year}: {d.path}",
-                    href=document_url(d.id),
                 )
             )
     return found
+
+
+def belongs_to_year(document: Document, year: int, state: State, sites: Sites) -> bool:
+    """Ob das Dokument zu dem Jahr gehört (CONTEXT.md, Dokument): sein Bezugszeitraum berührt
+    das Jahr; ohne Bezugszeitraum liegt es im Jahresordner des Jahrs; an einem Ablageort ohne
+    Jahr verweist ein Eintrag mit Zeitbezug in diesem Jahr (Feld `year`) auf es."""
+    if document.period_start is not None:
+        return document.touches_year(year)
+    site_year = sites.year_of(document.site)
+    if site_year is not None:
+        return site_year == year
+    return any(
+        getattr(entry, "year", None) == year and document.address in referenced_addresses(entry)
+        for entry in state.entries.values()
+    )
+
+
+def document_name(document: Document, state: State) -> str:
+    """Anzeigename eines Dokuments: „Aussteller · Bezeichnung“; ohne Bezeichnung der Dateiname,
+    ohne Aussteller nur die Bezeichnung."""
+    if document.label is None:
+        return document.path.rsplit("/", 1)[-1]
+    issuer = state.get(document.issuer) if document.issuer else None
+    if isinstance(issuer, Issuer):
+        return f"{issuer.name} · {document.label}"
+    return document.label
 
 
 def take_in(
@@ -216,13 +250,15 @@ def take_in(
     values_on: Callable[[State], "Values"] | None = None,
     issuer: EntryAddress | None = None,
     issuer_changes: Sequence[Change] = (),
+    label: str | None = None,
 ) -> TakenIn | IntakeRejected:
     """Datei am Ablageort aufnehmen. `year` gilt als Bezugszeitraum, wenn die Art einen hat.
     Eine leere `kind_key` nimmt ein Dokument ohne Dokumentart auf (Beleg, ohne Bezugszeitraum).
 
     `values_on` bildet `Values` auf einem Stand; die Ergänzung der Dokumentart braucht es.
-    `issuer` ist der freiwillige Aussteller; `issuer_changes` (neuer Aussteller, neuer Alias)
-    werden im selben Vorgang geschrieben, bei Abweisung bleibt nichts davon stehen.
+    `issuer` ist der freiwillige Aussteller, `label` die freiwillige Bezeichnung;
+    `issuer_changes` (neuer Aussteller, neuer Alias) werden im selben Vorgang geschrieben, bei
+    Abweisung bleibt nichts davon stehen.
     """
     kind = kinds[kind_key] if kind_key else None  # leer = Beleg; unbekannte Art: Programmfehler
     if (problem := _year_problem(year)) is not None:
@@ -243,6 +279,7 @@ def take_in(
             sha256=sha256,
             document_kind=kind.key if kind else None,
             issuer=issuer,
+            label=label,
             period_start=start,
             period_end=end,
             taken_in_at=datetime.datetime.now(datetime.UTC),
@@ -274,15 +311,21 @@ def change_document(
     issuer_changes: Sequence[Change] = (),
     kind_key: str | None = None,
     year: int | None = None,
+    *,
+    label: str | None | EllipsisType = ...,
 ) -> Applied | IntakeRejected:
-    """Ändert das Dokument: der Aussteller immer, Art und Jahr nur, solange nichts daran hängt.
+    """Ändert das Dokument: Aussteller und Bezeichnung immer, Art und Jahr nur, solange nichts
+    daran hängt. Ohne `label` (`...`) bleibt die Bezeichnung, `None` entfernt sie.
 
     `kind_key` (leer = Beleg) und `year` sind nur beim Ändern von Art oder Jahr angegeben;
     hängt etwas am Dokument, sind sie ein Fehler. Wechselt die Art, wird das Dokument nach ihrer
     Einlese-Regel neu eingelesen (die Ergänzung beim Aufnehmen läuft nicht).
     """
     state = store.state()
-    updated = document.model_copy(update={"issuer": issuer})
+    update: dict[str, object] = {"issuer": issuer}
+    if not isinstance(label, EllipsisType):
+        update["label"] = label
+    updated = document.model_copy(update=update)
     changes: list[Change] = [*issuer_changes]
     if kind_key is not None:
         if store.references_to(document.address, with_derived=True):
@@ -477,12 +520,12 @@ def rereading_findings(
     user: str,
     year: int,
     kinds: Mapping[str, DocumentKind],
-    entry_url: Callable[[EntryAddress], str | None],
 ) -> list[Finding]:
     """Ein Hinweis je Neueinlesung des Nutzers, deren Dokument das Jahr betrifft.
 
     Dokumente ohne Bezugszeitraum gelten für jedes Jahr. Der Link führt zum ersten
-    eingelesenen Eintrag des Dokuments, wenn sein Modul eine Seite dafür hat.
+    eingelesenen Eintrag des Dokuments, wenn sein Modul eine Seite dafür hat (die Anbindung löst das
+    Ziel auf).
     """
     found: list[Finding] = []
     for rereading in sorted(state.of_kind(Rereading), key=lambda r: (r.reread_at, r.id)):
@@ -501,11 +544,7 @@ def rereading_findings(
             f"{rereading.version_after}) hat {rereading.difference_count} Stelle(n) geändert: "
             f"{shown}" + (f" und {more} weitere." if more > 0 else ".")
         )
-        entries = read_entries_of(state, document.address)
-        href = next((url for e in entries if (url := entry_url(e.address))), None)
-        found.append(
-            Finding(READ_IN_CHANGED, Severity.NOTE, rereading.address, message, href=href or "")
-        )
+        found.append(Finding(READ_IN_CHANGED, Severity.NOTE, rereading.address, message))
     return found
 
 
