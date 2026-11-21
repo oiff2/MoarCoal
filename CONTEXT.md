@@ -125,7 +125,7 @@ _Avoid_: Versicherungen (für das Modul), Vorsorgeaufwand (das ist die Anlage)
 Das Modul für die Steuererklärung eines Jahres: bildet die Anlagen wie Mein ELSTER ab (eine Seite je Anlage und Jahr), ordnet ihren Feldern Ausgewiesene Werte anderer Module zu, liest das Übertragungsprotokoll ein und gleicht es samt EStB mit dem Stand ab. Modulschlüssel `tax_year`.
 
 **Religionszugehörigkeit**:
-Die Religionsgemeinschaft eines Nutzers ab einem Datum (evangelisch, römisch-katholisch, altkatholisch, jüdisch, freireligiös oder keine); ein Ein- oder Austritt ist eine neue Angabe mit Datum, so bleibt die Religion am 31.12. früherer Jahre richtig. Kirchensteuer fällt an, sobald der Nutzer im Jahr einer dieser Gemeinschaften angehört, ausgenommen „keine“; fehlt für das Jahr jede Angabe, ist es noch nicht bekannt, nie „keine“ (Code: `ReligionMembership`, die Gemeinschaft `Religion`). Teil der Angaben zur Person.
+Die Religionsgemeinschaft eines Nutzers ab einem Datum (evangelisch, römisch-katholisch, altkatholisch oder keine); ein Ein- oder Austritt ist eine neue Angabe mit Datum, so bleibt die Religion am 31.12. früherer Jahre richtig. Kirchensteuer fällt an, sobald der Nutzer im Jahr einer dieser Gemeinschaften angehört, ausgenommen „keine“; fehlt für das Jahr jede Angabe, ist es noch nicht bekannt, nie „keine“ (Code: `ReligionMembership`, die Gemeinschaft `Religion`). Teil der Angaben zur Person.
 _Avoid_: Konfession, Glaubensrichtung
 
 **Eingabe zur Person im Steuerjahr**:

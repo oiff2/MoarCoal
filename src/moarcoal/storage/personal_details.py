@@ -22,8 +22,6 @@ class Religion(StrEnum):
     EVANGELICAL = "evangelisch"
     ROMAN_CATHOLIC = "roemisch-katholisch"
     OLD_CATHOLIC = "altkatholisch"
-    JEWISH = "juedisch"
-    FREE_RELIGIOUS = "freireligioes"
 
     @property
     def levies_church_tax(self) -> bool:
