@@ -17,11 +17,11 @@ class WageTaxCertificate(ReadInEntry):
     Dokument und Fassung der Einlese-Regel trägt `ReadInEntry`. Die Bescheinigung fällt mit dem
     Dokument weg; nach dem Löschen lässt sich die Datei erneut aufnehmen und wird neu eingelesen.
     `unrecognized` nennt die Pfade der Datei, die die Einlese-Regel nicht kennt; nur ohne sie steht
-    fest, dass die Bescheinigung eine Angabe nicht nennt (Nr. 17 und 18).
+    fest, dass die Bescheinigung eine Angabe nicht nennt (Nr. 17, 18, 24 a, 25 und 26).
 
     Nr. 22 bis 24 und 27 (Beiträge zur Vorsorge) nennt sie nur, soweit die Einlese-Regel den Pfad
     kennt: 22 a/b, 23 a/b, 24 b, 24 c und 27. Nr. 24 a, 25 und 26 liest sie noch nicht (Pfad
-    unbekannt).
+    unbekannt; sie gelten ohne unbekannte Pfade als nicht bescheinigt).
     """
 
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)

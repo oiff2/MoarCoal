@@ -3,10 +3,13 @@
 from moarcoal.modules.tax_year.anlage_vor import (
     FIELDS_2025,
     STRUCTURES,
+    VOR_EMPLOYEE_CARE,
+    VOR_EMPLOYEE_HEALTH,
     VOR_EMPLOYEE_PENSION,
     VOR_EMPLOYER_PENSION,
     VOR_SUBSIDY_CARE,
     VOR_SUBSIDY_PRIVATE_HEALTH,
+    VOR_SUBSIDY_PUBLIC_HEALTH,
     VOR_UNEMPLOYMENT,
 )
 from moarcoal.modules.tax_year.fields import Direction, Rounding
@@ -20,6 +23,9 @@ COMPUTED = {
     "E2003807": (VOR_SUBSIDY_PRIVATE_HEALTH, "35", Direction.INCOME),  # Nr. 24 b
     "E2003907": (VOR_SUBSIDY_CARE, "36", Direction.INCOME),  # Nr. 24 c
     "E2004403": (VOR_UNEMPLOYMENT, "43", Direction.EXPENSE),  # Nr. 27
+    "E2003705": (VOR_SUBSIDY_PUBLIC_HEALTH, "34", Direction.INCOME),  # Nr. 24 a
+    "E2001203": (VOR_EMPLOYEE_HEALTH, "11", Direction.EXPENSE),  # Nr. 25
+    "E2001505": (VOR_EMPLOYEE_CARE, "13", Direction.EXPENSE),  # Nr. 26
 }
 
 
@@ -34,7 +40,7 @@ def test_every_catalog_field_is_in_the_structure_and_ids_are_unique() -> None:
     assert all(f.unit is Unit.EUR and f.rounding is Rounding.WHOLE_EUROS for f in FIELDS_2025)
 
 
-def test_only_the_fields_laut_nr_of_the_certificate_are_computed() -> None:
+def test_every_field_laut_nr_of_the_certificate_is_computed() -> None:
     computed = {f.elster_id: f for f in FIELDS_2025 if f.computed}
 
     assert set(computed) == set(COMPUTED)
@@ -44,14 +50,12 @@ def test_only_the_fields_laut_nr_of_the_certificate_are_computed() -> None:
         assert "Lohnsteuerbescheinigung" in field.label
 
 
-def test_nr_24_a_25_and_26_are_in_the_catalog_but_not_computed_yet() -> None:
-    """Der Pfad dieser Nummern in der Bescheinigung ist unbekannt: kein Wert, nie 0."""
-    pending = {
-        f.elster_id: f
-        for f in FIELDS_2025
-        if not f.computed and "Lohnsteuerbescheinigung" in f.label
+def test_no_vor_field_laut_lohnsteuerbescheinigung_is_left_open() -> None:
+    """Nr. 24 a, 25 und 26 rechnen wie Nr. 17/18: 0 € mit Begründung oder noch nicht berechenbar."""
+    open_fields = {
+        f.elster_id for f in FIELDS_2025 if not f.computed and "Lohnsteuerbescheinigung" in f.label
     }
-    assert set(pending) == {"E2001203", "E2001505", "E2003705"}
+    assert open_fields == set()
 
 
 def test_pages_follow_mein_elster() -> None:

@@ -4,14 +4,15 @@ Den Leser des HTML teilen alle Dokumentarten dieses Formats (`modules/elster_htm
 welche Pfade für Anlage N Nr. 4 bis 7 gelten (Steuerklasse, Bruttoarbeitslohn, Lohnsteuer und
 Solidaritätszuschlag) und für Nr. 22 a/b, 23 a/b, 24 b, 24 c und 27 der Lohnsteuerbescheinigung
 (Beiträge zur Vorsorge, Anlage Vorsorgeaufwand). Nr. 24 a, 25 und 26 liest sie nicht: ihre Pfade
-sind unbekannt (`BeitrPrKrankVers` ist keiner davon). Das HTML enthält nur belegte Felder; was
+sind unbekannt (`BeitrPrKrankVers` ist keiner davon); ohne unbekannte Pfade in der Datei gelten
+sie wie Nr. 17 und 18 als nicht bescheinigt. Das HTML enthält nur belegte Felder; was
 fehlt, bleibt leer (nie 0). Kommt ein Pfad mehrfach vor (Wiederholgruppe, z. B. Steuerklassenwechsel
 im Jahr), ist nicht entschieden, welcher Wert gilt; die Datei wird dann abgewiesen statt geraten.
 
-Die Arbeitgeberleistungen laut Nr. 17 und 18 kamen in keiner bisher gesehenen Bescheinigung vor;
+Die Posten laut Nr. 17, 18, 24 a, 25 und 26 kamen in keiner bisher gesehenen Bescheinigung vor;
 ihre Pfade sind darum unbekannt. Die Einlese-Regel kennt alle Pfade, die in echten Bescheinigungen
 vorkamen (`KNOWN_PATHS`), und hält jeden anderen fest (`unrecognized`). Nur ohne solche Pfade steht
-fest, dass die Bescheinigung Nr. 17 und 18 nicht nennt.
+fest, dass die Bescheinigung Nr. 17, 18, 24 a, 25 und 26 nicht nennt.
 """
 
 from pydantic import ValidationError

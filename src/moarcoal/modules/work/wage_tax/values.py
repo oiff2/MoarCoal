@@ -20,6 +20,9 @@ EMPLOYEE_PENSION = ValueKey("work.employee_pension_share")
 SUBSIDY_PRIVATE_HEALTH = ValueKey("work.subsidy_private_health")
 SUBSIDY_CARE = ValueKey("work.subsidy_care")
 UNEMPLOYMENT = ValueKey("work.employee_unemployment_insurance")
+SUBSIDY_PUBLIC_HEALTH = ValueKey("work.subsidy_public_health")
+EMPLOYEE_HEALTH = ValueKey("work.employee_health_insurance")
+EMPLOYEE_CARE = ValueKey("work.employee_care_insurance")
 
 
 def _certificate(calculation: Calculation) -> WageTaxCertificate:
@@ -84,24 +87,32 @@ def _certified(
     return calculation.step(f"{label} laut Lohnsteuerbescheinigung", amount)
 
 
-def _not_certified(calculation: Calculation, number: str, key: str, label: str) -> Amount:
-    """Arbeitgeberleistungen laut Nr. `number`: deren Pfad kam in keiner Bescheinigung vor. Kennt
-    die Einlese-Regel jeden Pfad der Datei, nennt die Bescheinigung sie nicht, und es sind 0 €;
-    sonst ist offen, ob ein unbekannter Pfad sie trägt (noch nicht berechenbar)."""
+_NO_EMPLOYER_BENEFIT = "der Arbeitgeber hat dafür nichts geleistet"  # Nr. 17 und 18
+
+
+def _not_certified(
+    calculation: Calculation, number: str, key: str, label: str, reason: str
+) -> Amount:
+    """Der Posten laut Nr. `number` (17, 18, 24 a, 25, 26): deren Pfad kam in keiner Bescheinigung
+    vor. Kennt die Einlese-Regel jeden Pfad der Datei, nennt die Bescheinigung sie nicht, und es
+    sind 0 €, begründet mit `reason` (im Rechenweg); sonst ist offen, ob ein unbekannter Pfad sie
+    trägt (noch nicht berechenbar)."""
     certificate = _certificate(calculation)
     _reading_is_complete(calculation, certificate, READER_VERSION, number)
     zero = Amount.eur_cents(0)
     place = f"Nr. {number} nicht bescheinigt"
     calculation.item(label, zero, DocumentLocator(certificate.document, Source.READ_IN, key, place))
-    calculation.decide(
-        f"Nr. {number} ist nicht bescheinigt: der Arbeitgeber hat dafür nichts geleistet"
-    )
+    calculation.decide(f"Nr. {number} ist nicht bescheinigt: {reason}")
     return calculation.step(f"{label} laut Lohnsteuerbescheinigung", zero)
 
 
 def compute_benefits_tax_free(calculation: Calculation) -> Amount:
     return _not_certified(
-        calculation, "17", "employer_benefits_tax_free", "Arbeitgeberleistungen, steuerfrei"
+        calculation,
+        "17",
+        "employer_benefits_tax_free",
+        "Arbeitgeberleistungen, steuerfrei",
+        _NO_EMPLOYER_BENEFIT,
     )
 
 
@@ -111,6 +122,37 @@ def compute_benefits_flat_taxed(calculation: Calculation) -> Amount:
         "18",
         "employer_benefits_flat_taxed",
         "Arbeitgeberleistungen, pauschal besteuert",
+        _NO_EMPLOYER_BENEFIT,
+    )
+
+
+def compute_subsidy_public_health(calculation: Calculation) -> Amount:
+    return _not_certified(
+        calculation,
+        "24 a",
+        "subsidy_public_health",
+        "Zuschuss zur gesetzlichen Krankenversicherung",
+        "kein Zuschuss zur gesetzlichen Krankenversicherung",
+    )
+
+
+def compute_employee_health(calculation: Calculation) -> Amount:
+    return _not_certified(
+        calculation,
+        "25",
+        "employee_health_insurance",
+        "Beiträge zur gesetzlichen Krankenversicherung",
+        "keine Beiträge zur gesetzlichen Krankenversicherung",
+    )
+
+
+def compute_employee_care(calculation: Calculation) -> Amount:
+    return _not_certified(
+        calculation,
+        "26",
+        "employee_care_insurance",
+        "Beiträge zur sozialen Pflegeversicherung",
+        "keine Beiträge zur sozialen Pflegeversicherung",
     )
 
 
@@ -243,6 +285,37 @@ VALUES: tuple[ValueDefinition, ...] = (
             TimeKind.PERIOD,
         ),
         compute_benefits_flat_taxed,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            SUBSIDY_PUBLIC_HEALTH,
+            "Zuschuss zur gesetzlichen Krankenversicherung laut Nr. 24 a der "
+            "Lohnsteuerbescheinigung",
+            "Zuschuss gesetzliche Krankenversicherung (Nr. 24 a)",
+            Unit.EUR,
+            TimeKind.PERIOD,
+        ),
+        compute_subsidy_public_health,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            EMPLOYEE_HEALTH,
+            "Beiträge zur gesetzlichen Krankenversicherung laut Nr. 25 der Lohnsteuerbescheinigung",
+            "Beiträge gesetzliche Krankenversicherung (Nr. 25)",
+            Unit.EUR,
+            TimeKind.PERIOD,
+        ),
+        compute_employee_health,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            EMPLOYEE_CARE,
+            "Beiträge zur sozialen Pflegeversicherung laut Nr. 26 der Lohnsteuerbescheinigung",
+            "Beiträge soziale Pflegeversicherung (Nr. 26)",
+            Unit.EUR,
+            TimeKind.PERIOD,
+        ),
+        compute_employee_care,
     ),
     *(
         ValueDefinition(

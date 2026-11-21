@@ -18,9 +18,12 @@ from moarcoal.modules.work.wage_tax.entries import WageTaxCertificate
 from moarcoal.modules.work.wage_tax.values import (
     BENEFITS_FLAT_TAXED,
     BENEFITS_TAX_FREE,
+    EMPLOYEE_CARE,
+    EMPLOYEE_HEALTH,
     GROSS_WAGES,
     INCOME_TAX_WITHHELD,
     SOLI_WITHHELD,
+    SUBSIDY_PUBLIC_HEALTH,
     TAX_CLASS,
     VORSORGE_VALUES,
 )
@@ -106,6 +109,9 @@ def _wage_tax(request: Request, year: int) -> dict[str, Any]:
                 ("Solidaritätszuschlag", SOLI_WITHHELD),
                 ("Arbeitgeberleistungen steuerfrei (Nr. 17)", BENEFITS_TAX_FREE),
                 ("Arbeitgeberleistungen pauschal besteuert (Nr. 18)", BENEFITS_FLAT_TAXED),
+                ("Zuschuss gesetzliche Krankenversicherung (Nr. 24 a)", SUBSIDY_PUBLIC_HEALTH),
+                ("Beiträge gesetzliche Krankenversicherung (Nr. 25)", EMPLOYEE_HEALTH),
+                ("Beiträge soziale Pflegeversicherung (Nr. 26)", EMPLOYEE_CARE),
                 *((f"{label} (Nr. {number})", key) for key, _, label, number, _ in VORSORGE_VALUES),
             )
         ],

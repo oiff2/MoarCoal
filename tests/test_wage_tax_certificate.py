@@ -26,17 +26,26 @@ from moarcoal.modules.tax_year.anlage_n import (
     N_TAX_CLASS,
 )
 from moarcoal.modules.tax_year.anlage_vor import (
+    VOR_EMPLOYEE_CARE,
+    VOR_EMPLOYEE_HEALTH,
     VOR_EMPLOYEE_PENSION,
     VOR_EMPLOYER_PENSION,
     VOR_SUBSIDY_CARE,
     VOR_SUBSIDY_PRIVATE_HEALTH,
+    VOR_SUBSIDY_PUBLIC_HEALTH,
     VOR_UNEMPLOYMENT,
 )
 from moarcoal.modules.tax_year.protocol_check import DEVIATION, MISSING
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import WAGE_TAX_CERTIFICATE, WageTaxCertificate
 from moarcoal.modules.work.wage_tax.reading import READER_VERSION, read_in_wage_tax_certificate
-from moarcoal.modules.work.wage_tax.values import BENEFITS_FLAT_TAXED, BENEFITS_TAX_FREE
+from moarcoal.modules.work.wage_tax.values import (
+    BENEFITS_FLAT_TAXED,
+    BENEFITS_TAX_FREE,
+    EMPLOYEE_CARE,
+    EMPLOYEE_HEALTH,
+    SUBSIDY_PUBLIC_HEALTH,
+)
 from moarcoal.storage import (
     Applied,
     Delete,
@@ -71,6 +80,7 @@ FIELDS_VOR = (
     VOR_SUBSIDY_CARE,
     VOR_UNEMPLOYMENT,
 )
+FIELDS_VOR_NOT_CERTIFIED = (VOR_SUBSIDY_PUBLIC_HEALTH, VOR_EMPLOYEE_HEALTH, VOR_EMPLOYEE_CARE)
 
 
 def make_document(year: int | None = 2025) -> Document:
@@ -551,3 +561,52 @@ def test_arbeit_shows_the_four_values_with_a_link_to_the_document(
         assert label in section
     assert "4.321,09 €" in section and "543,21 €" in section
     assert f'href="/belege?dokument={taken.document.id}"' in section
+
+
+def test_vor_nr_24_a_25_26_not_certified_are_zero_with_reason(store: Store) -> None:
+    assert isinstance(take(store), TakenIn)
+    values = evaluate(MODULES, entries(store))
+
+    for field, source, number, reason in (
+        (
+            VOR_SUBSIDY_PUBLIC_HEALTH,
+            SUBSIDY_PUBLIC_HEALTH,
+            "24 a",
+            "kein Zuschuss zur gesetzlichen Krankenversicherung",
+        ),
+        (
+            VOR_EMPLOYEE_HEALTH,
+            EMPLOYEE_HEALTH,
+            "25",
+            "keine Beiträge zur gesetzlichen Krankenversicherung",
+        ),
+        (VOR_EMPLOYEE_CARE, EMPLOYEE_CARE, "26", "keine Beiträge zur sozialen Pflegeversicherung"),
+    ):
+        result = values.get(field, USER, YEAR)
+        assert isinstance(result, ExposedValue), result
+        assert result.amount == Amount.eur_cents(0)
+        assert result.backing is Backing.PROVEN
+        work = values.get(source, USER, YEAR)
+        assert isinstance(work, ExposedValue)
+        steps = " ".join(step.text for step in work.workings.steps)
+        assert f"Nr. {number} ist nicht bescheinigt: {reason}" in steps
+
+
+def test_vor_nr_24_a_25_26_with_unrecognized_path_are_not_yet_computable(
+    store: Store, site: Path
+) -> None:
+    (site / "neu.html").write_text(with_unknown(), encoding="utf-8")
+    assert isinstance(take(store, "neu.html"), TakenIn)
+
+    values = evaluate(MODULES, entries(store))
+
+    for key in FIELDS_VOR_NOT_CERTIFIED:
+        result = values.get(key, USER, YEAR)
+        assert isinstance(result, NotYetComputable)
+        assert "Besteuerungsgrund-Unbekannt" in str(result)
+
+
+def test_vor_nr_24_a_25_26_without_certificate_are_not_yet_computable(store: Store) -> None:
+    values = evaluate(MODULES, entries(store))
+    for key in FIELDS_VOR_NOT_CERTIFIED:
+        assert isinstance(values.get(key, USER, YEAR), NotYetComputable)
