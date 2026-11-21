@@ -529,7 +529,8 @@ def test_whole_flow_the_page_and_the_finding_list_show_the_assessment(
 
     page = anlage_n_text(http)
     assert "Laut EStB" in page
-    assert "<td>218 Tage</td>" in page and "<td>97.292 €</td>" in page
+    estb = '<span class="seite">Laut EStB</span> '
+    assert f"{estb}218 Tage" in page and f"{estb}97.292 €" in page
     assert "wird noch nicht berechnet" in page
     note = http.get("/befunde?year=2025").text
     assert "keinen Schnappschuss" in note

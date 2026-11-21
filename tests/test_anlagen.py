@@ -122,7 +122,7 @@ def test_form_without_a_stored_structure_gets_one_from_the_protocol(tmp_path: Pa
     page = http.get("/steuerjahr/anlage-kap/2025").text
 
     assert "aus dem Übertragungsprotokoll 2025 abgeleitet" in page
-    assert "Feld KAP" in page and "Nr. 7, E0900005" in page
+    assert "Feld KAP" in page and "Nr. 7<small>E0900005</small>" in page
     assert "Laut Protokoll" in page and "5,00" in page
     assert "wird noch nicht berechnet" in page
     assert 'href="/steuerjahr/anlage-kap/2025/angaben"' in page
@@ -152,7 +152,7 @@ def test_n_keeps_its_addresses_and_its_stored_structure(tmp_path: Path) -> None:
 
     first = http.get("/steuerjahr/anlage-n/2025").text
 
-    assert "Laut Protokoll" not in first  # N hat eine gespeicherte Struktur
+    assert "aus dem Übertragungsprotokoll 2025 abgeleitet" not in first  # gespeicherte Struktur
     assert "Bruttoarbeitslohn" in first
 
 
@@ -282,4 +282,4 @@ def test_protocol_column_shows_the_unit_the_protocol_leaves_out(tmp_path: Path) 
 
     page = http.get("/steuerjahr/anlage-vor/2025").text
 
-    assert "<td>1.234 €</td>" in page
+    assert '<span class="seite">Laut Protokoll</span> 1.234 €' in page

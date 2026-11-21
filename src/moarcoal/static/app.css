@@ -198,3 +198,19 @@ main:has(.steuerjahr) { display: flex; flex-direction: column; overflow: hidden;
 .anlagen-baum summary a { flex: 1; font-weight: 600; }
 .anlagen-baum summary small { opacity: 0.6; }
 .anlagen-baum ul { list-style: none; margin: 0 0 0.3rem 1.2rem; padding: 0; font-size: 0.93em; }
+.status-fits { color: var(--gut); }
+
+/* Steuerjahr: je Feld eine Zeile wie in Mein ELSTER: Nr. links, Bezeichnung mit Einheit, Wert, darunter die Gegenproben */
+.feld { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: 0.75rem; margin: 0.4rem 0; padding: 0.5rem 0.75rem; border: 1px solid var(--linie); border-radius: 6px; background: var(--flaeche); }
+.feld:target { outline: 2px solid var(--warnung); }
+.feld-nr { font-weight: 600; }
+.feld-nr small { display: block; font-weight: normal; font-size: 0.75em; opacity: 0.6; }
+.feld-kopf { font-weight: 600; }
+.feld-kopf .einheit { margin-left: 0.25rem; padding: 0 0.3rem; border: 1px solid var(--linie); border-radius: 3px; font-size: 0.75em; font-weight: normal; opacity: 0.8; }
+.feld-wert { margin: 0.25rem 0; }
+.feld-wert .offen { opacity: 0.6; }
+.gegenproben { list-style: none; margin: 0.25rem 0 0; padding: 0; font-size: 0.93em; }
+.gegenproben li { display: flex; flex-wrap: wrap; gap: 0 0.6rem; align-items: baseline; }
+.gegenproben .seite { min-width: 7.5rem; opacity: 0.7; }
+.gegenproben .text { flex-basis: 100%; padding-left: 8.1rem; opacity: 0.85; }
+.feld-ueberschrift { font-size: 1rem; margin: 1rem 0 0.25rem; }

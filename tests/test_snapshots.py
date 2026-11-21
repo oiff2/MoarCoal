@@ -503,14 +503,15 @@ def test_whole_flow_page_shows_frozen_next_to_current_and_findings_the_deviation
     )
     assert "Abweichung zum Schnappschuss" in http.get("/befunde?year=2025").text
     page = anlage_n_text(http)
-    assert "Abweichung zum Schnappschuss" not in page  # Befunde nur unter /befunde
-    assert "eingefroren 219 Tage" in http.get("/befunde?year=2025").text
-    assert "<td>219 Tage</td>" in page
-    assert "<td>87 €</td>" in page
+    frozen = '<span class="seite">Bei Abgabe</span> '
+    # die Zeile des Felds zeigt den Befund seiner Gegenprobe, mit derselben Schreibweise
+    assert "weicht ab" in page and "eingefroren 219 Tage" in page
+    assert f"{frozen}219 Tage" in page
+    assert f"{frozen}87 €" in page
     store.apply([Put(equipment(1000))])
     page = anlage_n_text(http)
-    assert "eingefroren 87 €, jetzt 97 €" in http.get("/befunde?year=2025").text
-    assert "<td>87 €</td>" in page  # dieselbe Schreibweise in der Spalte „Bei Abgabe“
+    assert "eingefroren 87 €, jetzt 97 €" in page
+    assert f"{frozen}87 €" in page  # dieselbe Schreibweise in der Gegenprobe „Bei Abgabe“
 
 
 # --- Löschen eines Protokolls und neu Aufnehmen (#118) ---

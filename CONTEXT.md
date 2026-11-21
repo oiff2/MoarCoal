@@ -145,6 +145,9 @@ Der Vergleich der bestätigten Positionen des EStB mit dem eingefrorenen Wert de
 **Anlage**:
 Ein Vordruck der Steuererklärung, wie Mein ELSTER ihn in der Formularliste zeigt und das Übertragungsprotokoll ihn nennt: ESt 1 A, VOR, SA, N, KAP, V. Das Steuerjahr führt je Anlage und Jahr einen Katalog der Felder und eine Struktur; seine Seiten, Unterseiten und die drei Gegenproben sind für jede Anlage dieselben. Eine neue Anlage meldet man mit Schlüssel, Katalog, Strukturen und (wo sie rechnet) ihren Werten an (Code: `Anlage`); für ein Jahr gibt es sie, sobald sie einen Katalog oder Zeilen im Übertragungsprotokoll hat (Code: `YearAnlage`).
 
+**Gegenprobe**:
+Je Feld der Anlage der Vergleich mit einer Gegenseite: dem Übertragungsprotokoll (Abgleich), dem Schnappschuss der Abgabe oder dem EStB (Bescheid-Abgleich). Die Zeile des Felds zeigt je Gegenprobe den Inhalt der Gegenseite und ob er passt; eine Abweichung ist ein Befund der Gegenprobe, die Zeile ordnet ihn nur ihrem Feld zu. Felder, die MoarCoal nicht berechnet, zeigen die Gegenseite ohne Urteil (Code: `FieldCheck`).
+
 **Feld**:
 Eine Eingabestelle einer Anlage der Steuererklärung mit Bezeichnung, Nummer im Vordruck und E-Kennung (solange unbekannt, leer); das Steuerjahr ordnet jedem Feld, das MoarCoal berechnet, einen Ausgewiesenen Wert zu (Code: `FormField`, dessen Rundung `Rounding`). Das Steuerjahr führt die Felder je Anlage und Steuerjahr und nimmt alle bekannten mit (Anlage N 2025: 23, auch solche ohne Betrag wie Text und Ja/Nein); berechnet werden bisher drei. Ein Euro-Feld nimmt entweder ganze Euro (gerundet nach seiner Richtung) oder Euro mit Cent (exakt, z. B. Steuerbeträge laut Bescheinigung); km werden auf volle Kilometer abgerundet.
 

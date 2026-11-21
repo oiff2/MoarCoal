@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 from moarcoal.modules.tax_year.anlagen import Anlage, YearAnlage, protocol_contents, year_anlagen
 from moarcoal.modules.tax_year.assessment_check import current_assessment
 from moarcoal.modules.tax_year.entries import MODULE_KEY, TRANSFER_PROTOCOL_KEY, ProtocolReading
+from moarcoal.modules.tax_year.field_checks import field_checks
 from moarcoal.modules.tax_year.fields import FormField
 from moarcoal.modules.tax_year.inputs import changes_for_input, current_input, typed_field
 from moarcoal.modules.tax_year.links import protocol_url
@@ -19,6 +20,7 @@ from moarcoal.storage import Applied, Document, EntryAddress
 from moarcoal.values.model import Period
 from moarcoal.web.helpers import (
     entry_of,
+    finding_list_of,
     form_fields,
     global_year,
     module_state,
@@ -90,18 +92,11 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
         values = values_of(request)
         user = user_of(request)
         state = _own_state(request)
-        rows = [
-            (
-                row,
-                values.get(row.field.key, user, Period.year(year)) if row.field.computed else None,
-            )
-            for row in page.rows
-        ]
         reading = latest_reading(state, year)
         snapshot = latest_snapshot(state, year)
         assessment = current_assessment(state, year, anlage.fields)
         printed = {} if assessment is None else assessment[1]
-        frozen = {}
+        frozen: dict[str, str] | None = None
         if snapshot is not None:
             frozen = {
                 v.ref.key: describe_frozen(row.field, v)
@@ -109,6 +104,23 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
                 for v in snapshot.values
                 if v.requested and v.ref.key == row.field.key
             }
+        transferred = None if reading is None else protocol_contents(reading, anlage.structure)
+        found = finding_list_of(request, year)
+        findings = [*found.visible, *(h.finding for h in found.hidden)]
+        rows = [
+            (
+                row,
+                values.get(row.field.key, user, Period.year(year)) if row.field.computed else None,
+                field_checks(
+                    row.field,
+                    transferred=transferred,
+                    frozen=frozen,
+                    printed=printed,
+                    findings=findings,
+                ),
+            )
+            for row in page.rows
+        ]
         return render(
             request,
             "tax_year/anlage.html",
@@ -117,14 +129,11 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             page=page,
             rows=rows,
             snapshot=snapshot,
-            frozen=frozen,
             inputs={
                 row.field.elster_id: entry.content
                 for row in page.rows
                 if row.field.typed and (entry := current_input(state, year, row.field))
             },
-            printed=printed,
-            transferred=None if anlage.catalogued else protocol_contents(reading, anlage.structure),
             anlagen=year_anlagen(anlagen, year, reading),
         )
 
