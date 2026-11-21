@@ -18,8 +18,13 @@ from moarcoal.storage import (
     SiteFile,
     State,
     Store,
+    entry_checksum,
 )
 from moarcoal.storage.sites import path_error
+from moarcoal.values.findings import Finding, Severity
+from moarcoal.web.links import document_url
+
+MISSING_FILE = "document_file_missing"  # Befundart: die Datei eines Dokuments fehlt
 
 
 def all_site_files(store: Store) -> list[SiteFile]:
@@ -103,3 +108,49 @@ def hidden_files(state: State) -> list[HiddenFile]:
 def unhide(store: Store, hidden: HiddenFile | HiddenFolder, expected: str) -> Applied | Rejected:
     """Blendet Datei oder Ordner wieder ein; `expected`: Prüfsumme der angezeigten Fassung."""
     return store.apply([Delete(hidden.address, expected=expected)])
+
+
+def missing_file_findings(files: Sequence[SiteFile], state: State, user: str) -> list[Finding]:
+    """Fehler je Dokument von `user`, dessen Datei am Ablageort fehlt: weder unter seinem Pfad
+    mit gleichem Inhalt noch unter einem anderen Pfad desselben Ablageorts (ADR 0003; dann führt
+    `relocate_documents` beim Start den Pfad nach, ohne Befund)."""
+    present = {(f.site, f.path, f.sha256) for f in files}
+    contents = {(f.site, f.sha256) for f in files}
+    found: list[Finding] = []
+    for d in sorted(state.of_kind(Document), key=lambda d: (d.site, d.path)):
+        if d.owner != user or (d.site, d.path, d.sha256) in present:
+            continue
+        if (d.site, d.sha256) in contents:
+            continue
+        found.append(
+            Finding(
+                MISSING_FILE,
+                Severity.ERROR,
+                d.address,
+                f"Datei fehlt: {d.site}/{d.path}",
+                href=document_url(d.id),
+            )
+        )
+    return found
+
+
+def relocate_documents(store: Store) -> list[str]:
+    """Start: führt den Pfad jedes Dokuments nach, dessen Datei nicht mehr unter ihrem Pfad liegt,
+    aber mit gleichem SHA-256 an anderer Stelle desselben Ablageorts (ADR 0003); je Änderung eine
+    Zeile. Gelistet wird ein Ablageort nur, wenn dort eine Datei fehlt."""
+    listed: dict[str, dict[str, str]] = {}  # Ablageort -> SHA-256 -> erster Pfad
+    lines: list[str] = []
+    for d in sorted(store.state().of_kind(Document), key=lambda d: (d.site, d.path)):
+        if d.site not in store.sites.names() or store.sites.has_file(d.site, d.path):
+            continue
+        if d.site not in listed:
+            listed[d.site] = {}
+            for f in store.sites.files(d.site):
+                listed[d.site].setdefault(f.sha256, f.path)
+        new_path = listed[d.site].get(d.sha256)
+        if new_path is None:
+            continue
+        moved = d.model_copy(update={"path": new_path})
+        if isinstance(store.apply([Put(moved, entry_checksum(d))]), Applied):
+            lines.append(f"{d.site}: {d.path} -> {new_path}")
+    return lines

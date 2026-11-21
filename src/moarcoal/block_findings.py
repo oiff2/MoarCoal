@@ -8,7 +8,7 @@ from typing import NamedTuple
 
 from moarcoal.documents import DocumentKind, duplicate_findings, rereading_findings
 from moarcoal.expected_documents import expected_document_findings
-from moarcoal.incoming import incoming_files
+from moarcoal.incoming import incoming_files, missing_file_findings
 from moarcoal.issuers import issuer_findings
 from moarcoal.proposals import aborted_extraction_findings, proposal_findings
 from moarcoal.storage import EntryAddress, SiteFile, State
@@ -35,18 +35,20 @@ def block_findings(
     site_files: Callable[[], Sequence[SiteFile]] | None,
 ) -> BlockFindings:
     """Alle Befunde der Bausteine für `user` und `year`: Erwartete Belege, Aussteller, Dokumente
-    (Dubletten, Neueinlesung), Vorschläge, Abgebrochene Auslesungen und der Eingang (nur mit
-    `site_files`, den Dateien der Ablageorte)."""
+    (Dubletten, Neueinlesung, fehlende Datei), Vorschläge, Abgebrochene Auslesungen und der
+    Eingang (fehlende Datei und Eingang nur mit `site_files`, den Dateien der Ablageorte)."""
     titles = {key: kind.title for key, kind in kinds.items()}
+    files = None if site_files is None else site_files()
     early = [*expected_document_findings(state, user, year, titles), *issuer_findings(state, user)]
     late = [
         *duplicate_findings(state, user, kinds),
         *rereading_findings(state, user, year, kinds, entry_url),
         *proposal_findings(state, user, year, titles),
         *aborted_extraction_findings(state, user),
+        *([] if files is None else missing_file_findings(files, state, user)),
     ]
     incoming: list[Finding] = []
-    waiting = [] if site_files is None else incoming_files(site_files(), state, user)
+    waiting = [] if files is None else incoming_files(files, state, user)
     if waiting:
         count = len(waiting)
         text = "1 Datei im Eingang" if count == 1 else f"{count} Dateien im Eingang"

@@ -57,6 +57,15 @@ class Sites:
             raise SiteFileError(f"Unbekannter Ablageort {site!r}.")
         return folder
 
+    def has_file(self, site: str, path: str) -> bool:
+        """Ob am Ablageort unter `path` eine Datei liegt (ohne sie zu lesen); unbekannter
+        Ablageort oder ungültiger Pfad: nein."""
+        folder = self._folders.get(site)
+        if folder is None or path_error(path) is not None:
+            return False
+        target = (folder / path).resolve()
+        return target.is_relative_to(folder.resolve()) and target.is_file()
+
     def read(self, site: str, path: str) -> bytes:
         """Inhalt einer Datei an einem Ablageort."""
         folder = self._folder(site)
