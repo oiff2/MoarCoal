@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 from jinja2 import Environment, FileSystemLoader
 
 from moarcoal.defaults import DEFAULT_USER, year_of
-from moarcoal.documents import read_in_again
+from moarcoal.documents import document_name, read_in_again
 from moarcoal.extraction import ClaudeExtractor, Extractor
 from moarcoal.modules import MODULES
 from moarcoal.modules.work.trips.place_search import NominatimSearch, PlaceSearch
@@ -61,6 +61,7 @@ def create_app(
     environment.filters["amount"] = format_amount
     globals_: dict[str, Any] = environment.globals  # pyright: ignore[reportAssignmentType]
     globals_["preview_kind"] = preview_kind
+    globals_["document_name"] = lambda document: document_name(document, app.state.store.state())  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
     globals_["entry_url"] = lambda address: entry_url(app.state.modules, address)  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
     app.state.templates = Jinja2Templates(env=environment)
     app.state.modules = tuple(modules)

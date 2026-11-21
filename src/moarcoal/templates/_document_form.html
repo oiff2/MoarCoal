@@ -1,4 +1,4 @@
-{# Formular zum Ändern eines Dokuments (Aussteller, Art, Jahr) und Löschen; wie beim Aufnehmen.
+{# Formular zum Ändern eines Dokuments (Aussteller, Bezeichnung, Art, Jahr) und Löschen; wie beim Aufnehmen.
    `bound` sind alle Einträge, die am Dokument hängen: solange es welche gibt, sind Art und Jahr
    gesperrt. `references` sind die, die das Löschen sperren (was mit dem Dokument wegfällt oder nur
    schwach verweist, zählt nicht): solange es welche gibt, ist Löschen nicht möglich. #}
@@ -13,6 +13,7 @@
       {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if document.document_kind == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
     </select>
   </label>
+  <label>Bezeichnung (freiwillig) <input type="text" name="label" value="{{ document.label or '' }}" maxlength="500"></label>
   <label class="jahr">Jahr <input name="year" value="{{ year or (document.period_start.year if document.period_start else default_year) }}" size="6"{% if locked %} disabled{% endif %}></label>
   <button type="submit">Ändern</button>
 </form>

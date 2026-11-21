@@ -141,6 +141,7 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
             values_on=lambda state: values_on(request, state),
             issuer=choice.issuer.address,
             issuer_changes=choice.issuer.changes,
+            label=choice.label,
         )
     )
     if isinstance(result, IntakeRejected):

@@ -38,7 +38,7 @@
   {% for doc in documents %}
   <div class="datei" title="{{ doc.site }}/{{ doc.path }}">
     {{ file_type(doc.path) }}
-    <a class="name" href="/belege/dokumente?{{ base ~ '&' if base }}dokument={{ doc.id }}"{% if selected and selected.id == doc.id %} aria-current="true"{% endif %}>{{ doc.path.rsplit("/", 1)[-1] }}</a>
+    <a class="name" href="/belege/dokumente?{{ base ~ '&' if base }}dokument={{ doc.id }}"{% if selected and selected.id == doc.id %} aria-current="true"{% endif %}>{{ document_name(doc) }}</a>
     <span class="stand">{{ states[doc.id] }}</span>
     <span class="art">{{ kind_titles.get(doc.document_kind, doc.document_kind or "") }}{% if doc.period_start %}, {{ doc.period_start.year }}{% endif %}</span>
     <span class="aussteller">{% if doc.issuer %}{{ issuer_names[doc.issuer.id] }}{% endif %}</span>

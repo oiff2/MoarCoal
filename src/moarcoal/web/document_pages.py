@@ -68,8 +68,8 @@ def file(request: Request, document_id: str) -> Response:
 def change(
     request: Request, document_id: str, fields: Annotated[Fields, Depends(form_fields)]
 ) -> Response:
-    """Aussteller ändern (auch entfernen; neuer Aussteller oder Alias im selben Vorgang), dazu Art
-    und Jahr, wenn das Formular sie mitschickt (gesperrte Felder fehlen)."""
+    """Aussteller und Bezeichnung ändern (auch entfernen; neuer Aussteller oder Alias im selben
+    Vorgang), dazu Art und Jahr, wenn das Formular sie mitschickt (gesperrte Felder fehlen)."""
     document = _document(request, document_id)
     store = store_of(request)
     kinds = document_kinds(request)
@@ -85,6 +85,7 @@ def change(
             choice.issuer.changes,
             choice.kind_key,
             choice.year,
+            label=choice.label,
         )
     )
     if isinstance(result, IntakeRejected):

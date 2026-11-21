@@ -56,6 +56,7 @@
         {% for kind in kinds %}<option value="{{ kind.key }}"{% if not kind.has_period %} data-ohne-zeitraum{% endif %}{% if form.get("kind", suggestion.kind) == kind.key %} selected{% endif %}>{{ kind.title }}</option>{% endfor %}
       </select>
     </label>
+    <label>Bezeichnung (freiwillig) <input type="text" name="label" value="{{ form.get('label', '') }}" maxlength="500"></label>
     <label class="jahr">Jahr{% if suggestion.year %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %} <input name="year" value="{{ form.get('year', suggestion.year or default_year) }}" size="6"></label>
     <button type="submit">Aufnehmen</button>
   </form>
