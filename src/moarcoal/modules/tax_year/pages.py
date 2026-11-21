@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse
 
 from moarcoal.modules.tax_year.anlagen import Anlage, YearAnlage, protocol_contents, year_anlagen
 from moarcoal.modules.tax_year.assessment_check import current_assessment
+from moarcoal.modules.tax_year.capture import foreign_refs
 from moarcoal.modules.tax_year.entries import MODULE_KEY, TRANSFER_PROTOCOL_KEY, ProtocolReading
 from moarcoal.modules.tax_year.field_checks import field_checks
 from moarcoal.modules.tax_year.fields import FormField
@@ -19,6 +20,7 @@ from moarcoal.registration import ModuleState
 from moarcoal.storage import Applied, Document, EntryAddress
 from moarcoal.values.model import Period
 from moarcoal.web.helpers import (
+    capture_links,
     entry_of,
     finding_list_of,
     form_fields,
@@ -121,6 +123,12 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             )
             for row in page.rows
         ]
+        modules = request.app.state.modules
+        captures = {
+            row.field.key: capture_links(modules, foreign_refs(result))
+            for row, result, _ in rows
+            if result is not None
+        }
         return render(
             request,
             "tax_year/anlage.html",
@@ -128,6 +136,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             anlage=anlage,
             page=page,
             rows=rows,
+            captures=captures,
             snapshot=snapshot,
             inputs={
                 row.field.elster_id: entry.content

@@ -1,6 +1,6 @@
 """Gemeinsame Helfer der Seiten: Vorlagen, Nutzer, Stand und Formularfelder."""
 
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from functools import cache
 from typing import Any, Protocol
@@ -30,6 +30,7 @@ from moarcoal.storage import (
 )
 from moarcoal.values.engine import Values
 from moarcoal.values.findings import INCOMING_TARGET, Finding, FindingList, HiddenFinding, Severity
+from moarcoal.values.model import ValueRef
 from moarcoal.web.links import (
     document_url,
     expected_documents_url,
@@ -84,6 +85,21 @@ def entry_url(modules: tuple[ModuleRegistration, ...], address: EntryAddress) ->
     if address.kind == Issuer.__name__:  # Baustein der Datenebene
         return issuer_url(address.id)
     return next((url for m in modules if (url := m.entry_url(address)) is not None), None)
+
+
+def capture_links(
+    modules: Sequence[ModuleRegistration], refs: Iterable[ValueRef]
+) -> list[tuple[str, str]]:
+    """Je Wert die Erfassungsstelle des Moduls, dem sein Schlüssel gehört (Beschriftung,
+    Adresse); gleiche Adressen einmal, Werte ohne Erfassungsstelle fallen weg."""
+    owners = {d.entry.key: m for m in modules for d in m.values}
+    links: list[tuple[str, str]] = []
+    for ref in refs:
+        owner = owners.get(ref.key)
+        link = None if owner is None else owner.capture_url(ref.key, ref.time, ref.subject)
+        if link is not None and all(url != link[1] for _, url in links):
+            links.append(link)
+    return links
 
 
 def finding_url(
