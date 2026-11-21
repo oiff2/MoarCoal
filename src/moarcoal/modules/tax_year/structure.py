@@ -11,7 +11,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-from moarcoal.modules.tax_year.entries import ElsterId
+from moarcoal.modules.tax_year.entries import ElsterId, ProtocolLine
 from moarcoal.modules.tax_year.fields import FormField
 
 SCHEMA = 1  # wie im Werkzeug
@@ -98,6 +98,33 @@ class FormPage:
     slug: str
     title: str
     rows: tuple[PageRow, ...]
+
+
+_PROTOCOL_PATH = re.compile(r"^id-[^-]+-(?P<path>.*)-E\d{7}(_.*)?$")
+
+
+def provisional_structure(form: str, year: int, lines: Iterable[ProtocolLine]) -> FormStructure:
+    """Die vorläufige Struktur einer Anlage aus den Zeilen des Übertragungsprotokolls.
+
+    Je E-Kennung ein Feld (die erste Zeile gilt; Wiederholzeilen bleiben eines). Nr. und Bezeichnung
+    stehen in der Zeile, Seite und Überschriften folgen dem Pfad des Felds im Protokoll: das erste
+    Segment nach der Anlage ist die Seite, die übrigen sind Überschriften. Die Reihenfolge ist
+    die des Protokolls. Zeilen anderer Anlagen übergeht sie.
+    """
+    fields: dict[str, StructureField] = {}
+    for line in lines:
+        if line.form != form or line.elster_id in fields:
+            continue
+        match = _PROTOCOL_PATH.match(line.data_name)
+        segments = match["path"].split("-") if match else []
+        fields[line.elster_id] = StructureField(
+            line.elster_id,
+            segments[0] if segments else form,
+            tuple(segments[1:]),
+            line.form_line,
+            line.label,
+        )
+    return FormStructure(form, year, True, tuple(fields.values()))
 
 
 def _slug(title: str) -> str:

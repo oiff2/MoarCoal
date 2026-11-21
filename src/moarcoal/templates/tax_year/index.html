@@ -3,10 +3,16 @@
 {% block main %}
 <h1>Steuerjahr</h1>
 
-<h2>Anlagen</h2>
+<h2>Anlagen {{ year }}</h2>
+{% if anlagen %}
 <ul>
-  <li><a href="/steuerjahr/anlage-n/2025">Anlage N 2025</a></li>
+  {% for a in anlagen %}
+  <li><a href="/steuerjahr/anlage-{{ a.slug }}/{{ year }}">{{ a.name }}</a>{% if a.provisional %} <small>abgeleitet aus dem Übertragungsprotokoll</small>{% endif %}</li>
+  {% endfor %}
 </ul>
+{% else %}
+<p>Für {{ year }} kennt MoarCoal noch keine Anlagen. Mit einem aufgenommenen Übertragungsprotokoll {{ year }} erscheinen sie hier.</p>
+{% endif %}
 
 <h2>Übertragungsprotokolle</h2>
 {% if readings %}

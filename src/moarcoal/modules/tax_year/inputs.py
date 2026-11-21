@@ -1,19 +1,23 @@
 """Eingaben zu Eintippfeldern der Anlage: aus dem Formular eine Liste von Änderungen machen."""
 
+from collections.abc import Iterable
+
+from moarcoal.modules.tax_year.anlagen import Anlage, field_catalog
 from moarcoal.modules.tax_year.entries import FormInput
-from moarcoal.modules.tax_year.fields import FormField, Forms
+from moarcoal.modules.tax_year.fields import FormField
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Change, Delete, Put, entry_checksum
 
 
-def typed_field(forms: Forms, year: int, elster_id: str) -> FormField | None:
+def typed_field(anlagen: Iterable[Anlage], year: int, elster_id: str) -> FormField | None:
     """Das Eintippfeld `elster_id` im Katalog des Jahres, falls es eines ist."""
-    return next((f for f in forms.get(year, ()) if f.elster_id == elster_id and f.typed), None)
+    fields = field_catalog(anlagen, year)
+    return next((f for f in fields if f.elster_id == elster_id and f.typed), None)
 
 
-def input_problem(forms: Forms, entry: FormInput) -> str | None:
+def input_problem(anlagen: Iterable[Anlage], entry: FormInput) -> str | None:
     """Schreibweg: warum die Eingabe nicht zu ihrem Feld passt; `None`, wenn sie passt."""
-    field = typed_field(forms, entry.year, entry.elster_id)
+    field = typed_field(anlagen, entry.year, entry.elster_id)
     if field is None or field.typed is None:
         return "Dieses Feld nimmt keine Eingabe."
     return field.typed.check(entry.content)

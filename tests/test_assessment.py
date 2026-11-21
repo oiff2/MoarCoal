@@ -22,6 +22,7 @@ from fastapi.testclient import TestClient
 from moarcoal.modules.tax_year import ASSESSMENT, ProtocolReading, registration
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_n import (
+    ANLAGE_N,
     FORMS,
     N_EQUIPMENT,
     WORK_ABSENCE_DAYS,
@@ -119,7 +120,7 @@ def filing(foreign: Foreign, tax_year: ModuleRegistration = TAX_YEAR) -> list[En
     )
     taken: list[Entry] = [document, reading]
     values = evaluate([tax_year], taken, foreign)
-    changes = snapshot_on_filing(document, [reading], values, FORMS)
+    changes = snapshot_on_filing(document, [reading], values)
     return [*taken, *(c.entry for c in changes if isinstance(c, Put))]
 
 
@@ -335,7 +336,7 @@ def test_a_position_the_assessment_prints_rounded_matches_within_the_span(
     printed: str, deviates: bool
 ) -> None:
     forms = printed_rounded_forms()
-    tax_year = registration(forms)
+    tax_year = registration([replace(ANLAGE_N, forms=forms)])
     document = assessment()
     items = [
         *filing(work(cents=8640), tax_year),
@@ -356,6 +357,7 @@ def field(**given: object) -> FormField:
         "label": "Demo",
         "unit": Unit.EUR,
         "rounding": Rounding.EURO_CENTS,
+        "form": "N",
     }
     return FormField(**{**base, **given})  # type: ignore[arg-type]
 

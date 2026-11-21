@@ -22,6 +22,7 @@ from moarcoal.modules.elster_html import parse_elster_html
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registration
 from moarcoal.modules.tax_year.anlage_n import (
+    ANLAGE_N,
     FORMS,
     N_EQUIPMENT,
     WORK_ABSENCE_DAYS,
@@ -148,7 +149,8 @@ def test_field_without_elster_id_gets_a_note() -> None:
     fields = tuple(replace(f, elster_id=None) if f.key == N_EQUIPMENT else f for f in FORMS[2025])
 
     found = findings(
-        protocol([line(DAYS, "220"), line(KM, "12")]), tax_year=registration({2025: fields})
+        protocol([line(DAYS, "220"), line(KM, "12")]),
+        tax_year=registration([replace(ANLAGE_N, forms={2025: fields})]),
     )
 
     assert kinds(found) == [UNKNOWN_ELSTER_ID]
@@ -416,7 +418,8 @@ def test_unknown_elster_id_fingerprint_follows_the_field() -> None:
             for f in FORMS[2025]
         )
         found = findings(
-            protocol([line(DAYS, "220"), line(KM, "12")]), tax_year=registration({2025: fields})
+            protocol([line(DAYS, "220"), line(KM, "12")]),
+            tax_year=registration([replace(ANLAGE_N, forms={2025: fields})]),
         )
         return only(found, UNKNOWN_ELSTER_ID)
 

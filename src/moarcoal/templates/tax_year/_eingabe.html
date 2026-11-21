@@ -1,12 +1,12 @@
 {#- Eintippfeld einer Anlage: Angabe und darunter die Auswahl direkt am Feld (htmx). Der Austausch ersetzt das ganze Teil. -#}
-{% macro input_cell(year, field, content, error) %}
+{% macro input_cell(form_slug, year, field, content, error) %}
 <div id="eingabe-{{ field.elster_id }}">
   {% if content %}
   <strong>{{ content }}</strong>
   {% else %}
   <strong class="fehler">noch nicht berechenbar</strong> (noch nicht angegeben)
   {% endif %}
-  <form method="post" action="/steuerjahr/anlage-n/{{ year }}/eingabe/{{ field.elster_id }}" hx-post="/steuerjahr/anlage-n/{{ year }}/eingabe/{{ field.elster_id }}" hx-target="#eingabe-{{ field.elster_id }}" hx-swap="outerHTML">
+  <form method="post" action="/steuerjahr/anlage-{{ form_slug }}/{{ year }}/eingabe/{{ field.elster_id }}" hx-post="/steuerjahr/anlage-{{ form_slug }}/{{ year }}/eingabe/{{ field.elster_id }}" hx-target="#eingabe-{{ field.elster_id }}" hx-swap="outerHTML">
     <select name="content" aria-label="{{ field.label }}">
       <option value="">keine Angabe</option>
       {% for choice in field.typed.choices %}<option value="{{ choice }}"{% if choice == content %} selected{% endif %}>{{ choice }}</option>{% endfor %}
