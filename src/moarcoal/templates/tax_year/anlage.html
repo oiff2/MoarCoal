@@ -38,4 +38,7 @@
   </div>
 </section>
 {% endfor %}
+{% if church %}
+{% include "tax_year/_kirchensteuer.html" %}
+{% endif %}
 {% endblock %}

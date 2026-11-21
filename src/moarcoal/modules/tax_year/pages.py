@@ -10,6 +10,12 @@ from moarcoal.defaults import year_of
 from moarcoal.modules.tax_year.anlagen import Anlage, YearAnlage, protocol_contents, year_anlagen
 from moarcoal.modules.tax_year.assessment_check import current_assessment
 from moarcoal.modules.tax_year.capture import foreign_refs
+from moarcoal.modules.tax_year.church_tax import ChurchTaxPayment
+from moarcoal.modules.tax_year.church_tax_pages import (
+    PaymentForm,
+    add_routes,
+    church_view,
+)
 from moarcoal.modules.tax_year.entries import MODULE_KEY, TRANSFER_PROTOCOL_KEY, ProtocolReading
 from moarcoal.modules.tax_year.field_checks import field_checks
 from moarcoal.modules.tax_year.fields import FormField
@@ -132,7 +138,13 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
     def anlage_page(request: Request, form: str, year: int, slug: str) -> HTMLResponse:
         return _anlage_page(request, year_anlage(request, form, year), slug)
 
-    def _anlage_page(request: Request, anlage: YearAnlage, slug: str | None) -> HTMLResponse:
+    def _anlage_page(
+        request: Request,
+        anlage: YearAnlage,
+        slug: str | None,
+        status: int = 200,
+        sent: PaymentForm | None = None,
+    ) -> HTMLResponse:
         year = anlage.year
         page = next((p for p in anlage.pages if slug is None or p.slug == slug), None)
         if page is None:
@@ -180,9 +192,16 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             for row, result, _ in rows
             if result is not None
         }
+        church = (
+            church_view(state, year, request.query_params.get("eintrag", ""), sent)
+            if anlage.form == "SA"
+            else None
+        )
         return render(
             request,
             "tax_year/anlage.html",
+            status,
+            church=church,
             year=year,
             anlage=anlage,
             page=page,
@@ -198,6 +217,11 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             },
             anlagen=year_anlagen(anlagen, year, reading),
         )
+
+    def sa_page(request: Request, year: int, status: int, sent: PaymentForm | None) -> HTMLResponse:
+        return _anlage_page(request, year_anlage(request, "sa", year), None, status, sent)
+
+    add_routes(router, sa_page)
 
     @router.post("/anlage-{form}/{year}/eingabe/{elster_id}", response_class=HTMLResponse)
     def save_input(
@@ -249,7 +273,9 @@ def _input_part(
 
 
 def entry_url(address: EntryAddress) -> str | None:
-    """Link zur Seite eines eingelesenen Protokolls, sonst `None`."""
+    """Link zur Seite eines Protokolls oder einer Kirchensteuerzahlung, sonst `None`."""
     if address.kind == ProtocolReading.__name__:
         return protocol_url(address.id)
+    if address.kind == ChurchTaxPayment.__name__:
+        return f"/steuerjahr/kirchensteuer/{address.id}"
     return None

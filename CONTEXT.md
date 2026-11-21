@@ -133,7 +133,7 @@ Was zur Person gehört, aber je Jahr gilt: ausgeübter Beruf, Telefon für Rück
 _Avoid_: Profil des Jahres
 
 **Kirchensteuerzahlung**:
-Eine Zahlung von Kirchensteuer an das Finanzamt oder eine Erstattung von dort, die nicht über den Lohn oder die Abgeltungsteuer lief (z. B. Nachzahlung laut Bescheid, Vorauszahlung): Datum, Betrag, gezahlt oder erstattet, Art der Leistung, auf Wunsch mit Beleg. Eintragsart des Steuerjahrs; sie zählt im Jahr der Zahlung, nicht im Jahr, für das sie geschuldet war. Daraus kommen die Felder der Kirchensteuer in der Anlage Sonderausgaben; gehört der Nutzer das ganze Jahr keiner kirchensteuerberechtigten Religionsgemeinschaft an (laut Angaben zur Person), entfallen sie.
+Eine Zahlung von Kirchensteuer an das Finanzamt oder eine Erstattung von dort, die nicht über den Lohn oder die Abgeltungsteuer lief (z. B. Nachzahlung laut Bescheid, Vorauszahlung): Datum, Betrag, gezahlt oder erstattet, Art der Leistung, auf Wunsch mit Beleg. Eintragsart des Steuerjahrs (Code: `ChurchTaxPayment`); sie zählt im Jahr der Zahlung, nicht im Jahr, für das sie geschuldet war. Daraus kommen die Felder der Kirchensteuer in der Anlage Sonderausgaben; gehört der Nutzer das ganze Jahr keiner kirchensteuerberechtigten Religionsgemeinschaft an (laut Angaben zur Person), entfallen sie.
 
 **Übertragungsprotokoll**:
 Das HTML-Dokument, das Mein ELSTER nach der Übertragung einer Steuererklärung ausstellt: je ausgefülltem Feld E-Kennung, Anlage, Nummer im Vordruck, Bezeichnung und übertragener Inhalt. Dokumentart des Moduls Steuerjahr mit Bezugszeitraum; die eingelesenen Felder, je mit Fundstelle im Dokument (dem vollen Feldnamen `data-name`), stehen in einem eigenen Eintrag (Code: `ProtocolReading`), jedes eingelesene Feld als **Protokollfeld**.

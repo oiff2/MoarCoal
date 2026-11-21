@@ -1,0 +1,65 @@
+{#- Kirchensteuerzahlungen des Jahrs auf der Seite der Anlage SA: Liste mit aufklappenden Formularen zum Ändern, darunter „Neue Kirchensteuerzahlung“. Nach einer Abweisung steht das Formular offen, mit den Gründen. -#}
+{% macro payment_form(form, church) %}
+<form method="post" action="{{ form.action }}">
+  <input type="hidden" name="page_year" value="{{ church.year }}">
+  {% if form.entry_id %}<input type="hidden" name="checksum" value="{{ form.checksum }}">{% endif %}
+  {% if form.errors %}<ul class="fehler">{% for message in form.errors %}<li>{{ message }}</li>{% endfor %}</ul>{% endif %}
+  <label>Datum der Zahlung
+    <input name="date" type="date" value="{{ form.values.get('date', '') }}" required>
+  </label>
+  <label>Betrag in EUR
+    <input name="amount" inputmode="decimal" value="{{ form.values.get('amount', '') }}" required>
+  </label>
+  <label>Gezahlt oder erstattet
+    <select name="direction" required>
+      <option value="paid"{% if form.values.get('direction', 'paid') == 'paid' %} selected{% endif %}>gezahlt</option>
+      <option value="refunded"{% if form.values.get('direction') == 'refunded' %} selected{% endif %}>erstattet</option>
+    </select>
+  </label>
+  <label>Art der Leistung
+    <input name="kind" value="{{ form.values.get('kind', '') }}" required>
+  </label>
+  <label>Dokument (optional)
+    <select name="document">
+      <option value="">kein Dokument</option>
+      {% for choice in church.documents %}<option value="{{ choice.id }}"{% if choice.id == form.values.get('document', '') %} selected{% endif %}>{{ choice.label }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit">Speichern</button>
+</form>
+{% endmacro %}
+<section class="kirchensteuerzahlungen" id="kirchensteuerzahlungen">
+  <h2>Kirchensteuerzahlungen {{ church.year }}</h2>
+  <p>Zahlungen und Erstattungen von Kirchensteuer, die nicht über den Lohn oder die Abgeltungsteuer liefen. Sie zählen im Jahr des Zahlungsdatums und ergeben die Felder „gezahlt“ und „erstattet“ oben.</p>
+  {% if church.payments %}
+  <table>
+    <tr><th>Datum</th><th>Art der Leistung</th><th></th><th class="zahl">Betrag</th><th>Beleg</th></tr>
+    {% for payment, form, link in church.payments %}
+    <tr>
+      <td>{{ payment.date.strftime("%d.%m.%Y") }}</td>
+      <td>{{ payment.benefit_type }}</td>
+      <td>{{ "erstattet" if payment.refunded else "gezahlt" }}</td>
+      <td class="zahl">{{ payment.amount_cents | eur }}</td>
+      <td>{% if link %}<a href="{{ link }}">Beleg ansehen</a>{% else %}–{% endif %}</td>
+    </tr>
+    <tr class="bearbeiten"><td colspan="5">
+      <details class="formular-eintrag"{% if form.open %} open{% endif %} id="eintrag-{{ payment.id }}">
+        <summary>Ändern</summary>
+        {{ payment_form(form, church) }}
+        <form method="post" action="{{ form.action }}/loeschen" class="inline">
+          <input type="hidden" name="page_year" value="{{ church.year }}">
+          <input type="hidden" name="checksum" value="{{ form.checksum }}">
+          <button type="submit">Löschen</button>
+        </form>
+      </details>
+    </td></tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p>Für {{ church.year }} ist noch keine Kirchensteuerzahlung erfasst.</p>
+  {% endif %}
+  <details class="formular-eintrag"{% if church.new.open %} open{% endif %}>
+    <summary>Neue Kirchensteuerzahlung</summary>
+    {{ payment_form(church.new, church) }}
+  </details>
+</section>

@@ -8,6 +8,7 @@ from functools import partial
 from moarcoal.documents import DocumentKind
 from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.assessment import ASSESSMENT
+from moarcoal.modules.tax_year.church_tax import KIND as CHURCH_TAX_KIND
 from moarcoal.modules.tax_year.comparison import FINDING_KINDS, module_findings
 from moarcoal.modules.tax_year.entries import (
     MODULE_KEY,
@@ -53,7 +54,10 @@ def registration(anlagen: Sequence[Anlage] = ANLAGEN) -> ModuleRegistration:
         icon="steuerjahr",
         router=router_for(anlagen),
         entry_url=entry_url,
-        kinds=kinds(partial(input_problem, anlagen), partial(person_input_problem, anlagen)),
+        kinds=(
+            *kinds(partial(input_problem, anlagen), partial(person_input_problem, anlagen)),
+            CHURCH_TAX_KIND,
+        ),
         values=tuple(v for anlage in anlagen for v in anlage.define_values(anlage.forms)),
         document_kinds=(transfer_protocol(anlagen), ASSESSMENT),
         finding_kinds=FINDING_KINDS,
