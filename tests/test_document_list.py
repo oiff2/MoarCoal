@@ -406,3 +406,13 @@ def test_column_can_be_hidden_and_the_browser_remembers_it(two: httpx.Client) ->
 def test_a_click_on_a_row_selects_it(two: httpx.Client) -> None:
     js = Path("src/moarcoal/static/belege.js").read_text(encoding="utf-8")
     assert "a.name" in js and 'closest("a, button, form, input, select, summary")' in js
+
+
+def test_sections_remember_open_state_without_flicker(two: httpx.Client) -> None:
+    page = two.get("/belege").text
+    assert page.count('<details class="abschnitt"') == 3
+    # Ohne defer hinter den Abschnitten: läuft vor der ersten Darstellung (kein Flackern).
+    assert '<script src="/static/belege.js"></script>' in page
+    js = Path("src/moarcoal/static/belege.js").read_text(encoding="utf-8")
+    assert "details.abschnitt" in js and '"toggle"' in js and "a[aria-current]" in js
+    assert "http" not in js

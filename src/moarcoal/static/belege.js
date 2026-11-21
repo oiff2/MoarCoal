@@ -59,3 +59,22 @@ document.querySelector(".baum")?.addEventListener("click", (event) => {
     try { localStorage.setItem(KEY, off ? "1" : "0"); } catch (e) { /* ohne Speicher: nur jetzt */ }
   });
 })();
+// Eingeklappte Abschnitte der Liste bleiben es über Seitenwechsel; ohne Speicher oder ohne Skript sind alle offen.
+// Das Skript läuft ohne defer hinter den Abschnitten, also vor der ersten Darstellung (kein Flackern).
+(() => {
+  const KEY = "belege-abschnitte-zu";
+  const sections = [...document.querySelectorAll("details.abschnitt[id]")];
+  let closed = [];
+  try { closed = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { closed = []; }
+  if (!Array.isArray(closed)) closed = [];
+  for (const section of sections) {
+    // Der Abschnitt mit der Auswahl bleibt offen, damit sie sichtbar ist.
+    if (closed.includes(section.id) && !section.querySelector("a[aria-current]")) section.open = false;
+  }
+  for (const section of sections) {
+    section.addEventListener("toggle", () => {
+      const now = sections.filter((s) => !s.open).map((s) => s.id);
+      try { localStorage.setItem(KEY, JSON.stringify(now)); } catch (e) { /* ohne Speicher: nur jetzt */ }
+    });
+  }
+})();
