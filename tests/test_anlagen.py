@@ -122,7 +122,7 @@ def test_form_without_a_stored_structure_gets_one_from_the_protocol(tmp_path: Pa
     page = http.get("/steuerjahr/anlage-kap/2025").text
 
     assert "aus dem Übertragungsprotokoll 2025 abgeleitet" in page
-    assert "Feld KAP" in page and "Nr. 7<small>E0900005</small>" in page
+    assert "Feld KAP" in page and "Z. 7<small>E0900005</small>" in page
     assert "Laut Protokoll" in page and "5,00" in page
     assert "wird noch nicht berechnet" in page
     assert 'href="/steuerjahr/anlage-kap/2025/angaben"' in page

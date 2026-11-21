@@ -165,7 +165,8 @@
    "page": "2 - Einnahmen",
    "headings": [
     "Mieteinnahmen",
-    "Mieteinnahmen für Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
+    "Mieteinnahmen für Wohnungen (ohne Umlagen / ohne Umsatzsteuer)",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Bezeichnung der Wohneinheit (z. B. Stockwerk, Nummer der Wohnung)"
@@ -175,7 +176,8 @@
    "page": "2 - Einnahmen",
    "headings": [
     "Mieteinnahmen",
-    "Mieteinnahmen für Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
+    "Mieteinnahmen für Wohnungen (ohne Umlagen / ohne Umsatzsteuer)",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Wohnfläche (in m²) (X,XX)"
@@ -185,7 +187,8 @@
    "page": "2 - Einnahmen",
    "headings": [
     "Mieteinnahmen",
-    "Mieteinnahmen für Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
+    "Mieteinnahmen für Wohnungen (ohne Umlagen / ohne Umsatzsteuer)",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Mieteinnahmen (Euro)",
@@ -207,7 +210,8 @@
    "page": "2 - Einnahmen",
    "headings": [
     "Mieteinnahmen",
-    "Einnahmen für andere Räume (ohne Umlagen / ohne Umsatzsteuer)"
+    "Einnahmen für andere Räume (ohne Umlagen / ohne Umsatzsteuer)",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Bezeichnung der Einheit (z. B. Stockwerk, Nummer der Einheit)"
@@ -217,7 +221,8 @@
    "page": "2 - Einnahmen",
    "headings": [
     "Mieteinnahmen",
-    "Einnahmen für andere Räume (ohne Umlagen / ohne Umsatzsteuer)"
+    "Einnahmen für andere Räume (ohne Umlagen / ohne Umsatzsteuer)",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Nutzfläche (in m²) (X,XX)"
@@ -227,7 +232,8 @@
    "page": "2 - Einnahmen",
    "headings": [
     "Mieteinnahmen",
-    "Einnahmen für andere Räume (ohne Umlagen / ohne Umsatzsteuer)"
+    "Einnahmen für andere Räume (ohne Umlagen / ohne Umsatzsteuer)",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Mieteinnahmen für andere Räume (Euro)",
@@ -451,7 +457,8 @@
    "e_kennung": "E0704507",
    "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
    "headings": [
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Einzelangaben (z. B. Kreditinstitut)"
@@ -460,7 +467,8 @@
    "e_kennung": "E0704508",
    "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
    "headings": [
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -470,7 +478,8 @@
    "e_kennung": "E0704610",
    "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Einzelangaben (z. B. Kreditinstitut)"
@@ -479,7 +488,8 @@
    "e_kennung": "E0704611",
    "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
@@ -489,7 +499,8 @@
    "e_kennung": "E0704612",
    "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "abzugsfähiger Anteil (in %) (X,XX)"
@@ -498,7 +509,8 @@
    "e_kennung": "E0704613",
    "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -518,7 +530,8 @@
    "e_kennung": "E0704813",
    "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
    "headings": [
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Bezeichnung"
@@ -527,7 +540,8 @@
    "e_kennung": "E0704814",
    "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
    "headings": [
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -537,7 +551,8 @@
    "e_kennung": "E0704908",
    "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Bezeichnung"
@@ -546,7 +561,8 @@
    "e_kennung": "E0704909",
    "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
@@ -556,7 +572,8 @@
    "e_kennung": "E0704910",
    "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "abzugsfähiger Anteil (in %) (X,XX)"
@@ -565,7 +582,8 @@
    "e_kennung": "E0704911",
    "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -585,7 +603,8 @@
    "e_kennung": "E0705108",
    "page": "9 - Renten, dauernde Lasten",
    "headings": [
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Bezeichnung"
@@ -594,7 +613,8 @@
    "e_kennung": "E0705109",
    "page": "9 - Renten, dauernde Lasten",
    "headings": [
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -604,7 +624,8 @@
    "e_kennung": "E0705207",
    "page": "9 - Renten, dauernde Lasten",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Bezeichnung"
@@ -613,7 +634,8 @@
    "e_kennung": "E0705208",
    "page": "9 - Renten, dauernde Lasten",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
@@ -623,7 +645,8 @@
    "e_kennung": "E0705209",
    "page": "9 - Renten, dauernde Lasten",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "abzugsfähiger Anteil (in %) (X,XX)"
@@ -632,7 +655,8 @@
    "e_kennung": "E0705210",
    "page": "9 - Renten, dauernde Lasten",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -695,7 +719,8 @@
    "page": "11 - Auf bis zu 5 Jahre zu verteilende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage) – §§ 11a, 11b EStG, § 82b EStDV –",
    "headings": [
     "Gesamtaufwand 2025",
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag (Euro)",
@@ -706,7 +731,8 @@
    "page": "11 - Auf bis zu 5 Jahre zu verteilende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage) – §§ 11a, 11b EStG, § 82b EStDV –",
    "headings": [
     "Gesamtaufwand 2025",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
@@ -717,7 +743,8 @@
    "page": "11 - Auf bis zu 5 Jahre zu verteilende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage) – §§ 11a, 11b EStG, § 82b EStDV –",
    "headings": [
     "Gesamtaufwand 2025",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "abzugsfähiger Anteil (in %) (X,XX)"
@@ -727,7 +754,8 @@
    "page": "11 - Auf bis zu 5 Jahre zu verteilende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage) – §§ 11a, 11b EStG, § 82b EStDV –",
    "headings": [
     "Gesamtaufwand 2025",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -749,7 +777,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2021",
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag (Euro)",
@@ -760,7 +789,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2021",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
@@ -771,7 +801,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2021",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "abzugsfähiger Anteil (in %) (X,XX)"
@@ -781,7 +812,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2021",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -803,7 +835,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2022",
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag (Euro)",
@@ -814,7 +847,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2022",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
@@ -825,7 +859,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2022",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "abzugsfähiger Anteil (in %) (X,XX)"
@@ -835,7 +870,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2022",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -857,7 +893,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2023",
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag (Euro)",
@@ -868,7 +905,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2023",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
@@ -879,7 +917,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2023",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "abzugsfähiger Anteil (in %) (X,XX)"
@@ -889,7 +928,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2023",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -911,7 +951,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2024",
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag (Euro)",
@@ -922,7 +963,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2024",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
@@ -933,7 +975,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2024",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "abzugsfähiger Anteil (in %) (X,XX)"
@@ -943,7 +986,8 @@
    "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
    "headings": [
     "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2024",
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -964,7 +1008,8 @@
    "e_kennung": "E0707201",
    "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
    "headings": [
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Einzelangaben"
@@ -973,7 +1018,8 @@
    "e_kennung": "E0707202",
    "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
    "headings": [
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -983,7 +1029,8 @@
    "e_kennung": "E0707301",
    "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Einzelangaben"
@@ -992,7 +1039,8 @@
    "e_kennung": "E0707302",
    "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
@@ -1002,7 +1050,8 @@
    "e_kennung": "E0707303",
    "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "abzugsfähiger Anteil (in %) (X,XX)"
@@ -1011,7 +1060,8 @@
    "e_kennung": "E0707304",
    "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -1031,7 +1081,8 @@
    "e_kennung": "E0707501",
    "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
    "headings": [
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Einzelangaben"
@@ -1040,7 +1091,8 @@
    "e_kennung": "E0707502",
    "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
    "headings": [
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag (Euro)",
@@ -1050,7 +1102,8 @@
    "e_kennung": "E0707601",
    "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Einzelangaben"
@@ -1059,7 +1112,8 @@
    "e_kennung": "E0707602",
    "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
@@ -1069,7 +1123,8 @@
    "e_kennung": "E0707603",
    "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "abzugsfähiger Anteil (in %) (X,XX)"
@@ -1078,7 +1133,8 @@
    "e_kennung": "E0707604",
    "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",
@@ -1106,7 +1162,8 @@
    "e_kennung": "E0707901",
    "page": "16 - Sonstige Kosten",
    "headings": [
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Einzelangaben"
@@ -1115,7 +1172,8 @@
    "e_kennung": "E0707902",
    "page": "16 - Sonstige Kosten",
    "headings": [
-    "durch direkte Zuordnung ermittelt"
+    "durch direkte Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag (Euro)",
@@ -1125,7 +1183,8 @@
    "e_kennung": "E0708001",
    "page": "16 - Sonstige Kosten",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Einzelangaben"
@@ -1134,7 +1193,8 @@
    "e_kennung": "E0708002",
    "page": "16 - Sonstige Kosten",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
@@ -1144,7 +1204,8 @@
    "e_kennung": "E0708003",
    "page": "16 - Sonstige Kosten",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "abzugsfähiger Anteil (in %) (X,XX)"
@@ -1153,7 +1214,8 @@
    "e_kennung": "E0708004",
    "page": "16 - Sonstige Kosten",
    "headings": [
-    "durch verhältnismäßige Zuordnung ermittelt"
+    "durch verhältnismäßige Zuordnung ermittelt",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Werbungskosten (Euro)",

@@ -24,7 +24,7 @@
 <h3 class="feld-ueberschrift">{{ heading }}</h3>
 {% endfor %}
 <section class="feld" id="feld-{{ field.elster_id }}">
-  <div class="feld-nr">Nr. {{ field.form_line or "–" }}<small>{{ field.elster_id }}</small></div>
+  <div class="feld-nr" title="Nummer im Vordruck">Z. {{ field.form_line or "–" }}<small>{{ field.elster_id }}</small></div>
   <div class="feld-rumpf">
     <div class="feld-kopf">{{ field.label }}{% if row.structure.unit %} <span class="einheit">{{ row.structure.unit }}</span>{% endif %}</div>
     <div class="feld-wert">{% if field.typed %}{{ input_cell(anlage.slug, year, field, inputs.get(field.elster_id), none) }}{% elif field.computed %}{{ value_view("Angabe", result, whole=field.whole_euros) }}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}</div>

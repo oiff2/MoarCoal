@@ -24,7 +24,8 @@
    "e_kennung": "E0200204",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5",
+    "Einzelne Einträge"
    ],
    "line": "5",
    "label": "Bruttoarbeitslohn einschließlich Sachbezüge (Euro, Cent)",
@@ -34,7 +35,8 @@
    "e_kennung": "E0200304",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5",
+    "Einzelne Einträge"
    ],
    "line": "6",
    "label": "Lohnsteuer (Euro, Cent)",
@@ -44,7 +46,8 @@
    "e_kennung": "E0200404",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5",
+    "Einzelne Einträge"
    ],
    "line": "7",
    "label": "Solidaritätszuschlag (Euro, Cent)",
@@ -54,7 +57,8 @@
    "e_kennung": "E0200504",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5",
+    "Einzelne Einträge"
    ],
    "line": "8",
    "label": "Kirchensteuer des Arbeitnehmers (Euro, Cent)",
@@ -64,7 +68,8 @@
    "e_kennung": "E0200604",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 1 bis 5",
+    "Einzelne Einträge"
    ],
    "line": "9",
    "label": "Kirchensteuer für den Ehegatten / Lebenspartner (nur bei Konfessionsverschiedenheit) (Euro, Cent)",
@@ -124,7 +129,8 @@
    "e_kennung": "E0200202",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse",
+    "Einzelne Einträge"
    ],
    "line": "5",
    "label": "Bruttoarbeitslohn einschließlich Sachbezüge (Euro, Cent)",
@@ -134,7 +140,8 @@
    "e_kennung": "E0200302",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse",
+    "Einzelne Einträge"
    ],
    "line": "6",
    "label": "Lohnsteuer (Euro, Cent)",
@@ -144,7 +151,8 @@
    "e_kennung": "E0200402",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse",
+    "Einzelne Einträge"
    ],
    "line": "7",
    "label": "Solidaritätszuschlag (Euro, Cent)",
@@ -154,7 +162,8 @@
    "e_kennung": "E0200502",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse",
+    "Einzelne Einträge"
    ],
    "line": "8",
    "label": "Kirchensteuer des Arbeitnehmers (Euro, Cent)",
@@ -164,7 +173,8 @@
    "e_kennung": "E0200602",
    "page": "1 - Angaben zum Arbeitslohn",
    "headings": [
-    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse"
+    "Lohnsteuerbescheinigung(en) Steuerklasse 6 oder einer Urlaubskasse",
+    "Einzelne Einträge"
    ],
    "line": "9",
    "label": "Kirchensteuer für den Ehegatten / Lebenspartner (nur bei Konfessionsverschiedenheit) (Euro, Cent)",
@@ -356,7 +366,9 @@
   {
    "e_kennung": "E0204401",
    "page": "10 - Aufwendungen für Arbeitsmittel",
-   "headings": [],
+   "headings": [
+    "Einzelne Einträge"
+   ],
    "line": "",
    "label": "Art der Arbeitsmittel",
    "options": [
@@ -373,7 +385,9 @@
   {
    "e_kennung": "E0204402",
    "page": "10 - Aufwendungen für Arbeitsmittel",
-   "headings": [],
+   "headings": [
+    "Einzelne Einträge"
+   ],
    "line": "",
    "label": "Betrag (Euro)",
    "unit": "€"
@@ -411,7 +425,8 @@
    "e_kennung": "E0205003",
    "page": "15 - Reisekosten bei beruflich veranlassten Auswärtstätigkeiten",
    "headings": [
-    "Fahrtkosten"
+    "Fahrtkosten",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Fahrtkosten"
@@ -420,7 +435,8 @@
    "e_kennung": "E0205004",
    "page": "15 - Reisekosten bei beruflich veranlassten Auswärtstätigkeiten",
    "headings": [
-    "Fahrtkosten"
+    "Fahrtkosten",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Betrag (Euro)",
@@ -430,7 +446,8 @@
    "e_kennung": "E0206301",
    "page": "15 - Reisekosten bei beruflich veranlassten Auswärtstätigkeiten",
    "headings": [
-    "Übernachtungskosten"
+    "Übernachtungskosten",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Übernachtungskosten"
@@ -439,7 +456,8 @@
    "e_kennung": "E0206302",
    "page": "15 - Reisekosten bei beruflich veranlassten Auswärtstätigkeiten",
    "headings": [
-    "Übernachtungskosten"
+    "Übernachtungskosten",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Betrag (Euro)",
@@ -449,7 +467,8 @@
    "e_kennung": "E0206402",
    "page": "15 - Reisekosten bei beruflich veranlassten Auswärtstätigkeiten",
    "headings": [
-    "Reisenebenkosten"
+    "Reisenebenkosten",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Reisenebenkosten"
@@ -458,7 +477,8 @@
    "e_kennung": "E0206406",
    "page": "15 - Reisekosten bei beruflich veranlassten Auswärtstätigkeiten",
    "headings": [
-    "Reisenebenkosten"
+    "Reisenebenkosten",
+    "Einzelne Einträge"
    ],
    "line": "",
    "label": "Betrag (Euro)",
