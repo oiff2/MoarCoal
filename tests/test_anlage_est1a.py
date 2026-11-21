@@ -19,7 +19,7 @@ from moarcoal.modules.tax_year.anlage_est1a import (
 )
 from moarcoal.modules.tax_year.entries import YearPersonInput
 from moarcoal.modules.tax_year.field_checks import field_checks
-from moarcoal.modules.tax_year.person_input import field_texts
+from moarcoal.modules.tax_year.person_input import field_reasons, field_texts
 from moarcoal.modules.tax_year.protocol_check import AMBIGUOUS, DEVIATION, MISSING
 from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.registration import ModuleState
@@ -150,8 +150,18 @@ def test_religion_on_31_12_follows_the_history_of_the_year() -> None:
         )
     )
 
-    assert texts(person)["E0100402"] == "nicht kirchensteuerpflichtig"
+    assert "E0100402" not in texts(person)  # Änderung im Jahr: nicht „ganzjährig gleichbleibend“
     assert texts(person, year=2024)["E0100402"] == "Evangelisch"  # früheres Jahr bleibt
+    assert texts(person, year=2026)["E0100402"] == "nicht kirchensteuerpflichtig"
+
+
+def test_a_change_in_the_year_names_the_reason() -> None:
+    person = details(
+        religions=(since(2000, 1, 1, Religion.EVANGELICAL), since(2025, 6, 1, Religion.NONE))
+    )
+    state = module_state(person)
+    assert "2025" in field_reasons(state, FIELDS_2025, 2025)["E0100402"]
+    assert field_reasons(state, FIELDS_2025, 2024) == {}
 
 
 def test_an_exit_in_the_following_year_leaves_the_year_unchanged() -> None:

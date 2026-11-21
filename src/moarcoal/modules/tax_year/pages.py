@@ -17,6 +17,7 @@ from moarcoal.modules.tax_year.inputs import changes_for_input, current_input, t
 from moarcoal.modules.tax_year.links import protocol_url
 from moarcoal.modules.tax_year.person_input import (
     current_person_input,
+    field_reasons,
     field_texts,
     in_this_return_choices,
     year_person_input_changes,
@@ -153,6 +154,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             }
         transferred = None if reading is None else protocol_contents(reading, anlage.structure)
         texts = field_texts(state, anlage.fields, year)
+        reasons = field_reasons(state, anlage.fields, year)
         found = finding_list_of(request, year)
         findings = [*found.visible, *(h.finding for h in found.hidden)]
         rows = [
@@ -187,6 +189,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             rows=rows,
             captures=captures,
             texts=texts,
+            reasons=reasons,
             snapshot=snapshot,
             inputs={
                 row.field.elster_id: entry.content

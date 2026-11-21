@@ -34,10 +34,18 @@ RELIGION_OPTION = {  # Option der Auswahl „Religion am 31.12.“ je Gemeinscha
 type DetailsText = Callable[[PersonalDetails, int], str | None]
 
 
-def _details(read: DetailsText, choices: tuple[str, ...] = ()) -> TextSource:
+def _details(
+    read: DetailsText, choices: tuple[str, ...] = (), why_not: DetailsText | None = None
+) -> TextSource:
     """Inhalt aus den Angaben zur Person (mit dem Jahr, wenn er davon abhängt)."""
+
+    def reason(details: PersonalDetails | None, _: YearPersonInput | None, year: int) -> str | None:
+        return None if details is None or why_not is None else why_not(details, year)
+
     return TextSource(
-        lambda details, _, year: None if details is None else read(details, year), choices
+        lambda details, _, year: None if details is None else read(details, year),
+        choices,
+        reason if why_not is not None else None,
     )
 
 
@@ -50,7 +58,17 @@ def _birth_date(details: PersonalDetails, year: int) -> str | None:
     return None if details.birth_date is None else details.birth_date.strftime("%d.%m.%Y")
 
 
+def _religion_change(details: PersonalDetails, year: int) -> str | None:
+    """Der Grund, warum die Religion nicht „ganzjährig gleichbleibend“ ist: eine Angabe im Jahr."""
+    start, end = datetime.date(year, 1, 1), datetime.date(year, 12, 31)
+    if any(start < m.from_date <= end for m in details.religions):
+        return f"Die Religionszugehörigkeit ändert sich {year} (Angaben zur Person)"
+    return None
+
+
 def _religion(details: PersonalDetails, year: int) -> str | None:
+    if _religion_change(details, year) is not None:
+        return None
     religion = religion_on(details, datetime.date(year, 12, 31))
     return None if religion is None else RELIGION_OPTION[religion]
 
@@ -77,7 +95,7 @@ def sources(structure: FormStructure) -> Mapping[str, TextSource]:
         "E0100601": _details(lambda d, y: d.postal_code),
         "E0100602": _details(lambda d, y: d.city),
         "E0100403": _year_input(lambda i: i.occupation),
-        "E0100402": _details(_religion, structure.get("E0100402").options),
+        "E0100402": _details(_religion, structure.get("E0100402").options, _religion_change),
         "E0102102": _details(_iban(domestic=True)),
         "E0102603": _details(_iban(domestic=False)),
         IN_THIS_RETURN: _year_input(

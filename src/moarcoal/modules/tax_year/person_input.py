@@ -51,6 +51,19 @@ def field_texts(state: ModuleState, fields: Iterable[FormField], year: int) -> d
     return found
 
 
+def field_reasons(state: ModuleState, fields: Iterable[FormField], year: int) -> dict[str, str]:
+    """Je E-Kennung der Grund, warum ein Feld mit Text trotz Angaben nicht berechenbar ist."""
+    details = state.personal_details()
+    entry = current_person_input(state, year)
+    found: dict[str, str] = {}
+    for field in fields:
+        if field.text is None or field.text.why_not is None or field.elster_id is None:
+            continue
+        if reason := field.text.why_not(details, entry, year):
+            found[field.elster_id] = reason
+    return found
+
+
 def in_this_return_choices(anlagen: Iterable[Anlage], year: int) -> tuple[str, ...]:
     """Die Optionen der Auswahl „In dieser Steuererklärung“ im Jahr (aus der Struktur); leer, wenn
     das Jahr keinen Katalog hat und jeder Text gilt."""

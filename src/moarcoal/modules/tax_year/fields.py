@@ -89,6 +89,7 @@ class TextSource:
 
     read: PersonText
     choices: tuple[str, ...] = ()
+    why_not: PersonText | None = None  # warum der Text trotz Angaben nicht berechenbar ist
 
 
 @dataclass(frozen=True)
