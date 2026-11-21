@@ -12,6 +12,12 @@
 <span class="status status-{{ value.name | lower }}" title="Belegstand"><span class="symbol" aria-hidden="true">{{ backing_symbols[value.name] }}</span> {{ value.label }}</span>
 {%- endmacro %}
 
+{#- „noch nicht berechenbar“ mit der Begründung als Kurzinfo: title für die Maus, derselbe Text als Folgetext für
+    Screenreader, per Fokus (Tastatur, Tippen) sichtbar. Nie 0 oder leer an dieser Stelle (PRINCIPLES 5). -#}
+{% macro not_yet(reason, text="noch nicht berechenbar") -%}
+<span class="kurzinfo" tabindex="0" title="{{ reason }}"><strong class="fehler">{{ text }}</strong><span class="kurzinfo-text">{{ reason }}</span></span>
+{%- endmacro %}
+
 {% macro fits() -%}
 <span class="status status-fits" title="Gegenprobe"><span class="symbol" aria-hidden="true">✓</span> passt</span>
 {%- endmacro %}

@@ -1,5 +1,5 @@
 {#- Gemeinsamer Anzeigebaustein für Ausgewiesene Werte: Betrag, Belegstand, aufklappbare Einzelposten und Rechenweg. Ohne Skript und ohne Inline-Stil (CSP), aufklappen über <details>. -#}
-{% from "_status.html" import backing %}
+{% from "_status.html" import backing, not_yet %}
 {% macro value_view(title, result, whole=false) %}
 <div class="ausgewiesen">
   {% if result.outcome == "amount" %}
@@ -40,7 +40,7 @@
     </ol>
   </details>
   {% elif result.outcome == "not_yet" %}
-  <span class="titel">{{ title }}:</span> <strong class="fehler">noch nicht berechenbar</strong> ({{ result.reason }})
+  <span class="titel">{{ title }}:</span> {{ not_yet(result.reason) }}
   {% if result.chain %}
   <details>
     <summary>Kette</summary>

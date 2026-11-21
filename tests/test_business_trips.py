@@ -531,3 +531,10 @@ def test_finding_links_to_the_work_page_of_its_year() -> None:
 
     assert found.kind == TRIPS_TO_FILL
     assert found.href == "/arbeit?jahr=2024"  # direkt, ohne Umleitung über die alte Adresse
+
+
+def test_not_computable_reason_is_a_focusable_tooltip(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    text = client.get("/arbeit?jahr=2025").text
+    assert 'class="kurzinfo" tabindex="0" title="' in text
+    assert "</strong> (" not in text  # kein Klammertext hinter „noch nicht berechenbar“
