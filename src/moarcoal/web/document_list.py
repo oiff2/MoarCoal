@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from moarcoal.defaults import DEFAULT_YEAR, year_of
+from moarcoal.defaults import year_of
 from moarcoal.document_filter import (
     WITHOUT_ISSUER,
     WITHOUT_KIND,
@@ -22,7 +22,7 @@ from moarcoal.document_filter import (
 )
 from moarcoal.proposals import latest_proposal, template_of
 from moarcoal.storage import Document, Issuer, entry_checksum, name_key
-from moarcoal.web.helpers import document_kinds, render, store_of, user_of
+from moarcoal.web.helpers import document_kinds, global_year, render, store_of, user_of
 from moarcoal.web.links import document_file_url
 from moarcoal.web.previews import preview_kind
 
@@ -49,7 +49,7 @@ def document_detail(
         "bound": store.references_to(document.address, with_derived=True),
         "checksum": entry_checksum(document),
         "labels": store.kind_labels(),
-        "default_year": DEFAULT_YEAR,
+        "default_year": global_year(request),
         "kind": kind,
         "template": template_of(kinds, document),
         "proposal": latest_proposal(state, document),

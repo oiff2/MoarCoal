@@ -33,6 +33,7 @@ from moarcoal.storage import (
     ReadInEntry,
     Rereading,
     SiteFileError,
+    Sites,
     State,
     Store,
     entry_checksum,
@@ -44,6 +45,7 @@ from moarcoal.storage.documents import (
     exists_already,
     period_clash,
 )
+from moarcoal.storage.entries import referenced_addresses
 from moarcoal.values.findings import READ_IN_CHANGED, Finding, Severity
 
 if TYPE_CHECKING:
@@ -200,6 +202,21 @@ def duplicate_findings(state: State, user: str, kinds: Mapping[str, DocumentKind
                 )
             )
     return found
+
+
+def belongs_to_year(document: Document, year: int, state: State, sites: Sites) -> bool:
+    """Ob das Dokument zu dem Jahr gehört (CONTEXT.md, Dokument): sein Bezugszeitraum berührt
+    das Jahr; ohne Bezugszeitraum liegt es im Jahresordner des Jahrs; an einem Ablageort ohne
+    Jahr verweist ein Eintrag mit Zeitbezug in diesem Jahr (Feld `year`) auf es."""
+    if document.period_start is not None:
+        return document.touches_year(year)
+    site_year = sites.year_of(document.site)
+    if site_year is not None:
+        return site_year == year
+    return any(
+        getattr(entry, "year", None) == year and document.address in referenced_addresses(entry)
+        for entry in state.entries.values()
+    )
 
 
 def take_in(
