@@ -14,6 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 from moarcoal.defaults import DEFAULT_USER, year_of
 from moarcoal.documents import document_name, read_in_again
 from moarcoal.extraction import ClaudeExtractor, Extractor
+from moarcoal.incoming import relocate_documents
 from moarcoal.modules import MODULES
 from moarcoal.modules.work.trips.place_search import NominatimSearch, PlaceSearch
 from moarcoal.registration import ModuleRegistration, open_module_store
@@ -72,6 +73,8 @@ def create_app(
     app.state.place_search = place_search if place_search is not None else NominatimSearch()
     app.state.store = open_module_store(data_dir, modules)
     document_kinds = {k.key: k for module in modules for k in module.document_kinds}
+    for line in relocate_documents(app.state.store):  # verschobene Dateien (ADR 0003)
+        log.info("Datei wiedergefunden: %s", line)
     for line in read_in_again(app.state.store, document_kinds):  # Start, Schritt 5
         log.info(line)
     for module in modules:

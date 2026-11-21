@@ -46,8 +46,9 @@ def test_findings_of_equal_severity_keep_the_order_of_their_sources() -> None:
     )
     docs = [document("a", "once"), document("b", "once"), document("c", None)]
     state = State({d.address: d for d in docs}, denylist_failed=True)
+    taken = [SiteFile(d.site, d.path, 1, d.sha256) for d in docs]  # Dateien der Dokumente da
     waiting = [SiteFile("Ablage", "neu.pdf", 1, "9" * 64)]
-    values = Values([module], state, site_files=lambda: waiting)
+    values = Values([module], state, site_files=lambda: [*taken, *waiting])
 
     found = values.finding_list("anna", 2025).visible
 
