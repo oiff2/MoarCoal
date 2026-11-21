@@ -26,6 +26,8 @@ from moarcoal.modules.tax_year.anlage_n import (
     FORMS,
     N_EQUIPMENT,
     WORK_ABSENCE_DAYS,
+    WORK_BENEFITS_FLAT_TAXED,
+    WORK_BENEFITS_TAX_FREE,
     WORK_CAR_DISTANCE,
     WORK_DISTANCE_KM,
     WORK_EQUIPMENT,
@@ -97,6 +99,8 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
                 WORK_SOLI,
                 WORK_TRAVEL_FARE,
                 WORK_TRAVEL_TOTAL,
+                WORK_BENEFITS_TAX_FREE,
+                WORK_BENEFITS_FLAT_TAXED,
                 WORK_TRIP_DAYS,
             )
         },
@@ -531,7 +535,7 @@ def test_whole_flow_the_page_and_the_finding_list_show_the_assessment(
     assert "Laut EStB" in page
     estb = '<span class="seite">Laut EStB</span> '
     assert f"{estb}218 Tage" in page and f"{estb}97.292 €" in page
-    assert "wird noch nicht berechnet" in page
+    assert "wird noch nicht berechnet" not in page  # jedes Feld hat einen Wert oder eine Eingabe
     note = http.get("/befunde?year=2025").text
     assert "keinen Schnappschuss" in note
 

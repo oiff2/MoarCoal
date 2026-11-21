@@ -195,6 +195,8 @@ def test_catalog_has_every_known_field_but_values_only_for_the_computed_ones() -
         "E0203505",
         "E0203508",
         "E0203509",
+        "E0203901",
+        "E0204103",
         "E0204403",
         "E0204507",
         "E0205004",
@@ -209,7 +211,7 @@ def test_fields_without_amount_or_computation_are_marked_and_consistent() -> Non
     uncomputed = [f for f in FIELDS_2025 if not f.computed]
     no_amount = [f for f in FIELDS_2025 if f.unit is None]
 
-    assert len(uncomputed) == 7
+    assert uncomputed == no_amount  # jedes Feld mit Betrag ist berechnet
     assert {f.elster_id for f in no_amount} == {
         "E0203003",
         "E0203501",
@@ -217,7 +219,7 @@ def test_fields_without_amount_or_computation_are_marked_and_consistent() -> Non
         "E0204901",
         "E0205003",
     }
-    assert all(not f.computed and not f.assessment for f in no_amount)
+    assert all(not f.computed and not f.assessment and f.typed for f in no_amount)
 
 
 def test_equipment_that_does_not_apply_makes_the_field_not_apply_too() -> None:
@@ -581,10 +583,22 @@ def test_absence_days_add_the_homeoffice_days_of_the_workplace() -> None:
     assert exposed(tax_year(foreign)(N_ABSENCE_DAYS, YEAR)).amount == Amount.of(53, Unit.DAYS)
 
 
-def test_only_the_company_car_is_an_input_field() -> None:
+def test_fields_without_amount_are_input_fields() -> None:
     typed = {f.elster_id: f.typed for f in FIELDS_2025 if f.typed}
 
-    assert typed == {"E0204901": TypedInput(YES_NO)}
+    assert typed == {
+        "E0203003": TypedInput(
+            (
+                "Keine Angabe",
+                "erste Tätigkeitsstätte",
+                "Sammelpunkt / weiträumiges Tätigkeitsgebiet",
+            )
+        ),
+        "E0203501": TypedInput(),
+        "E0203101": TypedInput(day_range=True),
+        "E0204901": TypedInput(YES_NO),
+        "E0205003": TypedInput(),
+    }
 
 
 # --- Nr. 28 und 31: Tage je Woche, Abwesenheit, Pkw-km -----------------------------------------

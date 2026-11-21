@@ -26,6 +26,8 @@ from moarcoal.modules.tax_year.anlage_n import (
     FORMS,
     N_EQUIPMENT,
     WORK_ABSENCE_DAYS,
+    WORK_BENEFITS_FLAT_TAXED,
+    WORK_BENEFITS_TAX_FREE,
     WORK_CAR_DISTANCE,
     WORK_DISTANCE_KM,
     WORK_EQUIPMENT,
@@ -118,6 +120,8 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
                 WORK_SOLI,
                 WORK_TRAVEL_FARE,
                 WORK_TRAVEL_TOTAL,
+                WORK_BENEFITS_TAX_FREE,
+                WORK_BENEFITS_FLAT_TAXED,
                 WORK_TRIP_DAYS,
             )
         },

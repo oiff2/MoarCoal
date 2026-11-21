@@ -1,5 +1,6 @@
 """Gegenproben in der Zeile eines Felds: passt, weicht ab oder ohne Urteil."""
 
+import dataclasses
 from decimal import Decimal
 
 from moarcoal.modules.tax_year.anlage_n import FIELDS_2025
@@ -9,7 +10,9 @@ from moarcoal.values.findings import Finding, Severity
 from moarcoal.values.model import Period, ValueRef
 
 COMPUTED = next(f for f in FIELDS_2025 if f.computed and f.elster_id)
-NOT_COMPUTED = next(f for f in FIELDS_2025 if not f.computed and f.elster_id and not f.typed)
+# Anlage N 2025 berechnet jedes Feld mit Betrag (#165); ein nicht berechnetes Feld wie in den
+# übrigen Anlagen, aus einem berechneten abgeleitet
+NOT_COMPUTED = dataclasses.replace(COMPUTED, computed=False, typed=None)
 
 
 def deviation(message: str) -> Finding:

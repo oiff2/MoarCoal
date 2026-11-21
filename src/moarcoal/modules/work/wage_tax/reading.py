@@ -5,6 +5,11 @@ welche Pfade für Anlage N Nr. 4 bis 7 gelten: Steuerklasse, Bruttoarbeitslohn, 
 Solidaritätszuschlag. Das HTML enthält nur belegte Felder; was fehlt, bleibt leer (nie 0). Kommt
 ein Pfad mehrfach vor (Wiederholgruppe, z. B. Steuerklassenwechsel im Jahr), ist nicht entschieden,
 welcher Wert gilt; die Datei wird dann abgewiesen statt geraten.
+
+Die Arbeitgeberleistungen laut Nr. 17 und 18 kamen in keiner bisher gesehenen Bescheinigung vor;
+ihre Pfade sind darum unbekannt. Die Einlese-Regel kennt alle Pfade, die in echten Bescheinigungen
+vorkamen (`KNOWN_PATHS`), und hält jeden anderen fest (`unrecognized`). Nur ohne solche Pfade steht
+fest, dass die Bescheinigung Nr. 17 und 18 nicht nennt.
 """
 
 from pydantic import ValidationError
@@ -15,7 +20,7 @@ from moarcoal.modules.work.wage_tax.entries import WageTaxCertificate
 from moarcoal.storage import Document, ReadInEntry
 from moarcoal.values.model import parse_cents
 
-READER_VERSION = 1
+READER_VERSION = 2  # 2: unbekannte Pfade festhalten (Nr. 17, 18)
 TITLE = "Lohnsteuerbescheinigung"  # Titel der Dokumentart
 BELEGART = "VaSt_LStB"
 
@@ -23,6 +28,32 @@ TAX_CLASS = "Besteuerungsmerkmal-ELStAM-Steuerklasse-Klasse"
 GROSS_WAGES = "Besteuerungsgrund-BruttoArbLohn"
 INCOME_TAX = "Besteuerungsgrund-LSteuer"
 SOLI = "Besteuerungsgrund-Soli"
+
+# Pfade aus echten Bescheinigungen 2025 (ohne `VaSt_LStB-` und Index); Werte bleiben lokal.
+KNOWN_PATHS = frozenset(
+    {
+        "Allgemein-IdNr",
+        "Allgemein-Name",
+        "Allgemein-Vorname",
+        "ArbGName",
+        "Besteuerungsgrund-ArbgAnteilRenVers",
+        "Besteuerungsgrund-ArbnAnteilArblVers",
+        "Besteuerungsgrund-ArbnAnteilRenVers",
+        "Besteuerungsgrund-BeitrPrKrankVers",
+        GROSS_WAGES,
+        INCOME_TAX,
+        SOLI,
+        "Besteuerungsgrund-StFreiGePflegVers",
+        "Besteuerungsgrund-StFreiPrKrankVers",
+        "Besteuerungsmerkmal-ELStAM-GueltigAb",
+        "Besteuerungsmerkmal-ELStAM-Kirchensteuerabzug-Konfession",
+        TAX_CLASS,
+        "Dauer-Anfang",
+        "Dauer-Ende",
+        "Dauer-Jahr",
+        "Eingangsdatum",
+    }
+)
 
 
 def _single(fields: list[HtmlField], path: str, name: str) -> HtmlField | None:
@@ -32,6 +63,12 @@ def _single(fields: list[HtmlField], path: str, name: str) -> HtmlField | None:
             f"{name} steht {len(found)}-mal in der Datei; welcher Wert gilt, ist offen."
         )
     return found[0] if found else None
+
+
+def _unrecognized(fields: list[HtmlField]) -> list[str]:
+    """Die Pfade der Datei, die die Einlese-Regel nicht kennt, sortiert und ohne Dopplung."""
+    prefix = f"{BELEGART}-"
+    return sorted({f.path.removeprefix(prefix) for f in fields} - KNOWN_PATHS)
 
 
 def _cents(field: HtmlField, name: str) -> int:
@@ -80,6 +117,7 @@ def read_in_wage_tax_certificate(document: Document, content: bytes) -> list[Rea
             income_tax_cents=None if income_tax is None else _cents(income_tax, "Lohnsteuer"),
             soli_cents=None if soli is None else _cents(soli, "Solidaritätszuschlag"),
             places=places,
+            unrecognized=_unrecognized(fields),
         )
     except ValidationError as error:
         raise ReadInError(

@@ -6,8 +6,10 @@ das Feld aus derselben Angabe ab: bei Euro die Richtung, km zählen wie eine Aus
 """
 
 import dataclasses
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from enum import StrEnum
 
@@ -37,14 +39,40 @@ NEW_FIELD = "neu"
 
 @dataclass(frozen=True)
 class TypedInput:
-    """Ein Eintippfeld: der Nutzer wählt im Steuerjahr genau einen der Texte `choices`. Werte, mit
-    denen ein Modul rechnet, sind keine Eintippfelder, sondern Einträge dieses Moduls."""
+    """Ein Eintippfeld, das der Nutzer im Steuerjahr eingibt: genau einer der Texte `choices`, sonst
+    freier Text, mit `day_range` ein Zeitraum im Jahr wie „01.01-31.12“. Werte, mit denen ein Modul
+    rechnet, sind keine Eintippfelder, sondern Einträge dieses Moduls."""
 
-    choices: tuple[str, ...]
+    choices: tuple[str, ...] = ()
+    day_range: bool = False
 
-    def check(self, text: str) -> str | None:
-        """Der Grund, warum `text` nicht passt; `None`, wenn er passt."""
-        return None if text in self.choices else "Wähle eine der Möglichkeiten."
+    def __post_init__(self) -> None:
+        if self.choices and self.day_range:
+            raise ValueError("Ein Zeitraum hat keine Auswahl.")
+
+    def check(self, text: str, year: int) -> str | None:
+        """Der Grund, warum `text` im Jahr `year` nicht passt; `None`, wenn er passt."""
+        if self.choices:
+            return None if text in self.choices else "Wähle eine der Möglichkeiten."
+        if self.day_range and not _is_day_range(text, year):
+            return f"Gib den Zeitraum als TT.MM-TT.MM an, Tage des Jahrs {year} in Reihenfolge."
+        return None
+
+
+_DAY_RANGE = re.compile(r"(\d{2})\.(\d{2})-(\d{2})\.(\d{2})")
+
+
+def _is_day_range(text: str, year: int) -> bool:
+    """Ob `text` zwei Tage des Jahrs als TT.MM-TT.MM nennt, der erste nicht nach dem zweiten."""
+    match = _DAY_RANGE.fullmatch(text)
+    if match is None:
+        return False
+    day1, month1, day2, month2 = (int(group) for group in match.groups())
+    try:
+        start, end = date(year, month1, day1), date(year, month2, day2)
+    except ValueError:
+        return False
+    return start <= end
 
 
 @dataclass(frozen=True)
