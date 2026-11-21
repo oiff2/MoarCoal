@@ -25,7 +25,7 @@ import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from moarcoal.defaults import DEFAULT_USER, DEFAULT_YEAR, year_of
 from moarcoal.documents import IntakeRejected, take_in
@@ -97,8 +97,8 @@ class Source:
 class Report:
     """Was übernommen, übersprungen und gemeldet wurde: Zähler je Stichwort und Meldungen."""
 
-    counts: dict[str, int] = field(default_factory=dict)
-    notes: list[str] = field(default_factory=list)
+    counts: dict[str, int] = field(default_factory=dict[str, int])
+    notes: list[str] = field(default_factory=list[str])
 
     def count(self, key: str, note: str | None = None) -> None:
         self.counts[key] = self.counts.get(key, 0) + 1
@@ -114,7 +114,9 @@ class Context:
     store: Store
     modules: Sequence[ModuleRegistration]
     user: str
-    issuers: dict[str, EntryAddress | None] = field(default_factory=dict)  # Kohlebau-Id -> Adresse
+    issuers: dict[str, EntryAddress | None] = field(
+        default_factory=dict[str, EntryAddress | None]
+    )  # Kohlebau-Id -> Adresse
 
 
 type Part = Callable[[Context, Source, Report], None]
@@ -147,10 +149,13 @@ def _text(item: Mapping[str, Any], key: str, file: str, *, required: bool = True
 
 
 def _texts(item: Mapping[str, Any], key: str, file: str) -> tuple[str, ...]:
-    values = item.get(key, [])
-    if not isinstance(values, list) or not all(isinstance(v, str) for v in values):  # pyright: ignore[reportUnknownVariableType]
+    values: object = item.get(key, [])
+    if not isinstance(values, list):
         raise SourceError(f"{file}: „{key}“ hat nicht die erwartete Form.")
-    return tuple(v.strip() for v in values if v.strip())  # pyright: ignore[reportUnknownVariableType]
+    texts = [v for v in cast("list[object]", values) if isinstance(v, str)]
+    if len(texts) != len(cast("list[object]", values)):
+        raise SourceError(f"{file}: „{key}“ hat nicht die erwartete Form.")
+    return tuple(v.strip() for v in texts if v.strip())
 
 
 def read_source(root: Path, year: int) -> Source:
@@ -243,7 +248,7 @@ def import_issuers(ctx: Context, source: Source, report: Report) -> None:
 
 def document_kind_key(document: KohlebauDocument) -> str:
     """Schlüssel der Dokumentart in MoarCoal; leer für einen Beleg ohne Art."""
-    if document.art in KIND_BY_ART:
+    if document.art is not None and document.art in KIND_BY_ART:
         return KIND_BY_ART[document.art]
     return KIND_BY_DOCUMENT_TYPE.get(document.document_type, "")
 
