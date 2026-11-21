@@ -9,6 +9,7 @@ from app_helper import make_app
 from fastapi.testclient import TestClient
 
 from moarcoal.web.helpers import year_choices
+from moarcoal.web.links import mein_elster_url
 
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
@@ -134,3 +135,15 @@ def test_colors_live_only_in_the_tokens_of_the_stylesheet() -> None:
     assert re.findall(r"var\(--[\w-]+\)[\w-]", css) == []  # kein Token mitten in einem Namen
     for template in (src / "templates").rglob("*.html"):
         assert COLOR.findall(template.read_text(encoding="utf-8")) == [], template
+
+
+def test_header_links_to_mein_elster_in_a_new_tab_between_findings_and_the_switch(
+    tmp_path: Path,
+) -> None:
+    header = part(make_client(tmp_path).get("/").text, "header")
+    link = (
+        f'<a class="mein-elster" href="{mein_elster_url()}" target="_blank" '
+        'rel="noopener noreferrer" title="Mein ELSTER öffnen" aria-label="Mein ELSTER öffnen">'
+    )
+    assert link in header
+    assert header.index("befunde-kopf") < header.index(link) < header.index('class="darstellung"')

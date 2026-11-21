@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 
 from moarcoal.__main__ import DEFAULT_PORT, main, read_data_dir, read_port
 from moarcoal.storage import default_data_dir
+from moarcoal.web.links import mein_elster_url
 
 PORT = 4711
 DATA_DIR: list[Path] = []  # Wegwerfverzeichnis des laufenden Tests, nie das echte
@@ -33,7 +34,9 @@ def test_start_page_ok_and_loads_local_htmx() -> None:
     response = client().get("/")
     assert response.status_code == 200
     assert 'src="/static/htmx.min.js"' in response.text
-    assert "http://" not in response.text and "https://" not in response.text
+    # Der Link zu Mein ELSTER ist die einzige Adresse nach außen; nur ein Klick öffnet ihn.
+    page = response.text.replace(mein_elster_url(), "")
+    assert "http://" not in page and "https://" not in page
     assert client().get("/static/htmx.min.js").status_code == 200
 
 

@@ -30,6 +30,7 @@ from moarcoal.web.helpers import (
 )
 from moarcoal.web.issuer_field_pages import router as issuer_field_router
 from moarcoal.web.issuer_pages import router as issuer_router
+from moarcoal.web.links import mein_elster_url
 from moarcoal.web.person_pages import router as person_router
 from moarcoal.web.previews import preview_kind
 from moarcoal.web.security import SecurityMiddleware
@@ -63,6 +64,7 @@ def create_app(
     globals_["preview_kind"] = preview_kind
     globals_["document_name"] = lambda document: document_name(document, app.state.store.state())  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
     globals_["entry_url"] = lambda address: entry_url(app.state.modules, address)  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
+    globals_["mein_elster_url"] = mein_elster_url
     app.state.templates = Jinja2Templates(env=environment)
     app.state.modules = tuple(modules)
     app.state.user = user

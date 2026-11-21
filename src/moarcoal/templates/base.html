@@ -36,6 +36,7 @@
       {% for severity, n in summary.counts.items() if n %}{{ status_severity(severity, n ~ " " ~ (severity.value if n == 1 else plural[severity.value])) }}{% else %}<span class="keine">Keine Befunde</span>{% endfor %}
       {% if summary.top %}<span class="wichtigster">{{ summary.top.message }}</span>{% endif %}
     </a>
+    <a class="mein-elster" href="{{ mein_elster_url() }}" target="_blank" rel="noopener noreferrer" title="Mein ELSTER öffnen" aria-label="Mein ELSTER öffnen"><span class="mein-elster-marke">Mein ELSTER</span></a>
     <button type="button" class="darstellung" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">{% include "icons/sonne.svg" %}</button>
     <details class="nutzer">
       <summary title="{{ user_name }}" aria-label="Nutzer-Menü">{% include "icons/nutzer.svg" %}</summary>

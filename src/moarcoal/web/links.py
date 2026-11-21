@@ -47,3 +47,9 @@ def issuers_url() -> str:
 
 def issuer_url(issuer_id: str) -> str:
     return f"/aussteller/{issuer_id}"
+
+
+def mein_elster_url() -> str:
+    """Die Anmeldung bei Mein ELSTER: der einzige Link nach außen, nur ein Klick öffnet ihn
+    (PRINCIPLES.md 8)."""
+    return "https://www.elster.de/eportal/login/softpse"

@@ -39,6 +39,7 @@ from moarcoal.modules.work.trips.places import (
     sort_places,
 )
 from moarcoal.storage import Put, Store, entry_checksum
+from moarcoal.web.links import mein_elster_url
 
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
@@ -391,6 +392,6 @@ def test_a_hidden_ort_can_get_a_position_later(setup: Setup) -> None:
 
 def test_the_page_has_no_external_address(setup: Setup) -> None:
     setup.pick()
-    html = setup.page()
+    html = setup.page().replace(mein_elster_url(), "")  # Link der Kopfleiste, nur per Klick
     assert "http://" not in html and "https://" not in html
     assert 'style="' not in html
