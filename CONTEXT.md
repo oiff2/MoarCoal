@@ -293,6 +293,9 @@ _Avoid_: Prompt, Schema, Formular, Vorlage (allein, das sind die Jinja-Vorlagen 
 Ein Dokument, sofern es einen Betrag nachweist, auf den sich ein Einzelposten stützt oder (als Erwarteter Beleg) stützen soll; Beleg ist eine Rolle, kein Merkmal am Dokument, und nicht jedes Dokument ist einer. Auf der Belege-Seite nimmt man Belege auf: alles, was dort aufgenommen wird, ist ein Beleg, und die Auswahl „Beleg“ meint ein Dokument ohne besondere Dokumentart (Übertragungsprotokoll und EStB sind Spezialfälle davon).
 _Avoid_: Quittung, Nachweis
 
+**Übernahme aus Kohlebau**:
+Das Werkzeug `tools/kohlebau_import.py` liest den Quellordner des Vorgängerprojekts Kohlebau und schreibt nur über `apply`; wiederholbar, ein zweiter Lauf ändert nichts. Es übernimmt, was der Nutzer eingegeben hat (Aussteller, Belege als Dokumente, später Verträge, Freistellungsbeträge, Immobilie), nie Kohlebaus Feldwerte. Ein Beleg kommt nur auf, wenn seine Datei (SHA-256) in einem Ablageort liegt; sonst meldet das Werkzeug ihn.
+
 **Erwarteter Beleg**:
 Ein Beleg, der regelmäßig oder einmalig kommen soll, z. B. jährlich die Zinsbescheinigung zu einem Darlehen: Aussteller, Dokumentart, die Einträge, die er betrifft, Rhythmus mit Beginn und Ende sowie Beschaffungsweg und Beschaffungshinweis. Ein Eintrag, der von Beginn bis Ende gilt; für jeden Zeitraum seines Rhythmus ergibt sich daraus, welches Dokument fällig ist, ohne dass jährlich etwas neu angelegt wird. Er ist **erfüllt**, sobald ein passendes Dokument da ist; fällt er für einen Zeitraum aus, trägt er dafür eine Ausnahme mit Notiz. Gebaut ist die **einfache Form**: Dokumentart, Beginn- und Endjahr (Ende offen erlaubt, jährlich) und Beschreibung (Code: `ExpectedDocument`); als Fundstelle ergibt er den Belegstand ausstehend (Code: `ExpectedDocumentLocator`).
 _Avoid_: Checkliste, Erwartung (allein), offener Beleg, Platzhalter
