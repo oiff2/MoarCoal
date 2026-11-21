@@ -90,9 +90,19 @@ class YearNote(Entry):
 NOTE_KIND = entry_kind(YearNote, "test/1", lambda e: f"users/{e.owner}/notes.json")
 
 
-def document(site: str, **period: datetime.date) -> Document:
+def document(
+    site: str,
+    period_start: datetime.date | None = None,
+    period_end: datetime.date | None = None,
+) -> Document:
     return Document(
-        owner="anna", site=site, path="a.pdf", sha256="0" * 64, document_kind=None, **period
+        owner="anna",
+        site=site,
+        path="a.pdf",
+        sha256="0" * 64,
+        document_kind=None,
+        period_start=period_start,
+        period_end=period_end,
     )
 
 
