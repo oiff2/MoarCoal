@@ -8,12 +8,12 @@ bei Tagen und km sind sie mehrdeutig.
 
 from collections.abc import Iterator, Sequence
 
-from moarcoal.modules.tax_year.anlage_n import ANLAGEN
 from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading, taken_order
 from moarcoal.modules.tax_year.fields import AmbiguousLines, FormField, NotANumber
 from moarcoal.modules.tax_year.form_names import form_name
 from moarcoal.modules.tax_year.links import protocol_url
+from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.structure import FormStructure
 from moarcoal.registration import ModuleState
 from moarcoal.values.calculation import ValueSource

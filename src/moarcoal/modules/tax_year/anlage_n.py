@@ -420,5 +420,3 @@ def values_for(forms: Forms) -> tuple[ValueDefinition, ...]:
 
 
 ANLAGE_N = Anlage(FORM, FORMS, STRUCTURES, values_for)
-ANLAGEN: tuple[Anlage, ...] = (ANLAGE_N,)
-"""Die Anlagen, die das Steuerjahr kennt; eine neue meldet man hier an."""

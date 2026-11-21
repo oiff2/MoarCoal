@@ -5,10 +5,10 @@ EStB mit dem Schnappschuss (`assessment_check`)."""
 from collections.abc import Sequence
 
 from moarcoal.modules.tax_year import assessment_check, protocol_check, snapshot_check
-from moarcoal.modules.tax_year.anlage_n import ANLAGEN
 from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.assessment_check import assessment_findings
 from moarcoal.modules.tax_year.protocol_check import protocol_findings
+from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.snapshot_check import snapshot_findings
 from moarcoal.registration import ModuleState
 from moarcoal.values.calculation import ValueSource

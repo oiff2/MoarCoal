@@ -4,11 +4,11 @@ aktuellen Werte davon melden (Befunde)."""
 import datetime
 from collections.abc import Sequence
 
-from moarcoal.modules.tax_year.anlage_n import ANLAGEN
 from moarcoal.modules.tax_year.anlagen import Anlage, field_catalog
 from moarcoal.modules.tax_year.entries import MODULE_KEY, ProtocolReading
 from moarcoal.modules.tax_year.fields import FormField
 from moarcoal.modules.tax_year.links import anlage_url
+from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Change, Document, Entry, FrozenValue, Occasion, Put, Snapshot
 from moarcoal.values.calculation import ValueSource

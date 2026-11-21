@@ -13,6 +13,7 @@ from pathlib import Path
 
 from moarcoal.modules.tax_year.entries import ElsterId, ProtocolLine
 from moarcoal.modules.tax_year.fields import FormField
+from moarcoal.modules.tax_year.form_names import form_name, protocol_page
 
 SCHEMA = 1  # wie im Werkzeug
 DIRECTORY = Path(__file__).parent / "strukturen"
@@ -107,20 +108,21 @@ def provisional_structure(form: str, year: int, lines: Iterable[ProtocolLine]) -
     """Die vorläufige Struktur einer Anlage aus den Zeilen des Übertragungsprotokolls.
 
     Je E-Kennung ein Feld (die erste Zeile gilt; Wiederholzeilen bleiben eines). Nr. und Bezeichnung
-    stehen in der Zeile, Seite und Überschriften folgen dem Pfad des Felds im Protokoll: das erste
-    Segment nach der Anlage ist die Seite, die übrigen sind Überschriften. Die Reihenfolge ist
-    die des Protokolls. Zeilen anderer Anlagen übergeht sie.
+    stehen in der Zeile; die Seite folgt dem ersten Segment des Pfads nach der Anlage, mit dem
+    Titel aus Mein ELSTER, wo er bekannt ist (`protocol_page`). Überschriften gibt es keine, denn
+    die übrigen Segmente sind interne Kürzel. Die Reihenfolge ist die des Protokolls. Zeilen
+    anderer Anlagen übergeht sie.
     """
     fields: dict[str, StructureField] = {}
     for line in lines:
         if line.form != form or line.elster_id in fields:
             continue
         match = _PROTOCOL_PATH.match(line.data_name)
-        segments = match["path"].split("-") if match else []
+        segment = match["path"].split("-")[0] if match else ""
         fields[line.elster_id] = StructureField(
             line.elster_id,
-            segments[0] if segments else form,
-            tuple(segments[1:]),
+            protocol_page(form, segment) if segment else form_name(form),
+            (),
             line.form_line,
             line.label,
         )

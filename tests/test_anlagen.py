@@ -10,10 +10,11 @@ from fastapi.testclient import TestClient
 
 from moarcoal.modules import MODULES
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registration
-from moarcoal.modules.tax_year.anlage_n import ANLAGE_N, ANLAGEN
+from moarcoal.modules.tax_year.anlage_n import ANLAGE_N
 from moarcoal.modules.tax_year.anlagen import Anlage, year_anlagen
 from moarcoal.modules.tax_year.fields import FormField, Rounding
 from moarcoal.modules.tax_year.protocol_check import DEVIATION
+from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.snapshot_check import snapshot_on_filing
 from moarcoal.modules.tax_year.structure import FormStructure, StructureField
 from moarcoal.storage import Document, Entry, Put, Snapshot
@@ -24,7 +25,7 @@ from moarcoal.values.testing import evaluate
 PORT = 4711
 FORMS = ("ESt1A", "VOR", "SA", "N", "KAP", "V")
 NAMES = (
-    "ESt 1 A",
+    "Hauptvordruck ESt 1 A",
     "Anlage Vorsorgeaufwand",
     "Anlage Sonderausgaben",
     "Anlage N",
@@ -127,7 +128,7 @@ def test_form_without_a_stored_structure_gets_one_from_the_protocol(tmp_path: Pa
     assert 'href="/steuerjahr/anlage-kap/2025/angaben"' in page
 
 
-def test_provisional_structure_takes_page_and_headings_from_the_protocol_path() -> None:
+def test_provisional_structure_takes_the_page_from_the_protocol_path() -> None:
     lines = (
         line("KAP", "E0900001", "1", "Eins"),
         line("KAP", "E0900001", "2", "Eins"),  # Wiederholzeile bleibt ein Feld
@@ -141,7 +142,7 @@ def test_provisional_structure_takes_page_and_headings_from_the_protocol_path() 
     assert kap.provisional
     assert [f.e_kennung for f in kap.structure.fields] == ["E0900001"]
     assert kap.structure.fields[0].page == "Angaben"
-    assert kap.structure.fields[0].headings == ("Beispiel",)
+    assert kap.structure.fields[0].headings == ()  # die übrigen Pfadteile sind interne Kürzel
     assert [f.computed for f in kap.fields] == [False]
 
 
@@ -216,3 +217,51 @@ def test_filing_freezes_the_computed_fields_of_every_form() -> None:
 
     assert isinstance(change, Put) and isinstance(change.entry, Snapshot)
     assert [v.ref.key for v in change.entry.values] == [KEY]
+
+
+# --- Baum der Anlagen -----------------------------------------------------------------------
+
+
+def test_every_page_of_the_tax_year_shows_the_anlagen_with_their_pages(tmp_path: Path) -> None:
+    http = client(tmp_path)
+    put(http, protocol(six_forms()))
+
+    page = http.get("/steuerjahr/anlage-kap/2025").text
+
+    assert 'class="anlagen-baum"' in page
+    for slug in ("est1a", "vor", "sa", "n", "kap", "v"):
+        assert f'href="/steuerjahr/anlage-{slug}/2025"' in page
+    assert "<details open>" in page  # die gewählte Anlage ist aufgeklappt
+    assert 'href="/steuerjahr/anlage-n/2025/1"' in page  # Seiten anderer Anlagen auch
+
+
+def test_provisional_pages_carry_the_title_from_mein_elster() -> None:
+    lines = (
+        ProtocolLine(
+            elster_id="E2000401",
+            form="VOR",
+            form_line="4",
+            label="Beispiel",
+            content="1,00",
+            index="1_1-1-1",
+            data_name="id-VOR-AVor-E2000401_usb1_1-1-1",
+        ),
+    )
+    reading = protocol(lines)[1]
+    assert isinstance(reading, ProtocolReading)
+
+    (vor,) = [a for a in year_anlagen((), 2025, reading) if a.form == "VOR"]
+
+    assert [p.title for p in vor.pages] == ["1 - Beiträge zur Altersvorsorge"]
+    assert [p.slug for p in vor.pages] == ["1"]
+
+
+def test_anlage_v_has_the_stored_structure_and_shows_the_protocol(tmp_path: Path) -> None:
+    http = client(tmp_path)
+    put(http, protocol(six_forms()))
+
+    page = http.get("/steuerjahr/anlage-v/2025").text
+
+    assert "1 - Allgemeine Angaben" in page
+    assert "aus dem Übertragungsprotokoll 2025 abgeleitet" not in page
+    assert "Laut Protokoll" in page and "wird noch nicht berechnet" in page

@@ -1,0 +1,1194 @@
+{
+ "schema": 1,
+ "form": "V",
+ "year": 2025,
+ "provisional": false,
+ "fields": [
+  {
+   "e_kennung": "E0700407",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Lage des Grundstücks / der Eigentumswohnung"
+   ],
+   "line": "4",
+   "label": "Straße, Hausnummer"
+  },
+  {
+   "e_kennung": "E0700503",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Lage des Grundstücks / der Eigentumswohnung"
+   ],
+   "line": "5",
+   "label": "Postleitzahl"
+  },
+  {
+   "e_kennung": "E0700504",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Lage des Grundstücks / der Eigentumswohnung"
+   ],
+   "line": "5",
+   "label": "Ort"
+  },
+  {
+   "e_kennung": "E0700605",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Lage des Grundstücks / der Eigentumswohnung"
+   ],
+   "line": "6",
+   "label": "Aktenzeichen laut Grundsteuermessbescheid (ohne Sonderzeichen) – bisher Einheitswert-Aktenzeichen –"
+  },
+  {
+   "e_kennung": "E0700102",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Lage des Grundstücks / der Eigentumswohnung"
+   ],
+   "line": "7",
+   "label": "Notar- / Kaufvertrag vom (TT.MM.JJJJ)"
+  },
+  {
+   "e_kennung": "E0700706",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Lage des Grundstücks / der Eigentumswohnung"
+   ],
+   "line": "7",
+   "label": "Eigentumsübergang am (TT.MM.JJJJ)"
+  },
+  {
+   "e_kennung": "E0700707",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Lage des Grundstücks / der Eigentumswohnung"
+   ],
+   "line": "7",
+   "label": "Bauantrag / Bauanzeige / Baubeginnsanzeige vom (TT.MM.JJJJ)"
+  },
+  {
+   "e_kennung": "E0700103",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Lage des Grundstücks / der Eigentumswohnung"
+   ],
+   "line": "7",
+   "label": "Fertig gestellt am (TT.MM.JJJJ)"
+  },
+  {
+   "e_kennung": "E0700606",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Lage des Grundstücks / der Eigentumswohnung"
+   ],
+   "line": "8",
+   "label": "Veräußert / Übertragen am (TT.MM.JJJJ)"
+  },
+  {
+   "e_kennung": "E0700806",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Lage des Grundstücks / der Eigentumswohnung"
+   ],
+   "line": "8",
+   "label": "Eigentumsübergang bei Veräußerung / Übertragung am (TT.MM.JJJJ)"
+  },
+  {
+   "e_kennung": "E0700805",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Lage des Grundstücks / der Eigentumswohnung"
+   ],
+   "line": "9",
+   "label": "Wirtschafts-Identifikationsnummer (DE123456789-00001)"
+  },
+  {
+   "e_kennung": "E0700703",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Das in Zeile 4 bezeichnete Objekt wird ganz oder teilweise"
+   ],
+   "line": "10",
+   "label": "als Ferienwohnung genutzt"
+  },
+  {
+   "e_kennung": "E0700705",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Das in Zeile 4 bezeichnete Objekt wird ganz oder teilweise"
+   ],
+   "line": "10",
+   "label": "kurzfristig vermietet"
+  },
+  {
+   "e_kennung": "E0700704",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Das in Zeile 4 bezeichnete Objekt wird ganz oder teilweise"
+   ],
+   "line": "10",
+   "label": "an Angehörige zu Wohnzwecken vermietet"
+  },
+  {
+   "e_kennung": "E0700702",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Gesamtwohnfläche"
+   ],
+   "line": "11",
+   "label": "Gesamtwohnfläche (m²)"
+  },
+  {
+   "e_kennung": "E0700104",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Gesamtwohnfläche"
+   ],
+   "line": "12",
+   "label": "in Zeile 11 enthaltener eigengenutzter / unentgeltlich an Dritte überlassener Wohnraum (m²)"
+  },
+  {
+   "e_kennung": "E0700106",
+   "page": "1 - Allgemeine Angaben",
+   "headings": [
+    "Gesamtwohnfläche"
+   ],
+   "line": "12",
+   "label": "in Zeile 11 enthaltener als Ferienwohnung genutzter Wohnraum (in m²) (m²)"
+  },
+  {
+   "e_kennung": "E0701202",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Mieteinnahmen",
+    "Mieteinnahmen für Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
+   ],
+   "line": "",
+   "label": "Bezeichnung der Wohneinheit (z. B. Stockwerk, Nummer der Wohnung)"
+  },
+  {
+   "e_kennung": "E0700302",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Mieteinnahmen",
+    "Mieteinnahmen für Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
+   ],
+   "line": "",
+   "label": "Wohnfläche (in m²) (X,XX)"
+  },
+  {
+   "e_kennung": "E0700201",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Mieteinnahmen",
+    "Mieteinnahmen für Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
+   ],
+   "line": "",
+   "label": "Mieteinnahmen (Euro)"
+  },
+  {
+   "e_kennung": "E0700206",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Mieteinnahmen",
+    "Mieteinnahmen für Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
+   ],
+   "line": "15",
+   "label": "Summe (Euro)"
+  },
+  {
+   "e_kennung": "E0701603",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Mieteinnahmen",
+    "Einnahmen für andere Räume (ohne Umlagen / ohne Umsatzsteuer)"
+   ],
+   "line": "",
+   "label": "Bezeichnung der Einheit (z. B. Stockwerk, Nummer der Einheit)"
+  },
+  {
+   "e_kennung": "E0701604",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Mieteinnahmen",
+    "Einnahmen für andere Räume (ohne Umlagen / ohne Umsatzsteuer)"
+   ],
+   "line": "",
+   "label": "Nutzfläche (in m²) (X,XX)"
+  },
+  {
+   "e_kennung": "E0700401",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Mieteinnahmen",
+    "Einnahmen für andere Räume (ohne Umlagen / ohne Umsatzsteuer)"
+   ],
+   "line": "",
+   "label": "Mieteinnahmen für andere Räume (Euro)"
+  },
+  {
+   "e_kennung": "E0700406",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Mieteinnahmen",
+    "Einnahmen für andere Räume (ohne Umlagen / ohne Umsatzsteuer)"
+   ],
+   "line": "18",
+   "label": "Summe (Euro)"
+  },
+  {
+   "e_kennung": "E0701903",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Mieteinnahmen",
+    "Einnahmen für an Angehörige vermietete Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
+   ],
+   "line": "19",
+   "label": "Bezeichnung der Wohneinheit (z. B. Stockwerk, Nummer der Wohnung)"
+  },
+  {
+   "e_kennung": "E0700603",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Mieteinnahmen",
+    "Einnahmen für an Angehörige vermietete Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
+   ],
+   "line": "19",
+   "label": "Wohnfläche (in m²) (X,XX)"
+  },
+  {
+   "e_kennung": "E0700604",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Mieteinnahmen",
+    "Einnahmen für an Angehörige vermietete Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
+   ],
+   "line": "19",
+   "label": "Einnahmen (Euro)"
+  },
+  {
+   "e_kennung": "E0700501",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Einnahmen aus umgelegten Neben- / Betriebskosten (z. B. Wasser, Allgemeinstrom, Müllabfuhr, Zentralheizung)"
+   ],
+   "line": "20",
+   "label": "auf die Zeilen 15 und 18 entfallende laufende Neben- / Betriebskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0702106",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Einnahmen aus umgelegten Neben- / Betriebskosten (z. B. Wasser, Allgemeinstrom, Müllabfuhr, Zentralheizung)"
+   ],
+   "line": "21",
+   "label": "auf die Zeilen 15 und 18 entfallende und im Jahr 2025 erhaltene Nachzahlungen / geleistete Erstattungen (negativen Betrag mit vorangestelltem Minuszeichen eintragen) (Euro)"
+  },
+  {
+   "e_kennung": "E0700502",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Einnahmen aus umgelegten Neben- / Betriebskosten (z. B. Wasser, Allgemeinstrom, Müllabfuhr, Zentralheizung)"
+   ],
+   "line": "22",
+   "label": "auf Zeile 19 entfallende laufende Neben- / Betriebskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0702304",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Einnahmen aus umgelegten Neben- / Betriebskosten (z. B. Wasser, Allgemeinstrom, Müllabfuhr, Zentralheizung)"
+   ],
+   "line": "23",
+   "label": "auf Zeile 19 entfallende und im Jahr 2025 erhaltene Nachzahlungen / geleistete Erstattungen (negativen Betrag mit vorangestelltem Minuszeichen eintragen) (Euro)"
+  },
+  {
+   "e_kennung": "E0702404",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Einnahmen aus umgelegten Neben- / Betriebskosten (z. B. Wasser, Allgemeinstrom, Müllabfuhr, Zentralheizung)"
+   ],
+   "line": "24",
+   "label": "Neben- / Betriebskosten wurden nicht gesondert vereinbart."
+  },
+  {
+   "e_kennung": "E0700601",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Sonstige Einnahmen"
+   ],
+   "line": "25",
+   "label": "Vereinnahmte Mieten für frühere Jahre / verrechnete Mietkautionen / auf das Kalenderjahr entfallende Mietvorauszahlungen aus Baukostenzuschüssen (Euro)"
+  },
+  {
+   "e_kennung": "E0700701",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Sonstige Einnahmen"
+   ],
+   "line": "26",
+   "label": "Einnahmen aus Vermietung von Garagen, Werbeflächen, Grund und Boden für Kioske usw. (Euro)"
+  },
+  {
+   "e_kennung": "E0701602",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Sonstige Einnahmen"
+   ],
+   "line": "27",
+   "label": "Vereinnahmte Umsatzsteuer (Euro)"
+  },
+  {
+   "e_kennung": "E0701701",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Sonstige Einnahmen"
+   ],
+   "line": "28",
+   "label": "Vom Finanzamt erstattete und ggf. verrechnete Umsatzsteuer (Euro)"
+  },
+  {
+   "e_kennung": "E0701301",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Sonstige Einnahmen",
+    "Öffentliche Zuschüsse nach dem Wohnraumförderungsgesetz oder zu Erhaltungsaufwendungen, Aufwendungszuschüsse, Guthabenzinsen aus Bausparverträgen und sonstige Einnahmen"
+   ],
+   "line": "29",
+   "label": "Öffentliche Zuschüsse nach dem Wohnraumförderungsgesetz oder zu Erhaltungsaufwendungen, Aufwendungszuschüsse, Guthabenzinsen aus Bausparverträgen und sonstige Einnahmen (Euro)"
+  },
+  {
+   "e_kennung": "E0701302",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Sonstige Einnahmen",
+    "Öffentliche Zuschüsse nach dem Wohnraumförderungsgesetz oder zu Erhaltungsaufwendungen, Aufwendungszuschüsse, Guthabenzinsen aus Bausparverträgen und sonstige Einnahmen"
+   ],
+   "line": "30",
+   "label": "Von dem Betrag in Zeile 29 entfallen auf eigengenutzte oder unentgeltlich an Dritte überlassene Wohnungen laut Zeile 12 (Euro)"
+  },
+  {
+   "e_kennung": "E0701303",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Sonstige Einnahmen",
+    "Öffentliche Zuschüsse nach dem Wohnraumförderungsgesetz oder zu Erhaltungsaufwendungen, Aufwendungszuschüsse, Guthabenzinsen aus Bausparverträgen und sonstige Einnahmen"
+   ],
+   "line": "31",
+   "label": "Ergebnis der Zeilen 29 und 30 (Euro)"
+  },
+  {
+   "e_kennung": "E0701401",
+   "page": "2 - Einnahmen",
+   "headings": [
+    "Summe der Einnahmen"
+   ],
+   "line": "32",
+   "label": "Summe der Einnahmen aus den Zeilen 15, 18 bis 28 und 31 (Euro)"
+  },
+  {
+   "e_kennung": "E0703511",
+   "page": "3 - Absetzung für Abnutzung für Gebäude (ohne Beträge in den Zeilen 36 bis 41)",
+   "headings": [
+    "Summe"
+   ],
+   "line": "35",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0703416",
+   "page": "4 - Sonderabschreibung für Mietwohnungsneubau nach § 7b EStG",
+   "headings": [
+    "Summe"
+   ],
+   "line": "38",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704008",
+   "page": "5 - Erhöhte Absetzungen nach den §§ 7h, 7i EStG und / oder nach dem Schutzbaugesetz",
+   "headings": [
+    "Summe"
+   ],
+   "line": "41",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0703519",
+   "page": "6 - Absetzung für Abnutzung für Wirtschaftsgüter, die keine Gebäude sind (z. B. bewegliche Wirtschaftsgüter)",
+   "headings": [
+    "Summe"
+   ],
+   "line": "45",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704507",
+   "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
+   "headings": [
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Einzelangaben (z. B. Kreditinstitut)"
+  },
+  {
+   "e_kennung": "E0704508",
+   "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
+   "headings": [
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704610",
+   "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Einzelangaben (z. B. Kreditinstitut)"
+  },
+  {
+   "e_kennung": "E0704611",
+   "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E0704612",
+   "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "abzugsfähiger Anteil (in %) (X,XX)"
+  },
+  {
+   "e_kennung": "E0704613",
+   "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0703406",
+   "page": "7 - Schuldzinsen (ohne Tilgungsbeträge)",
+   "headings": [
+    "Summe"
+   ],
+   "line": "48",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704813",
+   "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
+   "headings": [
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Bezeichnung"
+  },
+  {
+   "e_kennung": "E0704814",
+   "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
+   "headings": [
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704908",
+   "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Bezeichnung"
+  },
+  {
+   "e_kennung": "E0704909",
+   "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E0704910",
+   "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "abzugsfähiger Anteil (in %) (X,XX)"
+  },
+  {
+   "e_kennung": "E0704911",
+   "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704406",
+   "page": "8 - Geldbeschaffungskosten (z. B. Schätz-, Notar-, Grundbuchgebühren)",
+   "headings": [
+    "Summe"
+   ],
+   "line": "51",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0705108",
+   "page": "9 - Renten, dauernde Lasten",
+   "headings": [
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Bezeichnung"
+  },
+  {
+   "e_kennung": "E0705109",
+   "page": "9 - Renten, dauernde Lasten",
+   "headings": [
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0705207",
+   "page": "9 - Renten, dauernde Lasten",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Bezeichnung"
+  },
+  {
+   "e_kennung": "E0705208",
+   "page": "9 - Renten, dauernde Lasten",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E0705209",
+   "page": "9 - Renten, dauernde Lasten",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "abzugsfähiger Anteil (in %) (X,XX)"
+  },
+  {
+   "e_kennung": "E0705210",
+   "page": "9 - Renten, dauernde Lasten",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704506",
+   "page": "9 - Renten, dauernde Lasten",
+   "headings": [
+    "Summe"
+   ],
+   "line": "54",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704412",
+   "page": "10 - 2025 voll abzuziehende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage)",
+   "headings": [
+    "Summe"
+   ],
+   "line": "55",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704513",
+   "page": "10 - 2025 voll abzuziehende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage)",
+   "headings": [
+    "Summe"
+   ],
+   "line": "56",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0703907",
+   "page": "11 - Auf bis zu 5 Jahre zu verteilende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage) – §§ 11a, 11b EStG, § 82b EStDV –",
+   "headings": [
+    "Gesamtaufwand 2025",
+    "Summe"
+   ],
+   "line": "57",
+   "label": "Gesamtaufwand 2025 (Euro)"
+  },
+  {
+   "e_kennung": "E0704703",
+   "page": "11 - Auf bis zu 5 Jahre zu verteilende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage) – §§ 11a, 11b EStG, § 82b EStDV –",
+   "headings": [
+    "Gesamtaufwand 2025",
+    "Summe"
+   ],
+   "line": "57",
+   "label": "davon 2025 abzuziehen (Euro)"
+  },
+  {
+   "e_kennung": "E0705702",
+   "page": "11 - Auf bis zu 5 Jahre zu verteilende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage) – §§ 11a, 11b EStG, § 82b EStDV –",
+   "headings": [
+    "Gesamtaufwand 2025",
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag (Euro)"
+  },
+  {
+   "e_kennung": "E0705801",
+   "page": "11 - Auf bis zu 5 Jahre zu verteilende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage) – §§ 11a, 11b EStG, § 82b EStDV –",
+   "headings": [
+    "Gesamtaufwand 2025",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E0705802",
+   "page": "11 - Auf bis zu 5 Jahre zu verteilende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage) – §§ 11a, 11b EStG, § 82b EStDV –",
+   "headings": [
+    "Gesamtaufwand 2025",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "abzugsfähiger Anteil (in %) (X,XX)"
+  },
+  {
+   "e_kennung": "E0705803",
+   "page": "11 - Auf bis zu 5 Jahre zu verteilende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage) – §§ 11a, 11b EStG, § 82b EStDV –",
+   "headings": [
+    "Gesamtaufwand 2025",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704708",
+   "page": "11 - Auf bis zu 5 Jahre zu verteilende Erhaltungsaufwendungen (einschließlich Entnahmen aus der Erhaltungsrücklage) – §§ 11a, 11b EStG, § 82b EStDV –",
+   "headings": [
+    "Gesamtaufwand 2025",
+    "davon 2025 abzuziehen (Summe)"
+   ],
+   "line": "60",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0706003",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2021",
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag (Euro)"
+  },
+  {
+   "e_kennung": "E0706103",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2021",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E0706104",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2021",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "abzugsfähiger Anteil (in %) (X,XX)"
+  },
+  {
+   "e_kennung": "E0706105",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2021",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704015",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2021",
+    "Summe"
+   ],
+   "line": "63",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0706301",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2022",
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag (Euro)"
+  },
+  {
+   "e_kennung": "E0706401",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2022",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E0706402",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2022",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "abzugsfähiger Anteil (in %) (X,XX)"
+  },
+  {
+   "e_kennung": "E0706403",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2022",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704115",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2022",
+    "Summe"
+   ],
+   "line": "66",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0706601",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2023",
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag (Euro)"
+  },
+  {
+   "e_kennung": "E0706701",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2023",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E0706702",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2023",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "abzugsfähiger Anteil (in %) (X,XX)"
+  },
+  {
+   "e_kennung": "E0706703",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2023",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704215",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2023",
+    "Summe"
+   ],
+   "line": "69",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0706901",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2024",
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag (Euro)"
+  },
+  {
+   "e_kennung": "E0707001",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2024",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E0707002",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2024",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "abzugsfähiger Anteil (in %) (X,XX)"
+  },
+  {
+   "e_kennung": "E0707003",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2024",
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704315",
+   "page": "12 - Zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV",
+   "headings": [
+    "2025 zu berücksichtigender Anteil der Erhaltungsaufwendungen nach den §§ 11a, 11b EStG, § 82b EStDV aus 2024",
+    "Summe"
+   ],
+   "line": "72",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0707201",
+   "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
+   "headings": [
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Einzelangaben"
+  },
+  {
+   "e_kennung": "E0707202",
+   "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
+   "headings": [
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0707301",
+   "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Einzelangaben"
+  },
+  {
+   "e_kennung": "E0707302",
+   "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E0707303",
+   "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "abzugsfähiger Anteil (in %) (X,XX)"
+  },
+  {
+   "e_kennung": "E0707304",
+   "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704418",
+   "page": "13 - Umgelegte Kosten (z. B. Grundsteuer, Straßenreinigung, Müllabfuhr, Wasserversorgung, Entwässerung, Hausbeleuchtung, Heizung, Warmwasser, Schornsteinreinigung, Hausversicherungen, Hauswart, Treppenhausreinigung, Fahrstuhl)",
+   "headings": [
+    "Summe"
+   ],
+   "line": "75",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0707501",
+   "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
+   "headings": [
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Einzelangaben"
+  },
+  {
+   "e_kennung": "E0707502",
+   "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
+   "headings": [
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag (Euro)"
+  },
+  {
+   "e_kennung": "E0707601",
+   "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Einzelangaben"
+  },
+  {
+   "e_kennung": "E0707602",
+   "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E0707603",
+   "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "abzugsfähiger Anteil (in %) (X,XX)"
+  },
+  {
+   "e_kennung": "E0707604",
+   "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0705515",
+   "page": "14 - Nicht umgelegte Kosten (z. B. Verwaltungskosten, Bank- und Kontoführungsgebühren – ohne Erhaltungsrücklage –)",
+   "headings": [
+    "Summe"
+   ],
+   "line": "78",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0704812",
+   "page": "15 - Nur bei umsatzsteuerpflichtiger Vermietung: an das Finanzamt gezahlte und ggf. verrechnete Umsatzsteuer",
+   "headings": [],
+   "line": "79",
+   "label": "durch direkte Zuordnung ermittelt (Euro)"
+  },
+  {
+   "e_kennung": "E0707901",
+   "page": "16 - Sonstige Kosten",
+   "headings": [
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Einzelangaben"
+  },
+  {
+   "e_kennung": "E0707902",
+   "page": "16 - Sonstige Kosten",
+   "headings": [
+    "durch direkte Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag (Euro)"
+  },
+  {
+   "e_kennung": "E0708001",
+   "page": "16 - Sonstige Kosten",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Einzelangaben"
+  },
+  {
+   "e_kennung": "E0708002",
+   "page": "16 - Sonstige Kosten",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E0708003",
+   "page": "16 - Sonstige Kosten",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "abzugsfähiger Anteil (in %) (X,XX)"
+  },
+  {
+   "e_kennung": "E0708004",
+   "page": "16 - Sonstige Kosten",
+   "headings": [
+    "durch verhältnismäßige Zuordnung ermittelt"
+   ],
+   "line": "",
+   "label": "Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0705607",
+   "page": "16 - Sonstige Kosten",
+   "headings": [
+    "Summe"
+   ],
+   "line": "82",
+   "label": "Abzugsfähige Werbungskosten (Euro)"
+  },
+  {
+   "e_kennung": "E0705701",
+   "page": "17 - Summe der Werbungskosten und abziehbare Vorsteuerbeträge",
+   "headings": [],
+   "line": "83",
+   "label": "Summe der Werbungskosten(Summe der Zeilen 35, 38, 41, 45, 48, 51, 54, 55, 56, 60, 63, 66, 69, 72, 75, 78, 79 und 82) (Euro)"
+  },
+  {
+   "e_kennung": "E0705107",
+   "page": "17 - Summe der Werbungskosten und abziehbare Vorsteuerbeträge",
+   "headings": [],
+   "line": "84",
+   "label": "In den Werbungskosten laut Zeile 83 enthaltene abziehbare Vorsteuerbeträge (Euro)"
+  },
+  {
+   "e_kennung": "E0701601",
+   "page": "18 - Ermittlung und Zuordnung der Einkünfte",
+   "headings": [],
+   "line": "85",
+   "label": "Überschuss (Einnahmen laut Zeile 32 abzüglich Werbungskosten laut Zeile 83)– negativen Betrag mit vorangestelltem Minuszeichen eintragen – (Euro)"
+  },
+  {
+   "e_kennung": "E0701801",
+   "page": "18 - Ermittlung und Zuordnung der Einkünfte",
+   "headings": [],
+   "line": "86",
+   "label": "Steuerpflichtige Person / Ehemann / Person A (Euro)"
+  },
+  {
+   "e_kennung": "E0701802",
+   "page": "18 - Ermittlung und Zuordnung der Einkünfte",
+   "headings": [],
+   "line": "86",
+   "label": "Ehefrau / Person B (Euro)"
+  },
+  {
+   "e_kennung": "E0703417",
+   "page": "Absetzung für Abnutzung für Gebäude (ohne Beträge in den Zeilen 36 bis 41) durch verhältnismäßige Zuordnung ermittelt1. Eintrag",
+   "headings": [],
+   "line": "34",
+   "label": "Art der Absetzung für Abnutzung",
+   "options": [
+    "Keine Angabe",
+    "linear",
+    "degressiv"
+   ]
+  },
+  {
+   "e_kennung": "E0703418",
+   "page": "Absetzung für Abnutzung für Gebäude (ohne Beträge in den Zeilen 36 bis 41) durch verhältnismäßige Zuordnung ermittelt1. Eintrag",
+   "headings": [],
+   "line": "34",
+   "label": "Prozent (X,XX)"
+  },
+  {
+   "e_kennung": "E0703419",
+   "page": "Absetzung für Abnutzung für Gebäude (ohne Beträge in den Zeilen 36 bis 41) durch verhältnismäßige Zuordnung ermittelt1. Eintrag",
+   "headings": [],
+   "line": "34",
+   "label": "Absetzung für Abnutzung wie Vorjahr / laut Erläuterung",
+   "options": [
+    "Keine Angabe",
+    "wie Vorjahr",
+    "laut Erläuterung"
+   ]
+  },
+  {
+   "e_kennung": "E0703421",
+   "page": "Absetzung für Abnutzung für Gebäude (ohne Beträge in den Zeilen 36 bis 41) durch verhältnismäßige Zuordnung ermittelt1. Eintrag",
+   "headings": [],
+   "line": "34",
+   "label": "Erläuterung"
+  },
+  {
+   "e_kennung": "E0703422",
+   "page": "Absetzung für Abnutzung für Gebäude (ohne Beträge in den Zeilen 36 bis 41) durch verhältnismäßige Zuordnung ermittelt1. Eintrag",
+   "headings": [],
+   "line": "34",
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E0703423",
+   "page": "Absetzung für Abnutzung für Gebäude (ohne Beträge in den Zeilen 36 bis 41) durch verhältnismäßige Zuordnung ermittelt1. Eintrag",
+   "headings": [],
+   "line": "34",
+   "label": "abzugsfähiger Anteil (in %) (X,XX)"
+  },
+  {
+   "e_kennung": "E0703424",
+   "page": "Absetzung für Abnutzung für Gebäude (ohne Beträge in den Zeilen 36 bis 41) durch verhältnismäßige Zuordnung ermittelt1. Eintrag",
+   "headings": [],
+   "line": "34",
+   "label": "Werbungskosten (Euro)"
+  }
+ ]
+}

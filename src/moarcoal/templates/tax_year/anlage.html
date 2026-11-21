@@ -1,22 +1,18 @@
-{% extends "base.html" %}
+{% extends "tax_year/_rahmen.html" %}
 {% from "_value.html" import value_view %}
 {% from "tax_year/_eingabe.html" import input_cell %}
 {% from "_findings.html" import finding_list %}
 {% block title %}{{ anlage.name }} {{ year }} – MoarCoal{% endblock %}
-{% block main %}
+{% block inhalt %}
 <h1>{{ anlage.name }} {{ year }}</h1>
-<p><a href="/steuerjahr">Steuerjahr</a></p>
 {% if anlage.provisional %}
 <p>Die Felder und ihre Seiten sind aus dem Übertragungsprotokoll {{ year }} abgeleitet, nicht aus gespeicherten Seiten von Mein ELSTER. In der Spalte „Laut Protokoll“ steht, was übertragen wurde; MoarCoal berechnet für diese Felder noch nichts.</p>
+{% elif not anlage.catalogued %}
+<p>Die Felder und ihre Seiten wie in Mein ELSTER. In der Spalte „Laut Protokoll“ steht, was übertragen wurde; MoarCoal berechnet für diese Felder noch nichts.</p>
 {% else %}
 <p>Die Angaben aus den Modulen und die Eingaben direkt am Feld, aufgeteilt wie die Seiten der {{ anlage.name }} in Mein ELSTER. Aufgeführt sind die Felder, die MoarCoal kennt; ein Betrag wird bisher nur für die Felder berechnet, die aus einem Modul kommen.</p>
 {% endif %}
 
-<nav class="seiten" aria-label="Seiten: {{ anlage.name }}">
-  {% for p in anlage.pages %}
-  <a href="/steuerjahr/anlage-{{ anlage.slug }}/{{ year }}/{{ p.slug }}"{% if p.slug == page.slug %} aria-current="page"{% endif %}>{{ p.title }}</a>
-  {% endfor %}
-</nav>
 <h2>{{ page.title }}</h2>
 
 {% if findings.visible %}

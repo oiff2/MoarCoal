@@ -8,11 +8,11 @@ Positionen gehen ein; berechnete Felder ohne Gegenstück im Schnappschuss bleibe
 from collections.abc import Sequence
 from decimal import Decimal
 
-from moarcoal.modules.tax_year.anlage_n import ANLAGEN
 from moarcoal.modules.tax_year.anlagen import Anlage, field_catalog
 from moarcoal.modules.tax_year.assessment import ASSESSMENT_KEY
 from moarcoal.modules.tax_year.entries import taken_order
 from moarcoal.modules.tax_year.fields import FormField
+from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.snapshot_check import latest_snapshot
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Document, Snapshot

@@ -61,6 +61,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             "tax_year/index.html",
             year=year,
             anlagen=year_anlagen(anlagen, year, latest_reading(state, year)),
+            anlage=None,
             readings=readings,
         )
 
@@ -124,7 +125,8 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
                 if row.field.typed and (entry := current_input(state, year, row.field))
             },
             printed=printed,
-            transferred=protocol_contents(reading, anlage.form) if anlage.provisional else None,
+            transferred=None if anlage.catalogued else protocol_contents(reading, anlage.form),
+            anlagen=year_anlagen(anlagen, year, reading),
             findings=finding_list_of(request, year),  # Vorlage zeigt die sichtbaren Befunde
         )
 

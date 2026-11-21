@@ -6,7 +6,6 @@ from collections.abc import Sequence
 from functools import partial
 
 from moarcoal.documents import DocumentKind
-from moarcoal.modules.tax_year.anlage_n import ANLAGEN
 from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.assessment import ASSESSMENT
 from moarcoal.modules.tax_year.comparison import FINDING_KINDS, module_findings
@@ -20,6 +19,7 @@ from moarcoal.modules.tax_year.entries import (
 from moarcoal.modules.tax_year.inputs import input_problem
 from moarcoal.modules.tax_year.pages import entry_url, router_for
 from moarcoal.modules.tax_year.reading import READER_VERSION, TITLE, read_in_protocol
+from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.snapshot_check import snapshot_on_filing
 from moarcoal.registration import ModuleRegistration
 

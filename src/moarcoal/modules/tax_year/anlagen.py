@@ -40,7 +40,7 @@ class Anlage:
 
     form: str
     forms: Forms
-    structures: Mapping[int, FormStructure] = field(default_factory=dict)
+    structures: Mapping[int, FormStructure] = field(default_factory=dict[int, FormStructure])
     define_values: DefineValues = no_values
 
     @property
@@ -64,6 +64,7 @@ class YearAnlage:
     fields: tuple[FormField, ...]
     structure: FormStructure
     pages: tuple[FormPage, ...]
+    catalogued: bool  # eigener Katalog für das Jahr; ohne: die Felder der Struktur, unberechnet
 
     @property
     def provisional(self) -> bool:
@@ -75,8 +76,9 @@ def field_catalog(anlagen: Iterable[Anlage], year: int) -> tuple[FormField, ...]
     return tuple(f for anlage in anlagen for f in anlage.forms.get(year, ()))
 
 
-def provisional_fields(structure: FormStructure) -> tuple[FormField, ...]:
-    """Die Felder zur vorläufigen Struktur: nur Nr. und Bezeichnung, nichts wird berechnet."""
+def uncatalogued_fields(structure: FormStructure) -> tuple[FormField, ...]:
+    """Die Felder einer Anlage ohne Katalog, aus ihrer Struktur: nur Nr. und Bezeichnung, nichts
+    wird berechnet."""
     return tuple(
         FormField(
             ValueKey(f"tax_year.{structure.form.lower()}_{described.e_kennung.lower()}"),
@@ -114,7 +116,7 @@ def year_anlagen(
             structure = provisional_structure(form, year, lines)
         fields = anlage.forms.get(year)
         if fields is None:
-            fields = provisional_fields(structure)
+            fields = uncatalogued_fields(structure)
         if not structure.fields or not fields:
             continue
         found.append(
@@ -126,6 +128,7 @@ def year_anlagen(
                 tuple(fields),
                 structure,
                 form_pages(structure, fields),
+                year in anlage.forms,
             )
         )
     return tuple(found)
