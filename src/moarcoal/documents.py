@@ -29,6 +29,7 @@ from moarcoal.storage import (
     Document,
     Entry,
     EntryAddress,
+    EntryKind,
     Issuer,
     Put,
     ReadInDifference,
@@ -47,13 +48,14 @@ from moarcoal.storage.documents import (
     exists_already,
     period_clash,
 )
-from moarcoal.storage.entries import referenced_addresses
+from moarcoal.storage.entries import falls_with, referenced_addresses, strong_references
 from moarcoal.values.findings import READ_IN_CHANGED, Finding, Severity
 
 if TYPE_CHECKING:
     from moarcoal.values.engine import Values
 
 DUPLICATE_DOCUMENT = "document_duplicate"
+UNREFERENCED_DOCUMENT = "document_unreferenced"  # Befundart: kein Eintrag verweist auf den Beleg
 MAX_DIFFERENCES = 50  # so viele Stellen hält eine Neueinlesung fest; gezählt werden alle
 SHOWN_DIFFERENCES = 3  # so viele nennt der Befund
 OWN_FIELDS = frozenset({"id", "owner", "document", "reader_version"})  # kein eingelesener Wert
@@ -209,6 +211,37 @@ def duplicate_findings(state: State, user: str, kinds: Mapping[str, DocumentKind
                     f"Existiert mehrfach: {kind.title} {year}: {d.path}",
                 )
             )
+    return found
+
+
+def unreferenced_document_findings(
+    state: State,
+    user: str,
+    year: int,
+    kinds: Mapping[str, DocumentKind],
+    sites: Sites,
+    entry_kinds: Mapping[str, EntryKind],
+) -> list[Finding]:
+    """Hinweis je Dokument von `user`, das zu `year` gehört (`belongs_to_year`), ohne Dokumentart
+    mit Einlese-Regel ist und auf das kein Eintrag verweist (wie `Store.references_to`: schwache
+    Verweise und Einträge, die mit ihm wegfallen, zählen nicht)."""
+    found: list[Finding] = []
+    for d in sorted(state.of_kind(Document), key=lambda d: str(d.address)):
+        if d.owner != user or (d.document_kind or "") in kinds:
+            continue
+        if not belongs_to_year(d, year, state, sites):
+            continue
+        refs = strong_references(state.entries.values(), d.address, entry_kinds)
+        if any(not falls_with(e, d.address, entry_kinds) for e in refs):
+            continue
+        found.append(
+            Finding(
+                UNREFERENCED_DOCUMENT,
+                Severity.NOTE,
+                d.address,
+                f"Auf diesen Beleg verweist kein Eintrag: {document_name(d, state)}",
+            )
+        )
     return found
 
 

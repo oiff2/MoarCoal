@@ -6,12 +6,17 @@
 from collections.abc import Callable, Mapping, Sequence
 from typing import NamedTuple
 
-from moarcoal.documents import DocumentKind, duplicate_findings, rereading_findings
+from moarcoal.documents import (
+    DocumentKind,
+    duplicate_findings,
+    rereading_findings,
+    unreferenced_document_findings,
+)
 from moarcoal.expected_documents import expected_document_findings
 from moarcoal.incoming import incoming_files, missing_file_findings
 from moarcoal.issuers import issuer_findings
 from moarcoal.proposals import aborted_extraction_findings, proposal_findings
-from moarcoal.storage import SiteFile, State
+from moarcoal.storage import EntryKind, SiteFile, Sites, State
 from moarcoal.values.findings import INCOMING_FILES, INCOMING_TARGET, Finding, Severity, fingerprint
 
 
@@ -31,10 +36,13 @@ def block_findings(
     year: int,
     kinds: Mapping[str, DocumentKind],
     site_files: Callable[[], Sequence[SiteFile]] | None,
+    sites: Sites | None = None,
+    entry_kinds: Mapping[str, EntryKind] | None = None,
 ) -> BlockFindings:
     """Alle Befunde der Bausteine für `user` und `year`: Erwartete Belege, Aussteller, Dokumente
-    (Dubletten, Neueinlesung, fehlende Datei), Vorschläge, Abgebrochene Auslesungen und der
-    Eingang (fehlende Datei und Eingang nur mit `site_files`, den Dateien der Ablageorte)."""
+    (Dubletten, Neueinlesung, fehlende Datei, Beleg ohne Verweis), Vorschläge, Abgebrochene
+    Auslesungen und der Eingang (fehlende Datei und Eingang nur mit `site_files`, den Dateien
+    der Ablageorte; Belege ohne Verweis nur mit `sites` und `entry_kinds`)."""
     titles = {key: kind.title for key, kind in kinds.items()}
     files = None if site_files is None else site_files()
     early = [*expected_document_findings(state, user, year, titles), *issuer_findings(state, user)]
@@ -44,6 +52,11 @@ def block_findings(
         *proposal_findings(state, user, year, titles),
         *aborted_extraction_findings(state, user),
         *([] if files is None else missing_file_findings(files, state, user)),
+        *(
+            []
+            if sites is None or entry_kinds is None
+            else unreferenced_document_findings(state, user, year, kinds, sites, entry_kinds)
+        ),
     ]
     incoming: list[Finding] = []
     waiting = [] if files is None else incoming_files(files, state, user)

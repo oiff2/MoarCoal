@@ -157,7 +157,9 @@ def finding_list_of(request: Request, year: int) -> FindingList:
 def values_on(request: Request, state: State) -> Values:
     """`Values` der Anwendung auf einem beliebigen Stand (z. B. einem vorläufigen)."""
     store = store_of(request)
-    return Values(request.app.state.modules, state, site_files=lambda: all_site_files(store))
+    return Values(
+        request.app.state.modules, state, site_files=lambda: all_site_files(store), store=store
+    )
 
 
 def values_of(request: Request) -> Values:

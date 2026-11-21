@@ -341,6 +341,11 @@ class Store:
         """Die Ablageorte, nur lesend."""
         return self._sites
 
+    @property
+    def entry_kinds(self) -> Mapping[str, EntryKind]:
+        """Die angemeldeten Eintragsarten nach Namen im Code, nur lesend."""
+        return self._kinds
+
     def _path_of(self, entry: Entry) -> str:
         return self._kinds[type(entry).__name__].path(entry)
 
