@@ -67,7 +67,7 @@ def test_no_template_copies_status_classes() -> None:
 
 
 def test_finding_list_groups_by_severity_under_headings() -> None:
-    """Befunde stehen je Schweregrad unter einer Überschrift (Symbol, Name, Anzahl), Fehler zuerst."""
+    """Befunde stehen je Schweregrad unter einer Überschrift (Symbol, Name, Anzahl), Fehler vorn."""
     from types import SimpleNamespace
 
     def finding(severity: Severity, message: str) -> SimpleNamespace:
