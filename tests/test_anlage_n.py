@@ -536,7 +536,8 @@ def test_each_page_has_its_own_url_with_label_line_and_e_kennung(tmp_path: Path)
         assert page.title in html
         for row in page.rows:
             assert row.field.label in html
-            assert f"Z. {row.field.form_line or '–'}<small>{row.field.elster_id}</small>" in html
+            assert f"Z. {row.field.form_line or '–'}</span>" in html
+            assert f'title="E-Kennung {row.field.elster_id}"' in html
         other = {r.field.elster_id for p in pages if p is not page for r in p.rows}
         assert not any(str(e) in html for e in other)
     first = http.get(f"/steuerjahr/anlage-n/2025/{pages[0].slug}").text

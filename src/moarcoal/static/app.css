@@ -230,8 +230,9 @@ main:has(.steuerjahr) { display: flex; flex-direction: column; overflow: hidden;
 .notiz-kasten { float: right; width: 20rem; margin: 0.4rem 0 0.4rem 1rem; padding: 0.5rem 0.75rem; border: 1px dashed var(--akzent); border-left: 4px solid var(--akzent); border-radius: 6px; background: color-mix(in srgb, var(--akzent) 8%, var(--flaeche)); }
 @media (max-width: 70rem) { .notiz-kasten { float: none; width: auto; margin: 0.4rem 0; } }
 .feld:target { outline: 2px solid var(--warnung); }
-.feld-nr { font-weight: 600; }
-.feld-nr small { display: block; font-weight: normal; font-size: 0.75em; opacity: 0.6; }
+.feld-nr { font-weight: 600; display: flex; align-items: baseline; gap: 0.35rem; white-space: nowrap; }
+/* E-Kennung nur als Tooltip am farbigen „E“ */
+.e-kennung { display: inline-grid; place-items: center; width: 1.1rem; height: 1.1rem; border-radius: 3px; font-size: 0.7em; font-weight: 700; background: var(--akzent); color: var(--auf-akzent); cursor: help; }
 .feld-kopf { font-weight: 600; }
 .feld-kopf .einheit { margin-left: 0.25rem; padding: 0 0.3rem; border: 1px solid var(--linie); border-radius: 3px; font-size: 0.75em; font-weight: normal; opacity: 0.8; white-space: nowrap; }
 .feld-wert { margin: 0.25rem 0; }

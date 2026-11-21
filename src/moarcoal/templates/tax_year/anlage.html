@@ -30,7 +30,7 @@
 <h3 class="feld-ueberschrift">{{ heading }}</h3>
 {% endfor %}
 <section class="feld" id="feld-{{ field.elster_id }}">
-  <div class="feld-nr" title="Nummer im Vordruck">Z. {{ field.form_line or "–" }}<small>{{ field.elster_id }}</small></div>
+  <div class="feld-nr"><span title="Nummer im Vordruck">Z. {{ field.form_line or "–" }}</span>{% if field.elster_id %}<span class="e-kennung" role="img" title="E-Kennung {{ field.elster_id }}" aria-label="E-Kennung {{ field.elster_id }}">E</span>{% endif %}</div>
   <div class="feld-rumpf">
     <div class="feld-kopf">{{ field.label }}{% if row.structure.unit %} <span class="einheit">{{ row.structure.unit }}</span>{% endif %}</div>
     <div class="feld-wert">{% if field.typed %}{{ input_cell(anlage.slug, year, field, inputs.get(field.elster_id), none) }}{% elif field.text %}{% if texts.get(field.elster_id) %}<span class="inhalt">{{ texts[field.elster_id] }}</span>{% else %}{% if reasons.get(field.elster_id) %}{{ status_not_yet(reasons[field.elster_id], "wird noch nicht berechnet") }}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}{% endif %}{% elif field.computed %}{{ value_view("Angabe", result, whole=field.whole_euros) }}{% for label, url in captures.get(field.key, []) %} <a href="{{ url }}">{{ label }}</a>{% endfor %}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}</div>
