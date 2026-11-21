@@ -5,7 +5,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
-from moarcoal.defaults import DEFAULT_YEAR
 from moarcoal.documents import IntakeRejected, read_document_choice, take_in
 from moarcoal.incoming import all_site_files, folder_path_error, hide_file, hide_folder, unhide
 from moarcoal.prefill import Prefill, prefill_from_name
@@ -16,6 +15,7 @@ from moarcoal.web.helpers import (
     document_kinds,
     entry_url,
     form_fields,
+    global_year,
     rejection_text,
     render,
     store_of,
@@ -86,7 +86,7 @@ def _page(
         hidden_folders=listing.hidden_folders,
         sites=listing.sites,
         issuer_names={i.id: i.name for i in state.of_kind(Issuer)},
-        default_year=DEFAULT_YEAR,
+        default_year=global_year(request),
         notice=notice,
         errors={selected: list(rejected.reasons)} if rejected else {},
         values=values or {},

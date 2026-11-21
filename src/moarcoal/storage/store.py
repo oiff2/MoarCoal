@@ -18,9 +18,11 @@ from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
+from typing import cast
 
 from pydantic import ValidationError
 
+from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.storage.aborted_extractions import ABORTED_EXTRACTION_KIND
 from moarcoal.storage.dismissals import DISMISSAL_KIND
 from moarcoal.storage.documents import REREADING_KIND, document_entry_kind
@@ -48,7 +50,8 @@ BACKUP_DIR = ".backup"
 BACKUP_KEEP = 20
 TEMP_SUFFIX = ".tmp"
 SITES_FILE = "common/sites.json"  # keine Einträge, sondern die benannten Ablageorte
-SITES_SCHEMA = "ablageorte/1"
+SITES_SCHEMA = "ablageorte/2"  # je Ablageort Pfad und freiwillig Jahr (Jahresordner)
+SITES_SCHEMA_V1 = "ablageorte/1"  # alte Form {Name: Pfad}, wird weiter gelesen
 DERIVED_DENYLIST_FILE = "common/derived-denylist.txt"  # abgeleitet, nie von Hand
 
 
@@ -245,16 +248,51 @@ def site_folder(text: str) -> Path:
     return Path("/mnt", drive.lower(), *parts)
 
 
-def _load_sites(root: Path) -> dict[str, Path]:
-    """Ablageorte aus `common/sites.json`; fehlt die Datei, gibt es keine."""
+def _site_entry(name: str, raw: object) -> tuple[str, int | None]:
+    """Pfad und Jahr eines Ablageorts aus `ablageorte/2`."""
+    if not isinstance(raw, dict):
+        raise ValueError(name)
+    body = cast(dict[str, object], raw)
+    path, year = body["path"], body.get("year")
+    if not isinstance(path, str):
+        raise ValueError(name)
+    if year is not None and (
+        isinstance(year, bool) or not isinstance(year, int) or not MIN_YEAR <= year <= MAX_YEAR
+    ):
+        raise ValueError(name)
+    return path, year
+
+
+def year_folder_collisions(years: Mapping[str, int]) -> list[str]:
+    """Je Jahr mit mehr als einem Jahresordner eine Meldung, sonst leer."""
+    by_year: dict[int, list[str]] = {}
+    for name, year in sorted(years.items()):
+        by_year.setdefault(year, []).append(name)
+    return [
+        f"{year}: {', '.join(names)}" for year, names in sorted(by_year.items()) if len(names) > 1
+    ]
+
+
+def _load_sites(root: Path) -> tuple[dict[str, Path], dict[str, int]]:
+    """Ablageorte aus `common/sites.json` (Name -> Ordner, Name -> Jahr der Jahresordner);
+    fehlt die Datei, gibt es keine."""
     raw = _read_if_exists(root / SITES_FILE)
     if raw is None:
-        return {}
+        return {}, {}
+    texts: dict[str, str] = {}
+    years: dict[str, int] = {}
     try:
         body = json.loads(raw)
-        if body["schema"] != SITES_SCHEMA:
+        if body["schema"] == SITES_SCHEMA_V1:
+            texts = {str(name): str(folder) for name, folder in body["sites"].items()}
+        elif body["schema"] == SITES_SCHEMA:
+            for name, entry in body["sites"].items():
+                path, year = _site_entry(str(name), entry)
+                texts[str(name)] = path
+                if year is not None:
+                    years[str(name)] = year
+        else:
             raise ValueError(body["schema"])
-        texts = {str(name): str(folder) for name, folder in body["sites"].items()}
     except (ValueError, KeyError, TypeError, AttributeError) as error:
         raise StoreError(f"{SITES_FILE}: keine gültige Liste der Ablageorte") from error
     sites = {name: site_folder(text) for name, text in texts.items()}
@@ -264,15 +302,25 @@ def _load_sites(root: Path) -> dict[str, Path]:
                 f"{SITES_FILE}: Ablageort {name}: „{texts[name]}“ ist kein absoluter Pfad; "
                 f"gemeint ist vielleicht „/{texts[name]}“ (WSL) oder ein Windows-Pfad wie „G:\\…“."
             )
-    return sites
+    return sites, years
 
 
 class Store:
     def __init__(
-        self, root: Path, kinds: Sequence[EntryKind], sites: Mapping[str, Path] | None = None
+        self,
+        root: Path,
+        kinds: Sequence[EntryKind],
+        sites: Mapping[str, Path] | None = None,
+        site_years: Mapping[str, int] | None = None,
     ) -> None:
         self._root = root
-        self._sites = Sites(_load_sites(root) if sites is None else sites)
+        folders, years = _load_sites(root) if sites is None else (sites, site_years or {})
+        if collisions := year_folder_collisions(years):
+            raise StoreError(
+                f"{SITES_FILE}: höchstens ein Jahresordner je Jahr, mehrere für "
+                + "; ".join(collisions)
+            )
+        self._sites = Sites(folders, years)
         self._kinds = {kind.model.__name__: kind for kind in kinds}
         self._lock = threading.Lock()
         self._file_checksums: dict[str, str] = {}
@@ -615,12 +663,14 @@ def open_store(
     sites: Mapping[str, Path] | None = None,
     once_per_period: Mapping[str, str] | None = None,
     kinds_with_period: Collection[str] | None = None,
+    site_years: Mapping[str, int] | None = None,
 ) -> Store:
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
 
     Die Arten der Datenebene (Dokument, Neueinlesung, Aussteller, Ausblendungen, Erwarteter Beleg,
     Schnappschuss) kommen immer dazu.
-    `sites` nennt die Ablageorte (Name -> Ordner); ohne Angabe gilt `common/sites.json`.
+    `sites` nennt die Ablageorte (Name -> Ordner), `site_years` dazu die Jahresordner (Name ->
+    Jahr); ohne `sites` gilt `common/sites.json`.
     `once_per_period` (Schlüssel -> Name) nennt die Dokumentarten mit nur einem Dokument je
     Bezugszeitraum und Nutzer; der Schreibweg weist ein zweites ab. `kinds_with_period` nennt
     die Dokumentarten mit Bezugszeitraum; ein Erwarteter Beleg einer anderen wird abgewiesen.
@@ -642,4 +692,4 @@ def open_store(
     collisions = kind_collisions([kind.model for kind in all_kinds])
     if collisions:
         raise StoreError(f"Arten nicht eindeutig: {', '.join(collisions)}")
-    return Store(root, all_kinds, sites)
+    return Store(root, all_kinds, sites, site_years)
