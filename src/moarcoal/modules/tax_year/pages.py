@@ -18,6 +18,7 @@ from moarcoal.storage import Applied, Document, EntryAddress
 from moarcoal.values.model import Period
 from moarcoal.web.helpers import (
     entry_of,
+    finding_list_of,
     form_fields,
     module_state,
     rejection_text,
@@ -118,7 +119,7 @@ def _anlage_n_page(request: Request, year: int, slug: str | None) -> HTMLRespons
             if row.field.typed and (entry := current_input(state, year, row.field))
         },
         printed=printed,
-        findings=values.finding_list(user, year),  # Vorlage zeigt die sichtbaren Befunde
+        findings=finding_list_of(request, year),  # Vorlage zeigt die sichtbaren Befunde
     )
 
 

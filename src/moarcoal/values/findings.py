@@ -50,7 +50,8 @@ def target_text(target: ValueRef | EntryAddress | str) -> str:
 class Finding:
     """Ein Befund: Befundart (`kind`), Schweregrad, Ziel, Text und ggf. Kette.
 
-    `href` führt zur Stelle, an der man den Befund prüft (leer: kein Link). `fingerprint` ist der
+    `href` ist eine ausdrückliche Angabe der Module für eine eigene Stelle (leer: die Anbindung
+    baut den Link aus dem Ziel, `web/helpers.finding_url`). `fingerprint` ist der
     Fingerabdruck des Stands, aus dem der Erzeuger den Befund gebildet hat (`fingerprint(...)`);
     ohne Angabe ist es der des Texts. Ein Ziel als Text steht für etwas ohne Adresse (z. B. den
     Eingang). Erkannt wird ein Befund an Befundart und Ziel.
@@ -77,6 +78,7 @@ CYCLE = "cycle"
 DUPLICATE_LOCATOR = "duplicate_locator"
 READ_IN_CHANGED = "read_in_changed"
 INCOMING_FILES = "incoming_files"
+INCOMING_TARGET = "eingang"  # das Ziel des Befunds zum Eingang: etwas ohne Adresse
 DENYLIST_NOT_WRITTEN = "denylist_not_written"
 
 

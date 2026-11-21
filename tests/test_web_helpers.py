@@ -1,12 +1,21 @@
 """Gemeinsame Formular- und Abweisungshelfer der Seiten (`web.py`)."""
 
+from dataclasses import replace
+
 import pytest
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-from moarcoal.storage import Entry, EntryAddress, ExpectedDocument, Issuer, Rejected
+from moarcoal.storage import Entry, EntryAddress, ExpectedDocument, Issuer, Rejected, State
 from moarcoal.storage.issuers import COMMON_OWNER
-from moarcoal.web.helpers import entry_of, rejection_reasons, rejection_text, validated
+from moarcoal.values.findings import INCOMING_FILES, INCOMING_TARGET, Finding, Severity
+from moarcoal.web.helpers import (
+    entry_of,
+    finding_url,
+    rejection_reasons,
+    rejection_text,
+    validated,
+)
 
 
 class Lookup:
@@ -102,3 +111,17 @@ def test_validated_uses_the_innermost_field_name() -> None:
     model, hints = validated(Outer, {"inner": {"year": 1, "note": "a"}}, HINTS)
     assert model is None
     assert hints == ["Jahr: ab 2000"]
+
+
+def test_finding_url_uses_an_explicit_href_first_then_the_target() -> None:
+    state = State({})
+    site = Finding(INCOMING_FILES, Severity.NOTE, INCOMING_TARGET, "Dateien im Eingang")
+    assert finding_url((), state, site) == "/belege"
+    explicit = replace(site, href="/arbeit?jahr=2025")
+    assert finding_url((), state, explicit) == "/arbeit?jahr=2025"
+    plain = Finding("x", Severity.NOTE, "sperrliste", "ohne Link")
+    assert finding_url((), state, plain) is None
+    found = issuer()
+    assert finding_url((), State({found.address: found}), replace(plain, target=found.address)) == (
+        f"/aussteller/{found.id}"
+    )
