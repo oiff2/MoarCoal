@@ -20,6 +20,7 @@ from moarcoal.modules.tax_year.anlage_n import (
 from moarcoal.modules.tax_year.capture import foreign_refs
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work.wage_tax.values import GROSS_WAGES
+from moarcoal.values.engine import Foreign
 from moarcoal.values.model import Amount, NotYetComputable, Period, Unit, ValueRef
 from moarcoal.values.testing import fixed
 from moarcoal.web.helpers import capture_links
@@ -38,7 +39,7 @@ def test_amount_names_the_used_foreign_key() -> None:
 
 
 def test_not_yet_computable_names_the_first_foreign_key_of_the_chain() -> None:
-    foreign = {**place(), (WORK_WORKDAYS, PLACE, YEAR): lambda ref: _not_yet(ref)}
+    foreign: Foreign = {**place(), (WORK_WORKDAYS, PLACE, YEAR): _not_yet}
     value = tax_year(foreign)
     assert keys(foreign_refs(value(N_WORKPLACE_DAYS, YEAR))) == [WORK_WORKDAYS]
 
