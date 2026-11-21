@@ -16,7 +16,7 @@ def input_problem(forms: Forms, entry: FormInput) -> str | None:
     field = typed_field(forms, entry.year, entry.elster_id)
     if field is None or field.typed is None:
         return "Dieses Feld nimmt keine Eingabe."
-    return field.typed.check(entry.content)
+    return field.typed.check(entry.content, entry.year)
 
 
 def current_input(state: ModuleState, year: int, field: FormField) -> FormInput | None:

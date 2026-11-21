@@ -20,13 +20,16 @@ from moarcoal.modules.tax_year.anlage_n import (
     N_GROSS_WAGES,
     N_GROSS_WAGES_SINGLE,
     N_INCOME_TAX,
+    N_REFUND_FLAT_TAXED,
+    N_REFUND_TAX_FREE,
     N_SOLI,
     N_TAX_CLASS,
 )
 from moarcoal.modules.tax_year.protocol_check import DEVIATION, MISSING
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import WAGE_TAX_CERTIFICATE, WageTaxCertificate
-from moarcoal.modules.work.wage_tax.reading import read_in_wage_tax_certificate
+from moarcoal.modules.work.wage_tax.reading import READER_VERSION, read_in_wage_tax_certificate
+from moarcoal.modules.work.wage_tax.values import BENEFITS_FLAT_TAXED, BENEFITS_TAX_FREE
 from moarcoal.storage import (
     Applied,
     Delete,
@@ -53,6 +56,7 @@ USER = "anna"
 YEAR = Period.year(2025)
 KINDS = {k.key: k for r in MODULES for k in r.document_kinds}
 FIELDS_4_TO_7 = (N_TAX_CLASS, N_GROSS_WAGES, N_INCOME_TAX, N_SOLI)
+FIELDS_17_18 = (N_REFUND_TAX_FREE, N_REFUND_FLAT_TAXED)
 
 
 def make_document(year: int | None = 2025) -> Document:
@@ -156,6 +160,23 @@ def test_missing_optional_value_stays_empty_not_zero() -> None:
     assert entry.soli_cents is None and "soli" not in entry.places
 
 
+def with_unknown(path: str = "Besteuerungsgrund-Unbekannt") -> str:
+    """Die Fixture mit einer Zeile mehr, unter einem Pfad, den die Einlese-Regel nicht kennt."""
+    html = fixture_text()
+    row = next(r for r in html.splitlines() if "Besteuerungsgrund-Soli_usb" in r)
+    return html.replace(row, row + "\n" + row.replace("Besteuerungsgrund-Soli", path))
+
+
+def test_known_file_has_no_unrecognized_paths() -> None:
+    entry = read()
+    assert entry.unrecognized == [] and entry.reader_version == READER_VERSION
+
+
+def test_paths_the_reader_does_not_know_are_kept_as_unrecognized() -> None:
+    entry = read(with_unknown())
+    assert entry.unrecognized == ["Besteuerungsgrund-Unbekannt"]
+
+
 # --- im Betrieb: aufnehmen, Werte, Felder 4 bis 7, Abgleich -----------------------------------
 
 
@@ -234,7 +255,7 @@ def test_fields_4_to_7_are_computed_from_the_certificate(store: Store) -> None:
 
 def test_without_certificate_the_fields_are_not_yet_computable_never_zero(store: Store) -> None:
     values = evaluate(MODULES, entries(store))
-    for key in FIELDS_4_TO_7:
+    for key in FIELDS_4_TO_7 + FIELDS_17_18:
         result = values.get(key, USER, YEAR)
         assert isinstance(result, NotYetComputable)
         assert "Lohnsteuerbescheinigung" in str(result)
@@ -250,6 +271,54 @@ def test_value_missing_in_the_certificate_is_not_yet_computable(store: Store, si
     assert isinstance(result, NotYetComputable)
     assert "Solidaritätszuschlag nicht" in str(result)
     assert isinstance(values.get(N_INCOME_TAX, USER, YEAR), ExposedValue)
+
+
+def test_employer_benefits_not_certified_are_zero_with_reason(store: Store) -> None:
+    assert isinstance(take(store), TakenIn)
+    values = evaluate(MODULES, entries(store))
+
+    for field, source, number in (
+        (N_REFUND_TAX_FREE, BENEFITS_TAX_FREE, "17"),
+        (N_REFUND_FLAT_TAXED, BENEFITS_FLAT_TAXED, "18"),
+    ):
+        result = values.get(field, USER, YEAR)
+        assert isinstance(result, ExposedValue), result
+        assert result.amount == Amount.eur_cents(0)
+        assert result.backing is Backing.PROVEN
+        work = values.get(source, USER, YEAR)
+        assert isinstance(work, ExposedValue)
+        steps = " ".join(step.text for step in work.workings.steps)
+        assert f"Nr. {number} ist nicht bescheinigt" in steps
+
+
+def test_unrecognized_path_leaves_employer_benefits_not_yet_computable(
+    store: Store, site: Path
+) -> None:
+    (site / "neu.html").write_text(with_unknown(), encoding="utf-8")
+    assert isinstance(take(store, "neu.html"), TakenIn)
+
+    values = evaluate(MODULES, entries(store))
+
+    for key in FIELDS_17_18:
+        result = values.get(key, USER, YEAR)
+        assert isinstance(result, NotYetComputable)
+        assert "Besteuerungsgrund-Unbekannt" in str(result)
+    assert isinstance(values.get(N_GROSS_WAGES, USER, YEAR), ExposedValue)
+
+
+def test_certificate_from_an_older_reader_leaves_employer_benefits_not_yet_computable(
+    store: Store,
+) -> None:
+    assert isinstance(take(store), TakenIn)
+    old = [
+        e.model_copy(update={"reader_version": 1}) if isinstance(e, WageTaxCertificate) else e
+        for e in entries(store)
+    ]
+
+    values = evaluate(MODULES, old)
+
+    for key in FIELDS_17_18:
+        assert isinstance(values.get(key, USER, YEAR), NotYetComputable)
 
 
 def protocol_entries(contents: dict[str, str]) -> list[Entry]:
@@ -287,7 +356,7 @@ def comparison(store: Store, contents: dict[str, str]) -> set[tuple[str, str]]:
     assert isinstance(take(store), TakenIn)
     values = evaluate(MODULES, [*entries(store), *protocol_entries(contents)])
     found = values.finding_list(USER, 2025).visible
-    keys = {str(k) for k in FIELDS_4_TO_7} | {str(N_GROSS_WAGES_SINGLE)}
+    keys = {str(k) for k in FIELDS_4_TO_7 + FIELDS_17_18} | {str(N_GROSS_WAGES_SINGLE)}
     return {
         (f.kind, f.target.key)
         for f in found
@@ -305,6 +374,8 @@ MATCHING = {
     "E0200304": "6.543,21",
     "E0200401": "0,00",
     "E0200404": "0,00",
+    "E0204103": "0",
+    "E0203901": "0",
 }
 
 
@@ -315,6 +386,11 @@ def test_protocol_is_compared_against_the_computed_fields(store: Store) -> None:
 def test_deviating_protocol_gives_a_finding(store: Store) -> None:
     found = comparison(store, {**MATCHING, "E0200301": "6.500,00"})
     assert found == {(DEVIATION, str(N_INCOME_TAX))}
+
+
+def test_employer_benefits_in_the_protocol_but_not_certified_give_a_finding(store: Store) -> None:
+    found = comparison(store, {**MATCHING, "E0204103": "120"})
+    assert found == {(DEVIATION, str(N_REFUND_TAX_FREE))}
 
 
 def page_client(app: FastAPI) -> httpx.Client:
