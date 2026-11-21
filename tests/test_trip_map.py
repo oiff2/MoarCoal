@@ -102,7 +102,7 @@ def test_orte_are_sorted_into_map_unplaced_and_not_shown() -> None:
     assert [p.use.name for p in sorted_places.points] == ["Heimstadt"]
     assert [u.name for u in sorted_places.hidden] == ["Wien"]
     assert [u.name for u in sorted_places.unplaced] == ["MS", "Fernweh"]
-    assert sorted_places.points[0].tooltip == "Heimstadt · Startort · 1 Fahrt als Reiseziel"
+    assert sorted_places.points[0].tooltip == "Heimatort"
 
 
 def test_the_projection_puts_north_up_and_east_right_and_none_outside() -> None:
@@ -309,7 +309,7 @@ def test_picking_a_hit_stores_the_place_once_for_all_years(setup: Setup) -> None
     stored = list((setup.root / "users" / USER / "work").glob("places.json"))
     assert len(stored) == 1
     html = setup.page()
-    assert '<g class="pt"' in html and "<title>MS · Startort</title>" in html
+    assert '<g class="pt"' in html and "<title>Heimatort</title>" in html
     assert "1 Ort auf der Karte, 3 ohne Lage" in html
     assert '<input name="suche" value="MS"' not in html
     # another year has other trips but would use the same stored position
@@ -321,7 +321,7 @@ def test_the_map_marks_startort_and_reiseziele_not_by_colour_alone(setup: Setup)
     for ort in ("MS", "Probenburg", "Testfurt"):
         setup.pick(ort)
     html = setup.page()
-    assert "<title>MS · Startort</title>" in html  # written back twice, still no Reiseziel
+    assert "<title>Heimatort</title>" in html  # written back twice, still no Reiseziel
     assert "<title>Probenburg · 2 Fahrten</title>" in html
     assert "<title>Testfurt · 1 Fahrt</title>" in html
     assert '<path class="marke start"' in html and '<circle class="marke ziel"' in html
