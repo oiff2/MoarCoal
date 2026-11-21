@@ -13,3 +13,9 @@ Verworfen:
 - **Nutzer ohne Namen anlegen**: Die Sperrliste und der Aussteller brauchen den Namen, und eine Nutzerliste ohne Namen ist nichts, was man auswählen kann.
 
 Siehe [Angaben zur Person](https://github.com/oiff2/MoarCoal/issues/124).
+
+## Nachtrag: Angaben für den Hauptvordruck ([#162](https://github.com/oiff2/MoarCoal/issues/162))
+
+Für den Hauptvordruck (ESt 1 A) tragen die Angaben zur Person auch, was sich über die Jahre selten ändert: Geburtsdatum, Identifikationsnummer, Titel, Anschrift, IBAN und Kontoinhaber. Identifikationsnummer und IBAN sind `Sensitive` und kommen so in die Sperrliste; für den Namen bleibt es beim Weg über den Aussteller. Was zu einem Jahr gehört (Religion am 31.12., ausgeübter Beruf, Telefon für Rückfragen), ist keine Angabe zur Person, sondern eine Eingabe im Steuerjahr.
+
+Verworfen: alles als Eingabe im Steuerjahr. Dann stünden Identifikationsnummer und IBAN je Jahr neu da, und die Sperrliste müsste sie aus jedem Jahr einsammeln.
