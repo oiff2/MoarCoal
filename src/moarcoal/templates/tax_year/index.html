@@ -30,6 +30,9 @@
     <input name="in_return" value="{{ person.in_return }}">
     {% endif %}
   </label>
+  <label>Persönliche Bearbeitungsnotiz (wird nicht an das Finanzamt übermittelt)
+    <textarea name="note" rows="4" maxlength="600">{{ person.note }}</textarea>
+  </label>
   <button type="submit">Speichern</button>
 </form>
 

@@ -82,6 +82,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             "occupation": (saved and saved.occupation) or "",
             "phone": (saved and saved.phone) or "",
             "in_return": (saved and saved.in_this_return) or "",
+            "note": (saved and saved.note) or "",
         }
         documents = {d.address: d for d in state.documents(TRANSFER_PROTOCOL_KEY)}
         readings = [
@@ -105,7 +106,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
     def save_person(
         request: Request, year: int, fields: Annotated[dict[str, str], Depends(form_fields)]
     ) -> Response:
-        """Legt die Eingaben zur Person im Jahr ab (Beruf, Telefon, „In dieser Steuererklärung“)."""
+        """Legt die Eingaben zur Person im Jahr ab (Beruf, Telefon, Auswahl, Bearbeitungsnotiz)."""
         if year_of(str(year), in_range=True) is None:
             raise HTTPException(404)
         changes = year_person_input_changes(
@@ -114,6 +115,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             fields.get("occupation", ""),
             fields.get("phone", ""),
             fields.get("in_return", ""),
+            fields.get("note", ""),
         )
         result = store_of(request).apply(changes) if changes else None
         if result is not None and not isinstance(result, Applied):
@@ -166,6 +168,8 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             }
         transferred = None if reading is None else protocol_contents(reading, anlage.structure)
         texts = field_texts(state, anlage.fields, year)
+        person_input = current_person_input(state, year)
+        saved_note = person_input.note if person_input else None
         reasons = field_reasons(state, anlage.fields, year)
         found = finding_list_of(request, year)
         findings = [*found.visible, *(h.finding for h in found.hidden)]
@@ -208,6 +212,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             rows=rows,
             captures=captures,
             texts=texts,
+            note=saved_note,
             reasons=reasons,
             snapshot=snapshot,
             inputs={

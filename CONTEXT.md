@@ -129,7 +129,7 @@ Die Religionsgemeinschaft eines Nutzers ab einem Datum (evangelisch, römisch-ka
 _Avoid_: Konfession, Glaubensrichtung
 
 **Eingabe zur Person im Steuerjahr**:
-Was zur Person gehört, aber je Jahr gilt: ausgeübter Beruf, Telefon für Rückfragen und die Auswahl „In dieser Steuererklärung“ (als ihr Text, wie in Mein ELSTER). Eintragsart des Steuerjahrs, höchstens eine je Nutzer und Jahr; leere Angaben sind noch nicht angegeben (Code: `YearPersonInput`).
+Was zur Person gehört, aber je Jahr gilt: ausgeübter Beruf, Telefon für Rückfragen, die Auswahl „In dieser Steuererklärung“ (als ihr Text, wie in Mein ELSTER; ein übermitteltes Feld, E0109814) und die **Persönliche Bearbeitungsnotiz** (mehrzeilig, höchstens 600 Zeichen; wird nicht an das Finanzamt übermittelt, ist kein Feld des Katalogs, hat keine E-Kennung und steht nicht im Übertragungsprotokoll, darum ohne Abgleich; sie steht auf der Startseite der ESt 1 A zum Abtippen nach Mein ELSTER). Eintragsart des Steuerjahrs, höchstens eine je Nutzer und Jahr; leere Angaben sind noch nicht angegeben (Code: `YearPersonInput`).
 _Avoid_: Profil des Jahres
 
 **Kirchensteuerzahlung**:

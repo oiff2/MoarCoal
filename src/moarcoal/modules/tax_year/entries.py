@@ -66,19 +66,24 @@ class FormInput(Entry):
     content: str = Field(min_length=1, max_length=TEXT_MAX)
 
 
+NOTE_MAX = 600  # Zeichen der Persönlichen Bearbeitungsnotiz, wie in Mein ELSTER
+
 PHONE_PATTERN = re.compile(r"[0-9+()/\- ]+")
 
 
 class YearPersonInput(Entry):
-    """Eingabe zur Person im Steuerjahr: ausgeübter Beruf, Telefon für Rückfragen und die Auswahl
-    „In dieser Steuererklärung“ (als ihr Text). Je Nutzer und Jahr höchstens eine (Schreibweg);
-    `None` heißt noch nicht angegeben. Die Felder von ESt 1 A übernehmen sie.
+    """Eingabe zur Person im Steuerjahr: ausgeübter Beruf, Telefon für Rückfragen, die Auswahl
+    „In dieser Steuererklärung“ (als ihr Text) und die Persönliche Bearbeitungsnotiz (mehrzeilig,
+    wird nicht übermittelt, höchstens `NOTE_MAX` Zeichen, der Schreibweg prüft sie). Je Nutzer und
+    Jahr höchstens eine (Schreibweg); `None` heißt noch nicht angegeben. Die Felder von ESt 1 A
+    übernehmen sie.
     """
 
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
     occupation: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
     phone: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
     in_this_return: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+    note: str | None = Field(default=None, min_length=1)
 
 
 def taken_order(moment: datetime.datetime | None, entry_id: str) -> tuple[bool, float, str]:
@@ -115,11 +120,13 @@ def check_person_input(
     entry: YearPersonInput, entries: Mapping[EntryAddress, Entry], fits_fields: PersonCheck
 ) -> str | None:
     """Schreibweg: die Auswahl passt zu den Feldern, das Telefon ist eine Nummer, nur eine Eingabe
-    zur Person je Nutzer und Jahr."""
+    zur Person je Nutzer und Jahr, die Bearbeitungsnotiz nicht länger als `NOTE_MAX`."""
     if (reason := fits_fields(entry)) is not None:
         return reason
     if entry.phone is not None and not PHONE_PATTERN.fullmatch(entry.phone):
         return "Telefon: nur Ziffern, + ( ) / - und Leerzeichen"
+    if entry.note is not None and len(entry.note) > NOTE_MAX:
+        return f"Bearbeitungsnotiz: höchstens {NOTE_MAX} Zeichen"
     same = [
         e
         for e in entries.values()

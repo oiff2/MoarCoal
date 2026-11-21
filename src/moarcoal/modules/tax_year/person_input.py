@@ -16,17 +16,19 @@ def current_person_input(state: ModuleState, year: int) -> YearPersonInput | Non
 
 
 def year_person_input_changes(
-    state: ModuleState, year: int, occupation: str, phone: str, in_this_return: str
+    state: ModuleState, year: int, occupation: str, phone: str, in_this_return: str, note: str
 ) -> list[Change]:
     """Die Änderungen, die die Eingaben zur Person im Jahr ablegen.
 
     Leere Texte sind noch nicht angegeben; sind alle leer, wird die Eingabe zurückgenommen. Ob
-    das Telefon eine Nummer ist, prüft der Schreibweg.
+    das Telefon eine Nummer ist und die Notiz nicht zu lang, prüft der Schreibweg. In der Notiz
+    bleiben Zeilenumbrüche (als `\\n`) erhalten; Ränder werden entfernt.
     """
     texts = {
         "occupation": occupation.strip() or None,
         "phone": phone.strip() or None,
         "in_this_return": in_this_return.strip() or None,
+        "note": note.replace("\r\n", "\n").replace("\r", "\n").strip() or None,
     }
     existing = current_person_input(state, year)
     if not any(texts.values()):

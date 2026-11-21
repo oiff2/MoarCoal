@@ -71,18 +71,18 @@ def test_the_entry_lives_in_the_year_file(tmp_path: Path) -> None:
 
 def test_changes_create_update_and_remove() -> None:
     state = ModuleState(State({}), REGISTRATION, USER)
-    (create,) = year_person_input_changes(state, 2025, " Beispielberuf ", "", "Ich")
+    (create,) = year_person_input_changes(state, 2025, " Beispielberuf ", "", "Ich", "")
     assert isinstance(create, Put) and isinstance(create.entry, YearPersonInput)
     entry = create.entry
     assert (entry.occupation, entry.phone, entry.in_this_return) == ("Beispielberuf", None, "Ich")
 
     known = module_state(State({e.address: e for e in [entry]}))
-    (update,) = year_person_input_changes(known, 2025, "Anderer Beruf", "", "Ich")
+    (update,) = year_person_input_changes(known, 2025, "Anderer Beruf", "", "Ich", "")
     assert isinstance(update, Put) and update.expected is not None
 
-    assert year_person_input_changes(known, 2025, "", " ", "")[0].__class__.__name__ == "Delete"
+    assert year_person_input_changes(known, 2025, "", " ", "", "")[0].__class__.__name__ == "Delete"
     assert (
-        year_person_input_changes(ModuleState(State({}), REGISTRATION, USER), 2025, "", "", "")
+        year_person_input_changes(ModuleState(State({}), REGISTRATION, USER), 2025, "", "", "", "")
         == []
     )
 
@@ -115,7 +115,7 @@ def test_a_rejected_phone_number_stays_on_the_page(tmp_path: Path) -> None:
 def test_clearing_all_fields_removes_the_entry(tmp_path: Path) -> None:
     client = client_for(tmp_path)
     client.post("/steuerjahr/person/2025", data=FIELDS, headers=ORIGIN)
-    cleared = {"occupation": "", "phone": "", "in_return": ""}
+    cleared = {"occupation": "", "phone": "", "in_return": "", "note": ""}
     assert client.post("/steuerjahr/person/2025", data=cleared, headers=ORIGIN).status_code == 303
     assert stored(tmp_path) == []
 
@@ -130,3 +130,52 @@ def test_inputs_are_per_year(tmp_path: Path, year: int) -> None:
     client = client_for(tmp_path)
     client.post(f"/steuerjahr/person/{year}", data=FIELDS, headers=ORIGIN)
     assert [e.year for e in stored(tmp_path)] == [year]
+
+
+# --- Persönliche Bearbeitungsnotiz (#203) ------------------------------------------------------
+
+
+NOTE = "Zeile eins\nZeile zwei"
+
+
+def test_the_note_allows_600_characters_and_the_operation_rejects_more(tmp_path: Path) -> None:
+    store = open_store(tmp_path, REGISTRATION.kinds)
+    ok = store.apply([Put(YearPersonInput(owner=USER, year=2025, note="x" * 600))])
+    assert isinstance(ok, Applied)
+    too_long = store.apply([Put(YearPersonInput(owner=USER, year=2025, note="x" * 601))])
+    assert isinstance(too_long, Rejected)
+    assert "Bearbeitungsnotiz" in " ".join(too_long.reasons.values())
+
+
+def test_an_entry_saved_without_a_note_loads(tmp_path: Path) -> None:
+    store = open_store(tmp_path, REGISTRATION.kinds)
+    store.apply([Put(YearPersonInput(owner=USER, year=2025, occupation="Beispielberuf"))])
+    (loaded,) = stored(tmp_path)
+    assert loaded.note is None
+
+
+def test_the_note_alone_makes_an_entry_and_keeps_line_breaks() -> None:
+    state = ModuleState(State({}), REGISTRATION, USER)
+    (create,) = year_person_input_changes(state, 2025, "", "", "", " Zeile eins\r\nZeile zwei \n")
+    assert isinstance(create, Put) and isinstance(create.entry, YearPersonInput)
+    assert create.entry.note == NOTE
+
+
+def test_the_overview_saves_the_note_with_line_breaks(tmp_path: Path) -> None:
+    client = client_for(tmp_path)
+    assert "<textarea" in client.get("/steuerjahr").text
+    assert 'maxlength="600"' in client.get("/steuerjahr").text
+    client.post("/steuerjahr/person/2025", data={**FIELDS, "note": "A\r\nB"}, headers=ORIGIN)
+    (saved,) = stored(tmp_path)
+    assert saved.note == "A\nB"
+    client.cookies.set("jahr", "2025")
+    assert "A\nB</textarea>" in client.get("/steuerjahr").text
+
+
+def test_a_too_long_note_is_rejected_on_the_page_and_kept_typed(tmp_path: Path) -> None:
+    client = client_for(tmp_path)
+    response = client.post(
+        "/steuerjahr/person/2025", data={**FIELDS, "note": "y" * 601}, headers=ORIGIN
+    )
+    assert response.status_code == 422
+    assert stored(tmp_path) == []
