@@ -16,6 +16,6 @@ Siehe [Angaben zur Person](https://github.com/oiff2/MoarCoal/issues/124).
 
 ## Nachtrag: Angaben für den Hauptvordruck ([#162](https://github.com/oiff2/MoarCoal/issues/162))
 
-Für den Hauptvordruck (ESt 1 A) tragen die Angaben zur Person auch, was sich über die Jahre selten ändert: Geburtsdatum, Identifikationsnummer, Titel, Anschrift, IBAN und Kontoinhaber. Identifikationsnummer und IBAN sind `Sensitive` und kommen so in die Sperrliste; für den Namen bleibt es beim Weg über den Aussteller. Was zu einem Jahr gehört (Religion am 31.12., ausgeübter Beruf, Telefon für Rückfragen), ist keine Angabe zur Person, sondern eine Eingabe im Steuerjahr.
+Für den Hauptvordruck (ESt 1 A) tragen die Angaben zur Person auch, was sich über die Jahre selten ändert: Geburtsdatum, Identifikationsnummer, Titel, Anschrift, IBAN, Kontoinhaber und die Religionszugehörigkeit mit dem Datum, ab dem sie gilt (ein Ein- oder Austritt ist eine neue Angabe mit Datum; so bleibt die Religion am 31.12. früherer Jahre richtig, und ob Kirchensteuer anfällt, lässt sich daraus ableiten). Identifikationsnummer und IBAN sind `Sensitive` und kommen so in die Sperrliste; für den Namen bleibt es beim Weg über den Aussteller. Was zu einem Jahr gehört (ausgeübter Beruf, Telefon für Rückfragen), ist keine Angabe zur Person, sondern eine Eingabe im Steuerjahr.
 
 Verworfen: alles als Eingabe im Steuerjahr. Dann stünden Identifikationsnummer und IBAN je Jahr neu da, und die Sperrliste müsste sie aus jedem Jahr einsammeln.
