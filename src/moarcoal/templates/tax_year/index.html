@@ -20,7 +20,15 @@
     <input name="phone" type="tel" value="{{ person.phone }}">
   </label>
   <label>In dieser Steuererklärung
+    {% if in_return_choices %}
+    <select name="in_return">
+      <option value=""></option>
+      {% for choice in in_return_choices %}<option value="{{ choice }}"{% if choice == person.in_return %} selected{% endif %}>{{ choice }}</option>{% endfor %}
+      {% if person.in_return and person.in_return not in in_return_choices %}<option value="{{ person.in_return }}" selected>{{ person.in_return }}</option>{% endif %}
+    </select>
+    {% else %}
     <input name="in_return" value="{{ person.in_return }}">
+    {% endif %}
   </label>
   <button type="submit">Speichern</button>
 </form>

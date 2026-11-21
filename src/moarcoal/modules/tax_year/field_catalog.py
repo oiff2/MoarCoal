@@ -7,7 +7,14 @@ woher sein Betrag kommt; die Schritte dazwischen stehen hier einmal.
 
 from collections.abc import Callable, Mapping
 
-from moarcoal.modules.tax_year.fields import Direction, FormField, Forms, Rounding, TypedInput
+from moarcoal.modules.tax_year.fields import (
+    Direction,
+    FormField,
+    Forms,
+    Rounding,
+    TextSource,
+    TypedInput,
+)
 from moarcoal.modules.tax_year.form_names import form_name
 from moarcoal.modules.tax_year.structure import FormStructure
 from moarcoal.values.calculation import Calculation
@@ -43,6 +50,7 @@ def catalog_field(
     printed_rounded: bool = False,
     previous: str | None = None,
     typed: TypedInput | None = None,
+    text: TextSource | None = None,
 ) -> FormField:
     """Ein Feld des Katalogs: Bedeutung aus den Argumenten, Nr. und Bezeichnung aus der Struktur."""
     described = structure.get(elster_id)
@@ -59,6 +67,7 @@ def catalog_field(
         printed_rounded=printed_rounded,
         previous=previous,
         typed=typed,
+        text=text,
         form=form,
     )
 

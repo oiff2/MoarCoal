@@ -15,7 +15,12 @@ from moarcoal.modules.tax_year.field_checks import field_checks
 from moarcoal.modules.tax_year.fields import FormField
 from moarcoal.modules.tax_year.inputs import changes_for_input, current_input, typed_field
 from moarcoal.modules.tax_year.links import protocol_url
-from moarcoal.modules.tax_year.person_input import current_person_input, year_person_input_changes
+from moarcoal.modules.tax_year.person_input import (
+    current_person_input,
+    field_texts,
+    in_this_return_choices,
+    year_person_input_changes,
+)
 from moarcoal.modules.tax_year.protocol_check import latest_reading
 from moarcoal.modules.tax_year.snapshot_check import describe_frozen, latest_snapshot
 from moarcoal.registration import ModuleState
@@ -85,6 +90,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             anlage=None,
             readings=readings,
             person=person,
+            in_return_choices=in_this_return_choices(anlagen, year),
             person_errors=errors or [],
         )
 
@@ -146,6 +152,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
                 if v.requested and v.ref.key == row.field.key
             }
         transferred = None if reading is None else protocol_contents(reading, anlage.structure)
+        texts = field_texts(state, anlage.fields, year)
         found = finding_list_of(request, year)
         findings = [*found.visible, *(h.finding for h in found.hidden)]
         rows = [
@@ -158,6 +165,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
                     frozen=frozen,
                     printed=printed,
                     findings=findings,
+                    content=texts.get(row.field.elster_id or ""),
                 ),
             )
             for row in page.rows
@@ -178,6 +186,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             page=page,
             rows=rows,
             captures=captures,
+            texts=texts,
             snapshot=snapshot,
             inputs={
                 row.field.elster_id: entry.content

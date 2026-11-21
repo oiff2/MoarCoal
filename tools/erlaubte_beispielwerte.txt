@@ -5,6 +5,7 @@
 # Gängige Beispiel-IBANs aus Dokumentationen
 DE89 3704 0044 0532 0130 00
 DE02 1203 0000 0000 2020 51
+GB82 WEST 1234 5698 7654 32
 
 # Beispiel-Steuer-ID aus Dokumentationen
 86095742719

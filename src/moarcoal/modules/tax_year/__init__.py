@@ -18,6 +18,7 @@ from moarcoal.modules.tax_year.entries import (
 )
 from moarcoal.modules.tax_year.inputs import input_problem
 from moarcoal.modules.tax_year.pages import entry_url, router_for
+from moarcoal.modules.tax_year.person_input import person_input_problem
 from moarcoal.modules.tax_year.reading import READER_VERSION, TITLE, read_in_protocol
 from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.snapshot_check import snapshot_on_filing
@@ -52,7 +53,7 @@ def registration(anlagen: Sequence[Anlage] = ANLAGEN) -> ModuleRegistration:
         icon="steuerjahr",
         router=router_for(anlagen),
         entry_url=entry_url,
-        kinds=kinds(partial(input_problem, anlagen)),
+        kinds=kinds(partial(input_problem, anlagen), partial(person_input_problem, anlagen)),
         values=tuple(v for anlage in anlagen for v in anlage.define_values(anlage.forms)),
         document_kinds=(transfer_protocol(anlagen), ASSESSMENT),
         finding_kinds=FINDING_KINDS,

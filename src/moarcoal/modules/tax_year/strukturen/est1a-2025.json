@@ -1,0 +1,338 @@
+{
+ "schema": 1,
+ "form": "ESt1A",
+ "year": 2025,
+ "provisional": false,
+ "fields": [
+  {
+   "e_kennung": "E0100006",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "6",
+   "label": "Bei Wohnsitzwechsel: bisheriges Finanzamt"
+  },
+  {
+   "e_kennung": "E0100008",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "7",
+   "label": "Telefonische Rückfragen tagsüber unter Nummer"
+  },
+  {
+   "e_kennung": "E0100081",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "8",
+   "label": "Identifikationsnummer"
+  },
+  {
+   "e_kennung": "E0100401",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "8",
+   "label": "Geburtsdatum (TT.MM.JJJJ)"
+  },
+  {
+   "e_kennung": "E0100804",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "8",
+   "label": "im Sterbefall: Sterbedatum (TT.MM.JJJJ)"
+  },
+  {
+   "e_kennung": "E0100201",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "9",
+   "label": "Name"
+  },
+  {
+   "e_kennung": "E0100301",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "10",
+   "label": "Vorname"
+  },
+  {
+   "e_kennung": "E0101004",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "11",
+   "label": "Titel, akademischer Grad"
+  },
+  {
+   "e_kennung": "E0101104",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "13",
+   "label": "Straße (derzeitige Adresse)"
+  },
+  {
+   "e_kennung": "E0101206",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "14",
+   "label": "Hausnummer"
+  },
+  {
+   "e_kennung": "E0101207",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "14",
+   "label": "Hausnummerzusatz"
+  },
+  {
+   "e_kennung": "E0101301",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "14",
+   "label": "Adressergänzung"
+  },
+  {
+   "e_kennung": "E0100601",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "15",
+   "label": "Postleitzahl (Inland)"
+  },
+  {
+   "e_kennung": "E0100602",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "15",
+   "label": "Wohnort"
+  },
+  {
+   "e_kennung": "E0101405",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "15",
+   "label": "Postleitzahl (Ausland)"
+  },
+  {
+   "e_kennung": "E0101403",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "17",
+   "label": "Staat (falls Anschrift im Ausland)"
+  },
+  {
+   "e_kennung": "E0100403",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "12",
+   "label": "Ausgeübter Beruf"
+  },
+  {
+   "e_kennung": "E0100701",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "18",
+   "label": "Verheiratet / Lebenspartnerschaft begründet seit dem (TT.MM.JJJJ)"
+  },
+  {
+   "e_kennung": "E0100702",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "18",
+   "label": "Verwitwet seit dem (TT.MM.JJJJ)"
+  },
+  {
+   "e_kennung": "E0100703",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "18",
+   "label": "Geschieden / Lebenspartnerschaft aufgehoben seit dem (TT.MM.JJJJ)"
+  },
+  {
+   "e_kennung": "E0100704",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [],
+   "line": "18",
+   "label": "Dauernd getrennt lebend (Tag der Trennung) (TT.MM.JJJJ)"
+  },
+  {
+   "e_kennung": "E0100402",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [
+    "Angaben zur Religionszugehörigkeit",
+    "Ganzjährig gleichbleibende Religionsangabe"
+   ],
+   "line": "11",
+   "label": "Religion am 31.12.2025",
+   "options": [
+    "Keine Angabe",
+    "nicht kirchensteuerpflichtig",
+    "Römisch-katholisch",
+    "Evangelisch",
+    "Evangelisch-reformiert",
+    "Evangelisch-reformierte Kirche Bückeburg",
+    "Evangelisch-reformierte Kirche Stadthagen",
+    "Französisch-reformiert",
+    "Freie Religionsgemeinschaft Alzey",
+    "Freireligiöse Landesgemeinde Baden",
+    "Freireligiöse Landesgemeinde Pfalz",
+    "Freireligiöse Gemeinde Mainz",
+    "Freireligiöse Gemeinde Offenbach",
+    "Israelitische Religionsgemeinschaft Baden",
+    "Jüdische Gemeinden im Landesverband Hessen",
+    "Landesverband der israelitischen Kultusgemeinden in Bayern",
+    "Jüdische Gemeinde Frankfurt (Hessen)",
+    "Jüdische Kultusgemeinden Bad Kreuznach und Koblenz",
+    "Israelitisch (Saarland)",
+    "Israelitische Religionsgemeinschaft Württemberg",
+    "Nordrhein-Westfalen: Israelitisch (jüdisch)",
+    "Jüdische Gemeinde Hamburg",
+    "Altkatholisch",
+    "Sonstige"
+   ]
+  },
+  {
+   "e_kennung": "E0100422",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [
+    "Angaben zur Religionszugehörigkeit",
+    "Ganzjährig gleichbleibende Religionsangabe"
+   ],
+   "line": "11",
+   "label": "Freie Religionsangabe"
+  },
+  {
+   "e_kennung": "E0101105",
+   "page": "1 - Steuerpflichtige Person. Nur bei Zusammenveranlagung: Ehemann oder Person A (Ehepartner/-in A / Lebenspartner/-in A nach dem LPartG)",
+   "headings": [
+    "Angaben zur Religionszugehörigkeit",
+    "Änderung der Religionszugehörigkeit"
+   ],
+   "line": "11",
+   "label": "Änderung der Religion im Jahr 2025",
+   "options": [
+    "Keine Angabe",
+    "Austritt",
+    "Wechsel",
+    "Eintritt"
+   ]
+  },
+  {
+   "e_kennung": "E0102002",
+   "page": "4 - Bankverbindung",
+   "headings": [],
+   "line": "30",
+   "label": "Es ist keine Bankverbindung vorhanden"
+  },
+  {
+   "e_kennung": "E0102102",
+   "page": "4 - Bankverbindung",
+   "headings": [],
+   "line": "30",
+   "label": "IBAN (inländisches Geldinstitut)"
+  },
+  {
+   "e_kennung": "E0102603",
+   "page": "4 - Bankverbindung",
+   "headings": [],
+   "line": "31",
+   "label": "IBAN (ausländisches Geldinstitut)"
+  },
+  {
+   "e_kennung": "E0102201",
+   "page": "4 - Bankverbindung",
+   "headings": [],
+   "line": "32",
+   "label": "BIC zur IBAN des ausländischen Geldinstituts"
+  },
+  {
+   "e_kennung": "E0101601",
+   "page": "4 - Bankverbindung",
+   "headings": [
+    "Kontoinhaber/-in"
+   ],
+   "line": "33",
+   "label": "Steuerpflichtige Person / Ehemann / Person A"
+  },
+  {
+   "e_kennung": "E0102402",
+   "page": "4 - Bankverbindung",
+   "headings": [
+    "Kontoinhaber/-in"
+   ],
+   "line": "33",
+   "label": "Ehefrau / Person B"
+  },
+  {
+   "e_kennung": "E0101602",
+   "page": "4 - Bankverbindung",
+   "headings": [
+    "Kontoinhaber/-in"
+   ],
+   "line": "33",
+   "label": "Name (im Fall der Abtretung bitte amtlichen Abtretungsvordruck einreichen)"
+  },
+  {
+   "e_kennung": "E0109814",
+   "page": "7 - Ergänzende Angaben zur Steuererklärung",
+   "headings": [],
+   "line": "37",
+   "label": "In dieser Steuererklärung",
+   "options": [
+    "Keine Angabe",
+    "konnten steuererhebliche Sachverhalte nicht erklärt werden.",
+    "wird bewusst eine von der Verwaltungsauffassung abweichende Rechtsauffassung vertreten.",
+    "sollen Sachverhalte personell vertieft geprüft werden.",
+    "liegen mehrere der vorgenannten Gründe vor (Mehrfachauswahl)."
+   ]
+  },
+  {
+   "e_kennung": "E0109815",
+   "page": "7 - Ergänzende Angaben zur Steuererklärung",
+   "headings": [],
+   "line": "37",
+   "label": "Ergänzende Angaben zur Steuererklärung"
+  },
+  {
+   "e_kennung": "E0100001",
+   "page": "Startseite des Formulars Startseite des Formulars Einkommensteuererklärung unbeschränkte Steuerpflicht (ESt 1 A)",
+   "headings": [
+    "Art der Erklärung"
+   ],
+   "line": "1",
+   "label": "Einkommensteuererklärung"
+  },
+  {
+   "e_kennung": "E0100002",
+   "page": "Startseite des Formulars Startseite des Formulars Einkommensteuererklärung unbeschränkte Steuerpflicht (ESt 1 A)",
+   "headings": [
+    "Art der Erklärung"
+   ],
+   "line": "1",
+   "label": "Festsetzung der Arbeitnehmer-Sparzulage"
+  },
+  {
+   "e_kennung": "E0100003",
+   "page": "Startseite des Formulars Startseite des Formulars Einkommensteuererklärung unbeschränkte Steuerpflicht (ESt 1 A)",
+   "headings": [
+    "Art der Erklärung"
+   ],
+   "line": "2",
+   "label": "Erklärung zur Feststellung des verbleibenden Verlustvortrags"
+  },
+  {
+   "e_kennung": "E0100009",
+   "page": "Startseite des Formulars Startseite des Formulars Einkommensteuererklärung unbeschränkte Steuerpflicht (ESt 1 A)",
+   "headings": [
+    "Art der Erklärung"
+   ],
+   "line": "2",
+   "label": "Erklärung zur Festsetzung der Kirchensteuer auf Kapitalerträge"
+  },
+  {
+   "e_kennung": "E0100302",
+   "page": "Startseite des Formulars Startseite des Formulars Einkommensteuererklärung unbeschränkte Steuerpflicht (ESt 1 A)",
+   "headings": [
+    "Art der Erklärung"
+   ],
+   "line": "3",
+   "label": "Festsetzung der Mobilitätsprämie"
+  }
+ ]
+}

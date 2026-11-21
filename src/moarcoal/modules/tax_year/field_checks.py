@@ -48,6 +48,7 @@ def field_checks(
     frozen: Mapping[str, str] | None,
     printed: Mapping[ValueKey, Decimal],
     findings: Iterable[Finding],
+    content: str | None = None,
 ) -> tuple[FieldCheck, ...]:
     """Die Gegenproben der Zeile von `field`; eine Gegenseite, die es im Jahr nicht gibt
     (`None` bzw. leer), entfällt, der Schnappschuss auch bei Feldern, die MoarCoal nicht
@@ -68,5 +69,11 @@ def field_checks(
                 FieldCheck(side, shown or "–", deviation=found.message, severity=found.severity)
             )
         else:
-            checks.append(FieldCheck(side, shown or "–", fits=field.computed and shown is not None))
+            checks.append(
+                FieldCheck(
+                    side,
+                    shown or "–",
+                    fits=(field.computed or content is not None) and shown is not None,
+                )
+            )
     return tuple(checks)

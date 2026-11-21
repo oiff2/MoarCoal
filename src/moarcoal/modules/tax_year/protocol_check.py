@@ -13,6 +13,7 @@ from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolRea
 from moarcoal.modules.tax_year.fields import AmbiguousLines, FormField, NotANumber
 from moarcoal.modules.tax_year.form_names import form_name
 from moarcoal.modules.tax_year.links import protocol_url
+from moarcoal.modules.tax_year.person_input import field_texts
 from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.structure import FormStructure
 from moarcoal.registration import ModuleState
@@ -97,6 +98,46 @@ def _field_findings(
     )
 
 
+def _text_findings(
+    field: FormField, ref: ValueRef, content: str, reading: ProtocolReading
+) -> Iterator[Finding]:
+    """Gegenprobe eines Felds mit Text: der Inhalt aus der Person gegen das Protokoll. Die Meldung
+    nennt das Feld, nie den Inhalt (er kann sensibel sein)."""
+    name = f"{field.name} ({field.elster_id})"
+    lines = [line for line in reading.lines if line.elster_id == field.elster_id]
+    if not lines:
+        yield Finding(
+            MISSING,
+            Severity.WARNING,
+            ref,
+            f"{name}: Das Feld fehlt im Übertragungsprotokoll.",
+            href=protocol_url(reading.id),
+            fingerprint=fingerprint(field.elster_id, content),
+        )
+        return
+    first = protocol_url(reading.id, lines[0].data_name)
+    contents = [line.content for line in lines]
+    if len(lines) > 1:
+        yield Finding(
+            AMBIGUOUS,
+            Severity.WARNING,
+            ref,
+            f"{name}: Das Feld kommt {len(lines)}-mal im Protokoll vor; "
+            "ein Vergleich ist nicht möglich.",
+            href=first,
+            fingerprint=fingerprint(field.elster_id, *contents),
+        )
+    elif contents[0].strip() != content:
+        yield Finding(
+            DEVIATION,
+            Severity.WARNING,
+            ref,
+            f"{name}: Der Inhalt weicht vom Übertragungsprotokoll ab.",
+            href=first,
+            fingerprint=fingerprint(field.elster_id, content, *contents),
+        )
+
+
 def _structure_findings(reading: ProtocolReading, structure: FormStructure) -> Iterator[Finding]:
     """Gegenprobe der Zeilen der Anlage im Protokoll gegen die Struktur des Jahres: eine E-Kennung
     ohne Feld in der Struktur (vermutlich fehlt eine gespeicherte Mein-ELSTER-Seite) und eine
@@ -144,7 +185,12 @@ def _anlage_findings(
 ) -> Iterator[Finding]:
     if (structure := anlage.structures.get(year)) is not None:
         yield from _structure_findings(reading, structure)
-    for field in anlage.forms.get(year, ()):
+    fields = anlage.forms.get(year, ())
+    texts = field_texts(state, fields, year)
+    for field in fields:
+        if (content := texts.get(field.elster_id or "")) is not None:
+            ref = ValueRef(field.key, state.user, Period.year(year), None)
+            yield from _text_findings(field, ref, content, reading)
         if not field.computed:
             continue  # kein Wert, also nichts zu vergleichen
         period = Period.year(year)

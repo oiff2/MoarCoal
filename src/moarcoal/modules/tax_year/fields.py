@@ -7,14 +7,15 @@ das Feld aus derselben Angabe ab: bei Euro die Richtung, km zählen wie eine Aus
 
 import dataclasses
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from enum import StrEnum
 
-from moarcoal.modules.tax_year.entries import ElsterId
+from moarcoal.modules.tax_year.entries import ElsterId, YearPersonInput
 from moarcoal.modules.tax_year.form_names import form_name
+from moarcoal.storage import PersonalDetails
 from moarcoal.values.model import Amount, Unit, ValueKey, format_amount, parse_german_number
 
 
@@ -75,6 +76,21 @@ def _is_day_range(text: str, year: int) -> bool:
     return start <= end
 
 
+type PersonText = Callable[[PersonalDetails | None, YearPersonInput | None, int], str | None]
+"""Der Text eines Felds aus den Angaben zur Person, der Eingabe zur Person im Jahr und dem Jahr;
+`None`, wenn die Angabe fehlt."""
+
+
+@dataclass(frozen=True)
+class TextSource:
+    """Woher ein Feld mit Text seinen Inhalt nimmt (Angaben zur Person oder Eingabe zur Person im
+    Steuerjahr). `choices` sind die festen Optionen aus der Struktur, wenn das Feld eine Auswahl
+    ist; die Eingabe muss dann eine davon sein."""
+
+    read: PersonText
+    choices: tuple[str, ...] = ()
+
+
 @dataclass(frozen=True)
 class AmbiguousLines:
     """Tage oder km stehen mehrfach im Protokoll; welche Zeile gilt, ist offen."""
@@ -104,6 +120,9 @@ class FormField:
 
     `typed` heißt: ein Eintippfeld, das der Nutzer im Steuerjahr eingibt (`TypedInput`).
 
+    `text` heißt: ein Feld mit Text, dessen Inhalt MoarCoal aus der Person nimmt (`TextSource`);
+    fehlt die Angabe, ist das Feld noch nicht berechenbar. Es hat weder Betrag noch Eintippfeld.
+
     `previous` ordnet das Feld dem Vorjahr zu, wo seine E-Kennung sich ändert: die E-Kennung des
     Vorjahrs oder `NEW_FIELD` (gibt es im Vorjahr nicht). Leer heißt: dieselbe E-Kennung wie im
     Vorjahr (`check_previous_years`).
@@ -121,6 +140,7 @@ class FormField:
     printed_rounded: bool = False
     previous: str | None = None
     typed: TypedInput | None = None
+    text: TextSource | None = None
     form: str = dataclasses.field(kw_only=True)  # die Anlage, Schlüssel wie im Protokoll
 
     def __post_init__(self) -> None:
@@ -128,6 +148,8 @@ class FormField:
             raise ValueError(f"{self.label}: Richtung gehört genau zu Feldern mit ganzen Euro")
         if self.computed and self.unit is None:
             raise ValueError(f"{self.label}: ein berechnetes Feld braucht eine Einheit")
+        if self.text is not None and (self.unit or self.computed or self.typed):
+            raise ValueError(f"{self.label}: ein Feld mit Text hat keinen Betrag, keine Eingabe")
         if self.assessment and self.unit is None:
             raise ValueError(f"{self.label}: ein Feld ohne Betrag hat keine Position im EStB")
 

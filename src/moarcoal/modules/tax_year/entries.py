@@ -72,7 +72,7 @@ PHONE_PATTERN = re.compile(r"[0-9+()/\- ]+")
 class YearPersonInput(Entry):
     """Eingabe zur Person im Steuerjahr: ausgeübter Beruf, Telefon für Rückfragen und die Auswahl
     „In dieser Steuererklärung“ (als ihr Text). Je Nutzer und Jahr höchstens eine (Schreibweg);
-    `None` heißt noch nicht angegeben. Die Felder von ESt 1 A übernehmen sie später (#167).
+    `None` heißt noch nicht angegeben. Die Felder von ESt 1 A übernehmen sie.
     """
 
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
@@ -107,8 +107,17 @@ def check_input(
     return None
 
 
-def check_person_input(entry: YearPersonInput, entries: Mapping[EntryAddress, Entry]) -> str | None:
-    """Schreibweg: das Telefon ist eine Nummer, nur eine Eingabe zur Person je Nutzer und Jahr."""
+type PersonCheck = Callable[[YearPersonInput], str | None]
+"""Warum eine Eingabe zur Person nicht zu den Feldern des Jahrs passt; `None`, wenn sie passt."""
+
+
+def check_person_input(
+    entry: YearPersonInput, entries: Mapping[EntryAddress, Entry], fits_fields: PersonCheck
+) -> str | None:
+    """Schreibweg: die Auswahl passt zu den Feldern, das Telefon ist eine Nummer, nur eine Eingabe
+    zur Person je Nutzer und Jahr."""
+    if (reason := fits_fields(entry)) is not None:
+        return reason
     if entry.phone is not None and not PHONE_PATTERN.fullmatch(entry.phone):
         return "Telefon: nur Ziffern, + ( ) / - und Leerzeichen"
     same = [
@@ -125,14 +134,18 @@ def yearly_path(entry: ProtocolReading | FormInput | YearPersonInput) -> str:
     return f"users/{entry.owner}/tax_year/{entry.year}.json"
 
 
-def kinds(fits_field: FieldCheck) -> tuple[EntryKind, ...]:
-    """Die Eintragsarten des Moduls; `fits_field` prüft eine Eingabe gegen den Feldkatalog."""
+def kinds(fits_field: FieldCheck, fits_person: PersonCheck) -> tuple[EntryKind, ...]:
+    """Die Eintragsarten des Moduls; `fits_field` prüft eine Eingabe gegen den Feldkatalog,
+    `fits_person` eine Eingabe zur Person."""
 
     def check(entry: FormInput, entries: Mapping[EntryAddress, Entry]) -> str | None:
         return check_input(entry, entries, fits_field)
 
+    def check_person(entry: YearPersonInput, entries: Mapping[EntryAddress, Entry]) -> str | None:
+        return check_person_input(entry, entries, fits_person)
+
     return (
         entry_kind(ProtocolReading, SCHEMA, yearly_path, falls_with="document", label="Einlesung"),
         entry_kind(FormInput, SCHEMA, yearly_path, check=check, check_on_load=True),
-        entry_kind(YearPersonInput, SCHEMA, yearly_path, check=check_person_input),
+        entry_kind(YearPersonInput, SCHEMA, yearly_path, check=check_person),
     )

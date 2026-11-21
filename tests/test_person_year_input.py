@@ -9,7 +9,11 @@ from fastapi.testclient import TestClient
 
 from moarcoal.modules.tax_year import REGISTRATION
 from moarcoal.modules.tax_year.entries import YearPersonInput
-from moarcoal.modules.tax_year.person_input import year_person_input_changes
+from moarcoal.modules.tax_year.person_input import (
+    in_this_return_choices,
+    year_person_input_changes,
+)
+from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Applied, Put, Rejected, State, open_store
@@ -17,7 +21,8 @@ from moarcoal.storage import Applied, Put, Rejected, State, open_store
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
 USER = "anna"
-FIELDS = {"occupation": "Beispielberuf", "phone": "+49 (0) 123 4567-89", "in_return": "Ich"}
+CHOICE = in_this_return_choices(ANLAGEN, 2025)[0]
+FIELDS = {"occupation": "Beispielberuf", "phone": "+49 (0) 123 4567-89", "in_return": CHOICE}
 
 
 def client_for(root: Path) -> httpx.Client:
@@ -91,7 +96,7 @@ def test_the_overview_saves_and_shows_the_inputs(tmp_path: Path) -> None:
     response = client.post("/steuerjahr/person/2025", data=FIELDS, headers=ORIGIN)
     assert response.status_code == 303
     (saved,) = stored(tmp_path)
-    assert (saved.year, saved.occupation, saved.in_this_return) == (2025, "Beispielberuf", "Ich")
+    assert (saved.year, saved.occupation, saved.in_this_return) == (2025, "Beispielberuf", CHOICE)
     client.cookies.set("jahr", "2025")
     page = client.get("/steuerjahr").text
     assert "Beispielberuf" in page and "+49 (0) 123 4567-89" in page

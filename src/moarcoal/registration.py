@@ -8,12 +8,14 @@ from fastapi import APIRouter
 
 from moarcoal.documents import DocumentKind
 from moarcoal.extraction_template import Confirmed
+from moarcoal.personal_details import details_of
 from moarcoal.proposals import latest_proposal, template_of
 from moarcoal.storage import (
     Document,
     Entry,
     EntryAddress,
     EntryKind,
+    PersonalDetails,
     Proposal,
     Snapshot,
     State,
@@ -91,6 +93,10 @@ class ModuleState:
         self._own(address.kind)
         entry = self._state.get(address)
         return entry if entry is not None and entry.owner == self._user else None
+
+    def personal_details(self) -> PersonalDetails | None:
+        """Die Angaben zur Person des Nutzers (Baustein der Datenebene), falls es sie gibt."""
+        return details_of(self._state, self._user)
 
     def documents(self, document_kind: str | None = None) -> list[Document]:
         """Dokumente des Nutzers (Baustein der Datenebene), ggf. nur einer Dokumentart."""

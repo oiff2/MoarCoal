@@ -264,7 +264,7 @@ def test_repeated_days_or_km_are_ambiguous_not_compared() -> None:
 
 
 def test_lines_of_other_forms_are_ignored() -> None:
-    other = line("E0100004", "Musterstadt").model_copy(update={"form": "ESt1A"})
+    other = line("E0100201", "Mustermann").model_copy(update={"form": "ESt1A"})
 
     found = findings(protocol([line(DAYS, "220"), line(KM, "12"), other]))
 
@@ -438,6 +438,7 @@ def test_fixture_protocol_matches_the_catalog_for_all_three_computed_fields() ->
     found = findings(protocol(lines), work(cents=6990))
 
     # Tage und km stimmen; Arbeitsmittel (69,90 € laut Protokoll) wird gefunden und weicht nur
-    # durch die Rundung des Felds ab. Kein Feld „fehlt“.
-    assert kinds(found) == [DEVIATION]
-    assert EQUIPMENT in found[0].message
+    # durch die Rundung des Felds ab. Kein Feld „fehlt“. Das Feld „Ort“ der ESt 1 A (E0100004) kennt
+    # die gespeicherte Struktur nicht: Hinweis, nicht abgleichbar.
+    assert sorted(kinds(found)) == sorted([DEVIATION, UNKNOWN_ELSTER_ID])
+    assert EQUIPMENT in only(found, DEVIATION).message
