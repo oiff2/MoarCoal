@@ -124,6 +124,14 @@ _Avoid_: Versicherungen (für das Modul), Vorsorgeaufwand (das ist die Anlage)
 **Steuerjahr**:
 Das Modul für die Steuererklärung eines Jahres: bildet die Anlagen wie Mein ELSTER ab (eine Seite je Anlage und Jahr), ordnet ihren Feldern Ausgewiesene Werte anderer Module zu, liest das Übertragungsprotokoll ein und gleicht es samt EStB mit dem Stand ab. Modulschlüssel `tax_year`.
 
+**Religionszugehörigkeit**:
+Die Religionsgemeinschaft eines Nutzers ab einem Datum (evangelisch, römisch-katholisch, altkatholisch, jüdisch, freireligiös oder keine); ein Ein- oder Austritt ist eine neue Angabe mit Datum, so bleibt die Religion am 31.12. früherer Jahre richtig. Kirchensteuer fällt an, sobald der Nutzer im Jahr einer dieser Gemeinschaften angehört, ausgenommen „keine“; fehlt für das Jahr jede Angabe, ist es noch nicht bekannt, nie „keine“ (Code: `ReligionMembership`, die Gemeinschaft `Religion`). Teil der Angaben zur Person.
+_Avoid_: Konfession, Glaubensrichtung
+
+**Eingabe zur Person im Steuerjahr**:
+Was zur Person gehört, aber je Jahr gilt: ausgeübter Beruf, Telefon für Rückfragen und die Auswahl „In dieser Steuererklärung“ (als ihr Text, wie in Mein ELSTER). Eintragsart des Steuerjahrs, höchstens eine je Nutzer und Jahr; leere Angaben sind noch nicht angegeben (Code: `YearPersonInput`).
+_Avoid_: Profil des Jahres
+
 **Kirchensteuerzahlung**:
 Eine Zahlung von Kirchensteuer an das Finanzamt oder eine Erstattung von dort, die nicht über den Lohn oder die Abgeltungsteuer lief (z. B. Nachzahlung laut Bescheid, Vorauszahlung): Datum, Betrag, gezahlt oder erstattet, Art der Leistung, auf Wunsch mit Beleg. Eintragsart des Steuerjahrs; sie zählt im Jahr der Zahlung, nicht im Jahr, für das sie geschuldet war. Daraus kommen die Felder der Kirchensteuer in der Anlage Sonderausgaben; gehört der Nutzer das ganze Jahr keiner kirchensteuerberechtigten Religionsgemeinschaft an (laut Angaben zur Person), entfallen sie.
 
@@ -206,7 +214,7 @@ Der Unterschied zwischen dem eingefrorenen Stand eines Schnappschusses und dem a
 _Avoid_: Differenz, Diff, Änderung (das ist ein Teil eines Vorgangs)
 
 **Angaben zur Person**:
-Vorname und Name eines Nutzers samt Verweis auf seinen eigenen Aussteller, dazu was sich über die Jahre selten ändert: Geburtsdatum, Identifikationsnummer, Titel, Anschrift, IBAN, Kontoinhaber und die **Religionszugehörigkeit** mit dem Datum, ab dem sie gilt (Identifikationsnummer und IBAN sensibel, also in der Sperrliste); daraus folgt die Religion am 31.12. eines Jahrs und ob Kirchensteuer anfällt. Was zu einem Jahr gehört (Beruf, Telefon), steht nicht hier, sondern als Eingabe im Steuerjahr. Ein Baustein der Datenebene, genau einer je Nutzer, ohne Löschen. Beim Speichern legt MoarCoal den Aussteller „Vorname Name“ als Privatperson an und hält ihn gleich; so gelangt der Name in die Sperrliste (Code: `PersonalDetails`).
+Vorname und Name eines Nutzers samt Verweis auf seinen eigenen Aussteller, dazu was sich über die Jahre selten ändert: Geburtsdatum, Identifikationsnummer, Titel, Anschrift, IBAN, Kontoinhaber und die **Religionszugehörigkeit** mit dem Datum, ab dem sie gilt (Identifikationsnummer und IBAN sensibel, also in der Sperrliste); daraus folgt die Religion am 31.12. eines Jahrs und ob Kirchensteuer anfällt. Was zu einem Jahr gehört (Beruf, Telefon, Auswahl „In dieser Steuererklärung“), steht nicht hier, sondern als Eingabe zur Person im Steuerjahr. Identifikationsnummer (Prüfziffer) und IBAN (Prüfsumme) prüft der Vorgang. Ein Baustein der Datenebene, genau einer je Nutzer, ohne Löschen. Beim Speichern legt MoarCoal den Aussteller „Vorname Name“ als Privatperson an und hält ihn gleich; so gelangt der Name in die Sperrliste (Code: `PersonalDetails`).
 _Avoid_: Profil, Konto, Stammdaten
 
 **Aussteller**:

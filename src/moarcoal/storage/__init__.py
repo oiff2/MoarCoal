@@ -21,7 +21,7 @@ from moarcoal.storage.issuers import (
     issuer_with_name,
     name_key,
 )
-from moarcoal.storage.personal_details import PersonalDetails
+from moarcoal.storage.personal_details import PersonalDetails, Religion, ReligionMembership
 from moarcoal.storage.pid_file import read_pid, remove_pid, write_pid
 from moarcoal.storage.proposals import PROPOSAL_KIND, Content, Proposal, ProposalField
 from moarcoal.storage.sites import SiteFile, SiteFileError, Sites
@@ -83,6 +83,8 @@ __all__ = [
     "ReadInDifference",
     "ReadInEntry",
     "Rejected",
+    "Religion",
+    "ReligionMembership",
     "Rereading",
     "SiteFile",
     "SiteFileError",

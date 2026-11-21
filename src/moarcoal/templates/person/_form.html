@@ -1,4 +1,12 @@
 {% include "work/_errors.html" %}
+{% set religion_labels = {
+  "keine": "keine oder keine mit Kirchensteuer",
+  "evangelisch": "evangelisch",
+  "roemisch-katholisch": "römisch-katholisch",
+  "altkatholisch": "altkatholisch",
+  "juedisch": "jüdisch",
+  "freireligioes": "freireligiös"
+} %}
 <form method="post" action="/person">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   <label>Vorname
@@ -7,5 +15,52 @@
   <label>Name
     <input name="last_name" value="{{ values.get('last_name', '') }}" required>
   </label>
+  {% if extended %}
+  <input type="hidden" name="extended" value="1">
+  <label>Titel
+    <input name="title" value="{{ values.get('title', '') }}">
+  </label>
+  <label>Geburtsdatum
+    <input name="birth_date" type="date" value="{{ values.get('birth_date', '') }}">
+  </label>
+  <label>Identifikationsnummer
+    <input name="id_number" inputmode="numeric" autocomplete="off" value="{{ values.get('id_number', '') }}">
+  </label>
+  <label>Straße
+    <input name="street" value="{{ values.get('street', '') }}">
+  </label>
+  <label>Hausnummer
+    <input name="house_number" value="{{ values.get('house_number', '') }}">
+  </label>
+  <label>Postleitzahl
+    <input name="postal_code" inputmode="numeric" value="{{ values.get('postal_code', '') }}">
+  </label>
+  <label>Ort
+    <input name="city" value="{{ values.get('city', '') }}">
+  </label>
+  <label>IBAN
+    <input name="iban" autocomplete="off" value="{{ values.get('iban', '') }}">
+  </label>
+  <label>Kontoinhaber
+    <input name="account_holder" value="{{ values.get('account_holder', '') }}">
+  </label>
+  <fieldset>
+    <legend>Religionszugehörigkeit</legend>
+    <p>Ab welchem Datum welche Gemeinschaft gilt; bei einem Ein- oder Austritt eine neue Angabe mit dem Datum. Datum und Gemeinschaft leeren, um eine Angabe zu entfernen.</p>
+    {% for from_date, religion in religion_rows %}
+    <div>
+      <label>Ab
+        <input name="religion_from_{{ loop.index0 }}" type="date" value="{{ from_date }}">
+      </label>
+      <label>Gemeinschaft
+        <select name="religion_{{ loop.index0 }}">
+          <option value=""{% if not religion %} selected{% endif %}>nicht angegeben</option>
+          {% for choice in religion_choices %}<option value="{{ choice }}"{% if choice == religion %} selected{% endif %}>{{ religion_labels[choice] }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+    {% endfor %}
+  </fieldset>
+  {% endif %}
   <button type="submit">{{ button }}</button>
 </form>

@@ -1,17 +1,48 @@
-"""Baustein Angaben zur Person: Vorname und Name (docs/grundgeruest.md, 3.2; ADR 0009)."""
+"""Baustein Angaben zur Person: Name, Stammdaten, Religionszugehörigkeit (docs/grundgeruest.md,
+3.2; ADR 0009 samt Nachtrag)."""
 
+import datetime
 from collections.abc import Mapping
+from enum import StrEnum
 
-from pydantic import Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from moarcoal.storage.entries import Entry, EntryAddress, entry_kind
+from moarcoal.storage.identifiers import iban_problem, id_number_problem
 from moarcoal.storage.issuers import Issuer, name_key
 
 PERSONAL_DETAILS_SCHEMA = "datenebene/1"
+TEXT_MAX = 200
+
+
+class Religion(StrEnum):
+    """Die Religionsgemeinschaft; `NONE` heißt keine oder keine, die Kirchensteuer erhebt."""
+
+    NONE = "keine"
+    EVANGELICAL = "evangelisch"
+    ROMAN_CATHOLIC = "roemisch-katholisch"
+    OLD_CATHOLIC = "altkatholisch"
+    JEWISH = "juedisch"
+    FREE_RELIGIOUS = "freireligioes"
+
+    @property
+    def levies_church_tax(self) -> bool:
+        return self is not Religion.NONE
+
+
+class ReligionMembership(BaseModel):
+    """Die Religion ab einem Datum; sie gilt, bis eine spätere Angabe sie ablöst."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    from_date: datetime.date
+    religion: Religion
 
 
 class PersonalDetails(Entry):
-    """Vorname und Name des Nutzers, genau eine Eintragung je Nutzer (`owner`).
+    """Vorname, Name und die selten wechselnden Angaben des Nutzers, genau eine Eintragung je
+    Nutzer (`owner`). Alle Angaben außer dem Namen sind freiwillig (`None`: noch nicht angegeben).
+    In `religions` kommt ein Datum nur einmal vor (`check_personal_details`).
 
     `issuer` verweist auf den eigenen Aussteller („Vorname Name“, Privatperson), den die App beim
     Speichern anlegt und gleichhält. Der Name ist hier nicht sensibel markiert: in die Sperrliste
@@ -21,6 +52,16 @@ class PersonalDetails(Entry):
     first_name: str = Field(min_length=1)
     last_name: str = Field(min_length=1)
     issuer: EntryAddress | None = None
+    birth_date: datetime.date | None = None
+    id_number: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+    title: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+    street: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+    house_number: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+    postal_code: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+    city: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+    iban: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+    account_holder: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+    religions: tuple[ReligionMembership, ...] = ()
 
     @field_validator("first_name", "last_name")
     @classmethod
@@ -63,6 +104,27 @@ def check_own_issuer(issuer: Issuer, entries: Mapping[EntryAddress, Entry]) -> s
     return None
 
 
+def _fields_problem(details: PersonalDetails) -> str | None:
+    """Prüfziffer der Identifikationsnummer, Prüfsumme der IBAN, ein Datum je Religionsangabe."""
+    if details.id_number is not None and (problem := id_number_problem(details.id_number)):
+        return problem
+    if details.iban is not None and (problem := iban_problem(details.iban)):
+        return problem
+    return religion_dates_problem(details.religions)
+
+
+def religion_dates_problem(history: tuple[ReligionMembership, ...]) -> str | None:
+    dates = [r.from_date for r in history]
+    return "Religion: je Datum nur eine Angabe" if len(set(dates)) < len(dates) else None
+
+
+def sensitive_values(entries: list[PersonalDetails]) -> list[str]:
+    """Die Werte für die Sperrliste: Identifikationsnummer und IBAN (der Name kommt über den
+    Aussteller, ADR 0009)."""
+    values = (v for d in entries for v in (d.id_number, d.iban))
+    return sorted({v for v in values if v})
+
+
 def check_personal_details(
     details: PersonalDetails, entries: Mapping[EntryAddress, Entry]
 ) -> str | None:
@@ -73,6 +135,8 @@ def check_personal_details(
         for e in entries.values()
     ):
         return "Angaben zur Person gibt es schon."
+    if problem := _fields_problem(details):
+        return problem
     if details.issuer is None:
         return None
     issuer = entries.get(details.issuer)
@@ -86,4 +150,5 @@ PERSONAL_DETAILS_KIND = entry_kind(
     PERSONAL_DETAILS_SCHEMA,
     personal_details_path,
     check=check_personal_details,
+    denylist=sensitive_values,
 )

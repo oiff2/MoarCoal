@@ -1,6 +1,7 @@
 """Daten des Moduls Steuerjahr: eingelesene Zeilen eines Übertragungsprotokolls und Eingaben."""
 
 import datetime
+import re
 from collections.abc import Callable, Mapping
 from typing import Annotated
 
@@ -65,6 +66,21 @@ class FormInput(Entry):
     content: str = Field(min_length=1, max_length=TEXT_MAX)
 
 
+PHONE_PATTERN = re.compile(r"[0-9+()/\- ]+")
+
+
+class YearPersonInput(Entry):
+    """Eingabe zur Person im Steuerjahr: ausgeübter Beruf, Telefon für Rückfragen und die Auswahl
+    „In dieser Steuererklärung“ (als ihr Text). Je Nutzer und Jahr höchstens eine (Schreibweg);
+    `None` heißt noch nicht angegeben. Die Felder von ESt 1 A übernehmen sie später (#167).
+    """
+
+    year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
+    occupation: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+    phone: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+    in_this_return: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
+
+
 def taken_order(moment: datetime.datetime | None, entry_id: str) -> tuple[bool, float, str]:
     """Reihenfolge nach Aufnahmezeitpunkt (ohne Zeitpunkt zuerst), bei Gleichstand nach `id`."""
     return (moment is not None, moment.timestamp() if moment else 0.0, entry_id)
@@ -91,7 +107,21 @@ def check_input(
     return None
 
 
-def yearly_path(entry: ProtocolReading | FormInput) -> str:
+def check_person_input(entry: YearPersonInput, entries: Mapping[EntryAddress, Entry]) -> str | None:
+    """Schreibweg: das Telefon ist eine Nummer, nur eine Eingabe zur Person je Nutzer und Jahr."""
+    if entry.phone is not None and not PHONE_PATTERN.fullmatch(entry.phone):
+        return "Telefon: nur Ziffern, + ( ) / - und Leerzeichen"
+    same = [
+        e
+        for e in entries.values()
+        if isinstance(e, YearPersonInput) and (e.owner, e.year) == (entry.owner, entry.year)
+    ]
+    if len(same) > 1:
+        return f"Für {entry.year} gibt es schon Eingaben zur Person"
+    return None
+
+
+def yearly_path(entry: ProtocolReading | FormInput | YearPersonInput) -> str:
     return f"users/{entry.owner}/tax_year/{entry.year}.json"
 
 
@@ -104,4 +134,5 @@ def kinds(fits_field: FieldCheck) -> tuple[EntryKind, ...]:
     return (
         entry_kind(ProtocolReading, SCHEMA, yearly_path, falls_with="document", label="Einlesung"),
         entry_kind(FormInput, SCHEMA, yearly_path, check=check, check_on_load=True),
+        entry_kind(YearPersonInput, SCHEMA, yearly_path, check=check_person_input),
     )

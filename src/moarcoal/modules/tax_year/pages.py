@@ -4,8 +4,9 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
+from moarcoal.defaults import year_of
 from moarcoal.modules.tax_year.anlagen import Anlage, YearAnlage, protocol_contents, year_anlagen
 from moarcoal.modules.tax_year.assessment_check import current_assessment
 from moarcoal.modules.tax_year.capture import foreign_refs
@@ -14,6 +15,7 @@ from moarcoal.modules.tax_year.field_checks import field_checks
 from moarcoal.modules.tax_year.fields import FormField
 from moarcoal.modules.tax_year.inputs import changes_for_input, current_input, typed_field
 from moarcoal.modules.tax_year.links import protocol_url
+from moarcoal.modules.tax_year.person_input import current_person_input, year_person_input_changes
 from moarcoal.modules.tax_year.protocol_check import latest_reading
 from moarcoal.modules.tax_year.snapshot_check import describe_frozen, latest_snapshot
 from moarcoal.registration import ModuleState
@@ -26,6 +28,7 @@ from moarcoal.web.helpers import (
     form_fields,
     global_year,
     module_state,
+    rejection_reasons,
     rejection_text,
     render,
     store_of,
@@ -52,8 +55,22 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
 
     @router.get("", response_class=HTMLResponse)
     def index(request: Request) -> HTMLResponse:
+        return _overview(request, global_year(request), None, None, 200)
+
+    def _overview(
+        request: Request,
+        year: int,
+        typed: dict[str, str] | None,
+        errors: list[str] | None,
+        status: int,
+    ) -> HTMLResponse:
         state = _own_state(request)
-        year = global_year(request)
+        saved = current_person_input(state, year)
+        person = typed or {
+            "occupation": (saved and saved.occupation) or "",
+            "phone": (saved and saved.phone) or "",
+            "in_return": (saved and saved.in_this_return) or "",
+        }
         documents = {d.address: d for d in state.documents(TRANSFER_PROTOCOL_KEY)}
         readings = [
             (reading, documents.get(reading.document))
@@ -62,11 +79,33 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
         return render(
             request,
             "tax_year/index.html",
+            status,
             year=year,
             anlagen=year_anlagen(anlagen, year, latest_reading(state, year)),
             anlage=None,
             readings=readings,
+            person=person,
+            person_errors=errors or [],
         )
+
+    @router.post("/person/{year}")
+    def save_person(
+        request: Request, year: int, fields: Annotated[dict[str, str], Depends(form_fields)]
+    ) -> Response:
+        """Legt die Eingaben zur Person im Jahr ab (Beruf, Telefon, „In dieser Steuererklärung“)."""
+        if year_of(str(year), in_range=True) is None:
+            raise HTTPException(404)
+        changes = year_person_input_changes(
+            _own_state(request),
+            year,
+            fields.get("occupation", ""),
+            fields.get("phone", ""),
+            fields.get("in_return", ""),
+        )
+        result = store_of(request).apply(changes) if changes else None
+        if result is not None and not isinstance(result, Applied):
+            return _overview(request, year, fields, rejection_reasons(result), 422)
+        return RedirectResponse("/steuerjahr", status_code=303)
 
     @router.get("/uebertragungsprotokolle/{reading_id}", response_class=HTMLResponse)
     def protocol_page(request: Request, reading_id: str) -> HTMLResponse:
