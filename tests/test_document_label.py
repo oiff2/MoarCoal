@@ -9,7 +9,7 @@ import kohlebau_import as ki
 import pytest
 from app_helper import make_app
 from fastapi.testclient import TestClient
-from test_kohlebau_import import documents, setup  # noqa: F401 (Fixture)
+from test_kohlebau_import import documents, setup  # noqa: F401 (Fixture)  # pyright: ignore[reportUnusedImport]
 
 from moarcoal.documents import (
     DocumentKind,
