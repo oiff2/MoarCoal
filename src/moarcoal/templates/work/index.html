@@ -69,7 +69,7 @@
       <h2>Lohnsteuerbescheinigung</h2>
       {% for label, result in wage_tax["values"] %}{{ value_view(label, result) }}{% endfor %}
       {% for url in wage_tax.documents %}<p><a href="{{ url }}">Beleg ansehen</a></p>{% endfor %}
-      {% if not wage_tax.documents %}<p>Die Bescheinigung nehmen Sie im Reiter Belege auf (Dokumentart „Lohnsteuerbescheinigung“, Jahr {{ year }}).</p>{% endif %}
+      {% if not wage_tax.documents %}<p>Die Bescheinigung nehmen Sie auf der Belege-Seite auf (Dokumentart „Lohnsteuerbescheinigung“, Jahr {{ year }}).</p>{% endif %}
     </section>
   </div>
 
