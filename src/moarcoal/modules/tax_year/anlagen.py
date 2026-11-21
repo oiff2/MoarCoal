@@ -134,11 +134,15 @@ def year_anlagen(
     return tuple(found)
 
 
-def protocol_contents(reading: ProtocolReading | None, form: str) -> dict[str, str]:
-    """Der Inhalt je E-Kennung der Anlage laut Protokoll, roh wie gedruckt; mehrere Zeilen
-    derselben E-Kennung stehen hintereinander."""
+def protocol_contents(reading: ProtocolReading | None, structure: FormStructure) -> dict[str, str]:
+    """Der Inhalt je E-Kennung der Anlage laut Protokoll, wie gedruckt und mit der Einheit des
+    Felds aus der Struktur (das Protokoll druckt keine); mehrere Zeilen derselben E-Kennung
+    stehen hintereinander."""
+    units = {f.e_kennung: f.unit for f in structure.fields if f.unit}
     contents: dict[str, list[str]] = {}
     for line in () if reading is None else reading.lines:
-        if line.form == form:
-            contents.setdefault(line.elster_id, []).append(line.content)
+        if line.form == structure.form:
+            unit = units.get(line.elster_id)
+            shown = f"{line.content} {unit}" if unit and line.content else line.content
+            contents.setdefault(line.elster_id, []).append(shown)
     return {elster_id: "; ".join(found) for elster_id, found in contents.items()}

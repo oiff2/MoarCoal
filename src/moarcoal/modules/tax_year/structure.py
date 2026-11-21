@@ -13,7 +13,7 @@ from pathlib import Path
 
 from moarcoal.modules.tax_year.entries import ElsterId, ProtocolLine
 from moarcoal.modules.tax_year.fields import FormField
-from moarcoal.modules.tax_year.form_names import form_name, protocol_page
+from moarcoal.modules.tax_year.form_names import form_name, protocol_page, protocol_unit
 
 SCHEMA = 1  # wie im Werkzeug
 DIRECTORY = Path(__file__).parent / "strukturen"
@@ -34,6 +34,7 @@ class StructureField:
     label: str
     options: tuple[str, ...] = ()  # feste Auswahl; leer: keine
     free_text: bool = False  # Vorschlagsliste: nimmt auch einen eigenen Text
+    unit: str = ""  # Einheit, wie Mein ELSTER sie am Feld zeigt (€, km, m²); leer: keine
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,7 @@ def parse_structure(text: str) -> FormStructure:
             f["label"],
             tuple(f.get("options", ())),
             bool(f.get("free_text", False)),
+            f.get("unit", ""),
         )
         for f in data["fields"]
     )
@@ -125,6 +127,7 @@ def provisional_structure(form: str, year: int, lines: Iterable[ProtocolLine]) -
             (),
             line.form_line,
             line.label,
+            unit=protocol_unit(line.elster_id),
         )
     return FormStructure(form, year, True, tuple(fields.values()))
 

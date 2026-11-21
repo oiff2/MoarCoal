@@ -47,6 +47,8 @@ SUGGESTIONS_ID_RE = re.compile(r"fields\(([A-Za-z0-9_]+)\)_suggestions$")
 LINE_TITLE_RE = re.compile(r"^Zeile\s+(\d+[a-z]?)$")
 # Screen-reader texts ELSTER puts into headings and labels.
 NOISE = ("Hilfe zum Begriff anzeigen", "Hinweis vorhanden.")
+# Units Mein ELSTER shows as the input's placeholder; other placeholders are formats, no unit.
+UNITS = {"Euro": "€", "Euro, Cent": "€", "km": "km", "m²": "m²"}
 VOID_TAGS = frozenset(
     {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "wbr"}
 )
@@ -63,6 +65,7 @@ class PageField:
     # is a suggestion list and also takes an own text.
     options: tuple[str, ...] = ()
     free_text: bool = False
+    unit: str = ""  # from the input's placeholder (UNITS); empty: none shown
 
 
 def field_name(attribute: str | None) -> str | None:
@@ -99,6 +102,7 @@ class _PageParser(HTMLParser):
         self._select: str | None = None
         self._suggestions: str | None = None
         self._option: list[str] | None = None
+        self.units: dict[str, str] = {}
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attributes = dict(attrs)
@@ -129,6 +133,8 @@ class _PageParser(HTMLParser):
         if tag in ("option", "li") and (self._select or self._suggestions):
             self._option = []
         if tag in ("input", "select", "textarea") and (name := field_name(attributes.get("name"))):
+            if unit := UNITS.get(attributes.get("placeholder") or ""):
+                self.units.setdefault(name, unit)
             self._add(name, self._group_label)
 
     def handle_endtag(self, tag: str) -> None:
@@ -195,6 +201,7 @@ def read_page(html: str) -> list[PageField]:
             item,
             options=tuple(parser.options.get(item.name, ())),
             free_text=item.name in parser.free_text,
+            unit=parser.units.get(item.name, ""),
         )
         for item in parser.fields.values()
     ]
@@ -258,6 +265,8 @@ def build_structure(pages: list[tuple[str, str]], form: str, year: int) -> Struc
                 "line": item.line,
                 "label": item.label,
             }
+            if item.unit:
+                entry["unit"] = item.unit
             if item.options:
                 entry["options"] = list(item.options)
                 if item.free_text:

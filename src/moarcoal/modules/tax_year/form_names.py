@@ -42,6 +42,47 @@ PROTOCOL_PAGES: dict[str, dict[str, str]] = {
 }
 
 
+PROTOCOL_UNITS: dict[str, str] = {
+    # Einheit je E-Kennung für Felder ohne gespeicherte Struktur (das Protokoll druckt keine).
+    # Aus dem Kohlebau-Katalog 2025 (Einheit euro, euro_cent, flaeche); bis gespeicherte Seiten
+    # sie liefern (#164).
+    # KAP
+    "E1900701": "€",
+    "E1900901": "€",
+    "E1901502": "€",
+    "E1901401": "€",
+    "E1901402": "€",
+    "E1904701": "€",
+    "E1904901": "€",
+    "E1904801": "€",
+    "E1905001": "€",
+    "E1905101": "€",
+    # SA
+    "E0108004": "€",  # Kirchensteuer gezahlt, Einzelangabe zur Summe E0107601
+    "E0107601": "€",
+    "E0107602": "€",
+    # VOR
+    "E2001802": "€",  # Betrag je Versicherung, Einzelangabe zur Summe E2001803
+    "E2000401": "€",
+    "E2000701": "€",
+    "E2000801": "€",
+    "E2001203": "€",
+    "E2001405": "€",
+    "E2001505": "€",
+    "E2001605": "€",
+    "E2001705": "€",
+    "E2003104": "€",
+    "E2003202": "€",
+    "E2003302": "€",
+    "E2003502": "€",
+    "E2003705": "€",
+    "E2003807": "€",
+    "E2003907": "€",
+    "E2004403": "€",
+    "E2001803": "€",
+}
+
+
 def form_name(form: str) -> str:
     """Der Name der Anlage zum Anzeigen; eine unbekannte heißt „Anlage <Schlüssel>“."""
     return FORM_NAMES.get(form, f"Anlage {form}")
@@ -50,6 +91,11 @@ def form_name(form: str) -> str:
 def protocol_page(form: str, segment: str) -> str:
     """Der Seitentitel zum ersten Pfadteil eines Protokollfelds; unbekannt: der Pfadteil selbst."""
     return PROTOCOL_PAGES.get(form, {}).get(segment, segment)
+
+
+def protocol_unit(elster_id: str) -> str:
+    """Die Einheit eines Protokollfelds ohne gespeicherte Struktur; unbekannt: leer."""
+    return PROTOCOL_UNITS.get(elster_id, "")
 
 
 def form_rank(form: str) -> tuple[int, str]:

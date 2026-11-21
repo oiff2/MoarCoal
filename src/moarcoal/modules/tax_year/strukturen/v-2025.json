@@ -137,7 +137,8 @@
     "Gesamtwohnfläche"
    ],
    "line": "11",
-   "label": "Gesamtwohnfläche (m²)"
+   "label": "Gesamtwohnfläche (m²)",
+   "unit": "m²"
   },
   {
    "e_kennung": "E0700104",
@@ -146,7 +147,8 @@
     "Gesamtwohnfläche"
    ],
    "line": "12",
-   "label": "in Zeile 11 enthaltener eigengenutzter / unentgeltlich an Dritte überlassener Wohnraum (m²)"
+   "label": "in Zeile 11 enthaltener eigengenutzter / unentgeltlich an Dritte überlassener Wohnraum (m²)",
+   "unit": "m²"
   },
   {
    "e_kennung": "E0700106",
@@ -155,7 +157,8 @@
     "Gesamtwohnfläche"
    ],
    "line": "12",
-   "label": "in Zeile 11 enthaltener als Ferienwohnung genutzter Wohnraum (in m²) (m²)"
+   "label": "in Zeile 11 enthaltener als Ferienwohnung genutzter Wohnraum (in m²) (m²)",
+   "unit": "m²"
   },
   {
    "e_kennung": "E0701202",
@@ -185,7 +188,8 @@
     "Mieteinnahmen für Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
    ],
    "line": "",
-   "label": "Mieteinnahmen (Euro)"
+   "label": "Mieteinnahmen (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0700206",
@@ -195,7 +199,8 @@
     "Mieteinnahmen für Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
    ],
    "line": "15",
-   "label": "Summe (Euro)"
+   "label": "Summe (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0701603",
@@ -225,7 +230,8 @@
     "Einnahmen für andere Räume (ohne Umlagen / ohne Umsatzsteuer)"
    ],
    "line": "",
-   "label": "Mieteinnahmen für andere Räume (Euro)"
+   "label": "Mieteinnahmen für andere Räume (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0700406",
@@ -235,7 +241,8 @@
     "Einnahmen für andere Räume (ohne Umlagen / ohne Umsatzsteuer)"
    ],
    "line": "18",
-   "label": "Summe (Euro)"
+   "label": "Summe (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0701903",
@@ -265,7 +272,8 @@
     "Einnahmen für an Angehörige vermietete Wohnungen (ohne Umlagen / ohne Umsatzsteuer)"
    ],
    "line": "19",
-   "label": "Einnahmen (Euro)"
+   "label": "Einnahmen (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0700501",
@@ -274,7 +282,8 @@
     "Einnahmen aus umgelegten Neben- / Betriebskosten (z. B. Wasser, Allgemeinstrom, Müllabfuhr, Zentralheizung)"
    ],
    "line": "20",
-   "label": "auf die Zeilen 15 und 18 entfallende laufende Neben- / Betriebskosten (Euro)"
+   "label": "auf die Zeilen 15 und 18 entfallende laufende Neben- / Betriebskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0702106",
@@ -283,7 +292,8 @@
     "Einnahmen aus umgelegten Neben- / Betriebskosten (z. B. Wasser, Allgemeinstrom, Müllabfuhr, Zentralheizung)"
    ],
    "line": "21",
-   "label": "auf die Zeilen 15 und 18 entfallende und im Jahr 2025 erhaltene Nachzahlungen / geleistete Erstattungen (negativen Betrag mit vorangestelltem Minuszeichen eintragen) (Euro)"
+   "label": "auf die Zeilen 15 und 18 entfallende und im Jahr 2025 erhaltene Nachzahlungen / geleistete Erstattungen (negativen Betrag mit vorangestelltem Minuszeichen eintragen) (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0700502",
@@ -292,7 +302,8 @@
     "Einnahmen aus umgelegten Neben- / Betriebskosten (z. B. Wasser, Allgemeinstrom, Müllabfuhr, Zentralheizung)"
    ],
    "line": "22",
-   "label": "auf Zeile 19 entfallende laufende Neben- / Betriebskosten (Euro)"
+   "label": "auf Zeile 19 entfallende laufende Neben- / Betriebskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0702304",
@@ -301,7 +312,8 @@
     "Einnahmen aus umgelegten Neben- / Betriebskosten (z. B. Wasser, Allgemeinstrom, Müllabfuhr, Zentralheizung)"
    ],
    "line": "23",
-   "label": "auf Zeile 19 entfallende und im Jahr 2025 erhaltene Nachzahlungen / geleistete Erstattungen (negativen Betrag mit vorangestelltem Minuszeichen eintragen) (Euro)"
+   "label": "auf Zeile 19 entfallende und im Jahr 2025 erhaltene Nachzahlungen / geleistete Erstattungen (negativen Betrag mit vorangestelltem Minuszeichen eintragen) (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0702404",
@@ -319,7 +331,8 @@
     "Sonstige Einnahmen"
    ],
    "line": "25",
-   "label": "Vereinnahmte Mieten für frühere Jahre / verrechnete Mietkautionen / auf das Kalenderjahr entfallende Mietvorauszahlungen aus Baukostenzuschüssen (Euro)"
+   "label": "Vereinnahmte Mieten für frühere Jahre / verrechnete Mietkautionen / auf das Kalenderjahr entfallende Mietvorauszahlungen aus Baukostenzuschüssen (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0700701",
@@ -328,7 +341,8 @@
     "Sonstige Einnahmen"
    ],
    "line": "26",
-   "label": "Einnahmen aus Vermietung von Garagen, Werbeflächen, Grund und Boden für Kioske usw. (Euro)"
+   "label": "Einnahmen aus Vermietung von Garagen, Werbeflächen, Grund und Boden für Kioske usw. (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0701602",
@@ -337,7 +351,8 @@
     "Sonstige Einnahmen"
    ],
    "line": "27",
-   "label": "Vereinnahmte Umsatzsteuer (Euro)"
+   "label": "Vereinnahmte Umsatzsteuer (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0701701",
@@ -346,7 +361,8 @@
     "Sonstige Einnahmen"
    ],
    "line": "28",
-   "label": "Vom Finanzamt erstattete und ggf. verrechnete Umsatzsteuer (Euro)"
+   "label": "Vom Finanzamt erstattete und ggf. verrechnete Umsatzsteuer (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0701301",
@@ -356,7 +372,8 @@
     "Öffentliche Zuschüsse nach dem Wohnraumförderungsgesetz oder zu Erhaltungsaufwendungen, Aufwendungszuschüsse, Guthabenzinsen aus Bausparverträgen und sonstige Einnahmen"
    ],
    "line": "29",
-   "label": "Öffentliche Zuschüsse nach dem Wohnraumförderungsgesetz oder zu Erhaltungsaufwendungen, Aufwendungszuschüsse, Guthabenzinsen aus Bausparverträgen und sonstige Einnahmen (Euro)"
+   "label": "Öffentliche Zuschüsse nach dem Wohnraumförderungsgesetz oder zu Erhaltungsaufwendungen, Aufwendungszuschüsse, Guthabenzinsen aus Bausparverträgen und sonstige Einnahmen (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0701302",
@@ -366,7 +383,8 @@
     "Öffentliche Zuschüsse nach dem Wohnraumförderungsgesetz oder zu Erhaltungsaufwendungen, Aufwendungszuschüsse, Guthabenzinsen aus Bausparverträgen und sonstige Einnahmen"
    ],
    "line": "30",
-   "label": "Von dem Betrag in Zeile 29 entfallen auf eigengenutzte oder unentgeltlich an Dritte überlassene Wohnungen laut Zeile 12 (Euro)"
+   "label": "Von dem Betrag in Zeile 29 entfallen auf eigengenutzte oder unentgeltlich an Dritte überlassene Wohnungen laut Zeile 12 (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0701303",
@@ -376,7 +394,8 @@
     "Öffentliche Zuschüsse nach dem Wohnraumförderungsgesetz oder zu Erhaltungsaufwendungen, Aufwendungszuschüsse, Guthabenzinsen aus Bausparverträgen und sonstige Einnahmen"
    ],
    "line": "31",
-   "label": "Ergebnis der Zeilen 29 und 30 (Euro)"
+   "label": "Ergebnis der Zeilen 29 und 30 (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0701401",
@@ -385,7 +404,8 @@
     "Summe der Einnahmen"
    ],
    "line": "32",
-   "label": "Summe der Einnahmen aus den Zeilen 15, 18 bis 28 und 31 (Euro)"
+   "label": "Summe der Einnahmen aus den Zeilen 15, 18 bis 28 und 31 (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0703511",
@@ -394,7 +414,8 @@
     "Summe"
    ],
    "line": "35",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0703416",
@@ -403,7 +424,8 @@
     "Summe"
    ],
    "line": "38",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704008",
@@ -412,7 +434,8 @@
     "Summe"
    ],
    "line": "41",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0703519",
@@ -421,7 +444,8 @@
     "Summe"
    ],
    "line": "45",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704507",
@@ -439,7 +463,8 @@
     "durch direkte Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704610",
@@ -457,7 +482,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704612",
@@ -475,7 +501,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0703406",
@@ -484,7 +511,8 @@
     "Summe"
    ],
    "line": "48",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704813",
@@ -502,7 +530,8 @@
     "durch direkte Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704908",
@@ -520,7 +549,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704910",
@@ -538,7 +568,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704406",
@@ -547,7 +578,8 @@
     "Summe"
    ],
    "line": "51",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0705108",
@@ -565,7 +597,8 @@
     "durch direkte Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0705207",
@@ -583,7 +616,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0705209",
@@ -601,7 +635,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704506",
@@ -610,7 +645,8 @@
     "Summe"
    ],
    "line": "54",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704412",
@@ -619,7 +655,8 @@
     "Summe"
    ],
    "line": "55",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704513",
@@ -628,7 +665,8 @@
     "Summe"
    ],
    "line": "56",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0703907",
@@ -638,7 +676,8 @@
     "Summe"
    ],
    "line": "57",
-   "label": "Gesamtaufwand 2025 (Euro)"
+   "label": "Gesamtaufwand 2025 (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704703",
@@ -648,7 +687,8 @@
     "Summe"
    ],
    "line": "57",
-   "label": "davon 2025 abzuziehen (Euro)"
+   "label": "davon 2025 abzuziehen (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0705702",
@@ -658,7 +698,8 @@
     "durch direkte Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag (Euro)"
+   "label": "Gesamtbetrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0705801",
@@ -668,7 +709,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0705802",
@@ -688,7 +730,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704708",
@@ -698,7 +741,8 @@
     "davon 2025 abzuziehen (Summe)"
    ],
    "line": "60",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0706003",
@@ -708,7 +752,8 @@
     "durch direkte Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag (Euro)"
+   "label": "Gesamtbetrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0706103",
@@ -718,7 +763,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0706104",
@@ -738,7 +784,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704015",
@@ -748,7 +795,8 @@
     "Summe"
    ],
    "line": "63",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0706301",
@@ -758,7 +806,8 @@
     "durch direkte Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag (Euro)"
+   "label": "Gesamtbetrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0706401",
@@ -768,7 +817,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0706402",
@@ -788,7 +838,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704115",
@@ -798,7 +849,8 @@
     "Summe"
    ],
    "line": "66",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0706601",
@@ -808,7 +860,8 @@
     "durch direkte Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag (Euro)"
+   "label": "Gesamtbetrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0706701",
@@ -818,7 +871,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0706702",
@@ -838,7 +892,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704215",
@@ -848,7 +903,8 @@
     "Summe"
    ],
    "line": "69",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0706901",
@@ -858,7 +914,8 @@
     "durch direkte Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag (Euro)"
+   "label": "Gesamtbetrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0707001",
@@ -868,7 +925,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0707002",
@@ -888,7 +946,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704315",
@@ -898,7 +957,8 @@
     "Summe"
    ],
    "line": "72",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0707201",
@@ -916,7 +976,8 @@
     "durch direkte Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0707301",
@@ -934,7 +995,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0707303",
@@ -952,7 +1014,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704418",
@@ -961,7 +1024,8 @@
     "Summe"
    ],
    "line": "75",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0707501",
@@ -979,7 +1043,8 @@
     "durch direkte Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag (Euro)"
+   "label": "Gesamtbetrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0707601",
@@ -997,7 +1062,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0707603",
@@ -1015,7 +1081,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0705515",
@@ -1024,14 +1091,16 @@
     "Summe"
    ],
    "line": "78",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0704812",
    "page": "15 - Nur bei umsatzsteuerpflichtiger Vermietung: an das Finanzamt gezahlte und ggf. verrechnete Umsatzsteuer",
    "headings": [],
    "line": "79",
-   "label": "durch direkte Zuordnung ermittelt (Euro)"
+   "label": "durch direkte Zuordnung ermittelt (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0707901",
@@ -1049,7 +1118,8 @@
     "durch direkte Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag (Euro)"
+   "label": "Gesamtbetrag (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0708001",
@@ -1067,7 +1137,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0708003",
@@ -1085,7 +1156,8 @@
     "durch verhältnismäßige Zuordnung ermittelt"
    ],
    "line": "",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0705607",
@@ -1094,42 +1166,48 @@
     "Summe"
    ],
    "line": "82",
-   "label": "Abzugsfähige Werbungskosten (Euro)"
+   "label": "Abzugsfähige Werbungskosten (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0705701",
    "page": "17 - Summe der Werbungskosten und abziehbare Vorsteuerbeträge",
    "headings": [],
    "line": "83",
-   "label": "Summe der Werbungskosten(Summe der Zeilen 35, 38, 41, 45, 48, 51, 54, 55, 56, 60, 63, 66, 69, 72, 75, 78, 79 und 82) (Euro)"
+   "label": "Summe der Werbungskosten(Summe der Zeilen 35, 38, 41, 45, 48, 51, 54, 55, 56, 60, 63, 66, 69, 72, 75, 78, 79 und 82) (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0705107",
    "page": "17 - Summe der Werbungskosten und abziehbare Vorsteuerbeträge",
    "headings": [],
    "line": "84",
-   "label": "In den Werbungskosten laut Zeile 83 enthaltene abziehbare Vorsteuerbeträge (Euro)"
+   "label": "In den Werbungskosten laut Zeile 83 enthaltene abziehbare Vorsteuerbeträge (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0701601",
    "page": "18 - Ermittlung und Zuordnung der Einkünfte",
    "headings": [],
    "line": "85",
-   "label": "Überschuss (Einnahmen laut Zeile 32 abzüglich Werbungskosten laut Zeile 83)– negativen Betrag mit vorangestelltem Minuszeichen eintragen – (Euro)"
+   "label": "Überschuss (Einnahmen laut Zeile 32 abzüglich Werbungskosten laut Zeile 83)– negativen Betrag mit vorangestelltem Minuszeichen eintragen – (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0701801",
    "page": "18 - Ermittlung und Zuordnung der Einkünfte",
    "headings": [],
    "line": "86",
-   "label": "Steuerpflichtige Person / Ehemann / Person A (Euro)"
+   "label": "Steuerpflichtige Person / Ehemann / Person A (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0701802",
    "page": "18 - Ermittlung und Zuordnung der Einkünfte",
    "headings": [],
    "line": "86",
-   "label": "Ehefrau / Person B (Euro)"
+   "label": "Ehefrau / Person B (Euro)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0703417",
@@ -1174,7 +1252,8 @@
    "page": "Absetzung für Abnutzung für Gebäude (ohne Beträge in den Zeilen 36 bis 41) durch verhältnismäßige Zuordnung ermittelt1. Eintrag",
    "headings": [],
    "line": "34",
-   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)"
+   "label": "Gesamtbetrag in EUR, Ct (Euro, Cent)",
+   "unit": "€"
   },
   {
    "e_kennung": "E0703423",
@@ -1188,7 +1267,8 @@
    "page": "Absetzung für Abnutzung für Gebäude (ohne Beträge in den Zeilen 36 bis 41) durch verhältnismäßige Zuordnung ermittelt1. Eintrag",
    "headings": [],
    "line": "34",
-   "label": "Werbungskosten (Euro)"
+   "label": "Werbungskosten (Euro)",
+   "unit": "€"
   }
  ]
 }

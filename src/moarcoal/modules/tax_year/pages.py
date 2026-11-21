@@ -124,7 +124,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
                 if row.field.typed and (entry := current_input(state, year, row.field))
             },
             printed=printed,
-            transferred=None if anlage.catalogued else protocol_contents(reading, anlage.form),
+            transferred=None if anlage.catalogued else protocol_contents(reading, anlage.structure),
             anlagen=year_anlagen(anlagen, year, reading),
         )
 
