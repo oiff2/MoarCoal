@@ -104,7 +104,8 @@ class MapPoint:
         if self.use.is_start:
             parts.append("Startort")
         if self.use.destination_trips:
-            parts.append(trip_count_text(self.use.destination_trips))
+            text = trip_count_text(self.use.destination_trips)
+            parts.append(f"{text} als Reiseziel" if self.use.is_start else text)
         return " · ".join(parts)
 
 

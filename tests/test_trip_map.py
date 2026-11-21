@@ -102,7 +102,7 @@ def test_orte_are_sorted_into_map_unplaced_and_not_shown() -> None:
     assert [p.use.name for p in sorted_places.points] == ["Heimstadt"]
     assert [u.name for u in sorted_places.hidden] == ["Wien"]
     assert [u.name for u in sorted_places.unplaced] == ["MS", "Fernweh"]
-    assert sorted_places.points[0].tooltip == "Heimstadt · Startort · 1 Fahrt"
+    assert sorted_places.points[0].tooltip == "Heimstadt · Startort · 1 Fahrt als Reiseziel"
 
 
 def test_the_projection_puts_north_up_and_east_right_and_none_outside() -> None:
