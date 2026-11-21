@@ -15,7 +15,7 @@ from app_helper import make_app
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from moarcoal.documents import DocumentKind, IntakeRejected, TakenIn, take_in
+from moarcoal.documents import DocumentKind, IntakeRejected, TakenIn, change_document, take_in
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolReading
 from moarcoal.modules.tax_year.anlage_n import (
@@ -245,6 +245,37 @@ def test_a_kind_without_after_take_in_stays_as_before(store: Store) -> None:
     result = take_in(store, {"x": kind}, USER, "Belege", "protokoll.html", "x", 2025)
     assert isinstance(result, TakenIn)
     assert snapshots(store) == []
+
+
+def test_setting_the_kind_later_runs_the_same_ergaenzung_as_taking_in_with_it(
+    store: Store,
+) -> None:
+    kinds = {k.key: k for r in MODULES for k in r.document_kinds}
+    beleg = take_in(store, kinds, USER, "Belege", "protokoll.html", "", 2025)
+    assert isinstance(beleg, TakenIn) and snapshots(store) == []
+
+    result = change_document(
+        store,
+        kinds,
+        beleg.document,
+        None,
+        kind_key="transfer_protocol",
+        year=2025,
+        values_on=values_on,
+    )
+
+    assert isinstance(result, Applied)
+    (snapshot,) = snapshots(store)
+    assert snapshot.occasion is Occasion.FILING and snapshot.document == beleg.document.address
+    assert len(store.state().of_kind(ProtocolReading)) == 1  # einlesen sofort
+
+
+def test_setting_a_kind_with_after_take_in_later_needs_values_on(store: Store) -> None:
+    kinds = {k.key: k for r in MODULES for k in r.document_kinds}
+    beleg = take_in(store, kinds, USER, "Belege", "protokoll.html", "", 2025)
+    assert isinstance(beleg, TakenIn)
+    with pytest.raises(ValueError, match="values_on"):
+        change_document(store, kinds, beleg.document, None, kind_key="transfer_protocol", year=2025)
 
 
 # --- Noch nicht berechenbar beim Einfrieren ---

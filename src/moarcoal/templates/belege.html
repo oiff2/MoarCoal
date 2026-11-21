@@ -85,6 +85,13 @@
     <summary>Neu im Jahresordner ({{ new.files() | length }})</summary>
     {% if new.year_folder %}<p class="hinweis">Jahresordner {{ year }}: {{ new.year_folder }}</p>
     {% else %}<p class="hinweis">Kein Jahresordner für {{ year }}.</p>{% endif %}
+    {% if new.files() %}
+    <form class="alle-aufnehmen" method="post" action="{{ keep_filter('/belege/alle-aufnehmen') }}">
+      {% for row in new.files() %}<input type="hidden" name="sha256" value="{{ row.file.sha256 }}">{% endfor %}
+      <button type="submit">alle neuen aufnehmen ({{ new.files() | length }})</button>
+      <small>Die Art wird danach je Beleg gesetzt. Es folgen keine Claude-Aufrufe.</small>
+    </form>
+    {% endif %}
     {% for group in new.groups %}
     <h3>{{ group.site }}{% if group.site == new.year_folder %} (Jahresordner){% endif %}</h3>
     {% if group.files %}

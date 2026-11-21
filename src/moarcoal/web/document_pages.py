@@ -28,6 +28,7 @@ from moarcoal.web.helpers import (
     search_of,
     store_of,
     user_of,
+    values_on,
 )
 from moarcoal.web.links import document_url, site_url, with_filter
 from moarcoal.web.previews import file_response
@@ -88,6 +89,7 @@ def change(
             choice.kind_key,
             choice.year,
             label=choice.label,
+            values_on=lambda state: values_on(request, state),
         )
     )
     if isinstance(result, IntakeRejected):

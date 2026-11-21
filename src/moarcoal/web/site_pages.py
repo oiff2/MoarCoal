@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import year_of
-from moarcoal.documents import IntakeRejected, read_document_choice, take_in
+from moarcoal.documents import IntakeRejected, read_document_choice, take_in, take_in_all
 from moarcoal.incoming import (
     all_site_files,
     folder_path_error,
@@ -31,6 +31,7 @@ from moarcoal.web.helpers import (
     document_kinds,
     entry_url,
     form_fields,
+    form_lists,
     global_year,
     rejection_text,
     render,
@@ -299,6 +300,34 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
     elif following is not None:
         return following
     return RedirectResponse(_kept(request, target or site_url()), status_code=303)
+
+
+@router.post("/alle-aufnehmen")
+def take_in_all_files(
+    request: Request, lists: Annotated[dict[str, list[str]], Depends(form_lists)]
+) -> Response:
+    """Alle angezeigten Dateien des Abschnitts Neu (`sha256`, wie angezeigt) als Beleg ohne
+    Dokumentart in einem Vorgang aufnehmen; was nicht mehr offen ist oder sich geändert hat,
+    wird übersprungen und gemeldet."""
+    store = store_of(request)
+    user = user_of(request)
+    open_files = {f.sha256: f for f in incoming_files(all_site_files(store), store.state(), user)}
+    shas = list(dict.fromkeys(lists.get("sha256", [])))
+    wanted = [(f.site, f.path, f.sha256) for sha in shas if (f := open_files.get(sha))]
+    gone = len(shas) - len(wanted)
+    result = take_in_all(store, user, wanted)
+    if isinstance(result, IntakeRejected):
+        return belege_page(request, 409, " ".join(result.reasons) if wanted else GONE)
+    skipped = [f"{path}: {reason}" for path, reason in result.skipped]
+    if not skipped and not gone:
+        return _back(request)
+    count = len(result.taken)
+    notice = f"{count} Beleg aufgenommen." if count == 1 else f"{count} Belege aufgenommen."
+    if gone:
+        notice += f" {gone} nicht mehr in der Ablage, übersprungen."
+    if skipped:
+        notice += " Übersprungen: " + "; ".join(skipped)
+    return belege_page(request, 200, notice)
 
 
 @router.post("/ausblenden")

@@ -60,6 +60,8 @@ MAX_DIFFERENCES = 50  # so viele Stellen hält eine Neueinlesung fest; gezählt 
 SHOWN_DIFFERENCES = 3  # so viele nennt der Befund
 OWN_FIELDS = frozenset({"id", "owner", "document", "reader_version"})  # kein eingelesener Wert
 YEAR_NOT_A_NUMBER = "Steuerjahr: ganze Zahl, z. B. 2025"
+CHANGED_SINCE_SHOWN = "Die Datei hat sich seit der Anzeige geändert."
+NO_FILES = "Es gibt keine Datei zum Aufnehmen."
 
 
 class ReadInError(Exception):
@@ -271,6 +273,83 @@ def document_name(document: Document, state: State) -> str:
     return document.label
 
 
+def _intake(
+    store: Store,
+    kinds: Mapping[str, DocumentKind],
+    user: str,
+    site: str,
+    path: str,
+    kind_key: str,
+    year: int,
+    *,
+    values_on: Callable[[State], "Values"] | None = None,
+    issuer: EntryAddress | None = None,
+    issuer_changes: Sequence[Change] = (),
+    label: str | None = None,
+    expected_sha256: str | None = None,
+    taken_in_at: datetime.datetime | None = None,
+) -> tuple[Document, tuple[ReadInEntry, ...], list[Change]] | IntakeRejected:
+    """Die Änderungen, die das Aufnehmen der Datei braucht (Dokument, Einträge, Ergänzung, ohne
+    sie zu schreiben); der eine Kern von `take_in` und `take_in_all`. `expected_sha256`: ist der
+    Inhalt der Datei ein anderer, wird sie abgewiesen."""
+    kind = kinds[kind_key] if kind_key else None  # leer = Beleg; unbekannte Art: Programmfehler
+    if (problem := _year_problem(year)) is not None:
+        return IntakeRejected((problem,))
+    try:
+        content = store.sites.read(site, path)
+    except SiteFileError as error:
+        return IntakeRejected((str(error),))
+    sha256 = hashlib.sha256(content).hexdigest()
+    if expected_sha256 is not None and sha256 != expected_sha256:
+        return IntakeRejected((CHANGED_SINCE_SHOWN,))
+    if documents_of_file(store.state().entries, user, sha256):  # Komfort: nicht erst einlesen
+        return IntakeRejected((ALREADY_TAKEN_IN,))
+    start, end = _period(kind, year)
+    try:
+        document = Document(
+            owner=user,
+            site=site,
+            path=path,
+            sha256=sha256,
+            document_kind=kind.key if kind else None,
+            issuer=issuer,
+            label=label,
+            period_start=start,
+            period_end=end,
+            taken_in_at=taken_in_at or datetime.datetime.now(datetime.UTC),
+        )
+    except ValidationError:
+        return IntakeRejected(("Ablageort und Pfad müssen angegeben werden.",))
+    try:
+        entries = _read_in(kind, document, content) if kind else ()
+    except ReadInError as error:
+        return IntakeRejected((str(error),))
+    taken = [document, *entries]
+    changes: list[Change] = [*issuer_changes, *(Put(entry) for entry in taken)]
+    if kind is not None:
+        changes.extend(_after_take_in(kind, store, document, entries, values_on, taken))
+    return document, entries, changes
+
+
+def _after_take_in(
+    kind: DocumentKind,
+    store: Store,
+    document: Document,
+    entries: Sequence[Entry],
+    values_on: Callable[[State], "Values"] | None,
+    replacing: Sequence[Entry],
+) -> Sequence[Change]:
+    """Die Ergänzung der Dokumentart, wenn sie eine hat; `replacing` (Dokument und Einträge) gilt
+    auf dem vorläufigen Stand, auf dem `values_on` rechnet. Die eine Regel für Aufnehmen mit Art
+    und für das spätere Setzen der Art."""
+    if kind.after_take_in is None:
+        return []
+    if values_on is None:
+        raise ValueError(f"{kind.key}: die Ergänzung beim Aufnehmen braucht `values_on`")
+    provisional = State({**store.state().entries, **{e.address: e for e in replacing}})
+    return kind.after_take_in(document, entries, values_on(provisional))
+
+
 def take_in(
     store: Store,
     kinds: Mapping[str, DocumentKind],
@@ -293,47 +372,66 @@ def take_in(
     `issuer_changes` (neuer Aussteller, neuer Alias) werden im selben Vorgang geschrieben, bei
     Abweisung bleibt nichts davon stehen.
     """
-    kind = kinds[kind_key] if kind_key else None  # leer = Beleg; unbekannte Art: Programmfehler
-    if (problem := _year_problem(year)) is not None:
-        return IntakeRejected((problem,))
-    try:
-        content = store.sites.read(site, path)
-    except SiteFileError as error:
-        return IntakeRejected((str(error),))
-    sha256 = hashlib.sha256(content).hexdigest()
-    if documents_of_file(store.state().entries, user, sha256):  # Komfort: nicht erst einlesen
-        return IntakeRejected((ALREADY_TAKEN_IN,))
-    start, end = _period(kind, year)
-    try:
-        document = Document(
-            owner=user,
-            site=site,
-            path=path,
-            sha256=sha256,
-            document_kind=kind.key if kind else None,
-            issuer=issuer,
-            label=label,
-            period_start=start,
-            period_end=end,
-            taken_in_at=datetime.datetime.now(datetime.UTC),
-        )
-    except ValidationError:
-        return IntakeRejected(("Ablageort und Pfad müssen angegeben werden.",))
-    try:
-        entries = _read_in(kind, document, content) if kind else ()
-    except ReadInError as error:
-        return IntakeRejected((str(error),))
-    taken = [document, *entries]
-    changes: list[Change] = [*issuer_changes, *(Put(entry) for entry in taken)]
-    if kind is not None and kind.after_take_in is not None:
-        if values_on is None:
-            raise ValueError(f"{kind.key}: die Ergänzung beim Aufnehmen braucht `values_on`")
-        provisional = State({**store.state().entries, **{e.address: e for e in taken}})
-        changes.extend(kind.after_take_in(document, entries, values_on(provisional)))
+    prepared = _intake(
+        store,
+        kinds,
+        user,
+        site,
+        path,
+        kind_key,
+        year,
+        values_on=values_on,
+        issuer=issuer,
+        issuer_changes=issuer_changes,
+        label=label,
+    )
+    if isinstance(prepared, IntakeRejected):
+        return prepared
+    document, entries, changes = prepared
     result = store.apply(changes)
     if not isinstance(result, Applied):
         return _rejected(result.reasons, store.state(), kinds, document)
     return TakenIn(document, entries)
+
+
+@dataclass(frozen=True)
+class TakenInAll:
+    """`taken`: die neuen Belege; `skipped`: je übersprungene Datei (Pfad, Grund)."""
+
+    taken: tuple[Document, ...]
+    skipped: tuple[tuple[str, str], ...]
+
+
+def take_in_all(
+    store: Store, user: str, files: Sequence[tuple[str, str, str]]
+) -> TakenInAll | IntakeRejected:
+    """Nimmt alle Dateien (Ablageort, Pfad, SHA-256 wie angezeigt) als Beleg ohne Dokumentart in
+    **einem** Vorgang auf; keine Einlese-Regel, kein Claude. Eine Datei, deren Inhalt nicht mehr
+    der angezeigte ist, fehlt oder schon aufgenommen ist, wird übersprungen und gemeldet. Wird
+    nichts aufgenommen, ist das Ergebnis die Abweisung; weist der Schreibweg ab, bleibt nichts."""
+    taken: list[Document] = []
+    changes: list[Change] = []
+    skipped: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for site, path, sha256 in files:
+        prepared = (
+            IntakeRejected((ALREADY_TAKEN_IN,))
+            if sha256 in seen
+            else _intake(store, {}, user, site, path, "", DEFAULT_YEAR, expected_sha256=sha256)
+        )
+        if isinstance(prepared, IntakeRejected):
+            skipped.append((path, " ".join(prepared.reasons)))
+            continue
+        seen.add(sha256)
+        document, _, document_changes = prepared
+        taken.append(document)
+        changes.extend(document_changes)
+    if not taken:
+        return IntakeRejected(tuple(f"{path}: {reason}" for path, reason in skipped) or (NO_FILES,))
+    result = store.apply(changes)
+    if not isinstance(result, Applied):
+        return IntakeRejected(tuple(result.reasons.values()))
+    return TakenInAll(tuple(taken), tuple(skipped))
 
 
 def change_document(
@@ -346,13 +444,15 @@ def change_document(
     year: int | None = None,
     *,
     label: str | None | EllipsisType = ...,
+    values_on: Callable[[State], "Values"] | None = None,
 ) -> Applied | IntakeRejected:
     """Ändert das Dokument: Aussteller und Bezeichnung immer, Art und Jahr nur, solange nichts
     daran hängt. Ohne `label` (`...`) bleibt die Bezeichnung, `None` entfernt sie.
 
     `kind_key` (leer = Beleg) und `year` sind nur beim Ändern von Art oder Jahr angegeben;
     hängt etwas am Dokument, sind sie ein Fehler. Wechselt die Art, wird das Dokument nach ihrer
-    Einlese-Regel neu eingelesen (die Ergänzung beim Aufnehmen läuft nicht).
+    Einlese-Regel neu eingelesen, und ihre Ergänzung beim Aufnehmen läuft (`values_on`): Art
+    später setzen tut dasselbe wie Aufnehmen mit Art.
     """
     state = store.state()
     update: dict[str, object] = {"issuer": issuer}
@@ -377,7 +477,11 @@ def change_document(
                 content = store.sites.read(document.site, document.path)
                 if hashlib.sha256(content).hexdigest() != document.sha256:
                     return IntakeRejected(("Die Datei hat sich seit dem Aufnehmen geändert.",))
-                changes.extend(Put(entry) for entry in _read_in(kind, updated, content))
+                entries = _read_in(kind, updated, content)
+                changes.extend(Put(entry) for entry in entries)
+                changes.extend(
+                    _after_take_in(kind, store, updated, entries, values_on, [updated, *entries])
+                )
             except (SiteFileError, ReadInError) as error:
                 return IntakeRejected((str(error),))
     changes.append(Put(updated, entry_checksum(document)))

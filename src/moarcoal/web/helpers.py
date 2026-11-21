@@ -219,11 +219,15 @@ def module_state(request: Request, key: str) -> ModuleState:
     return ModuleState(store_of(request).state(), registration, user_of(request))
 
 
-async def form_fields(request: Request) -> dict[str, str]:
-    """Felder eines Formulars (application/x-www-form-urlencoded), je Feld der erste Wert."""
+async def form_lists(request: Request) -> dict[str, list[str]]:
+    """Felder eines Formulars (application/x-www-form-urlencoded) mit allen Werten je Feld."""
     body = (await request.body()).decode("utf-8", errors="replace")
-    parsed = parse_qs(body, keep_blank_values=True)
-    return {name: values[0] for name, values in parsed.items()}
+    return parse_qs(body, keep_blank_values=True)
+
+
+async def form_fields(request: Request) -> dict[str, str]:
+    """Felder eines Formulars, je Feld der erste Wert."""
+    return {name: values[0] for name, values in (await form_lists(request)).items()}
 
 
 class _Lookup(Protocol):
