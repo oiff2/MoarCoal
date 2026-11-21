@@ -25,10 +25,11 @@ from moarcoal.web.helpers import (
     entry_of,
     form_fields,
     rejection_text,
+    search_of,
     store_of,
     user_of,
 )
-from moarcoal.web.links import document_url, site_url
+from moarcoal.web.links import document_url, site_url, with_filter
 from moarcoal.web.previews import file_response
 from moarcoal.web.site_pages import belege_page
 
@@ -46,9 +47,10 @@ def _refused(request: Request, document: Document, status_code: int, notice: str
     return belege_page(request, status_code, notice, document=document)
 
 
-def _in_list(document: Document) -> RedirectResponse:
-    """Zurück auf die Belege-Seite, das Dokument gewählt."""
-    return RedirectResponse(document_url(document.id), status_code=303)
+def _in_list(request: Request, document: Document) -> RedirectResponse:
+    """Zurück auf die Belege-Seite, das Dokument gewählt; Suche und Dateitypen bleiben."""
+    url = with_filter(document_url(document.id), search_of(request))
+    return RedirectResponse(url, status_code=303)
 
 
 @router.get("/{document_id}")
@@ -98,7 +100,7 @@ def change(
             issuer_text=fields.get("issuer_text", ""),
             year_text=fields.get("year", ""),
         )
-    return _in_list(document)
+    return _in_list(request, document)
 
 
 @router.post("/{document_id}/loeschen")
@@ -111,7 +113,7 @@ def delete(
     result = store_of(request).apply([Delete(document.address, fields.get("checksum", ""))])
     if not isinstance(result, Applied):
         return _refused(request, document, 409, rejection_text(result))
-    return RedirectResponse(site_url(), status_code=303)
+    return RedirectResponse(with_filter(site_url(), search_of(request)), status_code=303)
 
 
 @router.post("/{document_id}/auslesen")
@@ -123,7 +125,7 @@ def extract(request: Request, document_id: str) -> Response:
     )
     if isinstance(result, ReadOutRejected):
         return _refused(request, document, 409, result.message)
-    return _in_list(document)
+    return _in_list(request, document)
 
 
 @router.post("/{document_id}/bestaetigen")
@@ -139,4 +141,4 @@ def confirm_fields(
     result = confirm(store_of(request), proposal, template, key, fields.get("correction"))
     if not isinstance(result, Applied):
         return _refused(request, document, 409, result.message)
-    return _in_list(document)
+    return _in_list(request, document)

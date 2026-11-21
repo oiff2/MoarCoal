@@ -3,11 +3,10 @@ Jahrs, dazu Aufnehmen und Ausblenden der Dateien (Abschnitt Neu)."""
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import year_of
-from moarcoal.document_filter import SearchFilter, parse_file_types
 from moarcoal.documents import IntakeRejected, read_document_choice, take_in
 from moarcoal.incoming import (
     all_site_files,
@@ -35,11 +34,18 @@ from moarcoal.web.helpers import (
     global_year,
     rejection_text,
     render,
+    search_of,
     store_of,
     user_of,
     values_on,
 )
-from moarcoal.web.links import document_file_url, document_url, site_file_url, site_url
+from moarcoal.web.links import (
+    document_file_url,
+    document_url,
+    site_file_url,
+    site_url,
+    with_filter,
+)
 from moarcoal.web.previews import file_response, preview_kind
 from moarcoal.web.site_view import (
     expected_rows,
@@ -110,7 +116,6 @@ def belege_page(
     expected_errors: list[str] | None = None,
     expected_values: Fields | None = None,
     linked: Prefill | None = None,
-    search: SearchFilter | None = None,
 ) -> HTMLResponse:
     """Die Seite des gewählten Jahrs. Rechts steht, was gewählt ist: eine Datei des Eingangs oder
     eine ausgeblendete (`selected`: SHA-256) oder ein Dokument (`document`). `rejected`, `values`
@@ -118,13 +123,13 @@ def belege_page(
     bei „Existiert bereits“; `issuer_text` und `year_text` stellen die abgewiesene Eingabe eines
     Dokuments wieder her); `expected_errors` und `expected_values`
     gehören zum Formular für einen Erwarteten Beleg. `linked` ist die Vorbelegung aus der Adresse
-    (Dokumentart und Jahr, `site_url`); sie geht der aus dem Dateinamen vor. `search` sind Suche
-    und Dateityp-Filter der Adresse; sie wirken auf alle drei Abschnitte."""
+    (Dokumentart und Jahr, `site_url`); sie geht der aus dem Dateinamen vor. Suche und Dateityp-
+    Filter stehen in der Adresse (`search_of`) und wirken auf alle drei Abschnitte."""
     store = store_of(request)
     state = store.state()
     user = user_of(request)
     linked = linked or Prefill()
-    search = search or SearchFilter()
+    search = search_of(request)
     year = linked.year or global_year(request)
     files = all_site_files(store)
     open_files = incoming_files(files, state, user)
@@ -163,12 +168,11 @@ def belege_page(
         expected_errors=expected_errors or [],
         expected_values=expected_values or {"start_year": str(year)},
         taken_in=filter_documents(taken_in, search, state),
-        search=search,
         type_counts=type_counts(whole_new, taken_in, search, state),
         selected=chosen,
         linked=linked,
         linked_kind=kinds[linked.kind] if linked.kind else None,
-        carry=_carry(linked, search),
+        carry=_carry(linked),
         selected_document=document,
         detail=document_detail(request, document, issuer_text, year_text) if document else None,
         selected_hidden=hidden_chosen,
@@ -186,6 +190,17 @@ def belege_page(
     )
 
 
+def _back(request: Request) -> RedirectResponse:
+    """Zurück auf die Belege-Seite, Suche und Dateitypen bleiben."""
+    return RedirectResponse(with_filter(site_url(), search_of(request)), status_code=303)
+
+
+def _kept(request: Request, url: str) -> str:
+    """`url` mit Suche und Dateitypen, wenn es eine Adresse der Belege-Seite ist; die Seite eines
+    anderen Moduls bleibt, wie sie ist."""
+    return with_filter(url, search_of(request)) if url.startswith(site_url()) else url
+
+
 def _after(request: Request, sha256: str) -> RedirectResponse | None:
     """Weiter zur nächsten Datei des Abschnitts Neu nach `sha256`; ohne weitere `None`."""
     store = store_of(request)
@@ -195,7 +210,8 @@ def _after(request: Request, sha256: str) -> RedirectResponse | None:
     following = next_open([f.file.sha256 for f in new.files()], sha256)
     if following is None:
         return None
-    return RedirectResponse(f"{site_url()}?datei={following}", status_code=303)
+    url = site_url(file=following)
+    return RedirectResponse(with_filter(url, search_of(request)), status_code=303)
 
 
 def _linked(request: Request, dokumentart: str, jahr: str) -> Prefill:
@@ -205,19 +221,9 @@ def _linked(request: Request, dokumentart: str, jahr: str) -> Prefill:
     return Prefill(year=year_of(jahr, in_range=True), kind=kind)
 
 
-def _search_of(suche: str, typ: list[str]) -> SearchFilter:
-    return SearchFilter(suche, parse_file_types(typ))
-
-
-def _carry(linked: Prefill, search: SearchFilter) -> str:
-    """Vorbelegung, Suche und Dateitypen als Anhang der Adresse einer Datei, damit sie beim
-    Wählen bleiben."""
-    query = site_url(
-        document_kind=linked.kind,
-        year=linked.year,
-        query=search.query,
-        types=sorted(t.value for t in search.types),
-    ).partition("?")[2]
+def _carry(linked: Prefill) -> str:
+    """Die Vorbelegung als Anhang der Adresse einer Datei, damit sie beim Wählen bleibt."""
+    query = site_url(document_kind=linked.kind, year=linked.year).partition("?")[2]
     return f"&{query}" if query else ""
 
 
@@ -228,8 +234,6 @@ def index(
     dokument: str = "",
     dokumentart: str = "",
     jahr: str = "",
-    suche: str = "",
-    typ: Annotated[list[str], Query()] = [],  # noqa: B006 (FastAPI kopiert den Vorgabewert)
 ) -> HTMLResponse:
     state, user = store_of(request).state(), user_of(request)
     document = next(
@@ -240,7 +244,6 @@ def index(
         selected=datei,
         document=document,
         linked=_linked(request, dokumentart, jahr),
-        search=_search_of(suche, typ),
     )
 
 
@@ -295,7 +298,7 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
         target = document_url(result.document.id)
     elif following is not None:
         return following
-    return RedirectResponse(target or site_url(), status_code=303)
+    return RedirectResponse(_kept(request, target or site_url()), status_code=303)
 
 
 @router.post("/ausblenden")
@@ -307,14 +310,13 @@ def hide(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> R
     result = hide_file(store_of(request), file, fields.get("note", ""))
     if not isinstance(result, Applied):
         return belege_page(request, 409, rejection_text(result), selected=file.sha256)
-    return following or RedirectResponse(site_url(), status_code=303)
+    return following or _back(request)
 
 
 @router.post("/ausblenden-direkt")
 def hide_directly(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
     """Ein Klick in der Zeile: eine offene Datei (`sha256`) oder ein Ordner (`site` und `path`)."""
     store = store_of(request)
-    back = RedirectResponse(site_url(), 303)
     if "sha256" in fields:
         file = _open_file(request, fields["sha256"])
         if file is None:
@@ -330,7 +332,7 @@ def hide_directly(request: Request, fields: Annotated[Fields, Depends(form_field
         result = hide_folder(store, store.state(), site, path)
     if result is not None and not isinstance(result, Applied):
         return belege_page(request, 409, rejection_text(result))
-    return back
+    return _back(request)
 
 
 def _unhide(request: Request, hidden: HiddenFile | HiddenFolder | None, checksum: str) -> Response:
@@ -340,7 +342,7 @@ def _unhide(request: Request, hidden: HiddenFile | HiddenFolder | None, checksum
     if not isinstance(result, Applied):
         changed = "Die Ausblendung wurde inzwischen geändert. Bitte neu prüfen."
         return belege_page(request, 409, changed)
-    return RedirectResponse(site_url(), status_code=303)
+    return _back(request)
 
 
 @router.post("/einblenden-ordner")

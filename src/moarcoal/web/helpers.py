@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ValidationError
 
 from moarcoal.defaults import DEFAULT_YEAR, year_of
+from moarcoal.document_filter import SearchFilter, parse_file_types
 from moarcoal.documents import DocumentKind, read_entries_of
 from moarcoal.incoming import all_site_files, incoming_files
 from moarcoal.personal_details import details_of
@@ -37,6 +38,7 @@ from moarcoal.web.links import (
     issuer_url,
     issuers_url,
     site_url,
+    with_filter,
 )
 
 MAX_YEARS = 10  # so viele Jahre mit Daten stehen höchstens zur Auswahl
@@ -311,6 +313,13 @@ def _year_choices(request: Request, year: int) -> list[int]:
     return year_choices(found, year)
 
 
+def search_of(request: Request) -> SearchFilter:
+    """Suche und Dateitypen der Belege-Seite aus der Adresse (`suche`, `typ`); auch Formulare der
+    Seite schicken sie in der Adresse mit (`with_filter`), damit sie nach dem Absenden bleiben."""
+    params = request.query_params
+    return SearchFilter(params.get("suche", ""), parse_file_types(params.getlist("typ")))
+
+
 def render(request: Request, name: str, status_code: int = 200, **context: Any) -> HTMLResponse:
     """Rendert `name`. Den Rahmen (Seitenleiste, Kopfleiste) berechnet `base.html` erst beim
     Gebrauch, Teilvorlagen für htmx kosten ihn nicht. Ein `year` (int) im Kontext übersteuert das
@@ -319,6 +328,11 @@ def render(request: Request, name: str, status_code: int = 200, **context: Any) 
     user_name = getattr(request.state, "user_name", None) or user_name_of(request)
     page_year = context.get("year")
     year = page_year if isinstance(page_year, int) else global_year(request)
+    search = search_of(request)
+
+    def keep_filter(url: str) -> str:
+        return with_filter(url, search)
+
     open_files: int | None = context.pop("open_files", None)  # die Belege-Seite kennt ihn schon
     shell: dict[str, Callable[[], Any]] = {
         "sidebar": cache(lambda: _sidebar(request, open_files)),
@@ -328,6 +342,13 @@ def render(request: Request, name: str, status_code: int = 200, **context: Any) 
     return templates.TemplateResponse(
         request,
         name,
-        {"user_name": user_name, "shell_year": year, **shell, **context},
+        {
+            "user_name": user_name,
+            "shell_year": year,
+            "search": search,
+            "keep_filter": keep_filter,
+            **shell,
+            **context,
+        },
         status_code=status_code,
     )

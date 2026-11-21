@@ -2,11 +2,11 @@
 {% from "_issuer_field.html" import issuer_field %}
 {% from "_status.html" import file_type %}
 {% from "_belege.html" import preview, rejection %}
-{% from "documents/_detail.html" import document_detail %}
+{% from "documents/_detail.html" import document_detail with context %}
 {% block title %}Belege {{ year }} – MoarCoal{% endblock %}
 {% macro size(file) %}{{ (file.size / 1024) | round(1) | string | replace(".", ",") }} KB{% endmacro %}
 {% macro hide_button(sha256="", site="", path="") %}
-<form class="direkt" method="post" action="/belege/ausblenden-direkt">
+<form class="direkt" method="post" action="{{ keep_filter('/belege/ausblenden-direkt') }}">
   {% if sha256 %}<input type="hidden" name="sha256" value="{{ sha256 }}">{% else %}<input type="hidden" name="site" value="{{ site }}"><input type="hidden" name="path" value="{{ path }}">{% endif %}
   <button type="submit" class="auge" title="Ausblenden" aria-label="Ausblenden">{% include "icons/auge.svg" %}</button>
 </form>
@@ -15,10 +15,10 @@
 {% set file = row.file %}
 <div class="datei" title="{{ file.site }}/{{ file.path }}">
   {{ file_type(file.path) }}
-  <a class="name" href="/belege?datei={{ file.sha256 }}{{ carry }}"{% if selected and selected.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
+  <a class="name" href="{{ keep_filter('/belege?datei=' ~ file.sha256 ~ carry) }}"{% if selected and selected.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
   <span class="ordner-name">{{ row.folder }}{% if row.folder %} {{ hide_button(site=site, path=row.folder) }}{% endif %}</span>
   <span class="groesse">{{ size(file) }}</span>
-  <a class="aktion" href="/belege?datei={{ file.sha256 }}{{ carry }}">aufnehmen</a>
+  <a class="aktion" href="{{ keep_filter('/belege?datei=' ~ file.sha256 ~ carry) }}">aufnehmen</a>
   <a class="aktion" href="{{ row.preview_url }}" target="_blank" rel="noopener">öffnen</a>
   {{ hide_button(sha256=file.sha256) }}
 </div>
@@ -29,7 +29,7 @@
 <div class="formular">
   <p class="dateiname">{{ file.site }}/{{ file.path }} ({{ size(file) }})</p>
   {% for message in errors.get(file.sha256, []) %}{{ rejection(message, existing) }}{% endfor %}
-  <form method="post" action="/belege/aufnehmen">
+  <form method="post" action="{{ keep_filter('/belege/aufnehmen') }}">
     <input type="hidden" name="sha256" value="{{ file.sha256 }}">
     {{ issuer_field(default=suggestion.issuer.id if suggestion.issuer else "", text=form.get("issuer_text", ""), from_name=suggestion.issuer is not none) }}
     <label>Dokumentart{% if suggestion.kind and not linked.kind %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %}
@@ -42,7 +42,7 @@
     <label class="jahr">Jahr{% if suggestion.year and not linked.year %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %} <input name="year" value="{{ form.get('year', suggestion.year or default_year) }}" size="6"></label>
     <button type="submit">Aufnehmen</button>
   </form>
-  <form method="post" action="/belege/ausblenden">
+  <form method="post" action="{{ keep_filter('/belege/ausblenden') }}">
     <input type="hidden" name="sha256" value="{{ file.sha256 }}">
     <label>Notiz (freiwillig) <input type="text" name="note"></label>
     <button type="submit">Ausblenden</button>
@@ -55,7 +55,7 @@
 <div class="formular">
   <p class="dateiname">{{ entry.site }}/{{ entry.path }}{% if file %} ({{ size(file) }}){% endif %}</p>
   <p>Für alle Nutzer ausgeblendet, bis jemand die Datei wieder einblendet; sie zählt in keinem Zähler.{% if entry.note %} Notiz: {{ entry.note }}{% endif %}</p>
-  <form method="post" action="/belege/einblenden">
+  <form method="post" action="{{ keep_filter('/belege/einblenden') }}">
     <input type="hidden" name="sha256" value="{{ entry.sha256 }}">
     <input type="hidden" name="checksum" value="{{ checksum }}">
     <button type="submit">Wieder einblenden</button>
@@ -100,7 +100,7 @@
         <span class="name">{{ entry.path }}/</span>
         <span class="groesse">{{ count }} {{ "Datei" if count == 1 else "Dateien" }}</span>
         <span class="stand">ausgeblendet</span>
-        <form class="direkt" method="post" action="/belege/einblenden-ordner">
+        <form class="direkt" method="post" action="{{ keep_filter('/belege/einblenden-ordner') }}">
           <input type="hidden" name="site" value="{{ entry.site }}">
           <input type="hidden" name="path" value="{{ entry.path }}">
           <input type="hidden" name="checksum" value="{{ checksum }}">
@@ -111,7 +111,7 @@
       {% for row in new.hidden_files %}{% set entry, file = row.entry, row.file %}
       <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
         {{ file_type(entry.path) }}
-        <a class="name" href="/belege?datei={{ entry.sha256 }}"{% if selected_hidden and selected_hidden.entry.sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a>
+        <a class="name" href="{{ keep_filter('/belege?datei=' ~ entry.sha256) }}"{% if selected_hidden and selected_hidden.entry.sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a>
         {% if file %}<span class="groesse">{{ size(file) }}</span>{% endif %}
         <span class="stand">ausgeblendet</span>
       </div>
@@ -125,10 +125,10 @@
     {% for row in expected %}
     <div class="datei">
       <span class="aussteller">{% if row.issuer %}<a href="{{ entry_url(row.issuer.address) }}">{{ row.issuer.display_name }}</a>{% endif %}</span>
-      <a class="name" href="{{ entry_url(row.entry.address) }}">{{ row.title }}</a>
+      <a class="name" href="{{ keep_filter(entry_url(row.entry.address)) }}">{{ row.title }}</a>
       <span class="beschreibung">{{ row.entry.description }}</span>
-      <span class="stand">{% if row.pending %}ausstehend{% else %}da: {% for doc in row.documents %}<a href="{{ entry_url(doc.address) }}">{{ document_name(doc) }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</span>
-      <form class="direkt" method="post" action="/belege/erwartet/{{ row.entry.id }}/loeschen">
+      <span class="stand">{% if row.pending %}ausstehend{% else %}da: {% for doc in row.documents %}<a href="{{ keep_filter(entry_url(doc.address)) }}">{{ document_name(doc) }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</span>
+      <form class="direkt" method="post" action="{{ keep_filter('/belege/erwartet/' ~ row.entry.id ~ '/loeschen') }}">
         <input type="hidden" name="checksum" value="{{ row.checksum }}">
         <button type="submit">Entfernen</button>
       </form>
@@ -140,7 +140,7 @@
       <summary>+ erwarteten Beleg anlegen</summary>
       {% if expected_kinds %}
       {% with errors=expected_errors %}{% include "work/_errors.html" %}{% endwith %}
-      <form method="post" action="/belege/erwartet">
+      <form method="post" action="{{ keep_filter('/belege/erwartet') }}">
         {% with kinds=expected_kinds, values=expected_values %}{% include "expected_documents/_fields.html" %}{% endwith %}
         <button type="submit">Speichern</button>
       </form>
@@ -154,7 +154,7 @@
     {% for row in taken_in %}{% set doc = row.document %}
     <div class="datei" title="{{ doc.site }}/{{ doc.path }}">
       {{ file_type(doc.path) }}
-      <a class="name" href="{{ entry_url(doc.address) }}"{% if selected_document and selected_document.id == doc.id %} aria-current="true"{% endif %}>{{ document_name(doc) }}</a>
+      <a class="name" href="{{ keep_filter(entry_url(doc.address)) }}"{% if selected_document and selected_document.id == doc.id %} aria-current="true"{% endif %}>{{ document_name(doc) }}</a>
       <span class="pfad">{{ doc.site }}/{{ doc.path }}</span>
       <span class="art">{{ row.kind }}</span>
       <span class="stand">{{ row.state }}</span>
