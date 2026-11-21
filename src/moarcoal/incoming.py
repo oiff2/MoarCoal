@@ -22,7 +22,6 @@ from moarcoal.storage import (
 )
 from moarcoal.storage.sites import path_error
 from moarcoal.values.findings import Finding, Severity
-from moarcoal.web.links import document_url
 
 MISSING_FILE = "document_file_missing"  # Befundart: die Datei eines Dokuments fehlt
 
@@ -128,7 +127,6 @@ def missing_file_findings(files: Sequence[SiteFile], state: State, user: str) ->
                 Severity.ERROR,
                 d.address,
                 f"Datei fehlt: {d.site}/{d.path}",
-                href=document_url(d.id),
             )
         )
     return found

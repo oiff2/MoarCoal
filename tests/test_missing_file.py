@@ -52,7 +52,6 @@ def test_vanished_file_gives_an_error_on_the_document(store: Store, tmp_path: Pa
     assert finding.severity is Severity.ERROR
     assert finding.target == document.address
     assert finding.message == "Datei fehlt: Belege/2025/brief.txt"
-    assert document.id in finding.href
 
 
 def test_file_of_another_user_is_not_reported(store: Store, tmp_path: Path) -> None:
@@ -87,7 +86,5 @@ def test_moved_to_another_site_is_missing(store: Store, tmp_path: Path) -> None:
 def test_block_findings_carry_it(store: Store, tmp_path: Path) -> None:
     take(store)
     (tmp_path / "ablage" / "2025" / "brief.txt").unlink()
-    result = block_findings(
-        store.state(), "anna", 2025, {}, lambda _: None, lambda: all_site_files(store)
-    )
+    result = block_findings(store.state(), "anna", 2025, {}, lambda: all_site_files(store))
     assert [f.kind for f in result.late] == [MISSING_FILE]
