@@ -287,7 +287,6 @@ def _intake(
     issuer_changes: Sequence[Change] = (),
     label: str | None = None,
     expected_sha256: str | None = None,
-    taken_in_at: datetime.datetime | None = None,
 ) -> tuple[Document, tuple[ReadInEntry, ...], list[Change]] | IntakeRejected:
     """Die Änderungen, die das Aufnehmen der Datei braucht (Dokument, Einträge, Ergänzung, ohne
     sie zu schreiben); der eine Kern von `take_in` und `take_in_all`. `expected_sha256`: ist der
@@ -316,7 +315,7 @@ def _intake(
             label=label,
             period_start=start,
             period_end=end,
-            taken_in_at=taken_in_at or datetime.datetime.now(datetime.UTC),
+            taken_in_at=datetime.datetime.now(datetime.UTC),
         )
     except ValidationError:
         return IntakeRejected(("Ablageort und Pfad müssen angegeben werden.",))
@@ -479,8 +478,12 @@ def change_document(
                     return IntakeRejected(("Die Datei hat sich seit dem Aufnehmen geändert.",))
                 entries = _read_in(kind, updated, content)
                 changes.extend(Put(entry) for entry in entries)
+                # der Schnappschuss trägt den Zeitpunkt des Setzens der Art, nicht den des Belegs
+                setting = updated.model_copy(
+                    update={"taken_in_at": datetime.datetime.now(datetime.UTC)}
+                )
                 changes.extend(
-                    _after_take_in(kind, store, updated, entries, values_on, [updated, *entries])
+                    _after_take_in(kind, store, setting, entries, values_on, [updated, *entries])
                 )
             except (SiteFileError, ReadInError) as error:
                 return IntakeRejected((str(error),))

@@ -267,6 +267,8 @@ def test_setting_the_kind_later_runs_the_same_ergaenzung_as_taking_in_with_it(
     assert isinstance(result, Applied)
     (snapshot,) = snapshots(store)
     assert snapshot.occasion is Occasion.FILING and snapshot.document == beleg.document.address
+    assert beleg.document.taken_in_at is not None
+    assert snapshot.taken_at > beleg.document.taken_in_at  # Zeitpunkt des Setzens der Art
     assert len(store.state().of_kind(ProtocolReading)) == 1  # einlesen sofort
 
 
