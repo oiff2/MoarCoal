@@ -65,3 +65,11 @@ Jede Änderung, die gemergt wird, hält diese Prinzipien. Wer eines nur durch ei
 **Warum:** Persönliche Finanzdaten bleiben lokal, und die Absicherung gegen fremde Webseiten und eingeschleuste Anweisungen hängt daran ([ADR 0002](docs/adr/0002-technikstack.md), [ADR 0007](docs/adr/0007-absicherung-server-und-claude-aufruf.md)).
 
 **Verstoß im Diff:** Eine externe URL, die beim Seitenaufruf oder ohne Klick angefragt wird (Skript, Stil, Bild, Schrift, Abruf im Code), ein externer Link außerhalb von `web/links.py`, ein schreibender GET-Handler oder ein zweiter `claude`-Aufruf.
+
+## 9. Runden nur zentral
+
+**Regel:** Ein Feld einer Anlage wird nur über seine Rundungsregel gerundet (`FormField.round`, aufgerufen über `rounded()` in `field_catalog.py`), einmal auf den Wert des Felds. Rechenwege und Einzelposten rechnen ungerundet. Eigene Rundungen gibt es nur, wo eine Vorschrift sie für einen Zwischenwert verlangt (z. B. AfA, Kilometerbeträge), mit Verweis auf die Regel.
+
+**Warum:** Die Rundung folgt festen Regeln (Richtung des Felds, ganze Euro oder Cent). Wird pro Zahlung oder in mehreren Schritten gerundet, weicht die Summe ab, und jede Anlage rundet anders.
+
+**Verstoß im Diff:** `round()`, `quantize`, `to_integral_value` oder `// 100` im Rechenweg einer Anlage oder eines Moduls außerhalb von `fields.py`, oder Rundung je Einzelposten statt einmal am Feld.
