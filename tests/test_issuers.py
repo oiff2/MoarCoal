@@ -16,12 +16,14 @@ from moarcoal.storage import (
     Issuer,
     Put,
     Rejected,
+    State,
     Store,
     denylist_lines,
     entry_checksum,
     open_store,
 )
 from moarcoal.values.testing import evaluate
+from moarcoal.web.helpers import linked_findings
 from moarcoal.web.links import document_url, issuer_url
 
 SHA = "a" * 64
@@ -137,7 +139,10 @@ def test_note_for_each_document_without_issuer_of_the_user() -> None:
     plain = document(sha="b" * 64)
     items = [bank, document(at=bank), plain, document("berta", "c" * 64)]
 
-    found = evaluate([], items).finding_list("anna", 2025).visible
+    values = evaluate([], items)
+    found = linked_findings(
+        (), State({e.address: e for e in items}), values.finding_list("anna", 2025)
+    ).visible
 
     notes = [f for f in found if f.kind == DOCUMENT_WITHOUT_ISSUER]
     assert [n.target for n in notes] == [plain.address]

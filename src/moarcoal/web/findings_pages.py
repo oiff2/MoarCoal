@@ -10,6 +10,7 @@ from moarcoal.defaults import year_of
 from moarcoal.dismissals import NoteMissing, dismiss, undismiss
 from moarcoal.storage import Applied
 from moarcoal.web.helpers import (
+    finding_list_of,
     form_fields,
     global_year,
     rejection_text,
@@ -44,7 +45,7 @@ def _findings_page(
     error: tuple[str, str] | None = None,
     note: str = "",
 ) -> HTMLResponse:
-    found = values_of(request).finding_list(user_of(request), year)
+    found = finding_list_of(request, year)
     return render(
         request,
         "findings.html",
