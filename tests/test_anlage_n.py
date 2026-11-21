@@ -3,6 +3,7 @@
 Die Werte von Arbeit sind fest vorgegeben (`foreign`); nur die Seiten laufen mit dem echten Modul.
 """
 
+import re
 from collections.abc import Callable
 from dataclasses import replace
 from decimal import Decimal
@@ -461,9 +462,25 @@ def test_page_shows_values_with_expandable_chains(
     assert "E0203503" in html and "E0203504" in html and "E0204403" in html
     assert "180 Tage" in html and "12 km" in html and "50 €" in html and "50,00 €" not in html
     assert html.count("<details>") >= 6  # je Feld aufklappbar, dazu der Posten des Arbeit-Werts
-    assert "Wert work.workdays" in html
+    assert "Wert Arbeitstage" in html and "Wert work.workdays" not in html
     assert "Schreibtischlampe" in html
     assert "49,90 € → 50 € (aufgerundet, Ausgabe)" in html  # Rundungsschritt im Rechenweg
+
+
+def test_no_locator_on_any_page_shows_a_value_key(
+    tmp_path: Path, anlage_n_text: Callable[[httpx.Client], str]
+) -> None:
+    http = client(tmp_path)
+    origin = {"Origin": f"http://127.0.0.1:{PORT}"}
+    http.post(
+        "/arbeit/erste-taetigkeitsstaette",
+        data={"year": "2025", "workdays": "180", "distance_km": "12", "description": "Büro"},
+        headers=origin,
+    )
+    pages = [http.get(path).text for path in ("/arbeit", "/steuerjahr", "/steuerjahr/2025")]
+    pages.append(anlage_n_text(http))
+    for html in pages:
+        assert not re.findall(r"Wert [a-z_]+\.[a-z_]+", html)
 
 
 def test_page_shows_whole_euro_field_without_cents_but_work_keeps_them(

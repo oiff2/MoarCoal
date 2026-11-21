@@ -95,6 +95,10 @@ class Calculation:
     ) -> ValueResult:
         return self._source.get(key, self.own.user, time or self.time, subject)
 
+    def _used_item(self, result: ExposedValue, label: str | None) -> LineItem:
+        locator = ValueLocator(result, self._source.label(result.key))
+        return self.item(label or str(result.key), result.amount, locator)
+
     def use(
         self,
         key: ValueKey | str,
@@ -110,7 +114,11 @@ class Calculation:
         result = self._fetch(key, subject, time)
         match result:
             case ExposedValue():
-                return self.item(label or str(result.key), result.amount, ValueLocator(result))
+                return self.item(
+                    label or str(result.key),
+                    result.amount,
+                    ValueLocator(result, self._source.label(result.key)),
+                )
             case NotYetComputable():
                 raise NotYetSignal(
                     f"{self._source.label(result.key)} ist noch nicht berechenbar: {result.reason}",
@@ -131,7 +139,11 @@ class Calculation:
         result = self._fetch(key, subject, time)
         match result:
             case ExposedValue():
-                return self.item(label or str(result.key), result.amount, ValueLocator(result))
+                return self.item(
+                    label or str(result.key),
+                    result.amount,
+                    ValueLocator(result, self._source.label(result.key)),
+                )
             case NotYetComputable():
                 return Missing(result)
             case NotApplicable():

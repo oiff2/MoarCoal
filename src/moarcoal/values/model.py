@@ -242,10 +242,11 @@ class ValueLocator(Locator):
     """
 
     value: "ExposedValue"
+    title: str  # der kurze Titel aus dem Wertekatalog (ohne Eintrag: der Schlüssel)
 
     @property
     def label(self) -> str:
-        return f"Wert {self.value.key}"
+        return f"Wert {self.title}"
 
     @property
     def used_value(self) -> "ExposedValue | None":
