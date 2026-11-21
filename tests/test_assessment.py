@@ -42,6 +42,7 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_WORKDAYS,
     WORK_WORKDAYS_PER_WEEK,
 )
+from moarcoal.modules.tax_year.anlage_vor import WORK_KEYS as VOR_WORK_KEYS
 from moarcoal.modules.tax_year.assessment import (
     BUSINESS_TRAVEL,
     COMMUTE_DAYS,
@@ -102,6 +103,7 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
                 WORK_BENEFITS_TAX_FREE,
                 WORK_BENEFITS_FLAT_TAXED,
                 WORK_TRIP_DAYS,
+                *VOR_WORK_KEYS,
             )
         },
     }
@@ -124,7 +126,7 @@ def filing(foreign: Foreign, tax_year: ModuleRegistration = TAX_YEAR) -> list[En
     )
     taken: list[Entry] = [document, reading]
     values = evaluate([tax_year], taken, foreign)
-    changes = snapshot_on_filing(document, [reading], values)
+    changes = snapshot_on_filing(document, [reading], values, [ANLAGE_N])
     return [*taken, *(c.entry for c in changes if isinstance(c, Put))]
 
 

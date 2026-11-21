@@ -1,10 +1,12 @@
 """Einlese-Regel der Lohnsteuerbescheinigung (eDaten-HTML, `Belegart: VaSt_LStB`), ohne Claude.
 
 Den Leser des HTML teilen alle Dokumentarten dieses Formats (`modules/elster_html.py`). Hier steht,
-welche Pfade für Anlage N Nr. 4 bis 7 gelten: Steuerklasse, Bruttoarbeitslohn, Lohnsteuer und
-Solidaritätszuschlag. Das HTML enthält nur belegte Felder; was fehlt, bleibt leer (nie 0). Kommt
-ein Pfad mehrfach vor (Wiederholgruppe, z. B. Steuerklassenwechsel im Jahr), ist nicht entschieden,
-welcher Wert gilt; die Datei wird dann abgewiesen statt geraten.
+welche Pfade für Anlage N Nr. 4 bis 7 gelten (Steuerklasse, Bruttoarbeitslohn, Lohnsteuer und
+Solidaritätszuschlag) und für Nr. 22 a/b, 23 a/b, 24 b, 24 c und 27 der Lohnsteuerbescheinigung
+(Beiträge zur Vorsorge, Anlage Vorsorgeaufwand). Nr. 24 a, 25 und 26 liest sie nicht: ihre Pfade
+sind unbekannt (`BeitrPrKrankVers` ist keiner davon). Das HTML enthält nur belegte Felder; was
+fehlt, bleibt leer (nie 0). Kommt ein Pfad mehrfach vor (Wiederholgruppe, z. B. Steuerklassenwechsel
+im Jahr), ist nicht entschieden, welcher Wert gilt; die Datei wird dann abgewiesen statt geraten.
 
 Die Arbeitgeberleistungen laut Nr. 17 und 18 kamen in keiner bisher gesehenen Bescheinigung vor;
 ihre Pfade sind darum unbekannt. Die Einlese-Regel kennt alle Pfade, die in echten Bescheinigungen
@@ -20,7 +22,7 @@ from moarcoal.modules.work.wage_tax.entries import WageTaxCertificate
 from moarcoal.storage import Document, ReadInEntry
 from moarcoal.values.model import parse_cents
 
-READER_VERSION = 2  # 2: unbekannte Pfade festhalten (Nr. 17, 18)
+READER_VERSION = 3  # 2: unbekannte Pfade festhalten (Nr. 17, 18); 3: Nr. 22 bis 24, 27
 TITLE = "Lohnsteuerbescheinigung"  # Titel der Dokumentart
 BELEGART = "VaSt_LStB"
 
@@ -28,6 +30,11 @@ TAX_CLASS = "Besteuerungsmerkmal-ELStAM-Steuerklasse-Klasse"
 GROSS_WAGES = "Besteuerungsgrund-BruttoArbLohn"
 INCOME_TAX = "Besteuerungsgrund-LSteuer"
 SOLI = "Besteuerungsgrund-Soli"
+EMPLOYER_PENSION = "Besteuerungsgrund-ArbgAnteilRenVers"  # Nr. 22 a/b
+EMPLOYEE_PENSION = "Besteuerungsgrund-ArbnAnteilRenVers"  # Nr. 23 a/b
+SUBSIDY_PRIVATE_HEALTH = "Besteuerungsgrund-StFreiPrKrankVers"  # Nr. 24 b
+SUBSIDY_CARE = "Besteuerungsgrund-StFreiGePflegVers"  # Nr. 24 c
+UNEMPLOYMENT = "Besteuerungsgrund-ArbnAnteilArblVers"  # Nr. 27
 
 # Pfade aus echten Bescheinigungen 2025 (ohne `VaSt_LStB-` und Index); Werte bleiben lokal.
 KNOWN_PATHS = frozenset(
@@ -36,15 +43,15 @@ KNOWN_PATHS = frozenset(
         "Allgemein-Name",
         "Allgemein-Vorname",
         "ArbGName",
-        "Besteuerungsgrund-ArbgAnteilRenVers",
-        "Besteuerungsgrund-ArbnAnteilArblVers",
-        "Besteuerungsgrund-ArbnAnteilRenVers",
+        EMPLOYER_PENSION,
+        UNEMPLOYMENT,
+        EMPLOYEE_PENSION,
         "Besteuerungsgrund-BeitrPrKrankVers",
         GROSS_WAGES,
         INCOME_TAX,
         SOLI,
-        "Besteuerungsgrund-StFreiGePflegVers",
-        "Besteuerungsgrund-StFreiPrKrankVers",
+        SUBSIDY_CARE,
+        SUBSIDY_PRIVATE_HEALTH,
         "Besteuerungsmerkmal-ELStAM-GueltigAb",
         "Besteuerungsmerkmal-ELStAM-Kirchensteuerabzug-Konfession",
         TAX_CLASS,
@@ -84,6 +91,21 @@ def _tax_class(field: HtmlField) -> int:
     return int(field.text)
 
 
+# Angabe -> (Pfad, Name in Meldungen): die Beträge der Vorsorge, je Feld von `WageTaxCertificate`
+VORSORGE = {
+    "employer_pension": (EMPLOYER_PENSION, "Arbeitgeberanteil Rentenversicherung (Nr. 22)"),
+    "employee_pension": (EMPLOYEE_PENSION, "Arbeitnehmeranteil Rentenversicherung (Nr. 23)"),
+    "subsidy_private_health": (SUBSIDY_PRIVATE_HEALTH, "Zuschuss private Krankenversicherung"),
+    "subsidy_care": (SUBSIDY_CARE, "Zuschuss gesetzliche Pflegeversicherung"),
+    "unemployment": (UNEMPLOYMENT, "Arbeitslosenversicherung (Nr. 27)"),
+}
+
+
+def _vorsorge_cents(found: dict[str, HtmlField | None], key: str) -> int | None:
+    field = found[key]
+    return None if field is None else _cents(field, VORSORGE[key][1])
+
+
 def read_in_wage_tax_certificate(document: Document, content: bytes) -> list[ReadInEntry]:
     """Einlese-Regel der Dokumentart Lohnsteuerbescheinigung."""
     year, parsed = parse_elster_document(document, content, BELEGART, TITLE)
@@ -96,6 +118,7 @@ def read_in_wage_tax_certificate(document: Document, content: bytes) -> list[Rea
         raise ReadInError(
             "Der Bruttoarbeitslohn fehlt in der Datei; keine Lohnsteuerbescheinigung?"
         )
+    vorsorge = {key: _single(fields, path, name) for key, (path, name) in VORSORGE.items()}
     places = {
         key: f.data_name
         for key, f in (
@@ -103,6 +126,7 @@ def read_in_wage_tax_certificate(document: Document, content: bytes) -> list[Rea
             ("gross_wages", gross),
             ("income_tax", income_tax),
             ("soli", soli),
+            *vorsorge.items(),
         )
         if f is not None
     }
@@ -116,6 +140,11 @@ def read_in_wage_tax_certificate(document: Document, content: bytes) -> list[Rea
             gross_wages_cents=_cents(gross, "Bruttoarbeitslohn"),
             income_tax_cents=None if income_tax is None else _cents(income_tax, "Lohnsteuer"),
             soli_cents=None if soli is None else _cents(soli, "Solidaritätszuschlag"),
+            employer_pension_cents=_vorsorge_cents(vorsorge, "employer_pension"),
+            employee_pension_cents=_vorsorge_cents(vorsorge, "employee_pension"),
+            subsidy_private_health_cents=_vorsorge_cents(vorsorge, "subsidy_private_health"),
+            subsidy_care_cents=_vorsorge_cents(vorsorge, "subsidy_care"),
+            unemployment_cents=_vorsorge_cents(vorsorge, "unemployment"),
             places=places,
             unrecognized=_unrecognized(fields),
         )

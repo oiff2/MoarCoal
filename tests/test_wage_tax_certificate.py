@@ -25,6 +25,13 @@ from moarcoal.modules.tax_year.anlage_n import (
     N_SOLI,
     N_TAX_CLASS,
 )
+from moarcoal.modules.tax_year.anlage_vor import (
+    VOR_EMPLOYEE_PENSION,
+    VOR_EMPLOYER_PENSION,
+    VOR_SUBSIDY_CARE,
+    VOR_SUBSIDY_PRIVATE_HEALTH,
+    VOR_UNEMPLOYMENT,
+)
 from moarcoal.modules.tax_year.protocol_check import DEVIATION, MISSING
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import WAGE_TAX_CERTIFICATE, WageTaxCertificate
@@ -57,6 +64,13 @@ YEAR = Period.year(2025)
 KINDS = {k.key: k for r in MODULES for k in r.document_kinds}
 FIELDS_4_TO_7 = (N_TAX_CLASS, N_GROSS_WAGES, N_INCOME_TAX, N_SOLI)
 FIELDS_17_18 = (N_REFUND_TAX_FREE, N_REFUND_FLAT_TAXED)
+FIELDS_VOR = (
+    VOR_EMPLOYEE_PENSION,
+    VOR_EMPLOYER_PENSION,
+    VOR_SUBSIDY_PRIVATE_HEALTH,
+    VOR_SUBSIDY_CARE,
+    VOR_UNEMPLOYMENT,
+)
 
 
 def make_document(year: int | None = 2025) -> Document:
@@ -113,7 +127,43 @@ def test_reads_the_four_values_exactly_with_their_places() -> None:
     assert entry.places["gross_wages"] == (
         "id-VaSt_LStB-Besteuerungsgrund-BruttoArbLohn_usb1_1-1-1"
     )
-    assert set(entry.places) == {"tax_class", "gross_wages", "income_tax", "soli"}
+    assert {"tax_class", "gross_wages", "income_tax", "soli"} <= set(entry.places)
+
+
+def test_reads_nr_22_to_24_and_27_exactly_with_their_places() -> None:
+    entry = read()
+
+    assert entry.employer_pension_cents == 432_109  # Nr. 22 a/b
+    assert entry.employee_pension_cents == 432_110  # Nr. 23 a/b
+    assert entry.subsidy_private_health_cents == 12_345  # Nr. 24 b
+    assert entry.subsidy_care_cents == 6_789  # Nr. 24 c
+    assert entry.unemployment_cents == 54_321  # Nr. 27
+    assert entry.places["unemployment"] == (
+        "id-VaSt_LStB-Besteuerungsgrund-ArbnAnteilArblVers_usb1_1-1-1"
+    )
+    assert {"employer_pension", "employee_pension", "subsidy_care"} <= set(entry.places)
+
+
+@pytest.mark.parametrize(
+    ("path", "field"),
+    [
+        ("Besteuerungsgrund-ArbgAnteilRenVers", "employer_pension"),
+        ("Besteuerungsgrund-ArbnAnteilRenVers", "employee_pension"),
+        ("Besteuerungsgrund-StFreiPrKrankVers", "subsidy_private_health"),
+        ("Besteuerungsgrund-StFreiGePflegVers", "subsidy_care"),
+        ("Besteuerungsgrund-ArbnAnteilArblVers", "unemployment"),
+    ],
+)
+def test_missing_vorsorge_number_stays_empty_not_zero(path: str, field: str) -> None:
+    entry = read(without(path))
+    assert getattr(entry, f"{field}_cents") is None and field not in entry.places
+
+
+def test_repeated_vorsorge_path_is_not_guessed() -> None:
+    html = fixture_text()
+    row = next(r for r in html.splitlines() if "ArbnAnteilArblVers" in r)
+    with pytest.raises(ReadInError, match="2-mal"):
+        read(html.replace(row, row + "\n" + row.replace("usb1_", "usb2_")))
 
 
 def test_wrong_year_is_rejected() -> None:
@@ -321,6 +371,79 @@ def test_certificate_from_an_older_reader_leaves_employer_benefits_not_yet_compu
         assert isinstance(values.get(key, USER, YEAR), NotYetComputable)
 
 
+def test_vor_fields_take_nr_22_to_24_and_27_from_the_certificate(store: Store) -> None:
+    assert isinstance(take(store), TakenIn)
+    values = evaluate(MODULES, entries(store))
+
+    def get(key: str) -> ExposedValue:
+        result = values.get(key, USER, YEAR)
+        assert isinstance(result, ExposedValue), result
+        return result
+
+    # Einnahme (Arbeitgeberanteil, Zuschuss) wird abgerundet, Ausgabe aufgerundet: ganze Euro
+    assert get(VOR_EMPLOYER_PENSION).amount == Amount.eur_cents(432_100)
+    assert get(VOR_EMPLOYEE_PENSION).amount == Amount.eur_cents(432_200)
+    assert get(VOR_SUBSIDY_PRIVATE_HEALTH).amount == Amount.eur_cents(12_300)
+    assert get(VOR_SUBSIDY_CARE).amount == Amount.eur_cents(6_700)
+    assert get(VOR_UNEMPLOYMENT).amount == Amount.eur_cents(54_400)
+    assert get(VOR_UNEMPLOYMENT).backing is Backing.PROVEN
+
+
+def test_vor_fields_are_not_yet_computable_without_certificate_never_zero(store: Store) -> None:
+    values = evaluate(MODULES, entries(store))
+    for key in FIELDS_VOR:
+        result = values.get(key, USER, YEAR)
+        assert isinstance(result, NotYetComputable)
+        assert "Lohnsteuerbescheinigung" in str(result)
+
+
+def test_vor_field_the_certificate_does_not_state_is_not_yet_computable(
+    store: Store, site: Path
+) -> None:
+    (site / "ohne.html").write_text(
+        without("Besteuerungsgrund-StFreiGePflegVers"), encoding="utf-8"
+    )
+    assert isinstance(take(store, "ohne.html"), TakenIn)
+
+    values = evaluate(MODULES, entries(store))
+
+    result = values.get(VOR_SUBSIDY_CARE, USER, YEAR)
+    assert isinstance(result, NotYetComputable)
+    assert "nennt" in str(result) and "nicht" in str(result)
+    assert isinstance(values.get(VOR_UNEMPLOYMENT, USER, YEAR), ExposedValue)
+
+
+def test_unrecognized_path_leaves_the_a_b_fields_not_yet_computable(
+    store: Store, site: Path
+) -> None:
+    """Nr. 22 b und 23 b haben vielleicht einen eigenen, unbekannten Pfad; dann fehlt ihr Betrag."""
+    (site / "neu.html").write_text(with_unknown(), encoding="utf-8")
+    assert isinstance(take(store, "neu.html"), TakenIn)
+
+    values = evaluate(MODULES, entries(store))
+
+    for key in (VOR_EMPLOYER_PENSION, VOR_EMPLOYEE_PENSION):
+        result = values.get(key, USER, YEAR)
+        assert isinstance(result, NotYetComputable)
+        assert "Besteuerungsgrund-Unbekannt" in str(result)
+    assert isinstance(values.get(VOR_UNEMPLOYMENT, USER, YEAR), ExposedValue)
+
+
+def test_certificate_from_an_older_reader_leaves_vor_fields_not_yet_computable(
+    store: Store,
+) -> None:
+    assert isinstance(take(store), TakenIn)
+    old = [
+        e.model_copy(update={"reader_version": 2}) if isinstance(e, WageTaxCertificate) else e
+        for e in entries(store)
+    ]
+
+    values = evaluate(MODULES, old)
+
+    for key in FIELDS_VOR:
+        assert isinstance(values.get(key, USER, YEAR), NotYetComputable)
+
+
 def protocol_entries(contents: dict[str, str]) -> list[Entry]:
     """Ein Übertragungsprotokoll 2025 mit den Zeilen `E-Kennung -> Inhalt`."""
     document = Document(
@@ -418,4 +541,13 @@ def test_arbeit_shows_the_four_values_with_a_link_to_the_document(
     for label in ("Steuerklasse", "Bruttoarbeitslohn", "Lohnsteuer", "Solidaritätszuschlag"):
         assert f"{label}:" in section
     assert "45.678,90 €" in section and "6.543,21 €" in section
+    for label in (
+        "Nr. 22 a/b",
+        "Nr. 23 a/b",
+        "Nr. 24 b",
+        "Nr. 24 c",
+        "Nr. 27",
+    ):
+        assert label in section
+    assert "4.321,09 €" in section and "543,21 €" in section
     assert f'href="/belege?dokument={taken.document.id}"' in section

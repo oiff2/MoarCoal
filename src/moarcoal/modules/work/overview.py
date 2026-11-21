@@ -22,6 +22,7 @@ from moarcoal.modules.work.wage_tax.values import (
     INCOME_TAX_WITHHELD,
     SOLI_WITHHELD,
     TAX_CLASS,
+    VORSORGE_VALUES,
 )
 from moarcoal.modules.work.workplace.entries import FirstWorkplace, WorkEquipment
 from moarcoal.modules.work.workplace.forms import (
@@ -105,6 +106,7 @@ def _wage_tax(request: Request, year: int) -> dict[str, Any]:
                 ("Solidaritätszuschlag", SOLI_WITHHELD),
                 ("Arbeitgeberleistungen steuerfrei (Nr. 17)", BENEFITS_TAX_FREE),
                 ("Arbeitgeberleistungen pauschal besteuert (Nr. 18)", BENEFITS_FLAT_TAXED),
+                *((f"{label} (Nr. {number})", key) for key, _, label, number, _ in VORSORGE_VALUES),
             )
         ],
         "documents": [document_url(c.document.id) for c in certificates],

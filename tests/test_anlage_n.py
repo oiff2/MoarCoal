@@ -179,7 +179,7 @@ def test_not_yet_computable_input_passes_on_with_chain() -> None:
 
 def test_catalog_has_every_known_field_but_values_only_for_the_computed_ones() -> None:
     values = evaluate([TAX_YEAR])
-    tax_keys = {e.key for e in values.catalog.entries()}
+    tax_keys = {e.key for e in values.catalog.entries() if e.key.startswith("tax_year.n_")}
 
     assert tax_keys == {f.key for f in FIELDS_2025 if f.computed}
     assert {f.elster_id for f in FIELDS_2025 if f.computed} == {

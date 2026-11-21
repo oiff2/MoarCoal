@@ -18,6 +18,10 @@ class WageTaxCertificate(ReadInEntry):
     Dokument weg; nach dem Löschen lässt sich die Datei erneut aufnehmen und wird neu eingelesen.
     `unrecognized` nennt die Pfade der Datei, die die Einlese-Regel nicht kennt; nur ohne sie steht
     fest, dass die Bescheinigung eine Angabe nicht nennt (Nr. 17 und 18).
+
+    Nr. 22 bis 24 und 27 (Beiträge zur Vorsorge) nennt sie nur, soweit die Einlese-Regel den Pfad
+    kennt: 22 a/b, 23 a/b, 24 b, 24 c und 27. Nr. 24 a, 25 und 26 liest sie noch nicht (Pfad
+    unbekannt).
     """
 
     year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
@@ -25,6 +29,13 @@ class WageTaxCertificate(ReadInEntry):
     gross_wages_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)
     income_tax_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)
     soli_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)
+    employer_pension_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)  # Nr. 22 a/b
+    employee_pension_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)  # Nr. 23 a/b
+    subsidy_private_health_cents: int | None = Field(  # Nr. 24 b
+        default=None, ge=0, le=MAX_WAGE_CENTS
+    )
+    subsidy_care_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)  # Nr. 24 c
+    unemployment_cents: int | None = Field(default=None, ge=0, le=MAX_WAGE_CENTS)  # Nr. 27
     places: dict[str, str] = Field(default_factory=dict)
     unrecognized: list[str] = Field(default_factory=list)
 

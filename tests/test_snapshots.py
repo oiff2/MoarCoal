@@ -32,6 +32,8 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_TRAVEL_TOTAL,
     WORK_WORKDAYS,
 )
+from moarcoal.modules.tax_year.anlage_vor import FIELDS_2025 as VOR_FIELDS_2025
+from moarcoal.modules.tax_year.anlage_vor import WORK_KEYS as VOR_WORK_KEYS
 from moarcoal.modules.tax_year.snapshot_check import SNAPSHOT_DEVIATION, snapshot_on_filing
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work.workplace.entries import FirstWorkplace, UserInput, WorkEquipment
@@ -163,7 +165,7 @@ def test_take_in_writes_document_reading_and_snapshot_in_one_vorgang(store: Stor
     assert snapshot.document == taken.document.address
     assert snapshot.taken_at == taken.document.taken_in_at
     assert [v.ref.key for v in snapshot.values if v.requested] == [
-        f.key for f in FIELDS_2025 if f.computed
+        f.key for f in (*FIELDS_2025, *VOR_FIELDS_2025) if f.computed
     ]
     assert frozen(snapshot, N_WORKPLACE_DAYS).amount.value == 219  # type: ignore[union-attr]
     kinds = {type(e).__name__ for e in store.state().entries.values()}
@@ -257,9 +259,11 @@ def test_value_not_yet_computable_is_frozen_with_reason_and_gives_an_error(store
     assert days.amount is None
     errors = [f for f in finding_list(store) if f.kind == SNAPSHOT_NOT_YET]
     assert {f.severity for f in errors} == {Severity.ERROR}
-    # Tage, km und die sieben Felder der Lohnsteuerbescheinigung; Arbeitsmittel sind 0 €
+    # Tage, km, die sieben Felder der Lohnsteuerbescheinigung und fünf von VOR; Arbeitsmittel 0 €
     assert {f.target.key for f in errors} == {  # type: ignore[union-attr]
-        k for k in (f.key for f in FIELDS_2025 if f.computed) if k != N_EQUIPMENT
+        k
+        for k in (f.key for f in (*FIELDS_2025, *VOR_FIELDS_2025) if f.computed)
+        if k != N_EQUIPMENT
     }
     assert all("noch nicht berechenbar" in f.message for f in errors)
 
@@ -354,6 +358,7 @@ def foreign(**given: ForeignResult) -> Foreign:
                 WORK_SOLI,
                 WORK_TRAVEL_FARE,
                 WORK_TRAVEL_TOTAL,
+                *VOR_WORK_KEYS,
             )
         },
     }

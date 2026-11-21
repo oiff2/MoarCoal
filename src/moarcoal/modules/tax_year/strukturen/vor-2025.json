@@ -1,0 +1,144 @@
+{
+ "schema": 1,
+ "form": "VOR",
+ "year": 2025,
+ "provisional": false,
+ "fields": [
+  {
+   "e_kennung": "E2000401",
+   "page": "1 - Beiträge zur Altersvorsorge",
+   "headings": [],
+   "line": "4",
+   "label": "Arbeitnehmeranteil laut Nr. 23 a / b der Lohnsteuerbescheinigung",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2000701",
+   "page": "1 - Beiträge zur Altersvorsorge",
+   "headings": [],
+   "line": "8",
+   "label": "Beiträge zu zertifizierten Basisrentenverträgen (Rürup) mit Laufzeitbeginn nach dem 31.12.2004 (abzüglich steuerfreier Zuschüsse)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2000801",
+   "page": "1 - Beiträge zur Altersvorsorge",
+   "headings": [],
+   "line": "9",
+   "label": "Arbeitgeberanteil / -zuschuss laut Nr. 22 a / b der Lohnsteuerbescheinigung",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2001203",
+   "page": "2 - Beiträge zur inländischen gesetzlichen Kranken- und Pflegeversicherung",
+   "headings": [],
+   "line": "11",
+   "label": "Arbeitnehmerbeiträge zu Krankenversicherungen laut Nr. 25 der Lohnsteuerbescheinigung",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2001405",
+   "page": "2 - Beiträge zur inländischen gesetzlichen Kranken- und Pflegeversicherung",
+   "headings": [],
+   "line": "12",
+   "label": "In Zeile 11 enthaltene Beiträge, aus denen sich kein Anspruch auf Krankengeld ergibt",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2001505",
+   "page": "2 - Beiträge zur inländischen gesetzlichen Kranken- und Pflegeversicherung",
+   "headings": [],
+   "line": "13",
+   "label": "Arbeitnehmerbeiträge zu sozialen Pflegeversicherungen laut Nr. 26 der Lohnsteuerbescheinigung",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2001605",
+   "page": "2 - Beiträge zur inländischen gesetzlichen Kranken- und Pflegeversicherung",
+   "headings": [],
+   "line": "14",
+   "label": "Von der Kranken- und / oder sozialen Pflegeversicherung erstattete Beiträge (zu den Zeilen 11 bis 13)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2001705",
+   "page": "2 - Beiträge zur inländischen gesetzlichen Kranken- und Pflegeversicherung",
+   "headings": [],
+   "line": "15",
+   "label": "In Zeile 14 enthaltene Beiträge zur Krankenversicherung ohne Krankengeldanspruch und zur sozialen Pflegeversicherung",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2003104",
+   "page": "3 - Beiträge zur inländischen privaten Kranken- und Pflegeversicherung",
+   "headings": [],
+   "line": "23",
+   "label": "Beiträge zu privaten Krankenversicherungen (nur Basisabsicherung, keine Wahlleistungen)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2003202",
+   "page": "3 - Beiträge zur inländischen privaten Kranken- und Pflegeversicherung",
+   "headings": [],
+   "line": "24",
+   "label": "Beiträge zu Pflege-Pflichtversicherungen",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2003302",
+   "page": "3 - Beiträge zur inländischen privaten Kranken- und Pflegeversicherung",
+   "headings": [],
+   "line": "25",
+   "label": "Von der privaten Kranken- und / oder Pflege-Pflichtversicherung erstattete Beiträge",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2003502",
+   "page": "3 - Beiträge zur inländischen privaten Kranken- und Pflegeversicherung",
+   "headings": [],
+   "line": "27",
+   "label": "Über die Basisabsicherung hinausgehende Beiträge zu Krankenversicherungen und / oder zusätzlichen Pflegeversicherungen (Wahlleistungen, Zusatzversicherungen) abzüglich erstatteter Beiträge",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2003705",
+   "page": "5 - Steuerfreie Arbeitgeberzuschüsse",
+   "headings": [],
+   "line": "34",
+   "label": "Gesetzliche Krankenversicherung laut Nr. 24 a der Lohnsteuerbescheinigung",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2003807",
+   "page": "5 - Steuerfreie Arbeitgeberzuschüsse",
+   "headings": [],
+   "line": "35",
+   "label": "Private Krankenversicherung laut Nr. 24 b der Lohnsteuerbescheinigung",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2003907",
+   "page": "5 - Steuerfreie Arbeitgeberzuschüsse",
+   "headings": [],
+   "line": "36",
+   "label": "Gesetzliche Pflegeversicherung laut Nr. 24 c der Lohnsteuerbescheinigung",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2004403",
+   "page": "7 - Weitere sonstige Vorsorgeaufwendungen",
+   "headings": [],
+   "line": "43",
+   "label": "Arbeitnehmerbeiträge zur Arbeitslosenversicherung laut Nr. 27 der Lohnsteuerbescheinigung",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E2001803",
+   "page": "7 - Weitere sonstige Vorsorgeaufwendungen",
+   "headings": [],
+   "line": "46",
+   "label": "Beiträge zu Unfall- und Haftpflichtversicherungen sowie Risikoversicherungen, die nur für den Todesfall eine Leistung vorsehen",
+   "unit": "€"
+  }
+ ]
+}
