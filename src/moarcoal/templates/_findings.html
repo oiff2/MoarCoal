@@ -1,6 +1,6 @@
 {#- Gemeinsame Anzeige von Befunden: je Schweregrad eine Überschrift (Fehler zuerst), darunter Text und Link zur Stelle.
     Mit `year` bekommt jeder Befund ein Formular „Ausblenden“; `earlier` nennt frühere Ausblendungen,
-    `error` den Befund (Art, Ziel) mit fehlender Notiz und `note` die eingegebene Notiz. `scope` macht die
+    `error` den Befund (Art, Ziel) mit fehlender Notiz und `note` die eingegebene Notiz. `back` ist eine Adresse der Belege-Seite, auf die das Ausblenden zurückführt (statt auf die Befundliste); `scope` macht die
     Formular-Kennungen eindeutig, wenn mehrere Listen auf einer Seite stehen. -#}
 {% from "_status.html" import severity %}
 {% set severity_order = ["ERROR", "WARNING", "NOTE"] %}
@@ -16,7 +16,7 @@
 {% endfor %}
 {% endmacro %}
 
-{% macro finding_list(findings, year=none, earlier={}, error=none, note="", scope="") %}
+{% macro finding_list(findings, year=none, earlier={}, error=none, note="", scope="", back="") %}
 {% call(group) by_severity(findings, "severity") %}
 <ul class="befunde">
   {% for finding in group %}
@@ -29,6 +29,7 @@
     <form id="{{ dialog_id }}" class="ausblenden" {% if not failed %}popover{% endif %} method="post" action="/befunde/ausblenden">
       <p>{{ finding.message }}</p>
       <input type="hidden" name="year" value="{{ year }}">
+      {% if back %}<input type="hidden" name="zurueck" value="{{ back }}">{% endif %}
       <input type="hidden" name="kind" value="{{ finding.kind }}">
       <input type="hidden" name="target" value="{{ finding.identity[1] }}">
       <input type="hidden" name="fingerprint" value="{{ finding.fingerprint }}">

@@ -19,6 +19,7 @@ from moarcoal.web.helpers import (
     user_of,
     values_of,
 )
+from moarcoal.web.links import site_return_url
 
 router = APIRouter()
 
@@ -90,7 +91,8 @@ def dismiss_finding(
     if not isinstance(result, Applied):
         reasons = rejection_text(result)
         return _findings_page(request, year, status_code=409, notice=reasons)
-    return RedirectResponse(f"/befunde?year={year}", status_code=303)
+    back = site_return_url(fields.get("zurueck", ""))
+    return RedirectResponse(back or f"/befunde?year={year}", status_code=303)
 
 
 @router.post("/befunde/einblenden")

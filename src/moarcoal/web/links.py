@@ -5,7 +5,7 @@ hier; der Testkern weist Routen in `storage/` und `values/` ab.
 """
 
 from collections.abc import Iterable
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from moarcoal.document_filter import SearchFilter
 
@@ -44,6 +44,17 @@ def site_url(
     ]
     pairs.extend(_filter_pairs(query, types))
     return f"/belege?{urlencode(pairs)}" if pairs else "/belege"
+
+
+def site_return_url(text: str) -> str | None:
+    """`text` als Rücksprung auf die Belege-Seite, sonst `None`: nur der Pfad `/belege` mit
+    beliebiger Abfrage zählt, nie eine fremde oder absolute Adresse."""
+    parts = urlsplit(text)
+    if text != text.strip() or "\\" in text or parts.scheme or parts.netloc:
+        return None
+    if parts.path != "/belege" or parts.fragment:
+        return None
+    return f"/belege?{parts.query}" if parts.query else "/belege"
 
 
 def site_file_url(sha256: str) -> str:

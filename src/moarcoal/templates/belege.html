@@ -168,7 +168,7 @@
       <span class="art">{{ row.kind }}</span>
       <a title="Einträge mit diesem Beleg" class="eintraege" href="{{ keep_filter(entry_url(doc.address)) }}">{{ row.entries }}</a>
       <span class="stand">{{ row.state }}</span>
-      {% if row.findings %}<div class="hinweise">{{ finding_list(row.findings, year=year, scope=doc.id ~ "-") }}</div>{% endif %}
+      {% if row.findings %}<div class="hinweise">{{ finding_list(row.findings, year=year, scope=doc.id ~ "-", back=keep_filter("/belege?dokument=" ~ doc.id ~ "&jahr=" ~ year)) }}</div>{% endif %}
     </div>
     {% else %}
     <p>Für {{ year }} ist noch kein Beleg aufgenommen.</p>

@@ -2,6 +2,7 @@
 
 import datetime
 import hashlib
+import html
 import json
 import re
 from pathlib import Path
@@ -519,3 +520,36 @@ def test_row_shows_the_visible_findings_of_the_document_and_can_hide_them(
     after = row_of(two, "lose.txt")
     assert "Auf diesen Beleg verweist kein Eintrag" not in after
     assert "Dokument ohne Aussteller" in after
+
+
+def test_hiding_from_a_row_returns_to_the_belege_page_with_filter(
+    year_client: httpx.Client,
+) -> None:
+    page = year_client.get("/belege?suche=lose").text
+    form = next(f for f in page.split("<form ") if 'value="document_unreferenced"' in f)
+    fields = {
+        name: re.search(rf'name="{name}" value="([^"]*)"', form).group(1)  # pyright: ignore[reportOptionalMemberAccess]
+        for name in ("year", "zurueck", "kind", "target", "fingerprint")
+    }
+    assert fields["zurueck"].startswith("/belege?dokument=")
+    fields = {k: html.unescape(v) for k, v in fields.items()}
+    sent = {**fields, "note": "gewollt"}
+    response = year_client.post("/befunde/ausblenden", data=sent, headers=ORIGIN)
+    assert response.status_code == 303
+    assert response.headers["location"] == fields["zurueck"]
+
+
+@pytest.mark.parametrize(
+    "foreign", ["https://example.org/x", "//example.org/belege", "/befunde", "/\\example.org"]
+)
+def test_foreign_return_address_is_ignored(year_client: httpx.Client, foreign: str) -> None:
+    page = year_client.get("/belege").text
+    form = next(f for f in page.split("<form ") if 'value="document_unreferenced"' in f)
+    fields = {
+        name: re.search(rf'name="{name}" value="([^"]*)"', form).group(1)  # pyright: ignore[reportOptionalMemberAccess]
+        for name in ("year", "kind", "target", "fingerprint")
+    }
+    sent = {**fields, "note": "gewollt", "zurueck": foreign}
+    response = year_client.post("/befunde/ausblenden", data=sent, headers=ORIGIN)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/befunde?year=2025"
