@@ -4,6 +4,7 @@ Alle Orte und Werte sind erfunden; geschrieben wird nur in `tmp_path`.
 """
 
 import datetime
+import html
 import json
 import re
 from decimal import Decimal
@@ -33,9 +34,11 @@ from moarcoal.storage import Applied, Delete, Put, Rejected, entry_checksum, ope
 from moarcoal.values.model import (
     Amount,
     ExposedValue,
+    NotApplicable,
     NotYetComputable,
     Period,
     Unit,
+    ValueKey,
 )
 from moarcoal.values.testing import evaluate
 
@@ -538,3 +541,42 @@ def test_not_computable_reason_is_a_focusable_tooltip(tmp_path: Path) -> None:
     text = client.get("/arbeit?jahr=2025").text
     assert 'class="kurzinfo" tabindex="0" title="' in text
     assert "</strong> (" not in text  # kein Klammertext hinter „noch nicht berechenbar“
+
+
+KEY_PATTERN = re.compile(r"\b[a-z][a-z_]*\.[a-z][a-z_]*\b")
+
+
+def reasons_of(page: str) -> list[str]:
+    """Alle Begründungen der Seite: Kurzinfo-Titel und deren Folgetext."""
+    titles = re.findall(r'class="kurzinfo"[^>]*title="([^"]*)"', page)
+    return [html.unescape(t) for t in titles]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/arbeit?jahr=2025",
+        "/steuerjahr",
+        "/steuerjahr/anlage-n/2025",
+        "/steuerjahr/anlage-vor/2025",
+    ],
+)
+def test_reasons_on_the_pages_name_no_internal_value_keys(tmp_path: Path, path: str) -> None:
+    page = make_client(tmp_path).get(path)
+    assert page.status_code == 200
+    assert reasons_of(page.text) or path != "/arbeit?jahr=2025"
+    for reason in reasons_of(page.text):
+        assert not KEY_PATTERN.search(reason), reason
+
+
+def test_not_applicable_reason_is_a_focusable_tooltip(tmp_path: Path) -> None:
+    env = make_app(PORT, tmp_path, user=USER).state.templates.env
+    result = NotApplicable(ValueKey("work.demo"), USER, Period.year(2025), None, "abgeschaltet")
+
+    text = env.from_string(
+        '{% from "_value.html" import value_view %}{{ value_view("Titel", result) }}'
+    ).render(result=result)
+
+    assert 'class="kurzinfo" tabindex="0" title="abgeschaltet"' in text
+    assert ">entfällt</strong>" in text
+    assert "entfällt</strong> (" not in text

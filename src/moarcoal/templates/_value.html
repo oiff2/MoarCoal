@@ -50,7 +50,7 @@
   </details>
   {% endif %}
   {% else %}
-  <span class="titel">{{ title }}:</span> <strong>entfällt</strong> ({{ result.reason }})
+  <span class="titel">{{ title }}:</span> {{ not_yet(result.reason, "entfällt", "") }}
   {% endif %}
 </div>
 {% endmacro %}

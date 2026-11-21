@@ -7,7 +7,7 @@ from moarcoal.documents import DocumentKind
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import Dismissal, EntryKind, SiteFile, Sites, Snapshot, State
 from moarcoal.values.calculation import Calculation, NotApplicableSignal, NotYetSignal
-from moarcoal.values.catalog import TimeKind, ValueCatalog
+from moarcoal.values.catalog import TimeKind, UnknownValueKey, ValueCatalog
 from moarcoal.values.findings import (
     CYCLE,
     DENYLIST_NOT_WRITTEN,
@@ -220,6 +220,13 @@ class Values:
 
     def _document_kinds(self) -> dict[str, DocumentKind]:
         return {k.key: k for m in self._modules.values() for k in m.document_kinds}
+
+    def label(self, key: str) -> str:
+        """Die Bezeichnung des Werts im Katalog; vorgegebene fremde Werte haben keine."""
+        try:
+            return self.catalog.definition(key).entry.meaning
+        except UnknownValueKey:
+            return key
 
     def subjects(self, key: str, user: str, time: TimeRef) -> list[Subject]:
         """Die Bezugsobjekte, die das Modul des Schlüssels zum Zeitbezug aufzählt."""

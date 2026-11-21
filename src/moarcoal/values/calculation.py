@@ -50,6 +50,10 @@ class ValueSource(Protocol):
 
     def subjects(self, key: str, user: str, time: TimeRef) -> list[Subject]: ...
 
+    def label(self, key: str) -> str:
+        """Die Bezeichnung des Werts im Wertekatalog (ohne Eintrag: der Schlüssel)."""
+        ...
+
 
 @dataclass(frozen=True)
 class Missing:
@@ -109,11 +113,11 @@ class Calculation:
                 return self.item(label or str(result.key), result.amount, ValueLocator(result))
             case NotYetComputable():
                 raise NotYetSignal(
-                    f"{result.key} ist noch nicht berechenbar: {result.reason}",
+                    f"{self._source.label(result.key)} ist noch nicht berechenbar: {result.reason}",
                     (result.ref, *result.chain),
                 )
             case NotApplicable():
-                self.decide(f"{result.key} entfällt: {result.reason}")
+                self.decide(f"{self._source.label(result.key)} entfällt: {result.reason}")
                 return None
 
     def try_use(
@@ -131,7 +135,7 @@ class Calculation:
             case NotYetComputable():
                 return Missing(result)
             case NotApplicable():
-                self.decide(f"{result.key} entfällt: {result.reason}")
+                self.decide(f"{self._source.label(result.key)} entfällt: {result.reason}")
                 return None
 
     def subjects_of(self, key: ValueKey | str, time: TimeRef | None = None) -> list[Subject]:

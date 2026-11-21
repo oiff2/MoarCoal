@@ -464,6 +464,28 @@ def test_foreign_not_yet_and_not_applicable_pass_on_like_real_values() -> None:
     assert b.items == () and b.workings.steps[0].kind == "decision"
 
 
+def test_reasons_name_used_values_by_their_catalog_label_not_their_key() -> None:
+    missing = definition("demo.missing", lambda c: c.not_yet("Wert fehlt"))
+    gone = definition("demo.gone", lambda c: c.not_applicable("abgeschaltet"))
+    values = evaluate(
+        [
+            custom(
+                missing,
+                gone,
+                definition("demo.use", uses("demo.missing")),
+                definition("demo.skip", uses("demo.gone")),
+            )
+        ]
+    )
+
+    chained = values.get("demo.use", "anna", YEAR)
+    skipped = exposed(values.get("demo.skip", "anna", YEAR))
+
+    assert isinstance(chained, NotYetComputable)
+    assert chained.reason == "Beispiel ist noch nicht berechenbar: Wert fehlt"
+    assert skipped.workings.steps[0].text == "Beispiel entfällt: abgeschaltet"
+
+
 def test_foreign_subjects_come_from_the_given_keys() -> None:
     first, second = Subject(workplace().address), Subject(workplace(workdays=20).address)
     values = evaluate(
