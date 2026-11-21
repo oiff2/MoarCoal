@@ -256,7 +256,7 @@ def test_document_page_shows_field_and_get_writes_nothing(client: httpx.Client) 
     document = taken_in(client)
     before = state_of(client)
     html = client.get(document_url(document.id)).text
-    assert "Kein Aussteller angegeben." in html
+    assert "Aussteller</legend>" in html and '"default": ""' in html  # Feld ohne Vorbelegung
     assert 'hx-get="/aussteller-suche"' in html
     assert state_of(client) == before
 
@@ -267,7 +267,7 @@ def test_change_issuer_on_document(client: httpx.Client) -> None:
     response = change(client, document, issuer_choice=f"id:{bank.id}")
     assert response.status_code == 303
     assert only_document(client).issuer == bank.address
-    assert bank.name in client.get(document_url(document.id)).text
+    assert f'"default": "{bank.id}"' in client.get(document_url(document.id)).text  # Feld zeigt ihn
 
 
 def test_change_issuer_creates_new_one_and_can_remove(client: httpx.Client) -> None:

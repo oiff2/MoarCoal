@@ -3,7 +3,6 @@
 {% from "_document_form.html" import document_form, document_entries, document_actions %}
 {% macro document_detail(d) %}
 {% set document = d.document %}
-<p>Aussteller: {% if d.issuer %}{{ d.issuer.name }}{% else %}Kein Aussteller angegeben.{% endif %}</p>
 {{ document_form(document, d.kinds, d.bound, d.default_year, d.issuer_text, d.year) }}
 
 {% if d.proposal %}
