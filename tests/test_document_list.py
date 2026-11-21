@@ -3,6 +3,7 @@
 import datetime
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import httpx
@@ -450,3 +451,71 @@ def test_belege_page_shows_no_file_size(two: httpx.Client) -> None:
         page = two.get(url).text.split("<main>")[1]
         assert "KB" not in page and "groesse" not in page
     assert "groesse" not in Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
+
+
+# --- Zeile: Einträge und Befunde (#187) ---------------------------------------------
+
+
+def row_of(client: httpx.Client, name: str) -> str:
+    [row] = [r for r in taken_in(client).split('<div class="datei"')[1:] if name in r]
+    return row
+
+
+def test_row_counts_entries_and_links_to_the_detail_column(two: httpx.Client) -> None:
+    """Das Protokoll hat eine Einlesung (abgeleitete Einträge zählen mit), der Bescheid keinen
+    Eintrag; die Zahl führt zum Dokument in der Detailspalte."""
+    protocol, bescheid = doc(two, "protokoll.html"), doc(two, "bescheid.txt")
+    bound = len(store_of(two).references_to(protocol.address, with_derived=True))
+    assert bound > 0
+    assert f'class="eintraege" href="{document_url(protocol.id)}">{bound}</a>' in row_of(
+        two, "protokoll.html"
+    )
+    assert f'class="eintraege" href="{document_url(bescheid.id)}">0</a>' in row_of(
+        two, "bescheid.txt"
+    )
+
+
+@pytest.fixture
+def year_client(tmp_path: Path) -> httpx.Client:
+    """Ein Jahresordner 2025 mit einer losen Datei, die ohne Art aufgenommen wird."""
+    folder = tmp_path / "jahr"
+    folder.mkdir()
+    (folder / "lose.txt").write_text("ohne Art", encoding="utf-8")
+    sites = tmp_path / "daten" / "common" / "sites.json"
+    sites.parent.mkdir(parents=True)
+    sites.write_text(
+        json.dumps(
+            {"schema": "ablageorte/2", "sites": {"Jahr": {"path": str(folder), "year": 2025}}}
+        ),
+        encoding="utf-8",
+    )
+    app = make_app(PORT, tmp_path / "daten", user="anna")
+    client = TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
+    take(client, hashlib.sha256(b"ohne Art").hexdigest(), kind="")
+    return client
+
+
+def test_row_shows_the_visible_findings_of_the_document_and_can_hide_them(
+    year_client: httpx.Client,
+) -> None:
+    """Ein Beleg ohne Art, auf den nichts verweist, bekommt den Hinweis in der Zeile."""
+    two = year_client
+    before = state_of(two)
+    row = row_of(two, "lose.txt")
+    assert "Auf diesen Beleg verweist kein Eintrag" in row
+    assert 'action="/befunde/ausblenden"' in row
+    assert state_of(two) == before  # GET schreibt nichts
+    assert "Dokument ohne Aussteller" in row
+    form = next(f for f in row.split("<form ") if 'value="document_unreferenced"' in f)
+    data = {
+        "year": "2025",
+        **{
+            name: re.search(rf'name="{name}" value="([^"]+)"', form).group(1)  # pyright: ignore[reportOptionalMemberAccess]
+            for name in ("kind", "target", "fingerprint")
+        },
+        "note": "gewollt",
+    }
+    assert two.post("/befunde/ausblenden", data=data, headers=ORIGIN).status_code == 303
+    after = row_of(two, "lose.txt")
+    assert "Auf diesen Beleg verweist kein Eintrag" not in after
+    assert "Dokument ohne Aussteller" in after

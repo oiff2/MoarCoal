@@ -30,6 +30,7 @@ from moarcoal.storage import (
 from moarcoal.web.helpers import (
     document_kinds,
     entry_url,
+    finding_list_of,
     form_fields,
     form_lists,
     global_year,
@@ -156,7 +157,15 @@ def belege_page(
         preview_url, preview_path = document_file_url(document.id), document.path
     else:
         preview_url = preview_path = ""
-    taken_in = year_documents(state, store.sites, kinds, user, year)
+    taken_in = year_documents(
+        state,
+        store.sites,
+        kinds,
+        user,
+        year,
+        entries=lambda d: len(store.references_to(d.address, with_derived=True)),
+        visible=finding_list_of(request, year).visible,
+    )
     return render(
         request,
         "belege.html",

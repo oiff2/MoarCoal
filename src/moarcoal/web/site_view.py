@@ -6,7 +6,7 @@ hier steht, wie die Seite es zeigt.
 """
 
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 
 from moarcoal.document_filter import (
@@ -31,6 +31,7 @@ from moarcoal.storage import (
     State,
     entry_checksum,
 )
+from moarcoal.values.findings import Finding
 from moarcoal.web.links import document_url, site_file_url, with_filter
 
 
@@ -248,12 +249,23 @@ class DocumentRow:
     document: Document
     kind: str  # Titel der Dokumentart mit Bezugsjahr; leer bei einem Beleg ohne Art
     state: DocumentState
+    entries: int  # Zahl der Verweise auf das Dokument, eingelesene Einträge eingeschlossen
+    findings: tuple[Finding, ...]  # die nicht ausgeblendeten Befunde mit dem Dokument als Ziel
 
 
 def year_documents(
-    state: State, sites: Sites, kinds: Mapping[str, DocumentKind], user: str, year: int
+    state: State,
+    sites: Sites,
+    kinds: Mapping[str, DocumentKind],
+    user: str,
+    year: int,
+    *,
+    entries: Callable[[Document], int],
+    visible: Sequence[Finding],
 ) -> list[DocumentRow]:
-    """Die Dokumente von `user`, die zu `year` gehören (`belongs_to_year`), nach Pfad."""
+    """Die Dokumente von `user`, die zu `year` gehören (`belongs_to_year`), nach Pfad. `entries`
+    zählt die Verweise auf ein Dokument; `visible` sind die nicht ausgeblendeten Befunde der
+    Befundliste, aus denen jede Zeile die mit ihrem Dokument als Ziel nimmt."""
     chosen = sorted(
         (
             d
@@ -268,7 +280,15 @@ def year_documents(
         title = kind.title if kind else (document.document_kind or "")
         if title and document.period_start:
             title = f"{title}, {document.period_start.year}"
-        rows.append(DocumentRow(document, title, document_state(state, kinds, document)))
+        rows.append(
+            DocumentRow(
+                document,
+                title,
+                document_state(state, kinds, document),
+                entries(document),
+                tuple(f for f in visible if f.target == document.address),
+            )
+        )
     return rows
 
 

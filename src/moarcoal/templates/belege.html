@@ -2,6 +2,7 @@
 {% from "_issuer_field.html" import issuer_field %}
 {% from "_status.html" import file_type %}
 {% from "_belege.html" import preview, rejection %}
+{% from "_findings.html" import finding_list %}
 {% from "documents/_detail.html" import document_detail with context %}
 {% block title %}Belege {{ year }} – MoarCoal{% endblock %}
 {% macro hide_button(sha256="", site="", path="") %}
@@ -165,7 +166,9 @@
       <a class="name" href="{{ keep_filter(entry_url(doc.address)) }}"{% if selected_document and selected_document.id == doc.id %} aria-current="true"{% endif %}>{{ document_name(doc) }}</a>
       <span class="pfad">{{ doc.site }}/{{ doc.path }}</span>
       <span class="art">{{ row.kind }}</span>
+      <a title="Einträge mit diesem Beleg" class="eintraege" href="{{ keep_filter(entry_url(doc.address)) }}">{{ row.entries }}</a>
       <span class="stand">{{ row.state }}</span>
+      {% if row.findings %}<div class="hinweise">{{ finding_list(row.findings, year=year, scope=doc.id ~ "-") }}</div>{% endif %}
     </div>
     {% else %}
     <p>Für {{ year }} ist noch kein Beleg aufgenommen.</p>

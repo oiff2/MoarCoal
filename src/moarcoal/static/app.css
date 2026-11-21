@@ -93,6 +93,9 @@ main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
 .abschnitt h3 { font-size: 1rem; margin: 0.5rem 0 0.2rem; }
 .datei.kopf { opacity: 0.7; }
 .datei .aktion { font-size: 0.9em; }
+.datei .hinweise { flex-basis: 100%; }
+.datei .hinweise .befunde-gruppe { margin: 0.25rem 0 0; font-size: 0.9rem; }
+.datei .hinweise .befunde { margin: 0; }
 form.direkt { display: inline; margin-left: auto; }
 button.auge { padding: 0 0.25rem; line-height: 1; vertical-align: middle; }
 button.auge svg { display: block; }
