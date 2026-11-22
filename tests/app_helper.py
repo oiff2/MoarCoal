@@ -1,5 +1,6 @@
 """Testhilfe: `make_app` baut die App wie `create_app`, aber mit angelegtem Nutzer."""
 
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI
@@ -20,3 +21,14 @@ def make_app(*args: Any, with_user: bool = True, **kwargs: Any) -> FastAPI:
         details = PersonalDetails(owner=app.state.user, first_name="Max", last_name="Mustermann")
         store.apply([Put(details)])
     return app
+
+
+STATIC = Path(__file__).parents[1] / "src" / "moarcoal" / "static"
+
+
+def stylesheet() -> str:
+    """Die drei Stylesheets in der Reihenfolge, in der die Seite sie einbindet."""
+    return "".join(
+        (STATIC / name).read_text(encoding="utf-8")
+        for name in ("tokens.css", "bausteine.css", "seiten.css")
+    )

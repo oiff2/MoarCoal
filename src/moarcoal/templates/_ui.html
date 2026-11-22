@@ -1,0 +1,69 @@
+{#- Bausteine der Oberfläche: jedes wiederkehrende Stück steht hier genau einmal (Klassen in static/bausteine.css).
+    Icons nur über icon(): die Quelle ist static/icons/<name>.svg (der Vorlagenlader sucht auch dort), Farbe über currentColor,
+    nie als CSS-Maske, nie mit style-Attribut (CSP). Statussymbole und -farben (Schweregrad, Belegstand, Gegenprobe) kommen alle
+    aus status(); Dateityp-Icons bleiben bewusst ohne Farbe, damit sie nicht wie ein Status wirken. -#}
+
+{% macro icon(name) -%}
+{% include "icons/" ~ name ~ ".svg" %}
+{%- endmacro %}
+
+{#- Icon-Aktion: Knopf (Vorgabe), Link (href) oder Formular-Knopf (action, die versteckten Felder kommen aus dem Aufrufblock);
+    label ist Pflicht und wird zu title (Kurzinfo) und aria-label (Screenreader), das Icon ist Zierde. popover: Knopf öffnet dieses Element. -#}
+{% macro ib(name, label, href=none, action=none, popover=none, cls="", form_cls="", attr="") -%}
+{% if action %}<form{% if form_cls %} class="{{ form_cls }}"{% endif %} method="post" action="{{ action }}">{% if caller %}{{ caller() }}{% endif %}
+  <button type="submit" class="ib{% if cls %} {{ cls }}{% endif %}" title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</button>
+</form>
+{%- elif href %}<a class="ib{% if cls %} {{ cls }}{% endif %}" href="{{ href }}" title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</a>
+{%- else %}<button type="button" class="ib{% if cls %} {{ cls }}{% endif %}"{% if popover %} popovertarget="{{ popover }}"{% endif %}{% if attr %} {{ attr }}{% endif %} title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</button>{% endif %}
+{%- endmacro %}
+
+{#- „Ausblenden“ für Dateien und Ordner der Belege-Seite: ein Icon-Formular mit dem Auge. Die Adresse bestimmt die Seite. -#}
+{% macro hide_button(action, sha256="", site="", path="") -%}
+{% call ib("auge", "Ausblenden", action=action, form_cls="direkt") -%}
+{% if sha256 %}<input type="hidden" name="sha256" value="{{ sha256 }}">{% else %}<input type="hidden" name="site" value="{{ site }}"><input type="hidden" name="path" value="{{ path }}">{% endif %}
+{%- endcall %}
+{%- endmacro %}
+
+{#- Abschnitt: einklappbar, mit Überschrift, Anzahl in Klammern und optionaler Erklärzeile; der Inhalt kommt aus dem Aufrufblock.
+    id ist zugleich der Schlüssel, unter dem der Browser merkt, ob er zu ist (data-merken, rahmen.js). -#}
+{% macro abschnitt(id, titel, anzahl, erklaerung="", offen=true) -%}
+<details class="abschnitt" id="{{ id }}"{% if offen %} open{% endif %} data-merken="{{ id }}">
+  <summary>{{ titel }} ({{ anzahl }})</summary>
+  {% if erklaerung %}<p class="erklaerung">{{ erklaerung }}</p>{% endif %}
+  {{ caller() }}
+</details>
+{%- endmacro %}
+
+{#- Filter-Chip mit Anzahl; data-umschalten schaltet aria-pressed (rahmen.js). Noch ohne Aufrufer. -#}
+{% macro chip(label, n, name="", gedrueckt=false) -%}
+<button type="button" class="chip" aria-pressed="{{ 'true' if gedrueckt else 'false' }}" data-umschalten>{% if name %}{{ icon(name) }}{% endif %}{{ label }} <span class="n">{{ n }}</span></button>
+{%- endmacro %}
+
+{#- Statussprache: Symbol, Farbe und Wort, nie Farbe allein. art ist der kleingeschriebene Name der Stufe (Schweregrad, Belegstand) oder „fits“. -#}
+{% set status_symbols = {"error": "✕", "warning": "▲", "note": "ℹ", "pending": "○", "assumed": "◐", "proven": "●", "fits": "✓"} %}
+{% macro status(art, text, titel="") -%}
+<span class="status status-{{ art }}"{% if titel %} title="{{ titel }}"{% endif %}><span class="symbol" aria-hidden="true">{{ status_symbols[art] }}</span> {{ text }}</span>
+{%- endmacro %}
+
+{% macro severity(value, text=none) -%}
+{{ status(value.name | lower, text if text is not none else value.value, "Schweregrad") }}
+{%- endmacro %}
+
+{% macro belegstand(value) -%}
+{{ status(value.name | lower, value.label, "Belegstand") }}
+{%- endmacro %}
+
+{% macro fits() -%}
+{{ status("fits", "passt", "Gegenprobe") }}
+{%- endmacro %}
+
+{#- „noch nicht berechenbar“ oder „entfällt“ (`text="entfällt", css=""`) mit der Begründung als Kurzinfo: title für die Maus, derselbe Text als Folgetext für
+    Screenreader, per Fokus (Tastatur, Tippen) sichtbar. Nie 0 oder leer an dieser Stelle (PRINCIPLES 5). -#}
+{% macro not_yet(reason, text="noch nicht berechenbar", css="fehler") -%}
+<span class="kurzinfo" tabindex="0" title="{{ reason }}"><strong{% if css %} class="{{ css }}"{% endif %}>{{ text }}</strong><span class="kurzinfo-text">{{ reason }}</span></span>
+{%- endmacro %}
+
+{% macro dateityp(path) -%}
+{% set art = {"pdf": "pdf", "image": "bild", "html": "html"}.get(preview_kind(path), "sonstige") -%}
+<span class="dateityp dateityp-{{ art }}" title="{{ {'pdf': 'PDF', 'bild': 'Bild', 'html': 'HTML'}.get(art, 'Datei') }}">{{ icon("datei-" ~ art) }}</span>
+{%- endmacro %}

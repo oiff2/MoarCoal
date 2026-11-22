@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 import httpx
-from app_helper import make_app
+from app_helper import make_app, stylesheet
 from fastapi.testclient import TestClient
 
 from moarcoal.web.helpers import year_choices
@@ -113,7 +113,8 @@ def test_year_choices_newest_first_with_the_chosen_year() -> None:
 def test_header_has_sun_button_for_light_and_dark_next_to_the_user_icon(tmp_path: Path) -> None:
     header = part(make_client(tmp_path).get("/").text, "header")
     button = re.search(
-        r'<button type="button" class="darstellung"[^>]*>(.*?)</button>\s*<details class="nutzer">',
+        r'<button type="button" class="ib darstellung"[^>]*>(.*?)</button>'
+        r'\s*<details class="nutzer">',
         header,
         re.S,
     )
@@ -126,15 +127,54 @@ COLOR = re.compile(
 )
 
 
-def test_colors_live_only_in_the_tokens_of_the_stylesheet() -> None:
-    src = Path(__file__).parents[1] / "src" / "moarcoal"
-    css = (src / "static" / "app.css").read_text(encoding="utf-8")
-    tokens, rest = css.split("/* Ende der Farb-Tokens */", 1)
+SRC = Path(__file__).parents[1] / "src" / "moarcoal"
+TEMPLATES = sorted((SRC / "templates").rglob("*.html"))
+LENGTH = re.compile(r"\d(?:px|rem|em)\b")
+SPACING = re.compile(
+    r"(?:padding|margin|gap|font|border|outline|radius|letter-spacing)[\w-]*:[^;{}]*\d(?:px|rem|em)\b"
+)
+
+
+def test_stylesheets_come_in_the_fixed_order_and_the_old_one_is_gone() -> None:
+    base = (SRC / "templates" / "base.html").read_text(encoding="utf-8")
+    links = re.findall(r'<link rel="stylesheet" href="/static/([\w.]+)">', base)
+    assert links == ["tokens.css", "bausteine.css", "seiten.css"]
+    assert not (SRC / "static" / "app.css").exists()
+
+
+def test_colors_live_only_in_tokens_css() -> None:
+    tokens = (SRC / "static" / "tokens.css").read_text(encoding="utf-8")
     assert "light-dark(" in tokens
-    assert COLOR.findall(rest) == []
-    assert re.findall(r"var\(--[\w-]+\)[\w-]", css) == []  # kein Token mitten in einem Namen
-    for template in (src / "templates").rglob("*.html"):
+    for name in ("bausteine.css", "seiten.css"):
+        css = (SRC / "static" / name).read_text(encoding="utf-8")
+        assert COLOR.findall(css) == [], name
+    assert (
+        re.findall(r"var\(--[\w-]+\)[\w-]", stylesheet()) == []
+    )  # kein Token mitten in einem Namen
+    for template in TEMPLATES:
         assert COLOR.findall(template.read_text(encoding="utf-8")) == [], template
+
+
+def test_sizes_and_spacing_live_only_in_tokens_css_except_widths_of_the_layout() -> None:
+    bausteine = (SRC / "static" / "bausteine.css").read_text(encoding="utf-8")
+    hidden_for_the_eye = re.sub(
+        r"(?:width|height): 1px", "", bausteine
+    )  # nur-vorlesen, kurzinfo-text
+    assert LENGTH.findall(hidden_for_the_eye) == []
+    seiten = (SRC / "static" / "seiten.css").read_text(encoding="utf-8")
+    assert SPACING.findall(seiten) == []  # nur Breiten und Spalten dürfen feste Längen tragen
+
+
+def test_templates_have_no_style_attribute_and_svg_only_in_the_macro_library() -> None:
+    allowed = {
+        "_ui.html",
+        "_trip_map.html",
+    }  # Deutschlandkarte im Arbeit-Modul; später das App-Icon
+    for template in TEMPLATES:
+        source = template.read_text(encoding="utf-8")
+        assert not re.search(r"\sstyle\s*=", source), template
+        assert 'include "icons/' not in source or template.name == "_ui.html", template
+        assert "<svg" not in source or template.name in allowed, template
 
 
 def test_header_links_to_mein_elster_in_a_new_tab_between_findings_and_the_switch(
@@ -146,4 +186,6 @@ def test_header_links_to_mein_elster_in_a_new_tab_between_findings_and_the_switc
         'rel="noopener noreferrer" title="Mein ELSTER öffnen" aria-label="Mein ELSTER öffnen">'
     )
     assert link in header
-    assert header.index("befunde-kopf") < header.index(link) < header.index('class="darstellung"')
+    assert (
+        header.index("befunde-kopf") < header.index(link) < header.index('class="ib darstellung"')
+    )

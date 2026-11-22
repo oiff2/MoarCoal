@@ -6,6 +6,7 @@ from typing import cast
 
 import httpx
 import pytest
+from app_helper import stylesheet
 from test_belege import FIXTURE, ORIGIN, SHA, make_client, take
 
 from moarcoal.storage import Document, Put, Store, entry_checksum
@@ -174,11 +175,11 @@ def test_page_without_choice_has_no_form_and_taken_file_links_its_document(
 
 
 def test_head_and_preview_scroll_on_their_own() -> None:
-    css = Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
+    css = stylesheet()
     assert ".formular { flex: 0 1 auto; max-height: 45%; overflow: auto; }" in css
     assert "flex: 0 0 45%" not in css
     assert ".vorschau { flex: 1; min-height: 0; overflow: auto; }" in css
-    assert "flex-direction: column; gap: 0.5rem; min-height: 0; }" in css
+    assert "flex-direction: column; gap: var(--abstand-3); min-height: 0; }" in css
 
 
 def test_no_choice_is_unselected_without_multiple_selection(root: Path, site: Path) -> None:
@@ -225,5 +226,6 @@ def test_next_open_goes_on_and_wraps_around() -> None:
 
 
 def test_keyboard_script_handles_arrows_and_enter() -> None:
-    js = Path("src/moarcoal/static/belege.js").read_text(encoding="utf-8")
+    js = Path("src/moarcoal/static/rahmen.js").read_text(encoding="utf-8")
     assert "ArrowDown" in js and "ArrowUp" in js and '"Enter"' in js
+    assert "data-pfeile" in js and "pfeileEnter" in js  # gesteuert über data-Attribute der Vorlage

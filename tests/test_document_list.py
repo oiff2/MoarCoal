@@ -9,7 +9,7 @@ from pathlib import Path
 
 import httpx
 import pytest
-from app_helper import make_app
+from app_helper import make_app, stylesheet
 from fastapi.testclient import TestClient
 from test_belege_year import section
 
@@ -398,10 +398,13 @@ def test_the_document_is_rendered_once_in_the_column(two: httpx.Client) -> None:
 
 def test_column_can_be_hidden_and_the_browser_remembers_it(two: httpx.Client) -> None:
     page = two.get("/belege").text
-    assert "data-detailspalte-schalter" in page and "Detailspalte ausblenden" in page
+    assert 'data-umschalten="detailspalte-aus"' in page and "Detailspalte ausblenden" in page
+    assert (
+        'data-umschalten-ziel=".arbeit"' in page and 'data-umschalten-klasse="ohne-detail"' in page
+    )
     assert 'class="rechts" id="detailspalte"' in page
-    js = Path("src/moarcoal/static/belege.js").read_text(encoding="utf-8")
-    assert "localStorage" in js and "catch" in js  # nur Bequemlichkeit, die Seite geht ohne
+    js = Path("src/moarcoal/static/rahmen.js").read_text(encoding="utf-8")
+    assert "dataset.umschaltenZiel" in js and "schreib(key" in js
     assert "http" not in js
 
 
@@ -410,14 +413,23 @@ def test_a_click_on_a_row_selects_it(two: httpx.Client) -> None:
     assert "a.name" in js and 'closest("a, button, form, input, select, summary")' in js
 
 
-def test_sections_remember_open_state_without_flicker(two: httpx.Client) -> None:
+def test_sections_remember_open_state_through_their_data_attribute(two: httpx.Client) -> None:
     page = two.get("/belege").text
     assert page.count('<details class="abschnitt"') == 3
-    # Ohne defer hinter den Abschnitten: läuft vor der ersten Darstellung (kein Flackern).
-    assert '<script src="/static/belege.js"></script>' in page
-    js = Path("src/moarcoal/static/belege.js").read_text(encoding="utf-8")
-    assert "details.abschnitt" in js and '"toggle"' in js and "a[aria-current]" in js
+    for name in ("neu", "erwartet", "aufgenommen"):
+        assert f'<details class="abschnitt" id="{name}" open data-merken="{name}">' in page
+    js = Path("src/moarcoal/static/rahmen.js").read_text(encoding="utf-8")
+    assert "details[data-merken]" in js and '"toggle"' in js and "a[aria-current]" in js
     assert "http" not in js
+    assert "localStorage" not in Path("src/moarcoal/static/belege.js").read_text(encoding="utf-8")
+
+
+def test_the_list_takes_arrow_keys_through_its_data_attribute(two: httpx.Client) -> None:
+    page = two.get("/belege").text
+    assert (
+        '<div class="baum" data-pfeile data-pfeile-enter=".formular input:not([type=hidden])">'
+        in page
+    )
 
 
 def test_column_grip_shares_the_sidebar_grip_logic(two: httpx.Client) -> None:
@@ -439,11 +451,11 @@ def test_column_grip_shares_the_sidebar_grip_logic(two: httpx.Client) -> None:
     assert 'role="separator"' in side and 'aria-orientation="vertical"' in side
     rahmen = Path("src/moarcoal/static/rahmen.js").read_text(encoding="utf-8")
     belege = Path("src/moarcoal/static/belege.js").read_text(encoding="utf-8")
-    assert "moarcoalGriff" in rahmen and "dblclick" in rahmen and "ArrowLeft" in rahmen
-    assert "catch" in rahmen and "moarcoalGriff" in belege
+    assert "initGrip" in rahmen and "dblclick" in rahmen and "ArrowLeft" in rahmen
+    assert "catch" in rahmen and "Griff" not in belege and "griff" not in belege
     assert "mousedown" not in belege  # keine zweite Kopie der Zieh-Logik
     assert "http" not in rahmen
-    css = Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
+    css = stylesheet()
     assert "var(--belege-links, 1fr)" in css and "style=" not in page.split("<main>")[1]
 
 
@@ -451,7 +463,7 @@ def test_belege_page_shows_no_file_size(two: httpx.Client) -> None:
     for url in ("/belege", f"/belege?datei={doc(two, 'bescheid.txt').sha256}"):
         page = two.get(url).text.split("<main>")[1]
         assert "KB" not in page and "groesse" not in page
-    assert "groesse" not in Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
+    assert "groesse" not in stylesheet()
 
 
 # --- Zeile: Einträge und Befunde (#187) ---------------------------------------------

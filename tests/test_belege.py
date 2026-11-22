@@ -7,7 +7,7 @@ from pathlib import Path
 
 import httpx
 import pytest
-from app_helper import make_app
+from app_helper import make_app, stylesheet
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
 from test_belege_year import section
@@ -382,7 +382,7 @@ def test_year_input_is_hidden_for_kinds_without_period(root: Path, site: Path) -
     assert '<option value="demo.contract" data-ohne-zeitraum>' in page
     assert '<option value="transfer_protocol" selected>' not in page  # echte Arten: kein Muster
     assert '<label class="jahr">' in page
-    css = Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
+    css = stylesheet()
     assert "form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }" in css
 
 
@@ -442,7 +442,7 @@ def test_old_incoming_links_redirect(root: Path, site: Path) -> None:
 
 
 def test_lists_scroll_inside_not_the_page() -> None:
-    css = Path("src/moarcoal/static/app.css").read_text(encoding="utf-8")
+    css = stylesheet()
     assert "main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }" in css
     assert ".baum { flex: 1; min-height: 0; overflow: auto; }" in css
 
@@ -506,7 +506,7 @@ def test_one_click_hides_a_file_in_its_row(root: Path, site: Path) -> None:
     client = make_client(root, site)
     page = main_of(client, "/belege")
     assert page.count('action="/belege/ausblenden-direkt"') == 3  # Ordner 2025 + zwei Dateien
-    assert page.count('class="auge" title="Ausblenden" aria-label="Ausblenden"><svg') == 3
+    assert page.count('class="ib" title="Ausblenden" aria-label="Ausblenden"><svg') == 3
     assert ">Ausblenden</button>" not in page
     response = hide_directly(client, sha256=SHA)
     assert response.status_code == 303 and response.headers["location"] == "/belege"

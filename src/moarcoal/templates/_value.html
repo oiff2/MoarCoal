@@ -1,5 +1,5 @@
 {#- Gemeinsamer Anzeigebaustein für Ausgewiesene Werte: Betrag, Belegstand, aufklappbare Einzelposten und Rechenweg. Ohne Skript und ohne Inline-Stil (CSP), aufklappen über <details>. -#}
-{% from "_status.html" import backing, not_yet %}
+{% from "_ui.html" import belegstand, icon, not_yet %}
 {% macro value_view(title, result, whole=false) %}
 <div class="ausgewiesen">
   {% if result.outcome == "amount" %}
@@ -7,7 +7,7 @@
     <summary>
       <span class="titel">{{ title }}:</span>
       <strong class="betrag">{{ result.amount | amount(whole_euros=whole) }}</strong>
-      {{ backing(result.backing) }}
+      {{ belegstand(result.backing) }}
     </summary>
     <h4>Einzelposten</h4>
     {% if result.items %}
@@ -22,7 +22,7 @@
           {% if url %}<a href="{{ url }}">{{ item.locator.label }}</a>{% else %}{{ item.locator.label }}{% endif %}
           {% if item.locator.used_value %}{{ value_view("Posten dieses Werts", item.locator.used_value) }}{% endif %}
         </td>
-        <td>{{ backing(item.backing) }}</td>
+        <td>{{ belegstand(item.backing) }}</td>
       </tr>
       {% endfor %}
     </table>
@@ -43,7 +43,7 @@
   <span class="titel">{{ title }}:</span> {{ not_yet(result.reason) }}
   {% if result.chain %}
   <details>
-    <summary class="rechenweg-symbol" title="Rechenweg" aria-label="Rechenweg">{% include "icons/rechenweg.svg" %}<span class="nur-vorlesen">Rechenweg</span></summary>
+    <summary class="rechenweg-symbol" title="Rechenweg" aria-label="Rechenweg">{{ icon("rechenweg") }}<span class="nur-vorlesen">Rechenweg</span></summary>
     <ol class="kette">
       {% for link in result.chain %}<li>{{ link.title }}</li>{% endfor %}
     </ol>

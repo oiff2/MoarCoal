@@ -1,7 +1,7 @@
 {% extends "tax_year/_rahmen.html" %}
 {% from "_value.html" import value_view %}
 {% from "tax_year/_eingabe.html" import input_cell %}
-{% from "_status.html" import severity as status_severity, fits as status_fits, not_yet as status_not_yet %}
+{% from "_ui.html" import severity as status_severity, fits as status_fits, not_yet as status_not_yet %}
 {% block title %}{{ anlage.name }} {{ year }} – MoarCoal{% endblock %}
 {% block inhalt %}
 <h1>{{ anlage.name }} {{ year }}</h1>

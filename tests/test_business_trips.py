@@ -572,7 +572,7 @@ def post_trip(client: httpx.Client, year: int) -> None:
 
 
 def header_years(page: str) -> list[int]:
-    select = page.split('<select name="year">', 1)[1].split("</select>", 1)[0]
+    select = page.split('<select name="year"', 1)[1].split(">", 1)[1].split("</select>", 1)[0]
     return [int(y) for y in re.findall(r'<option value="(\d+)"', select)]
 
 

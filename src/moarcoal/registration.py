@@ -46,7 +46,7 @@ class ModuleRegistration:
     nav_url: str
     router: APIRouter
     kinds: tuple[EntryKind, ...]
-    icon: str = "modul"  # Datei `templates/icons/<icon>.svg`, Icon in der Seitenleiste
+    icon: str = "modul"  # Datei `static/icons/<icon>.svg`, Icon in der Seitenleiste
     values: tuple[ValueDefinition, ...] = ()
     entry_url: Callable[[EntryAddress], str | None] = lambda address: None
     # Wo man erfasst, woraus ein eigener Schlüssel rechnet: (Beschriftung, Adresse) oder `None`;

@@ -1,4 +1,4 @@
-{% from "_status.html" import backing, not_yet %}
+{% from "_ui.html" import belegstand, icon, not_yet %}
 {% macro cell(row, n, name, col, value, size, extra="") -%}
 <input name="{{ name }}-{{ n }}" value="{{ value }}" size="{{ size }}" data-col="{{ col }}"{{ extra | safe }}{% if row.errors[name] %} class="ungueltig" title="{{ row.errors[name] }}"{% endif %}>
 {%- endmacro %}
@@ -14,7 +14,7 @@
         {% if cost.reason %}<small class="begruendung">{{ cost.reason }}</small>{% endif %}</td>
       {% if cost.result.outcome == "amount" %}
       <td><strong class="betrag">{{ cost.result.amount | amount }}</strong></td>
-      <td>{{ backing(cost.result.backing) }}</td>
+      <td>{{ belegstand(cost.result.backing) }}</td>
       {% else %}
       <td colspan="2">{% if cost.result.outcome == "not_yet" %}{{ not_yet(cost.result.reason) }}{% else %}{{ not_yet(cost.result.reason, "entfällt", "") }}{% endif %}</td>
       {% endif %}
@@ -124,7 +124,7 @@
           Summe {{ trip_count }} {{ "Dienstreise" if trip_count == 1 else "Dienstreisen" }}
           · {{ trip_days.amount.value }} {{ "Tag" if trip_days.amount.value == 1 else "Tage" }}
           · {{ total_km }} km × {{ rate | string | replace(".", ",") }} €/km = {{ fare.amount | amount }}
-          {{ backing(fare.backing) }}
+          {{ belegstand(fare.backing) }}
           {% else %}
           Summe {{ trip_count }} {{ "Dienstreise" if trip_count == 1 else "Dienstreisen" }}: {% if fare.outcome == "not_yet" %}{{ not_yet(fare.reason) }}{% else %}{{ not_yet(fare.reason, "entfällt", "") }}{% endif %}
           {% endif %}

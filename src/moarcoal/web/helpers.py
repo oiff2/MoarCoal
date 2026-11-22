@@ -61,7 +61,7 @@ def global_year(request: Request) -> int:
 
 @dataclass(frozen=True)
 class NavEntry:
-    """Ein Eintrag der Seitenleiste: Name, Adresse, Icon (Datei in `templates/icons/`), Zähler."""
+    """Ein Eintrag der Seitenleiste: Name, Adresse, Icon (Datei in `static/icons/`), Zähler."""
 
     label: str
     url: str

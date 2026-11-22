@@ -1,11 +1,13 @@
-{% from "_status.html" import severity as status_severity %}<!doctype html>
+{% from "_ui.html" import icon, ib, severity as status_severity %}<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="htmx-config" content='{"includeIndicatorStyles": false}'>
   <title>{% block title %}MoarCoal{% endblock %}</title>
-  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/tokens.css">
+  <link rel="stylesheet" href="/static/bausteine.css">
+  <link rel="stylesheet" href="/static/seiten.css">
   <script src="/static/rahmen.js"></script>
   <script src="/static/htmx.min.js"></script>
   <script src="/static/aussteller.js" defer></script>
@@ -17,7 +19,7 @@
     {% for group, entries in sidebar() %}
     <div class="gruppe"><span class="lbl">{{ group }}</span><hr></div>
     {% for entry in entries %}
-    <a href="{{ entry.url }}" title="{{ entry.label }}"{% if request.url.path.startswith(entry.url) %} aria-current="page"{% endif %}>{% include "icons/" ~ entry.icon ~ ".svg" %}<span class="lbl">{{ entry.label }}</span>{% if entry.count %}<b class="anzahl">{{ entry.count }}</b>{% endif %}</a>
+    <a href="{{ entry.url }}" title="{{ entry.label }}"{% if request.url.path.startswith(entry.url) %} aria-current="page"{% endif %}>{{ icon(entry.icon) }}<span class="lbl">{{ entry.label }}</span>{% if entry.count %}<b class="anzahl">{{ entry.count }}</b>{% endif %}</a>
     {% endfor %}
     {% endfor %}
     {% endif %}
@@ -27,7 +29,7 @@
     {% if user_name %}
     <form class="jahrwahl" method="post" action="/jahr">
       <input type="hidden" name="back" value="{{ request.url.path }}">
-      <label>Jahr <select name="year">{% for y in year_choices() %}<option value="{{ y }}"{% if y == shell_year %} selected{% endif %}>{{ y }}</option>{% endfor %}</select></label>
+      <label>Jahr <select name="year" data-absenden>{% for y in year_choices() %}<option value="{{ y }}"{% if y == shell_year %} selected{% endif %}>{{ y }}</option>{% endfor %}</select></label>
       <button class="ohne-js">Wählen</button>
     </form>
     {% set summary = findings_summary() %}
@@ -37,9 +39,9 @@
       {% if summary.top %}<span class="wichtigster">{{ summary.top.message }}</span>{% endif %}
     </a>
     <a class="mein-elster" href="{{ mein_elster_url() }}" target="_blank" rel="noopener noreferrer" title="Mein ELSTER öffnen" aria-label="Mein ELSTER öffnen"><span class="mein-elster-marke">Mein ELSTER</span></a>
-    <button type="button" class="darstellung" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten">{% include "icons/sonne.svg" %}</button>
+    {{ ib("sonne", "Hell/Dunkel umschalten", cls="darstellung", attr="data-darstellung-umschalten") }}
     <details class="nutzer">
-      <summary title="{{ user_name }}" aria-label="Nutzer-Menü">{% include "icons/nutzer.svg" %}</summary>
+      <summary title="{{ user_name }}" aria-label="Nutzer-Menü">{{ icon("nutzer") }}</summary>
       <div class="menue">
         <a href="/person">{{ user_name }}</a>
       </div>

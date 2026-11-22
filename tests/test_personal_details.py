@@ -157,7 +157,7 @@ def test_without_user_other_pages_redirect_to_the_start_page(tmp_path: Path) -> 
     posted = client.post("/aussteller/ABCDEFGHIJ", data={}, headers=ORIGIN)
     assert (posted.status_code, posted.headers["location"]) == (303, "/")
     assert client.get("/person").status_code == 200
-    assert client.get("/static/app.css").status_code == 200
+    assert client.get("/static/tokens.css").status_code == 200
 
 
 def test_creating_the_user_shows_the_modules(tmp_path: Path) -> None:

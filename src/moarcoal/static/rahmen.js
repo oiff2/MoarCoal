@@ -1,10 +1,27 @@
-// Rahmen der Oberfläche: Seitenleiste und Belege-Spalten stufenlos ziehen (ein Griff-Code für beide), „[“ klappt um, Breite im Browser gemerkt;
-// das Jahr der Kopfleiste schickt sich bei Wahl selbst ab; Hell/Dunkel über das Sonnen-Symbol, im Browser gemerkt. Ohne Inline-Skript (CSP).
+// Gemeinsames Verhalten der Oberfläche, ein Modul, angesteuert nur über data-Attribute der Vorlagen (kein Inline-Skript, CSP):
+//   data-griff-*           ziehbare Grenze (Seitenleiste, Belege): -var, -key, -min, -max, -ziel, -rest, -schmal; „[“ klappt die Seitenleiste um
+//   data-darstellung-umschalten   Hell/Dunkel (leer folgt dem System), im Browser gemerkt
+//   data-absenden          Auswahlliste schickt ihr Formular bei Wahl selbst ab (das Jahr der Kopfleiste)
+//   data-merken="schluessel"      <details> merkt offen/zu; der Abschnitt mit der Auswahl (aria-current) bleibt offen
+//   data-umschalten="schluessel"  Schalter, im Browser gemerkt; mit data-umschalten-ziel (Selektor) und -klasse schaltet er eine Klasse,
+//                          mit data-text-an/-aus wechselt sein Text; ohne Ziel (Chip) schaltet er aria-pressed
+//   data-pfeile            Liste: Pfeil hoch/runter wechselt die Datei (a.name), Enter springt zu data-pfeile-enter (Selektor)
+// Aller Zugriff auf localStorage läuft über lies/schreib/loesche: nur Bequemlichkeit, ohne Speicher geht jede Seite weiter.
 (function () {
   "use strict";
   var WIDE = 208;
   var root = document.documentElement;
   root.classList.add("js");
+
+  function lies(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function schreib(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { /* ohne Speicher: nur jetzt */ }
+  }
+  function loesche(key) {
+    try { localStorage.removeItem(key); } catch (e) { /* ohne Speicher: nur jetzt */ }
+  }
 
   // Ein Griff für jede ziehbare Grenze (Seitenleiste, Belege). Der Griff trägt seine Einstellung:
   // data-griff-var (CSS-Variable), -key (Speicherschlüssel), -min/-max (px),
@@ -25,13 +42,11 @@
     root.style.setProperty(cfg.name, px + "px");
     if (cfg.narrow) root.classList.toggle("schmal", px < cfg.narrow);
     if (grip) grip.setAttribute("aria-valuenow", String(px));
-    if (remember) {
-      try { localStorage.setItem(cfg.key, String(px)); } catch (e) { /* ohne Speicher: nur jetzt */ }
-    }
+    if (remember) schreib(cfg.key, String(px));
     return px;
   }
   function saved(key) {
-    try { return parseInt(localStorage.getItem(key) || "", 10) || null; } catch (e) { return null; }
+    return parseInt(lies(key) || "", 10) || null;
   }
   // Schon im <head>, damit die gemerkte Seitenleiste ohne Springen erscheint (Werte wie am Griff in base.html).
   var early = saved("seitenleiste");
@@ -49,7 +64,7 @@
       reset: function () {
         root.style.removeProperty(cfg.name);
         if (cfg.narrow) root.classList.remove("schmal");
-        try { localStorage.removeItem(cfg.key); } catch (e) { /* ohne Speicher: nur jetzt */ }
+        loesche(cfg.key);
         grip.setAttribute("aria-valuenow", String(Math.round(width())));
       }
     };
@@ -84,41 +99,99 @@
     });
     return api;
   }
-  window.moarcoalGriff = { init: initGrip };
 
-  // Darstellung: leer folgt dem System, sonst "hell" oder "dunkel" (app.css, Farb-Tokens).
+  // Darstellung: leer folgt dem System, sonst "hell" oder "dunkel" (tokens.css, Farb-Tokens).
   var THEME = "darstellung";
   function setTheme(value) {
     if (value === "hell" || value === "dunkel") root.setAttribute("data-darstellung", value);
     else root.removeAttribute("data-darstellung");
   }
-  var theme = "";
-  try { theme = localStorage.getItem(THEME) || ""; } catch (e) { theme = ""; }
-  setTheme(theme);
+  setTheme(lies(THEME) || "");
+
+  function inTextField(t) {
+    return t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+  }
+
+  function initMerken(details) {
+    var key = "offen-" + details.dataset.merken;
+    // Der Abschnitt mit der Auswahl bleibt offen, damit sie sichtbar ist.
+    if (lies(key) === "0" && !details.querySelector("a[aria-current]")) details.open = false;
+    details.addEventListener("toggle", function () { schreib(key, details.open ? "1" : "0"); });
+  }
+
+  // Schalter mit Zustand: Klasse am Ziel (Detailspalte) oder aria-pressed (Chip); gemerkt unter data-umschalten.
+  function initUmschalten(button) {
+    var key = button.dataset.umschalten;
+    var target = button.dataset.umschaltenZiel ? document.querySelector(button.dataset.umschaltenZiel) : null;
+    var cls = button.dataset.umschaltenKlasse;
+    function show(on) {
+      if (target && cls) {
+        target.classList.toggle(cls, on);
+        button.setAttribute("aria-expanded", String(!on));
+      } else {
+        button.setAttribute("aria-pressed", String(on));
+      }
+      if (button.dataset.textAn && button.dataset.textAus) button.textContent = on ? button.dataset.textAn : button.dataset.textAus;
+    }
+    var on = key ? lies(key) === "1" : button.getAttribute("aria-pressed") === "true";
+    show(on);
+    button.addEventListener("click", function () {
+      on = !on;
+      show(on);
+      if (key) schreib(key, on ? "1" : "0");
+    });
+  }
+
+  // Pfeiltasten wechseln die Datei der Liste, Enter springt ins Formular.
+  function initPfeile(list) {
+    document.addEventListener("keydown", function (event) {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      var target = event.target;
+      if (target instanceof Element && target.closest("input, select, textarea, button, summary")) return;
+      if (event.key === "Enter") {
+        var field = list.dataset.pfeileEnter ? document.querySelector(list.dataset.pfeileEnter) : null;
+        if (field instanceof HTMLElement) {
+          event.preventDefault();
+          field.focus();
+        }
+        return;
+      }
+      var step = { ArrowDown: 1, ArrowUp: -1 }[event.key];
+      if (step === undefined) return;
+      var links = Array.prototype.filter.call(list.querySelectorAll("a.name"), function (a) { return a.offsetParent !== null; });
+      var at = links.findIndex(function (a) { return a.hasAttribute("aria-current"); });
+      var next = links[at === -1 ? (step > 0 ? 0 : links.length - 1) : at + step];
+      if (next instanceof HTMLAnchorElement) {
+        event.preventDefault();
+        window.location.href = next.href;
+      }
+    });
+  }
 
   document.addEventListener("DOMContentLoaded", function () {
     Array.prototype.forEach.call(document.querySelectorAll(".griff"), initGrip);
+    Array.prototype.forEach.call(document.querySelectorAll("details[data-merken]"), initMerken);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-umschalten]"), initUmschalten);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-pfeile]"), initPfeile);
     var side = document.querySelector(".seitenleiste .griff");
     document.addEventListener("keydown", function (e) {
       if (e.key !== "[" || e.ctrlKey || e.altKey || e.metaKey) return;
-      var t = e.target;
-      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      if (!side) return;
+      if (inTextField(e.target) || !side) return;
       var cfg = config(side);
       initGrip(side).set(root.classList.contains("schmal") ? WIDE : cfg.min, true);
     });
-    var year = document.querySelector(".jahrwahl select");
-    if (year) year.addEventListener("change", function () { year.form.requestSubmit(); });
-    var toggle = document.querySelector("button.darstellung");
-    if (toggle) {
+    Array.prototype.forEach.call(document.querySelectorAll("select[data-absenden]"), function (select) {
+      select.addEventListener("change", function () { select.form.requestSubmit(); });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-darstellung-umschalten]"), function (toggle) {
       toggle.addEventListener("click", function () {
         // Umschalten gegen das, was gerade zu sehen ist (auch wenn noch das System bestimmt).
         var current = root.getAttribute("data-darstellung") ||
           (matchMedia("(prefers-color-scheme: dark)").matches ? "dunkel" : "hell");
         var next = current === "dunkel" ? "hell" : "dunkel";
         setTheme(next);
-        try { localStorage.setItem(THEME, next); } catch (e) { /* ohne Speicher: nur jetzt */ }
+        schreib(THEME, next);
       });
-    }
+    });
   });
 })();

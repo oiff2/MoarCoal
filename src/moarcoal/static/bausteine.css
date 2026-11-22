@@ -1,0 +1,146 @@
+/* Grundelemente und Bausteine: nur var(--…) aus tokens.css, kein fester Farbwert, keine feste Größe oder Länge.
+   Raster, Spaltenbreiten und der Aufbau einzelner Seiten stehen in seiten.css (eingebunden danach). */
+html, body { height: 100%; }
+a { color: var(--akzent); }
+body { font: var(--fs-m)/var(--zeilenhoehe) var(--schrift); margin: 0; background: var(--grund); color: var(--text); overflow: hidden; }
+main { padding: var(--abstand-5) var(--abstand-6); min-height: 0; overflow: auto; }
+table { border-collapse: collapse; }
+th, td { text-align: left; padding: var(--zeile-pad) var(--abstand-4); border-bottom: var(--linienstaerke) solid var(--linie); }
+label { display: block; margin: var(--abstand-2) 0; }
+label.inline { display: inline; }
+form.inline { display: inline; }
+.fehler { color: var(--fehler); }
+.icon { width: var(--icon); height: var(--icon); flex: none; }
+.nur-vorlesen { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.nur-js { display: none; }
+html.js .nur-js { display: inline; }
+html.js .ohne-js { display: none; }
+html:not(.js) .darstellung { display: none; }
+tr:target { outline: var(--rahmen-dick) solid var(--warnung-rand); }
+
+/* Icon-Knopf (ib): Aktion als Icon, Name nur als Kurzinfo und für Screenreader; Knopf, Link oder Formular-Knopf */
+.ib { padding: 0 var(--abstand-2); line-height: 1; vertical-align: middle; }
+.ib .icon { display: block; width: var(--icon-knopf); height: var(--icon-knopf); }
+.ib.darstellung { margin-left: 0; display: flex; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; }
+.ib.darstellung .icon { width: var(--icon); height: var(--icon); }
+.befunde li > .ib { margin-left: var(--abstand-3); }
+
+/* Rahmen: Seitenleiste links über die ganze Höhe, Kopfleiste oben, nur der Inhalt scrollt */
+.seitenleiste { position: relative; display: flex; flex-direction: column; gap: var(--abstand-1); padding: var(--abstand-3) var(--abstand-2); border-right: var(--linienstaerke) solid var(--linie); background: var(--seitenleiste-grund); overflow: hidden; }
+.seitenleiste a { position: relative; display: flex; align-items: center; gap: var(--abstand-3); padding: var(--abstand-2) var(--abstand-3); border-radius: var(--radius); color: inherit; text-decoration: none; white-space: nowrap; }
+.seitenleiste a:hover { background: var(--hover); }
+.seitenleiste a[aria-current] { background: var(--auswahl); font-weight: 600; }
+.seitenleiste .logo { font-weight: 700; margin-bottom: var(--abstand-2); }
+.seitenleiste .marke { width: var(--icon); text-align: center; flex: none; }
+.seitenleiste .anzahl { margin-left: auto; padding: 0 var(--abstand-3); border-radius: var(--radius-gross); font-size: var(--fs-xs); background: var(--akzent); color: var(--auf-akzent); }
+.gruppe { display: flex; align-items: center; gap: var(--abstand-3); margin: var(--abstand-4) var(--abstand-3) var(--abstand-1); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--buchstabenabstand); opacity: 0.7; }
+.gruppe hr { flex: 1; border: 0; border-top: var(--linienstaerke) solid var(--linie); margin: 0; }
+.griff { width: var(--griff-breite); cursor: col-resize; }
+.griff:hover, .griff:focus-visible { background: var(--akzent); }
+.seitenleiste .griff { position: absolute; top: 0; right: 0; height: 100%; }
+/* Schmal: nur Icons, der Zähler sitzt am Icon */
+html.schmal .seitenleiste .lbl { display: none; }
+html.schmal .seitenleiste a { justify-content: center; padding: var(--abstand-3) 0; }
+html.schmal .seitenleiste .anzahl { position: absolute; top: 0; right: var(--abstand-1); }
+html.schmal .gruppe { margin: var(--abstand-3) var(--abstand-2); }
+.kopfleiste { display: flex; align-items: center; gap: calc(var(--abstand-5) + var(--abstand-2)); padding: var(--abstand-2) var(--abstand-5); border-bottom: var(--linienstaerke) solid var(--linie); min-height: var(--kopf-hoehe); }
+.kopfleiste label { display: inline; margin: 0; }
+.befunde-kopf { display: flex; align-items: center; gap: var(--abstand-4); min-width: 0; color: inherit; text-decoration: none; }
+.befunde-kopf .wichtigster { margin-left: var(--abstand-3); opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.befunde-kopf .keine { color: inherit; opacity: 0.5; }
+.mein-elster { margin-left: auto; display: flex; align-items: center; color: inherit; text-decoration: none; }
+.mein-elster:hover .mein-elster-marke { text-decoration: underline; }
+.darstellung + .nutzer { margin-left: 0; }
+.nutzer { margin-left: auto; position: relative; }
+.nutzer summary { list-style: none; cursor: pointer; display: flex; }
+.nutzer .menue { position: absolute; right: 0; top: calc(100% + var(--abstand-3)); z-index: 20; display: flex; flex-direction: column; gap: var(--abstand-3); padding: var(--abstand-3) var(--abstand-4); background: var(--flaeche); border: var(--linienstaerke) solid var(--linie); border-radius: var(--radius-gross); box-shadow: var(--schatten); }
+
+/* Statussprache (_ui.html): je Status ein Symbol und eine Farbe; Dateityp-Icons bleiben farblos */
+.status { white-space: nowrap; font-weight: 600; }
+.status .symbol { display: inline-block; width: var(--symbol-breite); text-align: center; }
+.status-error { color: var(--fehler); }
+.status-warning { color: var(--warnung); }
+.status-note { color: var(--akzent); }
+.status-pending { color: var(--warnung); }
+.status-assumed { color: inherit; opacity: 0.75; }
+.status-proven { color: var(--gut); }
+.status-fits { color: var(--gut); }
+.ausgewiesen { margin: var(--abstand-2) 0; }
+.ausgewiesen summary { cursor: pointer; }
+.ausgewiesen summary .status { margin-left: var(--abstand-4); }
+.dateityp { align-self: center; opacity: 0.6; }
+.dateityp .icon { width: var(--icon-klein); height: var(--icon-klein); display: block; }
+.rechenweg { margin: var(--abstand-2) 0; }
+.rechenweg-symbol { display: inline-flex; align-items: center; color: var(--akzent); }
+.rechenweg-symbol .icon { display: block; width: var(--icon-knopf); height: var(--icon-knopf); }
+.befunde { padding-left: calc(var(--abstand-5) + var(--abstand-2)); }
+.befunde-gruppe { margin: var(--abstand-4) 0 var(--abstand-2); font-size: var(--fs-l); }
+.befunde li > em { display: block; }
+
+/* Kurzinfo zu „noch nicht berechenbar“: gepunktet unterstrichen, Begründung im title und per Fokus sichtbar */
+.kurzinfo { cursor: help; text-decoration: underline dotted; text-underline-offset: var(--abstand-1); }
+.kurzinfo-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.kurzinfo:focus-within .kurzinfo-text {
+  position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: normal;
+  display: block; font-size: var(--fs-s); color: var(--text); text-decoration: none;
+}
+
+/* Filter-Chip mit Anzahl (data-umschalten) */
+.chip { display: inline-flex; align-items: center; gap: var(--abstand-2); padding: 0 var(--abstand-3); border: var(--linienstaerke) solid var(--linie-stark); border-radius: var(--radius-gross); background: var(--flaeche); color: var(--text-gedaempft); font-size: var(--fs-s); }
+.chip[aria-pressed="true"] { background: var(--akzent-weich); border-color: var(--akzent); color: var(--text); }
+.chip .n { color: var(--text-gedaempft); font-size: var(--fs-xs); }
+
+/* Abschnitt: einklappbar, Überschrift fett, Anzahl in Klammern, darunter eine Erklärzeile */
+.abschnitt { margin-bottom: var(--abstand-5); }
+.abschnitt > summary { cursor: pointer; font-weight: bold; }
+.abschnitt h3 { font-size: var(--fs-l); margin: var(--abstand-3) 0 var(--abstand-1); }
+
+/* Zeile einer Liste (Belege): Name, Angaben, Aktionen nebeneinander */
+.datei { display: flex; flex-wrap: wrap; gap: 0 var(--abstand-4); align-items: baseline; padding: var(--abstand-1) 0; }
+.datei.kopf { opacity: 0.7; }
+.datei .aktion { font-size: var(--fs-s); }
+.datei .hinweise { flex-basis: 100%; }
+.datei .hinweise .befunde-gruppe { margin: var(--abstand-2) 0 0; font-size: var(--fs-s); }
+.datei .hinweise .befunde { margin: 0; }
+.datei a[aria-current] { font-weight: bold; }
+form.direkt { display: inline; margin-left: auto; }
+.ausgeblendet { margin-top: var(--abstand-5); }
+form.ausblenden { padding: var(--abstand-5); border: var(--linienstaerke) solid var(--linie); border-radius: var(--radius-gross); background: var(--flaeche); color: var(--text); }
+form.ausblenden:not([popover]) { display: block; margin: var(--abstand-3) 0; }
+form.ausblenden::backdrop { background: var(--text); opacity: 0.3; }
+
+/* Aufklappbares Formular */
+.formular-eintrag { margin: var(--abstand-1) 0; }
+.formular-eintrag > summary { cursor: pointer; color: var(--akzent); }
+.formular-eintrag[open] { padding: var(--abstand-2) var(--abstand-3) var(--abstand-3); border: var(--linienstaerke) solid var(--linie); border-radius: var(--radius); background: var(--flaeche); }
+.formular-eintrag label { display: flex; justify-content: space-between; gap: var(--abstand-4); }
+
+/* Feld einer Anlage: Nr. links, dann Bezeichnung, Wert und Gegenproben */
+.feld { display: grid; gap: var(--abstand-4); margin: var(--abstand-3) 0; padding: var(--abstand-3) var(--abstand-4); border: var(--linienstaerke) solid var(--linie); border-radius: var(--radius-gross); background: var(--flaeche); container-type: inline-size; }
+.feld-rumpf { display: grid; gap: var(--abstand-2) calc(var(--abstand-5) + var(--abstand-2)); align-items: baseline; }
+.feld-rumpf .feld-wert, .feld-rumpf .gegenproben { margin: 0; }
+.feld:target { outline: var(--rahmen-dick) solid var(--warnung-rand); }
+.feld-nr { font-weight: 600; display: flex; align-items: baseline; gap: var(--abstand-2); white-space: nowrap; }
+/* E-Kennung nur als Tooltip am farbigen „E“ */
+.e-kennung { display: inline-grid; place-items: center; width: var(--icon-klein); height: var(--icon-klein); border-radius: var(--radius); font-size: var(--fs-xs); font-weight: 700; background: var(--akzent); color: var(--auf-akzent); cursor: help; }
+.feld-kopf { font-weight: 600; }
+.feld-kopf .einheit { margin-left: var(--abstand-2); padding: 0 var(--abstand-2); border: var(--linienstaerke) solid var(--linie); border-radius: var(--radius); font-size: var(--fs-xs); font-weight: normal; opacity: 0.8; white-space: nowrap; }
+.feld-wert { margin: var(--abstand-2) 0; }
+.feld-wert .offen { opacity: 0.6; }
+.gegenproben { list-style: none; margin: var(--abstand-2) 0 0; padding: 0; font-size: var(--fs-s); }
+.gegenproben li { display: flex; flex-wrap: wrap; gap: 0 var(--abstand-3); align-items: baseline; }
+.gegenproben .seite { opacity: 0.7; }
+.gegenproben .text { flex-basis: 100%; opacity: 0.85; }
+.feld-ueberschrift { font-size: var(--fs-l); margin: var(--abstand-5) 0 var(--abstand-2); }
+/* Persönliche Bearbeitungsnotiz: kein Feld des Vordrucks, darum abgesetzt */
+.notiz-kasten { margin: var(--abstand-3) 0 var(--abstand-3) var(--abstand-5); padding: var(--abstand-3) var(--abstand-4); border: var(--linienstaerke) dashed var(--akzent); border-left: var(--balken) solid var(--akzent); border-radius: var(--radius-gross); background: var(--akzent-weich); }
+.notiz { white-space: pre-wrap; }
+
+/* Kleine Tabelle der Reisekosten */
+.reisekosten { margin: var(--abstand-2) 0; }
+.reisekosten th, .reisekosten td { padding-right: var(--abstand-5); text-align: left; }
+.reisekosten td:nth-child(2) { text-align: right; }
+.reisekosten .begruendung { display: block; opacity: 0.75; }
+
+nav.seiten { display: flex; flex-wrap: wrap; gap: var(--abstand-2) var(--abstand-5); margin: var(--abstand-3) 0; }
+nav.seiten a[aria-current="page"] { font-weight: bold; text-decoration: none; }

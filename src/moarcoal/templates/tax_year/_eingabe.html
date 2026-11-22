@@ -1,5 +1,5 @@
 {#- Eintippfeld einer Anlage: Angabe und darunter die Auswahl oder ein Textfeld direkt am Feld (htmx). Der Austausch ersetzt das ganze Teil. -#}
-{% from "_status.html" import not_yet %}
+{% from "_ui.html" import not_yet %}
 {% macro input_cell(form_slug, year, field, typed, content, error) %}
 <div id="eingabe-{{ field.elster_id }}">
   {% if content %}

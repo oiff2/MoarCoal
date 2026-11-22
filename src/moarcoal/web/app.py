@@ -57,7 +57,7 @@ def create_app(
     )
     app.add_middleware(SecurityMiddleware, port=port)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-    environment = Environment(loader=FileSystemLoader(TEMPLATES_DIR), autoescape=True)
+    environment = Environment(loader=FileSystemLoader([TEMPLATES_DIR, STATIC_DIR]), autoescape=True)
     environment.filters["eur"] = format_eur
     environment.filters["amount"] = format_amount
     globals_: dict[str, Any] = environment.globals  # pyright: ignore[reportAssignmentType]

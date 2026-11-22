@@ -2,7 +2,7 @@
     Mit `year` bekommt jeder Befund ein Formular „Ausblenden“; `earlier` nennt frühere Ausblendungen,
     `error` den Befund (Art, Ziel) mit fehlender Notiz und `note` die eingegebene Notiz. `back` ist eine Adresse der Belege-Seite, auf die das Ausblenden zurückführt (statt auf die Befundliste); `scope` macht die
     Formular-Kennungen eindeutig, wenn mehrere Listen auf einer Seite stehen. -#}
-{% from "_status.html" import severity %}
+{% from "_ui.html" import ib, severity %}
 {% set severity_order = ["ERROR", "WARNING", "NOTE"] %}
 
 {% macro by_severity(items, attribute) %}
@@ -25,7 +25,7 @@
     {% if year %}
     {% set failed = error == finding.identity %}
     {% set dialog_id = "ausblenden-" ~ scope ~ loop.index ~ "-" ~ finding.fingerprint %}
-    <button type="button" class="auge" popovertarget="{{ dialog_id }}" title="Ausblenden" aria-label="Ausblenden">{% include "icons/auge.svg" %}</button>
+    {{ ib("auge", "Ausblenden", popover=dialog_id) }}
     <form id="{{ dialog_id }}" class="ausblenden" {% if not failed %}popover{% endif %} method="post" action="/befunde/ausblenden">
       <p>{{ finding.message }}</p>
       <input type="hidden" name="year" value="{{ year }}">

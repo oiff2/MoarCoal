@@ -1,0 +1,126 @@
+/* Seitenaufbau: Raster, Spaltenbreiten und was nur eine Seite braucht. Abstände, Schrift, Radius und Farben nur über var(--…),
+   feste Längen nur als Breite (Spalten, Felder). Eingebunden nach tokens.css und bausteine.css. */
+
+/* Rahmen: Seitenleiste | Kopfleiste über Inhalt */
+body { display: grid; grid-template-columns: var(--seitenleiste, 13rem) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+.seitenleiste { grid-row: 1 / 3; }
+.befunde-kopf .wichtigster { max-width: 28rem; }
+.nutzer .menue { min-width: 14rem; }
+
+/* Belege, Ablage: kein Seiten-Scrollen, der Baum scrollt in sich */
+main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
+.baum { flex: 1; min-height: 0; overflow: auto; }
+.suche { display: flex; flex-wrap: wrap; align-items: center; gap: var(--abstand-3) var(--abstand-5); margin: var(--abstand-3) 0; }
+.suche input[type=search] { flex: 1 1 16rem; }
+.suche label.typ { white-space: nowrap; }
+.arbeit { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(18rem, var(--belege-links, 1fr)) minmax(20rem, 1fr); grid-template-rows: minmax(0, 1fr); gap: var(--abstand-5); position: relative; }
+/* Der Griff sitzt als Gitterelement auf der Grenze der ersten Spalte */
+.arbeit > .griff { grid-column: 1; grid-row: 1; justify-self: end; z-index: 1; margin-right: calc(-0.5 * var(--abstand-5) - 0.5 * var(--griff-breite)); }
+.arbeit.ohne-detail > .griff { display: none; }
+.arbeit.ohne-detail { grid-template-columns: minmax(0, 1fr); }
+.arbeit.ohne-detail .rechts { display: none; }
+/* Rechts: der Kopf ist so hoch wie sein Inhalt, höchstens 45 % und scrollt darüber in sich; darunter scrollt die Vorschau in sich */
+.rechts { display: flex; flex-direction: column; gap: var(--abstand-3); min-height: 0; }
+.formular { flex: 0 1 auto; max-height: 45%; overflow: auto; }
+.formular h2 { font-size: var(--fs-l); margin: var(--abstand-4) 0 var(--abstand-2); }
+.aussteller-feld { max-width: 32rem; }
+/* Vorschlag: je Feld eine Zeile */
+.vorschlag { list-style: none; margin: 0; padding: 0; }
+.vorschlag li { display: flex; flex-wrap: wrap; gap: 0 var(--abstand-4); align-items: baseline; padding: var(--abstand-1) 0; border-bottom: var(--linienstaerke) solid var(--linie); }
+.vorschlag .feld { min-width: 10rem; }
+.vorschlag .wert { min-width: 6rem; }
+.vorschlag form { margin-left: auto; }
+.formular form { display: flex; flex-wrap: wrap; gap: 0 var(--abstand-4); align-items: baseline; }
+.formular .dateiname { margin: 0 0 var(--abstand-2); }
+.vorschau { flex: 1; min-height: 0; overflow: auto; }
+.vorschau iframe { width: 100%; height: 100%; border: 0; }
+.vorschau img { max-width: 100%; }
+/* Belege: das Jahr nur bei Dokumentarten mit Bezugszeitraum */
+form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
+
+/* Arbeit: eine Seite, drei Spalten (Teile, Dienstreisen, Karte); jede scrollt in sich, die Seite nie */
+main:has(.arbeit-seite) { display: flex; flex-direction: column; overflow: hidden; }
+.arbeit-seite { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(20rem, 1fr) minmax(0, 2.6fr) minmax(20rem, 0.9fr); grid-template-rows: minmax(0, 1fr); gap: var(--abstand-6); }
+.arbeit-seite .spalte { min-height: 0; overflow: auto; }
+.arbeit-seite h2 { font-size: var(--fs-xl); margin: 0 0 var(--abstand-3); }
+.arbeit-seite h3 { font-size: var(--fs-l); margin: var(--abstand-3) 0 var(--abstand-1); }
+.arbeit-seite .spalte > section + section { margin-top: var(--abstand-6); }
+.arbeit-seite .hinweis { opacity: 0.75; margin: var(--abstand-2) 0; }
+.arbeit-seite .zahl { text-align: right; white-space: nowrap; }
+.formular-eintrag label input { width: 9rem; }
+.arbeitsmittel { width: 100%; }
+.arbeitsmittel tr:not(.bearbeiten) td { border-bottom: 0; padding-bottom: 0; }
+.arbeitsmittel tr.bearbeiten td { padding-top: 0; }
+.spalte.dienstreisen { display: flex; flex-direction: column; overflow: hidden; }
+.dienstreisen > * { flex: none; }
+.dienstreisen .stand { margin: var(--abstand-3) 0; }
+.dienstreisen .aufstellungen { max-height: 40%; overflow: auto; margin: var(--abstand-2) 0; }
+.dienstreisen .aufstellungen > summary { cursor: pointer; }
+.dienstreisen #dienstreisen { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.dienstreisen .tabelle { flex: 0 1 auto; min-height: 0; max-width: 100%; overflow: auto; margin-bottom: var(--abstand-3); }
+.dienstreisen .tabelle thead th, .dienstreisen .tabelle tfoot td { position: sticky; background: var(--grund); }
+.dienstreisen .tabelle thead th { top: 0; }
+.dienstreisen .reisen td { white-space: nowrap; padding-top: var(--abstand-1); padding-bottom: var(--abstand-1); }
+.dienstreisen .reisen td label { display: inline; margin-left: var(--abstand-3); }
+.dienstreisen .reisen input[data-col="4"] { width: 9rem; }
+.dienstreisen .knoepfe { display: flex; gap: var(--abstand-3); }
+.dienstreisen .tabelle tfoot td { bottom: 0; }
+.reisen input.ungueltig { outline: var(--rahmen-dick) solid var(--fehler-rand); }
+.reisen tr.mit-fehler td { background: var(--fehler-grund); }
+.reisen td.unsicher { background: var(--warnung-grund); }
+.reisen tfoot td { font-weight: bold; }
+
+/* Aussteller-Feld */
+.aussteller-feld { border: 0; padding: 0; margin: 0; position: relative; }
+.aussteller-feld legend { padding: 0; }
+.aussteller-feld .zeile { display: flex; gap: var(--abstand-5); align-items: center; }
+.aussteller-feld .suche { flex: 1; }
+.aussteller-feld .privat { display: none; white-space: nowrap; }
+.aussteller-feld:has(.suche:not(:placeholder-shown)):not(:has(.gewaehlt input)) .privat { display: inline; }
+/* Trefferliste klappt unter dem Feld auf, ohne den Seitenaufbau zu verschieben */
+.aussteller-feld .treffer { list-style: none; margin: var(--abstand-1) 0 0; padding: 0; position: absolute; left: 0; right: 0; z-index: 10; background: var(--flaeche); border: var(--linienstaerke) solid var(--linie); border-radius: var(--radius); }
+.aussteller-feld .treffer:empty { display: none; }
+.aussteller-feld .treffer button { font: inherit; display: block; width: 100%; text-align: left; border: 0; background: none; padding: var(--abstand-2) var(--abstand-3); cursor: pointer; }
+.aussteller-feld .treffer button:hover { background: var(--hover); }
+
+/* Dienstreisen: Karte von Deutschland (Farben aus dem Seitenschema, kein Inline-Style wegen der CSP) */
+.deutschlandkarte { width: 100%; height: auto; }
+.deutschlandkarte .land { fill: color-mix(in srgb, currentColor 6%, var(--flaeche)); stroke: currentColor; stroke-width: 1.2; }
+.deutschlandkarte .grenzen { fill: none; stroke: var(--linie); stroke-width: 0.6; }
+.marke.ziel { fill: color-mix(in srgb, var(--akzent) 25%, var(--flaeche)); stroke: var(--akzent); stroke-width: 2; }
+.marke.start { fill: color-mix(in srgb, var(--warnung) 30%, var(--flaeche)); stroke: var(--warnung); stroke-width: 2.4; stroke-linejoin: round; }
+.haus { fill: none; stroke: var(--text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.deutschlandkarte .pt .innen { text-anchor: middle; font-size: var(--karte-schrift-innen); font-weight: 700; fill: currentColor; }
+.deutschlandkarte .pt .name { font-size: var(--karte-schrift); fill: currentColor; paint-order: stroke; stroke: var(--flaeche); stroke-width: var(--karte-halo); }
+.karte .legende { margin-left: var(--abstand-5); }
+.karte .legende svg { width: var(--icon-knopf); height: var(--icon-knopf); vertical-align: middle; }
+.karte .orte { list-style: none; padding-left: 0; }
+.karte .treffer { margin: var(--abstand-2) 0 var(--abstand-3) var(--abstand-5); }
+
+/* Steuerjahr: links die Anlagen mit ihren Seiten (wie die Formularliste in Mein ELSTER), rechts die Seite; jede Spalte scrollt in sich */
+main:has(.steuerjahr) { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+.steuerjahr { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(14rem, 22rem) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.steuerjahr-inhalt { min-height: 0; overflow: auto; padding: var(--abstand-5) var(--abstand-6); }
+.anlagen-baum { min-height: 0; overflow: auto; padding: var(--abstand-3) var(--abstand-3); border-right: var(--linienstaerke) solid var(--linie); }
+.anlagen-baum a { display: block; padding: var(--abstand-1) var(--abstand-3); border-radius: var(--radius); color: inherit; text-decoration: none; }
+.anlagen-baum a:hover, .anlagen-baum a[aria-current] { background: var(--hover); }
+.anlagen-baum a[aria-current], .anlagen-baum a.aktuell { font-weight: 600; }
+.anlagen-baum .uebersicht { margin-bottom: var(--abstand-2); }
+.anlagen-baum summary { display: flex; align-items: baseline; gap: var(--abstand-3); cursor: pointer; padding-left: var(--abstand-1); }
+.anlagen-baum summary::marker { content: none; }
+.anlagen-baum summary::before { content: "›"; width: 0.8rem; flex: none; transition: transform var(--dauer); }
+.anlagen-baum details[open] > summary::before { transform: rotate(90deg); }
+.anlagen-baum summary a { flex: 1; font-weight: 600; }
+.anlagen-baum summary small { opacity: 0.6; }
+.anlagen-baum ul { list-style: none; margin: 0 0 var(--abstand-2) var(--abstand-5); padding: 0; font-size: var(--fs-s); }
+
+/* Steuerjahr: je Feld eine Zeile wie in Mein ELSTER: Nr. links, dann Bezeichnung, Wert und Gegenproben nebeneinander in festen Spalten (bündig über alle Felder); in schmalen Karten untereinander */
+.feld { grid-template-columns: 4.5rem minmax(0, 1fr); }
+.feld-rumpf { grid-template-columns: minmax(0, 22rem) minmax(0, 14rem) minmax(0, 1fr); }
+@container (max-width: 46rem) { .feld-rumpf { display: block; } .feld-rumpf .feld-wert { margin: var(--abstand-2) 0; } .feld-rumpf .gegenproben { margin-top: var(--abstand-2); } }
+.notiz-kasten { float: right; width: 20rem; }
+@media (max-width: 70rem) { .notiz-kasten { float: none; width: auto; margin: var(--abstand-3) 0; } }
+.gegenproben { --seite-breite: 7.5rem; }
+.gegenproben .seite { min-width: var(--seite-breite); }
+.gegenproben .text { padding-left: calc(var(--seite-breite) + var(--abstand-3)); }
+form.ausblenden:not([popover]) { max-width: 32rem; }
