@@ -460,7 +460,7 @@ def test_foreign_not_yet_and_not_applicable_pass_on_like_real_values() -> None:
     b = exposed(values.get("demo.b", "anna", YEAR))
 
     assert isinstance(a, NotYetComputable) and "keine Eingabe" in a.reason
-    assert [link.key for link in a.chain] == ["other.a"]
+    assert [link.ref.key for link in a.chain] == ["other.a"]
     assert b.items == () and b.workings.steps[0].kind == "decision"
 
 

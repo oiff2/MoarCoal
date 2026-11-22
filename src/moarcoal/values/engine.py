@@ -19,6 +19,7 @@ from moarcoal.values.findings import (
     split_findings,
 )
 from moarcoal.values.model import (
+    ChainEntry,
     ExposedValue,
     LineItem,
     Locator,
@@ -124,8 +125,7 @@ class Values:
                 time,
                 subject,
                 signal.reason,
-                signal.chain,
-                tuple(self.label(str(r.key)) for r in signal.chain),
+                tuple(ChainEntry(r, self.label(str(r.key))) for r in signal.chain),
             )
         except NotApplicableSignal as signal:
             result = NotApplicable(entry.key, user, time, subject, signal.reason)

@@ -45,7 +45,7 @@
   <details>
     <summary class="rechenweg-symbol" title="Rechenweg" aria-label="Rechenweg">{% include "icons/rechenweg.svg" %}<span class="nur-vorlesen">Rechenweg</span></summary>
     <ol class="kette">
-      {% for title in result.chain_titles %}<li>{{ title }}</li>{% endfor %}
+      {% for link in result.chain %}<li>{{ link.title }}</li>{% endfor %}
     </ol>
   </details>
   {% endif %}

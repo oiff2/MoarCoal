@@ -37,7 +37,7 @@ def foreign_refs(result: object) -> list[ValueRef]:
     if isinstance(result, ExposedValue):
         walk(result)
     elif isinstance(result, NotYetComputable):
-        first = next((ref for ref in result.chain if not _own(ref)), None)
+        first = next((link.ref for link in result.chain if not _own(link.ref)), None)
         if first is not None:
             add(first)
     return found

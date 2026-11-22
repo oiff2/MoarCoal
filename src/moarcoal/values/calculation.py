@@ -101,7 +101,7 @@ class Calculation:
 
     def _not_yet_signal(self, result: NotYetComputable) -> NotYetSignal:
         reason = f"{self._source.label(result.key)} ist noch nicht berechenbar: {result.reason}"
-        return NotYetSignal(reason, (result.ref, *result.chain))
+        return NotYetSignal(reason, (result.ref, *(link.ref for link in result.chain)))
 
     def use(
         self,

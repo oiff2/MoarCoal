@@ -113,7 +113,7 @@ def freeze_one(result: ValueResult, requested: bool = True) -> FrozenValue:
                 requested=requested,
                 outcome="not_yet",
                 reason=result.reason,
-                chain=tuple(frozen_ref(r) for r in result.chain),
+                chain=tuple(frozen_ref(link.ref) for link in result.chain),
             )
         case NotApplicable():
             return FrozenValue(

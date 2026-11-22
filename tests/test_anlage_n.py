@@ -173,7 +173,7 @@ def test_not_yet_computable_input_passes_on_with_chain() -> None:
 
     assert isinstance(result, NotYetComputable)
     assert "keine Eingabe" in result.reason
-    assert [link.key for link in result.chain] == ["demo.base"]
+    assert [link.ref.key for link in result.chain] == ["demo.base"]
 
 
 def test_catalog_has_every_known_field_but_values_only_for_the_computed_ones() -> None:
@@ -372,7 +372,7 @@ def test_cycle_makes_all_members_not_yet_computable_and_gives_an_error_finding()
     assert "demo.a → demo.b → demo.c → demo.a" in finding.message
     chain_of_a = results["demo.a"]
     assert isinstance(chain_of_a, NotYetComputable)
-    assert [link.key for link in chain_of_a.chain] == ["demo.b", "demo.c", "demo.a"]
+    assert [link.ref.key for link in chain_of_a.chain] == ["demo.b", "demo.c", "demo.a"]
 
 
 def test_value_using_a_cycle_member_is_not_yet_computable_too() -> None:

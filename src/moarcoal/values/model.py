@@ -344,6 +344,14 @@ class ExposedValue:
 
 
 @dataclass(frozen=True)
+class ChainEntry:
+    """Ein Glied der Kette eines noch nicht berechenbaren Werts: Verweis und kurzer Titel."""
+
+    ref: ValueRef
+    title: str
+
+
+@dataclass(frozen=True)
 class NotYetComputable:
     """Dem Wert fehlt ein Einzelposten, dessen Fehlen die Rechnung nicht regelt.
 
@@ -358,8 +366,7 @@ class NotYetComputable:
     time: TimeRef
     subject: Subject | None
     reason: str
-    chain: tuple[ValueRef, ...] = ()
-    chain_titles: tuple[str, ...] = ()  # die kurzen Titel der `chain`, gleiche Reihenfolge
+    chain: tuple[ChainEntry, ...] = ()
 
     @property
     def ref(self) -> ValueRef:
