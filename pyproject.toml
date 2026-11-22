@@ -33,6 +33,7 @@ build-backend = "uv_build"
 
 [tool.pyright]
 include = ["src", "tests", "tools"]
+exclude = ["tools/make_icon.py"]  # eigenständiges Skript mit eigenen Abhängigkeiten (PEP 723)
 typeCheckingMode = "strict"
 pythonVersion = "3.13"
 extraPaths = ["tools", "src", "tests"]
