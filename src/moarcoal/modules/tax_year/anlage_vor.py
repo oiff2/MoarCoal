@@ -11,19 +11,9 @@ nicht berechnet“), nie 0. Die Werte sind gerundet, wie das Feld es verlangt: A
 Zuschüsse und Erstattungen mindern den Abzug und runden wie Einnahmen ab, Beiträge wie Ausgaben auf.
 """
 
-from collections.abc import Mapping
-from functools import partial
-
 from moarcoal.modules.tax_year.anlagen import Anlage
-from moarcoal.modules.tax_year.field_catalog import (
-    Compute,
-    catalog_field,
-    work_total,
-)
-from moarcoal.modules.tax_year.field_catalog import values_for as define_values
-from moarcoal.modules.tax_year.fields import Direction, FormField, Forms, Rounding
-from moarcoal.modules.tax_year.structure import FormStructure, load_structure
-from moarcoal.values.catalog import ValueDefinition
+from moarcoal.modules.tax_year.field_catalog import FromValue
+from moarcoal.modules.tax_year.fields import Computed, Direction, FieldMeaning, Rounding
 from moarcoal.values.model import Unit, ValueKey
 
 FORM = "VOR"  # Anlage Vorsorgeaufwand
@@ -57,80 +47,65 @@ VOR_SUBSIDY_PUBLIC_HEALTH = ValueKey("tax_year.vor_subsidy_public_health")  # Nr
 VOR_EMPLOYEE_HEALTH = ValueKey("tax_year.vor_employee_health")  # Nr. 25, Zeile 11
 VOR_EMPLOYEE_CARE = ValueKey("tax_year.vor_employee_care")  # Nr. 26, Zeile 13
 
+
+def _computed(
+    elster_id: str, key: ValueKey, direction: Direction, source: ValueKey, label: str
+) -> FieldMeaning:
+    kind = Computed(Unit.EUR, Rounding.WHOLE_EUROS, FromValue(source, label), direction)
+    return FieldMeaning(elster_id, kind, key)
+
+
 INCOME, EXPENSE = Direction.INCOME, Direction.EXPENSE
 
-# E-Kennung, Richtung, Schlüssel (nur bei den Feldern, die MoarCoal berechnet)
-FIELD_TABLE: tuple[tuple[str, Direction, ValueKey | None], ...] = (
-    ("E2000401", EXPENSE, VOR_EMPLOYEE_PENSION),
-    ("E2000701", EXPENSE, None),
-    ("E2000801", INCOME, VOR_EMPLOYER_PENSION),
-    ("E2001203", EXPENSE, VOR_EMPLOYEE_HEALTH),
-    ("E2001405", EXPENSE, None),
-    ("E2001505", EXPENSE, VOR_EMPLOYEE_CARE),
-    ("E2001605", INCOME, None),
-    ("E2001705", INCOME, None),
-    ("E2003104", EXPENSE, None),
-    ("E2003202", EXPENSE, None),
-    ("E2003302", INCOME, None),
-    ("E2003502", EXPENSE, None),
-    ("E2003705", INCOME, VOR_SUBSIDY_PUBLIC_HEALTH),
-    ("E2003807", INCOME, VOR_SUBSIDY_PRIVATE_HEALTH),
-    ("E2003907", INCOME, VOR_SUBSIDY_CARE),
-    ("E2004403", EXPENSE, VOR_UNEMPLOYMENT),
-    ("E2001803", EXPENSE, None),
+# Nur die Felder, die MoarCoal berechnet; die übrigen der Struktur kommen als `NotComputed` dazu
+# (`all_structure_fields`). Quelle von E-Kennung, Zeile, Bezeichnung: die Struktur.
+CATALOG_2025 = (
+    _computed(
+        "E2000401",
+        VOR_EMPLOYEE_PENSION,
+        EXPENSE,
+        WORK_EMPLOYEE_PENSION,
+        "Arbeitnehmeranteil laut Nr. 23 a/b",
+    ),
+    _computed(
+        "E2000801",
+        VOR_EMPLOYER_PENSION,
+        INCOME,
+        WORK_EMPLOYER_PENSION,
+        "Arbeitgeberanteil laut Nr. 22 a/b",
+    ),
+    _computed(
+        "E2001203",
+        VOR_EMPLOYEE_HEALTH,
+        EXPENSE,
+        WORK_EMPLOYEE_HEALTH,
+        "Arbeitnehmerbeitrag laut Nr. 25",
+    ),
+    _computed(
+        "E2001505",
+        VOR_EMPLOYEE_CARE,
+        EXPENSE,
+        WORK_EMPLOYEE_CARE,
+        "Arbeitnehmerbeitrag laut Nr. 26",
+    ),
+    _computed(
+        "E2003705",
+        VOR_SUBSIDY_PUBLIC_HEALTH,
+        INCOME,
+        WORK_SUBSIDY_PUBLIC_HEALTH,
+        "Zuschuss laut Nr. 24 a",
+    ),
+    _computed(
+        "E2003807",
+        VOR_SUBSIDY_PRIVATE_HEALTH,
+        INCOME,
+        WORK_SUBSIDY_PRIVATE_HEALTH,
+        "Zuschuss laut Nr. 24 b",
+    ),
+    _computed("E2003907", VOR_SUBSIDY_CARE, INCOME, WORK_SUBSIDY_CARE, "Zuschuss laut Nr. 24 c"),
+    _computed(
+        "E2004403", VOR_UNEMPLOYMENT, EXPENSE, WORK_UNEMPLOYMENT, "Arbeitnehmerbeitrag laut Nr. 27"
+    ),
 )
 
-
-def fields_vor(structure: FormStructure) -> tuple[FormField, ...]:
-    """Die Felder der Anlage VOR: Bedeutung aus der Tabelle, Bezeichnung, Nr. aus der Struktur."""
-    return tuple(
-        catalog_field(
-            FORM,
-            structure,
-            key or ValueKey(f"tax_year.vor_{elster_id.lower()}"),
-            elster_id,
-            Unit.EUR,
-            Rounding.WHOLE_EUROS,
-            direction,
-            computed=key is not None,
-        )
-        for elster_id, direction, key in FIELD_TABLE
-    )
-
-
-STRUCTURES: Mapping[int, FormStructure] = {2025: load_structure(FORM, 2025)}
-FIELDS_2025 = fields_vor(STRUCTURES[2025])
-
-FORMS: Forms = {2025: FIELDS_2025}
-
-_COMPUTE: dict[ValueKey, Compute] = {
-    VOR_EMPLOYEE_PENSION: partial(
-        work_total, source=WORK_EMPLOYEE_PENSION, label="Arbeitnehmeranteil laut Nr. 23 a/b"
-    ),
-    VOR_EMPLOYER_PENSION: partial(
-        work_total, source=WORK_EMPLOYER_PENSION, label="Arbeitgeberanteil laut Nr. 22 a/b"
-    ),
-    VOR_SUBSIDY_PRIVATE_HEALTH: partial(
-        work_total, source=WORK_SUBSIDY_PRIVATE_HEALTH, label="Zuschuss laut Nr. 24 b"
-    ),
-    VOR_SUBSIDY_CARE: partial(work_total, source=WORK_SUBSIDY_CARE, label="Zuschuss laut Nr. 24 c"),
-    VOR_UNEMPLOYMENT: partial(
-        work_total, source=WORK_UNEMPLOYMENT, label="Arbeitnehmerbeitrag laut Nr. 27"
-    ),
-    VOR_SUBSIDY_PUBLIC_HEALTH: partial(
-        work_total, source=WORK_SUBSIDY_PUBLIC_HEALTH, label="Zuschuss laut Nr. 24 a"
-    ),
-    VOR_EMPLOYEE_HEALTH: partial(
-        work_total, source=WORK_EMPLOYEE_HEALTH, label="Arbeitnehmerbeitrag laut Nr. 25"
-    ),
-    VOR_EMPLOYEE_CARE: partial(
-        work_total, source=WORK_EMPLOYEE_CARE, label="Arbeitnehmerbeitrag laut Nr. 26"
-    ),
-}
-
-
-def values_for(forms: Forms) -> tuple[ValueDefinition, ...]:
-    return define_values(FORM, forms, _COMPUTE)
-
-
-ANLAGE_VOR = Anlage(FORM, FORMS, STRUCTURES, values_for)
+ANLAGE_VOR = Anlage(FORM, {2025: CATALOG_2025}, all_structure_fields=True)

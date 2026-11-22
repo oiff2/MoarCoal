@@ -7,7 +7,8 @@ from dataclasses import replace
 import elster_page_fields as epf
 import pytest
 
-from moarcoal.modules.tax_year.anlage_n import FIELDS_2025, FORMS, STRUCTURES, fields_n
+from moarcoal.modules.tax_year.anlage_n import ANLAGE_N
+from moarcoal.modules.tax_year.anlagen import derive_fields
 from moarcoal.modules.tax_year.fields import NEW_FIELD, FormField, check_previous_years
 from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.structure import (
@@ -21,26 +22,25 @@ from moarcoal.modules.tax_year.structure import (
 
 
 def test_every_catalog_field_exists_in_the_structure_of_its_year():
-    for year, fields in FORMS.items():
-        structure = STRUCTURES[year]
+    for year, fields in ANLAGE_N.fields.items():
+        structure = ANLAGE_N.structures[year]
         for field in fields:
-            assert field.elster_id is not None
             described = structure.get(field.elster_id)
             assert (field.form_line, field.label) == (described.line, described.label)
 
 
 def test_a_missing_e_kennung_is_an_error_not_a_gap():
-    thin = FormStructure("N", 2025, True, STRUCTURES[2025].fields[1:])
+    thin = FormStructure("N", 2025, True, ANLAGE_N.structures[2025].fields[1:])
 
     with pytest.raises(UnknownElsterId, match="E0200002"):
-        fields_n(thin)
+        derive_fields("N", thin, ANLAGE_N.catalogs[2025], all_structure_fields=False)
 
 
 def test_2025_structure_from_the_pages_covers_the_catalog_and_loads_from_the_repo():
     structure = load_structure("N", 2025)
 
     assert not structure.provisional
-    assert {f.elster_id for f in FIELDS_2025} <= {f.e_kennung for f in structure.fields}
+    assert {f.elster_id for f in ANLAGE_N.fields[2025]} <= {f.e_kennung for f in structure.fields}
     art = structure.get("E0204401")
     assert art.free_text and "Büromaterial" in art.options
 
@@ -61,7 +61,7 @@ def test_tool_output_loads_as_structure():
 def test_structure_files_are_there_for_every_registered_anlage_and_year():
     expected = {f"{a.form.lower()}-{year}.json" for a in ANLAGEN for year in a.structures}
     assert {p.name for p in DIRECTORY.glob("*.json")} == expected
-    assert {f"n-{year}.json" for year in FORMS} <= expected
+    assert {f"n-{year}.json" for year in ANLAGE_N.fields} <= expected
 
 
 def test_parse_rejects_other_schema_and_doubled_e_kennung():
@@ -77,19 +77,20 @@ def test_parse_rejects_other_schema_and_doubled_e_kennung():
 
 def next_year(*changes: tuple[int, Mapping[str, object]]) -> dict[int, tuple[FormField, ...]]:
     """2025 plus ein synthetisches 2026 mit denselben Feldern, einzelne Felder geändert."""
-    fields = list(FIELDS_2025)
+    fields = list(ANLAGE_N.fields[2025])
     for index, change in changes:
-        fields[index] = replace(fields[index], **change)
-    return {2025: FIELDS_2025, 2026: tuple(fields)}
+        field = fields[index]
+        fields[index] = replace(field, meaning=replace(field.meaning, **change))
+    return {2025: ANLAGE_N.fields[2025], 2026: tuple(fields)}
 
 
 def test_the_real_catalog_is_consistent_and_a_copy_of_the_year_passes():
-    assert check_previous_years(FORMS) == []
+    assert check_previous_years(ANLAGE_N.fields) == []
     assert check_previous_years(next_year()) == []
 
 
 def test_years_without_a_previous_year_are_not_checked():
-    assert check_previous_years({2025: FIELDS_2025, 2027: ()}) == []
+    assert check_previous_years({2025: ANLAGE_N.fields[2025], 2027: ()}) == []
 
 
 def test_changed_e_kennung_needs_an_explicit_assignment():

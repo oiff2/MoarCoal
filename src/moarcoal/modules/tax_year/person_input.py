@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from moarcoal.modules.tax_year.anlage_est1a import IN_THIS_RETURN
 from moarcoal.modules.tax_year.anlagen import Anlage, field_catalog
 from moarcoal.modules.tax_year.entries import YearPersonInput
-from moarcoal.modules.tax_year.fields import FormField
+from moarcoal.modules.tax_year.fields import FormField, TextSource
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Change, Delete, Put, entry_checksum
 
@@ -46,9 +46,9 @@ def field_texts(state: ModuleState, fields: Iterable[FormField], year: int) -> d
     entry = current_person_input(state, year)
     found: dict[str, str] = {}
     for field in fields:
-        if field.text is None or field.elster_id is None:
+        if not isinstance(field.kind, TextSource):
             continue
-        if text := field.text.read(details, entry, year):
+        if text := field.kind.read(details, entry, year):
             found[field.elster_id] = text
     return found
 
@@ -59,9 +59,9 @@ def field_reasons(state: ModuleState, fields: Iterable[FormField], year: int) ->
     entry = current_person_input(state, year)
     found: dict[str, str] = {}
     for field in fields:
-        if field.text is None or field.text.why_not is None or field.elster_id is None:
+        if not isinstance(field.kind, TextSource) or field.kind.why_not is None:
             continue
-        if reason := field.text.why_not(details, entry, year):
+        if reason := field.kind.why_not(details, entry, year):
             found[field.elster_id] = reason
     return found
 
@@ -69,10 +69,10 @@ def field_reasons(state: ModuleState, fields: Iterable[FormField], year: int) ->
 def in_this_return_choices(anlagen: Iterable[Anlage], year: int) -> tuple[str, ...]:
     """Die Optionen der Auswahl „In dieser Steuererklärung“ im Jahr (aus der Struktur); leer, wenn
     das Jahr keinen Katalog hat und jeder Text gilt."""
-    field = next(
-        (f for f in field_catalog(anlagen, year) if f.elster_id == IN_THIS_RETURN and f.text), None
+    kind = next(
+        (f.kind for f in field_catalog(anlagen, year) if f.elster_id == IN_THIS_RETURN), None
     )
-    return () if field is None or field.text is None else field.text.choices
+    return kind.choices if isinstance(kind, TextSource) else ()
 
 
 def person_input_problem(anlagen: Iterable[Anlage], entry: YearPersonInput) -> str | None:

@@ -18,7 +18,7 @@ from moarcoal.modules.tax_year.church_tax_pages import (
 )
 from moarcoal.modules.tax_year.entries import MODULE_KEY, TRANSFER_PROTOCOL_KEY, ProtocolReading
 from moarcoal.modules.tax_year.field_checks import field_checks
-from moarcoal.modules.tax_year.fields import FormField
+from moarcoal.modules.tax_year.fields import FormField, TextSource, TypedInput
 from moarcoal.modules.tax_year.inputs import changes_for_input, current_input, typed_field
 from moarcoal.modules.tax_year.links import protocol_url
 from moarcoal.modules.tax_year.person_input import (
@@ -183,7 +183,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
                     frozen=frozen,
                     printed=printed,
                     findings=findings,
-                    content=texts.get(row.field.elster_id or ""),
+                    content=texts.get(row.field.elster_id),
                 ),
             )
             for row in page.rows
@@ -195,6 +195,11 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             )
             for row, result, _ in rows
             if result is not None
+        }
+        typed = {
+            row.field.elster_id: row.field.kind
+            for row in page.rows
+            if isinstance(row.field.kind, TypedInput)
         }
         church = (
             church_view(state, year, request.query_params.get("eintrag", ""), sent)
@@ -215,10 +220,14 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             note=saved_note,
             reasons=reasons,
             snapshot=snapshot,
+            typed=typed,
+            text_ids={
+                row.field.elster_id for row in page.rows if isinstance(row.field.kind, TextSource)
+            },
             inputs={
                 row.field.elster_id: entry.content
                 for row in page.rows
-                if row.field.typed and (entry := current_input(state, year, row.field))
+                if row.field.elster_id in typed and (entry := current_input(state, year, row.field))
             },
             anlagen=year_anlagen(anlagen, year, reading),
         )
@@ -272,6 +281,7 @@ def _input_part(
         year=year,
         form_slug=form,
         field=field,
+        typed=field.kind,
         content=content,
         error=error,
     )

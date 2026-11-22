@@ -16,6 +16,7 @@ from enum import StrEnum
 from moarcoal.modules.tax_year.entries import ElsterId, YearPersonInput
 from moarcoal.modules.tax_year.form_names import form_name
 from moarcoal.storage import PersonalDetails
+from moarcoal.values.calculation import Calculation
 from moarcoal.values.model import Amount, Unit, ValueKey, format_amount, parse_german_number
 
 
@@ -106,58 +107,31 @@ class NotANumber:
     content: str
 
 
+type Compute = Callable[[Calculation, FormField], Amount]
+"""Wie ein berechnetes Feld seinen Betrag rechnet: Rechnung und Feld (für Rundung und
+Bezeichnung)."""
+
+
 @dataclass(frozen=True)
-class FormField:
-    """Ein Feld einer Anlage: Bezeichnung, E-Kennung (leer, solange unbekannt), Nr. im Vordruck.
+class Computed:
+    """Ein Feld mit Betrag, das MoarCoal aus Ausgewiesenen Werten berechnet: Einheit, Rundung,
+    Richtung (nur bei ganzen Euro) und die Rechnung (`compute`).
 
-    `key` ist der Schlüssel des Ausgewiesenen Werts, den das Steuerjahr dem Feld zuordnet. Der
-    Katalog nimmt alle bekannten Felder des Jahrs auf, auch solche, die MoarCoal noch nicht
-    berechnet (`computed` ist falsch: kein Wert, kein Schnappschuss) und solche ohne Betrag
-    (`unit` ist leer: Text, Ja/Nein).
-
-    `assessment` nennt die Positionen der Auslese-Vorlage des EStB, deren Summe
-    dem Feld entspricht (leer: der EStB druckt das Feld nicht). `printed_rounded` heißt: der
-    EStB druckt die Position in ganzen Euro, auch wo das Feld Cent hat.
-
-    `typed` heißt: ein Eintippfeld, das der Nutzer im Steuerjahr eingibt (`TypedInput`).
-
-    `text` heißt: ein Feld mit Text, dessen Inhalt MoarCoal aus der Person nimmt (`TextSource`);
-    fehlt die Angabe, ist das Feld noch nicht berechenbar. Es hat weder Betrag noch Eintippfeld.
-
-    `previous` ordnet das Feld dem Vorjahr zu, wo seine E-Kennung sich ändert: die E-Kennung des
-    Vorjahrs oder `NEW_FIELD` (gibt es im Vorjahr nicht). Leer heißt: dieselbe E-Kennung wie im
-    Vorjahr (`check_previous_years`).
+    `assessment` nennt die Positionen der Auslese-Vorlage des EStB, deren Summe dem Feld entspricht
+    (leer: der EStB druckt das Feld nicht). `printed_rounded` heißt: der EStB druckt die Position in
+    ganzen Euro, auch wo das Feld Cent hat.
     """
 
-    key: ValueKey
-    elster_id: ElsterId | None
-    form_line: str
-    label: str
-    unit: Unit | None
+    unit: Unit
     rounding: Rounding
+    compute: Compute
     direction: Direction | None = None  # nur bei ganzen Euro
-    computed: bool = True
     assessment: tuple[str, ...] = ()
     printed_rounded: bool = False
-    previous: str | None = None
-    typed: TypedInput | None = None
-    text: TextSource | None = None
-    form: str = dataclasses.field(kw_only=True)  # die Anlage, Schlüssel wie im Protokoll
 
     def __post_init__(self) -> None:
         if (self.rounding is Rounding.WHOLE_EUROS) != (self.direction is not None):
-            raise ValueError(f"{self.label}: Richtung gehört genau zu Feldern mit ganzen Euro")
-        if self.computed and self.unit is None:
-            raise ValueError(f"{self.label}: ein berechnetes Feld braucht eine Einheit")
-        if self.text is not None and (self.unit or self.computed or self.typed):
-            raise ValueError(f"{self.label}: ein Feld mit Text hat keinen Betrag, keine Eingabe")
-        if self.assessment and self.unit is None:
-            raise ValueError(f"{self.label}: ein Feld ohne Betrag hat keine Position im EStB")
-
-    @property
-    def name(self) -> str:
-        """Das Feld, wie Befunde es nennen: „Anlage N Nr. …, Bezeichnung“."""
-        return f"{form_name(self.form)} Nr. {self.form_line}, {self.label}"
+            raise ValueError("Richtung gehört genau zu Feldern mit ganzen Euro")
 
     @property
     def whole_euros(self) -> bool:
@@ -194,8 +168,6 @@ class FormField:
 
     def show(self, value: Decimal) -> str:
         """Wert deutsch mit Einheit, ganze Euro ohne Cent: '87 €', '86,40 €', '12 km'."""
-        if self.unit is None:
-            raise ValueError(f"{self.label}: ein Feld ohne Betrag hat keinen Wert zum Anzeigen")
         return format_amount(Amount(value, self.unit), whole_euros=self.whole_euros)
 
     def read_protocol(self, contents: Sequence[str]) -> Decimal | AmbiguousLines | NotANumber:
@@ -251,8 +223,106 @@ class FormField:
         return f"um {self.show(abs(difference))} {how}, zu deinen {side} (Wert {shown})."
 
 
-type Forms = Mapping[int, tuple[FormField, ...]]
-"""Felder einer Anlage je Steuerjahr."""
+@dataclass(frozen=True)
+class NotComputed:
+    """Ein Feld, das MoarCoal noch nicht berechnet: kein Wert, kein Schnappschuss. Die Einheit zeigt
+    die Struktur, die Richtung kommt mit der Rechnung."""
+
+
+type FieldKind = Computed | TypedInput | TextSource | NotComputed
+"""Die Art eines Felds; alles Übrige am Feld folgt aus ihr. Geschlossen: eine neue Art ist selten
+und soll sichtbar sein (Pyright meldet jede Verzweigung, die sie nicht behandelt)."""
+
+
+@dataclass(frozen=True)
+class FieldMeaning:
+    """Die Bedeutung eines Felds, eine Zeile im Katalog einer Anlage.
+
+    `key` ist der Schlüssel des Ausgewiesenen Werts und steht ausdrücklich nur bei berechneten
+    Feldern; sonst leitet ihn `FormField.key` aus der E-Kennung ab.
+
+    `previous` ordnet das Feld dem Vorjahr zu, wo seine E-Kennung sich ändert: die E-Kennung des
+    Vorjahrs oder `NEW_FIELD` (gibt es im Vorjahr nicht). Leer heißt: dieselbe E-Kennung wie im
+    Vorjahr (`check_previous_years`).
+    """
+
+    elster_id: ElsterId
+    kind: FieldKind
+    key: ValueKey | None = None
+    previous: str | None = None
+
+    def __post_init__(self) -> None:
+        if isinstance(self.kind, Computed) != (self.key is not None):
+            raise ValueError(
+                f"{self.elster_id}: einen Schlüssel haben genau die berechneten Felder"
+            )
+
+
+@dataclass(frozen=True)
+class FormField:
+    """Ein Feld einer Anlage: seine Bedeutung aus dem Katalog, dazu Nr. im Vordruck und
+    Bezeichnung aus der Struktur des Jahrs. `form` ist die Anlage, Schlüssel wie im Protokoll."""
+
+    meaning: FieldMeaning
+    form_line: str
+    label: str
+    form: str = dataclasses.field(kw_only=True)
+
+    @property
+    def elster_id(self) -> ElsterId:
+        return self.meaning.elster_id
+
+    @property
+    def kind(self) -> FieldKind:
+        return self.meaning.kind
+
+    @property
+    def previous(self) -> str | None:
+        return self.meaning.previous
+
+    @property
+    def key(self) -> ValueKey:
+        """Der Schlüssel des Felds: der des Katalogs, sonst aus Anlage und E-Kennung abgeleitet."""
+        return self.meaning.key or ValueKey(
+            f"tax_year.{self.form.lower()}_{self.meaning.elster_id.lower()}"
+        )
+
+    @property
+    def computed(self) -> bool:
+        """Ob MoarCoal das Feld berechnet (es hat dann einen Wert und einen Schnappschuss)."""
+        return isinstance(self.kind, Computed)
+
+    @property
+    def name(self) -> str:
+        """Das Feld, wie Befunde es nennen: „Anlage N Nr. …, Bezeichnung“."""
+        return f"{form_name(self.form)} Nr. {self.form_line}, {self.label}"
+
+    @property
+    def _computed(self) -> Computed:
+        if not isinstance(self.kind, Computed):
+            raise ValueError(f"{self.label}: ein Feld, das nicht berechnet wird, hat keinen Betrag")
+        return self.kind
+
+    @property
+    def whole_euros(self) -> bool:
+        """Ob das Feld ganze Euro nimmt (angezeigt ohne Cent)."""
+        return isinstance(self.kind, Computed) and self.kind.whole_euros
+
+    def round(self, value: Decimal) -> tuple[Decimal, str | None]:
+        """Der einzutragende Wert und der Grund der Rundung (Regel der Art `Computed`)."""
+        return self._computed.round(value)
+
+    def show(self, value: Decimal) -> str:
+        return self._computed.show(value)
+
+    def read_protocol(self, contents: Sequence[str]) -> Decimal | AmbiguousLines | NotANumber:
+        return self._computed.read_protocol(contents)
+
+    def matches_assessment(self, frozen: Decimal, printed: Decimal) -> bool:
+        return self._computed.matches_assessment(frozen, printed)
+
+    def explain_deviation(self, expected: Decimal, transferred: Decimal) -> str:
+        return self._computed.explain_deviation(expected, transferred)
 
 
 def check_previous_years(forms: Mapping[int, Sequence[FormField]]) -> list[str]:
@@ -266,10 +336,10 @@ def check_previous_years(forms: Mapping[int, Sequence[FormField]]) -> list[str]:
     for year in sorted(forms):
         if year - 1 not in forms:
             continue
-        before = {f.elster_id for f in forms[year - 1] if f.elster_id}
+        before = {f.elster_id for f in forms[year - 1]}
         claimed: dict[str, FormField] = {}
         for field in forms[year]:
-            if field.elster_id is None or field.previous == NEW_FIELD:
+            if field.previous == NEW_FIELD:
                 continue
             target = field.previous or field.elster_id
             where = f"{year}, {field.label} ({field.elster_id})"

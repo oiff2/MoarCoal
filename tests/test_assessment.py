@@ -23,7 +23,6 @@ from moarcoal.modules.tax_year import ASSESSMENT, ProtocolReading, registration
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_n import (
     ANLAGE_N,
-    FORMS,
     N_EQUIPMENT,
     WORK_ABSENCE_DAYS,
     WORK_BENEFITS_FLAT_TAXED,
@@ -43,6 +42,7 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_WORKDAYS_PER_WEEK,
 )
 from moarcoal.modules.tax_year.anlage_vor import WORK_KEYS as VOR_WORK_KEYS
+from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.assessment import (
     BUSINESS_TRAVEL,
     COMMUTE_DAYS,
@@ -58,14 +58,15 @@ from moarcoal.modules.tax_year.assessment_check import (
     assessment_amounts,
     current_assessment,
 )
-from moarcoal.modules.tax_year.fields import Direction, FormField, Rounding
+from moarcoal.modules.tax_year.fields import Computed, Direction, FieldMeaning, FormField, Rounding
 from moarcoal.modules.tax_year.snapshot_check import snapshot_on_filing
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import Document, Entry, EntryAddress, Proposal, Put, State, Store
 from moarcoal.storage.proposals import ProposalField
+from moarcoal.values.calculation import Calculation
 from moarcoal.values.engine import Foreign
 from moarcoal.values.findings import Finding, Severity
-from moarcoal.values.model import Amount, Period, Subject, Unit
+from moarcoal.values.model import Amount, Period, Subject, Unit, ValueKey
 from moarcoal.values.testing import evaluate, fixed, not_applicable, not_yet
 from moarcoal.web.links import document_url
 
@@ -194,7 +195,12 @@ def test_the_assessment_is_a_kind_with_period_and_an_extraction_template() -> No
 
 def test_every_position_a_field_names_is_in_the_template() -> None:
     template_keys = {f.key for f in TEMPLATE.fields}
-    named = {key for f in FORMS[2025] for key in f.assessment}
+    named = {
+        key
+        for f in ANLAGE_N.fields[2025]
+        if isinstance(f.kind, Computed)
+        for key in f.kind.assessment
+    }
 
     assert named <= template_keys
     assert {GROSS_WAGES, COMMUTE_DAYS, COMMUTE_KM, MEAL_ALLOWANCE, BUSINESS_TRAVEL} <= named
@@ -207,8 +213,11 @@ def test_positions_are_numbers_and_a_doubly_printed_label_carries_its_block() ->
 
 
 def test_the_fields_with_a_position_in_the_assessment() -> None:
-    assert all(f.unit is not None for f in FORMS[2025] if f.assessment)
-    assert [f.elster_id for f in FORMS[2025] if f.assessment] == [
+    assert [
+        f.elster_id
+        for f in ANLAGE_N.fields[2025]
+        if isinstance(f.kind, Computed) and f.kind.assessment
+    ] == [
         "E0200201",
         "E0200301",
         "E0200401",
@@ -317,21 +326,25 @@ def test_a_value_not_yet_computable_at_filing_is_not_compared() -> None:
     assert ASSESSMENT_DEVIATION not in kinds(found)  # nur der Fehler der Datenebene bleibt
 
 
-def printed_rounded_forms() -> dict[int, tuple[FormField, ...]]:
+def printed_rounded_anlage() -> Anlage:
     """Arbeitsmittel als Feld mit Cent, das der EStB als Bruttoarbeitslohn gerundet druckt."""
-    fields = tuple(
-        replace(
-            f,
-            rounding=Rounding.EURO_CENTS,
-            direction=None,
-            printed_rounded=True,
-            assessment=(GROSS_WAGES,),
+
+    def changed(meaning: FieldMeaning) -> FieldMeaning:
+        kind = meaning.kind
+        if meaning.key != N_EQUIPMENT or not isinstance(kind, Computed):
+            return meaning
+        return replace(
+            meaning,
+            kind=replace(
+                kind,
+                rounding=Rounding.EURO_CENTS,
+                direction=None,
+                printed_rounded=True,
+                assessment=(GROSS_WAGES,),
+            ),
         )
-        if f.key == N_EQUIPMENT
-        else f
-        for f in FORMS[2025]
-    )
-    return {2025: fields}
+
+    return replace(ANLAGE_N, catalogs={2025: [changed(m) for m in ANLAGE_N.catalogs[2025]]})
 
 
 @pytest.mark.parametrize(
@@ -341,8 +354,7 @@ def printed_rounded_forms() -> dict[int, tuple[FormField, ...]]:
 def test_a_position_the_assessment_prints_rounded_matches_within_the_span(
     printed: str, deviates: bool
 ) -> None:
-    forms = printed_rounded_forms()
-    tax_year = registration([replace(ANLAGE_N, forms=forms)])
+    tax_year = registration([printed_rounded_anlage()])
     document = assessment()
     items = [
         *filing(work(cents=8640), tax_year),
@@ -355,17 +367,20 @@ def test_a_position_the_assessment_prints_rounded_matches_within_the_span(
     assert (ASSESSMENT_DEVIATION in kinds(found)) is deviates
 
 
-def field(**given: object) -> FormField:
-    base: dict[str, object] = {
-        "key": "tax_year.n_demo",
-        "elster_id": "E0000001",
-        "form_line": "1",
-        "label": "Demo",
-        "unit": Unit.EUR,
-        "rounding": Rounding.EURO_CENTS,
-        "form": "N",
-    }
-    return FormField(**{**base, **given})  # type: ignore[arg-type]
+def unused(calculation: Calculation, field: FormField) -> Amount:
+    raise AssertionError("die Spanne rechnet nicht")
+
+
+def field(
+    unit: Unit = Unit.EUR,
+    rounding: Rounding = Rounding.EURO_CENTS,
+    direction: Direction | None = None,
+    printed_rounded: bool = False,
+) -> FormField:
+    kind = Computed(unit, rounding, unused, direction, printed_rounded=printed_rounded)
+    return FormField(
+        FieldMeaning("E0000001", kind, ValueKey("tax_year.n_demo")), "1", "Demo", form="N"
+    )
 
 
 def test_span_rules_of_the_field() -> None:
@@ -390,14 +405,6 @@ def test_span_rules_of_the_field() -> None:
     assert not days.matches_assessment(Decimal("220"), Decimal("221"))
 
 
-def test_a_field_without_amount_has_no_position_and_a_computed_one_needs_a_unit() -> None:
-    with pytest.raises(ValueError, match="Einheit"):
-        field(unit=None)
-    with pytest.raises(ValueError, match="ohne Betrag"):
-        field(unit=None, computed=False, assessment=("gross_wages",))
-    assert field(unit=None, computed=False).unit is None
-
-
 # --- Welcher Bescheid, welche Beträge --------------------------------------------------------
 
 
@@ -407,7 +414,7 @@ def state_of(items: list[Entry]) -> ModuleState:
 
 def test_a_sum_field_needs_all_its_positions_confirmed_and_adds_them() -> None:
     document = assessment()
-    total = next(f for f in FORMS[2025] if f.elster_id == "E0205518")
+    total = next(f for f in ANLAGE_N.fields[2025] if f.elster_id == "E0205518")
 
     both = state_of(
         [document, proposal(document, {MEAL_ALLOWANCE: "1.080", BUSINESS_TRAVEL: "-1.498"})]
@@ -416,8 +423,8 @@ def test_a_sum_field_needs_all_its_positions_confirmed_and_adds_them() -> None:
         [document, proposal(document, {MEAL_ALLOWANCE: "1.080"}, {BUSINESS_TRAVEL: "1"})]
     )
 
-    assert assessment_amounts(both, document, FORMS[2025])[total.key] == Decimal(2578)
-    assert total.key not in assessment_amounts(one, document, FORMS[2025])
+    assert assessment_amounts(both, document, ANLAGE_N.fields[2025])[total.key] == Decimal(2578)
+    assert total.key not in assessment_amounts(one, document, ANLAGE_N.fields[2025])
 
 
 def current_documents(
@@ -432,7 +439,7 @@ def test_the_newest_assessment_with_confirmed_positions_counts() -> None:
     confirmed = {COMMUTE_DAYS: "1"}
     items = [old, proposal(old, confirmed), new, proposal(new, confirmed), other_year]
     state = state_of([*items, proposal(other_year, confirmed)])
-    fields = FORMS[2025]
+    fields = ANLAGE_N.fields[2025]
 
     assert current_documents(state, 2025, fields) == [new]
     assert current_documents(state, 2024, fields) == [other_year]

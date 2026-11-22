@@ -4,7 +4,7 @@ from collections.abc import Iterable
 
 from moarcoal.modules.tax_year.anlagen import Anlage, field_catalog
 from moarcoal.modules.tax_year.entries import FormInput
-from moarcoal.modules.tax_year.fields import FormField
+from moarcoal.modules.tax_year.fields import FormField, TypedInput
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Change, Delete, Put, entry_checksum
 
@@ -12,15 +12,17 @@ from moarcoal.storage import Change, Delete, Put, entry_checksum
 def typed_field(anlagen: Iterable[Anlage], year: int, elster_id: str) -> FormField | None:
     """Das Eintippfeld `elster_id` im Katalog des Jahres, falls es eines ist."""
     fields = field_catalog(anlagen, year)
-    return next((f for f in fields if f.elster_id == elster_id and f.typed), None)
+    return next(
+        (f for f in fields if f.elster_id == elster_id and isinstance(f.kind, TypedInput)), None
+    )
 
 
 def input_problem(anlagen: Iterable[Anlage], entry: FormInput) -> str | None:
     """Schreibweg: warum die Eingabe nicht zu ihrem Feld passt; `None`, wenn sie passt."""
     field = typed_field(anlagen, entry.year, entry.elster_id)
-    if field is None or field.typed is None:
+    if field is None or not isinstance(field.kind, TypedInput):
         return "Dieses Feld nimmt keine Eingabe."
-    return field.typed.check(entry.content, entry.year)
+    return field.kind.check(entry.content, entry.year)
 
 
 def current_input(state: ModuleState, year: int, field: FormField) -> FormInput | None:
@@ -39,7 +41,7 @@ def changes_for_input(
     Leerer Text nimmt die Eingabe zurück; dann ist das Feld wieder noch nicht berechenbar. Ob der
     Text zum Feld passt, prüft der Schreibweg (`input_problem`).
     """
-    if field.typed is None or field.elster_id is None:
+    if not isinstance(field.kind, TypedInput):
         return [], "Dieses Feld nimmt keine Eingabe."
     text = text.strip()
     existing = current_input(state, year, field)

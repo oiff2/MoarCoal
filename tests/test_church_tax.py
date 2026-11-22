@@ -11,14 +11,9 @@ from app_helper import make_app
 from fastapi.testclient import TestClient
 
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
-from moarcoal.modules.tax_year.anlage_sa import (
-    FIELDS_2025,
-    SA_PAID,
-    SA_REFUNDED,
-    STRUCTURES,
-)
+from moarcoal.modules.tax_year.anlage_sa import ANLAGE_SA, SA_PAID, SA_REFUNDED
 from moarcoal.modules.tax_year.church_tax import ChurchTaxPayment
-from moarcoal.modules.tax_year.fields import Direction, Rounding
+from moarcoal.modules.tax_year.fields import Computed, Direction, Rounding
 from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.storage import (
     Applied,
@@ -105,19 +100,25 @@ def amount_of(*entries: Entry, key: str = SA_PAID) -> Decimal:
 def test_sa_is_registered_with_its_stored_structure() -> None:
     (sa,) = [a for a in ANLAGEN if a.form == "SA"]
     assert sa.structures[2025].form == "SA" and not sa.structures[2025].provisional
-    assert [f.elster_id for f in FIELDS_2025] == [f.e_kennung for f in STRUCTURES[2025].fields]
+    fields = ANLAGE_SA.fields[2025]
+    assert [f.elster_id for f in fields] == [f.e_kennung for f in sa.structures[2025].fields]
 
 
 def test_paid_expense_rounds_up_and_refunded_income_rounds_down() -> None:
-    paid, refunded = {f.elster_id: f for f in FIELDS_2025}.values()
-    assert (paid.elster_id, paid.key, paid.direction) == ("E0107601", SA_PAID, Direction.EXPENSE)
-    assert (refunded.elster_id, refunded.key, refunded.direction) == (
+    paid, refunded = ANLAGE_SA.fields[2025]
+    assert isinstance(paid.kind, Computed) and isinstance(refunded.kind, Computed)
+    assert (paid.elster_id, paid.key, paid.kind.direction) == (
+        "E0107601",
+        SA_PAID,
+        Direction.EXPENSE,
+    )
+    assert (refunded.elster_id, refunded.key, refunded.kind.direction) == (
         "E0107602",
         SA_REFUNDED,
         Direction.INCOME,
     )
-    assert all(f.computed and f.unit is Unit.EUR for f in FIELDS_2025)
-    assert all(f.rounding is Rounding.WHOLE_EUROS for f in FIELDS_2025)
+    for kind in (paid.kind, refunded.kind):
+        assert (kind.unit, kind.rounding) == (Unit.EUR, Rounding.WHOLE_EUROS)
 
 
 # --- Zählen im Jahr der Zahlung ------------------------------------------------------------------

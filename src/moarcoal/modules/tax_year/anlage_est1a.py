@@ -1,9 +1,10 @@
 """Felder des Hauptvordrucks ESt 1 A 2025 und woher ihr Inhalt kommt.
 
-Der Katalog nimmt jedes Feld der gespeicherten Struktur auf. Ein Feld mit Text nimmt seinen
-Inhalt aus den Angaben zur Person oder aus der Eingabe zur Person im Steuerjahr, so wie er in
-Mein ELSTER einzutragen ist (`TextSource`); fehlt die Angabe, ist das Feld noch nicht
-berechenbar, nie leer. Alle anderen Felder hat MoarCoal noch nicht. Beträge gibt es hier keine.
+Der Katalog nennt die Felder mit Text, die übrigen Felder der gespeicherten Struktur kommen als
+`NotComputed` dazu. Ein Feld mit Text nimmt seinen Inhalt aus den Angaben zur Person oder aus der
+Eingabe zur Person im Steuerjahr, so wie er in Mein ELSTER einzutragen ist (`TextSource`); fehlt
+die Angabe, ist das Feld noch nicht berechenbar, nie leer. Alle anderen Felder hat MoarCoal noch
+nicht. Beträge gibt es hier keine.
 """
 
 import datetime
@@ -11,12 +12,10 @@ from collections.abc import Callable, Mapping
 
 from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.entries import YearPersonInput
-from moarcoal.modules.tax_year.field_catalog import catalog_field
-from moarcoal.modules.tax_year.fields import FormField, Forms, Rounding, TextSource
+from moarcoal.modules.tax_year.fields import FieldMeaning, TextSource
 from moarcoal.modules.tax_year.structure import FormStructure, load_structure
 from moarcoal.personal_details import religion_on
 from moarcoal.storage import PersonalDetails, Religion
-from moarcoal.values.model import ValueKey
 
 FORM = "ESt1A"  # Hauptvordruck ESt 1 A
 
@@ -105,27 +104,14 @@ def sources(structure: FormStructure) -> Mapping[str, TextSource]:
     }
 
 
-def fields_est1a(structure: FormStructure) -> tuple[FormField, ...]:
-    """Die Felder der ESt 1 A: jedes der Struktur, mit Quelle, wo es eine gibt."""
-    texts = sources(structure)
+def catalog_2025(structure: FormStructure) -> tuple[FieldMeaning, ...]:
+    """Die Felder mit Text und ihre Quelle; die übrigen Felder der Struktur kommen als
+    `NotComputed` dazu (`all_structure_fields`)."""
     return tuple(
-        catalog_field(
-            FORM,
-            structure,
-            ValueKey(f"tax_year.est1a_{described.e_kennung.lower()}"),
-            described.e_kennung,
-            None,
-            Rounding.NONE,
-            computed=False,
-            text=texts.get(described.e_kennung),
-        )
-        for described in structure.fields
+        FieldMeaning(elster_id, source) for elster_id, source in sources(structure).items()
     )
 
 
-STRUCTURES: Mapping[int, FormStructure] = {2025: load_structure(FORM, 2025)}
-FIELDS_2025 = fields_est1a(STRUCTURES[2025])
-
-FORMS: Forms = {2025: FIELDS_2025}
-
-ANLAGE_EST1A = Anlage(FORM, FORMS, STRUCTURES)
+ANLAGE_EST1A = Anlage(
+    FORM, {2025: catalog_2025(load_structure(FORM, 2025))}, all_structure_fields=True
+)

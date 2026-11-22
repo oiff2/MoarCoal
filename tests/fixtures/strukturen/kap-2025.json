@@ -1,0 +1,13 @@
+{
+ "schema": 1,
+ "form": "KAP",
+ "year": 2025,
+ "provisional": false,
+ "fields": [
+  {"e_kennung": "E0900001", "page": "10 - Erträge", "headings": ["Abschnitt"], "line": "3", "label": "Eingabe", "options": ["Ja", "Nein"]},
+  {"e_kennung": "E0900002", "page": "10 - Erträge", "headings": ["Abschnitt"], "line": "4", "label": "Text aus der Person"},
+  {"e_kennung": "E0900003", "page": "10 - Erträge", "headings": ["Abschnitt"], "line": "5", "label": "Noch nicht berechnet"},
+  {"e_kennung": "E0900004", "page": "10 - Erträge", "headings": ["Abschnitt"], "line": "6", "label": "Ohne Zeile im Katalog"},
+  {"e_kennung": "E0900005", "page": "10 - Erträge", "headings": ["Abschnitt"], "line": "7", "label": "Beispiel", "unit": "€"}
+ ]
+}

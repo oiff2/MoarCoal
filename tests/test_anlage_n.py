@@ -18,8 +18,7 @@ from fastapi.testclient import TestClient
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import anlage_n
 from moarcoal.modules.tax_year.anlage_n import (
-    FIELDS_2025,
-    FORMS,
+    ANLAGE_N,
     N_ABSENCE_DAYS,
     N_CAR_DISTANCE,
     N_EQUIPMENT,
@@ -27,7 +26,6 @@ from moarcoal.modules.tax_year.anlage_n import (
     N_WORKDAYS_PER_WEEK,
     N_WORKPLACE_DAYS,
     N_WORKPLACE_DISTANCE,
-    STRUCTURES,
     WORK_ABSENCE_DAYS,
     WORK_CAR_DISTANCE,
     WORK_DISTANCE_KM,
@@ -38,7 +36,7 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_WORKDAYS_PER_WEEK,
     YES_NO,
 )
-from moarcoal.modules.tax_year.fields import TypedInput
+from moarcoal.modules.tax_year.fields import Computed, NotComputed, TypedInput
 from moarcoal.modules.tax_year.structure import form_pages
 from moarcoal.registration import ModuleRegistration
 from moarcoal.storage import EntryAddress
@@ -180,10 +178,11 @@ def test_not_yet_computable_input_passes_on_with_chain() -> None:
 
 def test_catalog_has_every_known_field_but_values_only_for_the_computed_ones() -> None:
     values = evaluate([TAX_YEAR])
+    fields = ANLAGE_N.fields[2025]
     tax_keys = {e.key for e in values.catalog.entries() if e.key.startswith("tax_year.n_")}
 
-    assert tax_keys == {f.key for f in FIELDS_2025 if f.computed}
-    assert {f.elster_id for f in FIELDS_2025 if f.computed} == {
+    assert tax_keys == {f.key for f in fields if f.computed}
+    assert {f.elster_id for f in fields if f.computed} == {
         "E0200002",
         "E0200201",
         "E0200204",
@@ -203,16 +202,17 @@ def test_catalog_has_every_known_field_but_values_only_for_the_computed_ones() -
         "E0205004",
         "E0205518",
     }
-    assert len(FIELDS_2025) == len({f.key for f in FIELDS_2025}) == 23
-    assert len({f.elster_id for f in FIELDS_2025}) == 23
-    assert {"E0200201", "E0205518", "E0204901"} <= {f.elster_id for f in FIELDS_2025}
+    assert len(fields) == len({f.key for f in fields}) == 23
+    assert len({f.elster_id for f in fields}) == 23
+    assert {"E0200201", "E0205518", "E0204901"} <= {f.elster_id for f in fields}
 
 
 def test_fields_without_amount_or_computation_are_marked_and_consistent() -> None:
-    uncomputed = [f for f in FIELDS_2025 if not f.computed]
-    no_amount = [f for f in FIELDS_2025 if f.unit is None]
+    fields = ANLAGE_N.fields[2025]
+    uncomputed = [f for f in fields if not f.computed]
+    no_amount = [f for f in fields if isinstance(f.kind, TypedInput)]
 
-    assert uncomputed == no_amount  # jedes Feld mit Betrag ist berechnet
+    assert uncomputed == no_amount  # jedes Feld mit Betrag ist berechnet, jedes andere eine Eingabe
     assert {f.elster_id for f in no_amount} == {
         "E0203003",
         "E0203501",
@@ -220,7 +220,7 @@ def test_fields_without_amount_or_computation_are_marked_and_consistent() -> Non
         "E0204901",
         "E0205003",
     }
-    assert all(not f.computed and not f.assessment and f.typed for f in no_amount)
+    assert not any(isinstance(f.kind, Computed | NotComputed) for f in no_amount)
 
 
 def test_equipment_that_does_not_apply_makes_the_field_not_apply_too() -> None:
@@ -516,12 +516,12 @@ def test_page_shows_not_yet_computable_with_chain(
 
 
 def test_pages_follow_mein_elster_and_show_only_catalog_fields() -> None:
-    pages = form_pages(STRUCTURES[2025], FORMS[2025])
+    pages = form_pages(ANLAGE_N.structures[2025], ANLAGE_N.fields[2025])
 
     assert [p.slug for p in pages][:2] == ["1", "8"]
     assert len({p.slug for p in pages}) == len(pages)
     shown = [row.field.elster_id for p in pages for row in p.rows]
-    assert sorted(str(e) for e in shown) == sorted(str(f.elster_id) for f in FORMS[2025])
+    assert sorted(str(e) for e in shown) == sorted(str(f.elster_id) for f in ANLAGE_N.fields[2025])
     first = pages[0].rows
     assert first[0].headings == () and first[1].headings != ()
     assert first[1].headings == first[2].headings or first[2].headings == ()  # Überschrift einmal
@@ -529,7 +529,7 @@ def test_pages_follow_mein_elster_and_show_only_catalog_fields() -> None:
 
 def test_each_page_has_its_own_url_with_label_line_and_e_kennung(tmp_path: Path) -> None:
     http = client(tmp_path)
-    pages = form_pages(STRUCTURES[2025], FORMS[2025])
+    pages = form_pages(ANLAGE_N.structures[2025], ANLAGE_N.fields[2025])
 
     for page in pages:
         html = http.get(f"/steuerjahr/anlage-n/2025/{page.slug}").text
@@ -604,7 +604,7 @@ def test_absence_days_add_the_homeoffice_days_of_the_workplace() -> None:
 
 
 def test_fields_without_amount_are_input_fields() -> None:
-    typed = {f.elster_id: f.typed for f in FIELDS_2025 if f.typed}
+    typed = {f.elster_id: f.kind for f in ANLAGE_N.fields[2025] if isinstance(f.kind, TypedInput)}
 
     assert typed == {
         "E0203003": TypedInput(
