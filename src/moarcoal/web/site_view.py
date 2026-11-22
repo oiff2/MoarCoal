@@ -16,7 +16,7 @@ from moarcoal.document_filter import (
     document_state,
     file_type,
 )
-from moarcoal.documents import DocumentKind, belongs_to_year, document_name
+from moarcoal.documents import DocumentKind, belongs_to_year, document_name, kind_title
 from moarcoal.expected_documents import matching_documents, previous_year_issuer
 from moarcoal.incoming import hidden_files, hidden_folders, in_hidden_folder, incoming_files
 from moarcoal.storage import (
@@ -229,11 +229,10 @@ def expected_rows(
             documents, entry, year
         )
         issuer = None if address is None else state.get(address)
-        kind = kinds.get(entry.document_kind)
         rows.append(
             ExpectedRow(
                 entry,
-                kind.title if kind else entry.document_kind,
+                kind_title(kinds, entry.document_kind),
                 issuer if isinstance(issuer, Issuer) else None,
                 found,
                 entry_checksum(entry),
@@ -276,8 +275,7 @@ def year_documents(
     )
     rows: list[DocumentRow] = []
     for document in chosen:
-        kind = kinds.get(document.document_kind or "")
-        title = kind.title if kind else (document.document_kind or "")
+        title = kind_title(kinds, document.document_kind)
         if title and document.period_start:
             title = f"{title}, {document.period_start.year}"
         rows.append(

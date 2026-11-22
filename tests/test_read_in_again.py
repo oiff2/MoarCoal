@@ -233,7 +233,7 @@ def notes(
 ) -> list[Finding]:
     """Die Befunde „Einlesen hat einen Wert geändert“ des Nutzers im Jahr."""
     state = store.state()
-    found = Values(modules, state).finding_list(user, year)
+    found = Values(modules, state, sites=store.sites).finding_list(user, year)
     return [f for f in linked_findings(modules, state, found).visible if f.kind == READ_IN_CHANGED]
 
 

@@ -8,6 +8,7 @@ bestätigt ist, spielt keine Rolle (3.6, Punkt 7).
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from moarcoal.documents import DocumentKind, kind_title
 from moarcoal.storage import Document, EntryAddress, ExpectedDocument, State
 from moarcoal.values.findings import Finding, Severity, fingerprint
 
@@ -63,13 +64,13 @@ def previous_year_issuer(
     )
 
 
-def expected_name(expected: ExpectedDocument, titles: Mapping[str, str]) -> str:
-    title = titles.get(expected.document_kind, expected.document_kind)
+def expected_name(expected: ExpectedDocument, kinds: Mapping[str, DocumentKind]) -> str:
+    title = kind_title(kinds, expected.document_kind)
     return f"{title} ({expected.description})" if expected.description else title
 
 
 def expected_document_findings(
-    state: State, user: str, year: int, titles: Mapping[str, str]
+    state: State, user: str, year: int, kinds: Mapping[str, DocumentKind]
 ) -> list[Finding]:
     """Hinweise für `year`: Beleg ausstehend; mehrere passende Dokumente (mögliche Dublette).
 
@@ -84,7 +85,7 @@ def expected_document_findings(
         if expected.owner != user or not expected.due_in(year):
             continue
         matching = matching_documents(documents, expected, year)
-        name = expected_name(expected, titles)
+        name = expected_name(expected, kinds)
         target = f"{expected.address}@{year}"  # je Jahr ein eigener Befund
         if not matching:
             text = f"Erwarteter Beleg für {year} ausstehend: {name}"

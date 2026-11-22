@@ -123,7 +123,9 @@ def findings(setup: Setup, year: int = 2025) -> list[Any]:
 
     state = setup.store.state()
     found = linked_findings(
-        (REGISTRATION,), state, Values([REGISTRATION], state).finding_list("anna", year)
+        (REGISTRATION,),
+        state,
+        Values([REGISTRATION], state, sites=setup.store.sites).finding_list("anna", year),
     )
     return [f for f in found.visible if f.kind == UNCONFIRMED]
 
@@ -477,7 +479,9 @@ def aborted_findings(setup: Setup) -> list[Any]:
 
     state = setup.store.state()
     found = linked_findings(
-        (REGISTRATION,), state, Values([REGISTRATION], state).finding_list("anna", 2025)
+        (REGISTRATION,),
+        state,
+        Values([REGISTRATION], state, sites=setup.store.sites).finding_list("anna", 2025),
     )
     return [f for f in found.visible if f.kind == "claude_tools"]
 
@@ -560,7 +564,7 @@ def test_aborted_extraction_finding_shows_in_every_year(tmp_path: Path) -> None:
 
     setup = make(tmp_path, TOOLS)
     setup.post(f"{setup.take_in()}/auslesen")
-    values = Values([REGISTRATION], setup.store.state())
+    values = Values([REGISTRATION], setup.store.state(), sites=setup.store.sites)
     for year in (2019, 2025, 2031):
         visible = values.finding_list("anna", year).visible
         assert [f.kind for f in visible if f.kind == "claude_tools"] == ["claude_tools"]

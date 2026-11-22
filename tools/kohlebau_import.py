@@ -308,7 +308,10 @@ def import_documents(ctx: Context, source: Source, report: Report) -> None:
             document_kind_key(document),
             source.year,
             values_on=lambda state: Values(
-                ctx.modules, state, site_files=lambda: all_site_files(ctx.store)
+                ctx.modules,
+                state,
+                site_files=lambda: all_site_files(ctx.store),
+                sites=ctx.store.sites,
             ),
             issuer=issuer,
             label=document.document_type or None,

@@ -13,7 +13,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from moarcoal.registration import ModuleRegistration
-from moarcoal.storage import Entry, State
+from moarcoal.storage import Entry, Sites, State
 from moarcoal.values.engine import Foreign, ForeignResult, Values
 from moarcoal.values.model import (
     Amount,
@@ -35,7 +35,7 @@ def evaluate(
     foreign: Foreign | None = None,
 ) -> Values:
     """`Values` über `modules`; Schlüssel aus `foreign` stehen an Stelle anderer Module."""
-    return Values(modules, State({e.address: e for e in entries}), foreign)
+    return Values(modules, State({e.address: e for e in entries}), foreign, sites=Sites({}))
 
 
 @dataclass(frozen=True)

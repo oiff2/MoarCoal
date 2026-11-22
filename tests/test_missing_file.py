@@ -86,5 +86,7 @@ def test_moved_to_another_site_is_missing(store: Store, tmp_path: Path) -> None:
 def test_block_findings_carry_it(store: Store, tmp_path: Path) -> None:
     take(store)
     (tmp_path / "ablage" / "2025" / "brief.txt").unlink()
-    result = block_findings(store.state(), "anna", 2025, {}, lambda: all_site_files(store))
+    result = block_findings(
+        store.state(), "anna", 2025, {}, lambda: all_site_files(store), store.sites
+    )
     assert [f.kind for f in result.late] == [MISSING_FILE]

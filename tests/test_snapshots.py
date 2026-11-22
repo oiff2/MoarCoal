@@ -54,6 +54,7 @@ from moarcoal.storage import (
     ProposalField,
     Put,
     Rejected,
+    Sites,
     Snapshot,
     State,
     Store,
@@ -112,7 +113,7 @@ def store(tmp_path: Path, site: Path) -> Store:
 
 
 def values_on(state: State) -> Values:
-    return Values(MODULES, state)
+    return Values(MODULES, state, sites=Sites({}))
 
 
 def take(
@@ -146,7 +147,7 @@ def snapshots(store: Store) -> list[Snapshot]:
 
 
 def finding_list(store: Store) -> list[Finding]:
-    return Values(MODULES, store.state()).finding_list(USER, 2025).visible
+    return Values(MODULES, store.state(), sites=store.sites).finding_list(USER, 2025).visible
 
 
 def frozen(snapshot: Snapshot, key: str) -> FrozenValue:

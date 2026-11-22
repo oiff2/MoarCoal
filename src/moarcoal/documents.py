@@ -106,6 +106,12 @@ class DocumentKind:
     unique_per_period: bool = False
 
 
+def kind_title(kinds: Mapping[str, DocumentKind], key: str | None) -> str:
+    """Titel der Dokumentart `key`; eine unbekannte Art zeigt ihren Schlüssel, ohne Art leer."""
+    kind = kinds.get(key or "")
+    return kind.title if kind else (key or "")
+
+
 @dataclass(frozen=True)
 class TakenIn:
     document: Document
@@ -660,10 +666,11 @@ def rereading_findings(
     user: str,
     year: int,
     kinds: Mapping[str, DocumentKind],
+    sites: Sites,
 ) -> list[Finding]:
-    """Ein Hinweis je Neueinlesung des Nutzers, deren Dokument das Jahr betrifft.
+    """Ein Hinweis je Neueinlesung des Nutzers, deren Dokument zum Jahr gehört (`belongs_to_year`).
 
-    Dokumente ohne Bezugszeitraum gelten für jedes Jahr. Der Link führt zum ersten
+    Der Link führt zum ersten
     eingelesenen Eintrag des Dokuments, wenn sein Modul eine Seite dafür hat (die Anbindung löst das
     Ziel auf).
     """
@@ -672,11 +679,9 @@ def rereading_findings(
         document = state.get(rereading.document)
         if rereading.owner != user or not isinstance(document, Document):
             continue
-        start, end = document.period_start, document.period_end
-        if start and end and not start.year <= year <= end.year:
+        if not belongs_to_year(document, year, state, sites):
             continue
-        kind = kinds.get(document.document_kind or "")
-        title = kind.title if kind else "Dokument"
+        title = kind_title(kinds, document.document_kind) or "Dokument"
         shown = "; ".join(_describe(d) for d in rereading.differences[:SHOWN_DIFFERENCES])
         more = rereading.difference_count - min(SHOWN_DIFFERENCES, len(rereading.differences))
         message = (

@@ -11,7 +11,7 @@ import mimetypes
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from moarcoal.documents import DocumentKind
+from moarcoal.documents import DocumentKind, belongs_to_year, kind_title
 from moarcoal.extraction import (
     CLAUDE_TOOLS,
     Extracted,
@@ -30,6 +30,7 @@ from moarcoal.storage import (
     ProposalField,
     Put,
     SiteFileError,
+    Sites,
     State,
     Store,
 )
@@ -225,9 +226,9 @@ def confirm(
 
 
 def proposal_findings(
-    state: State, user: str, year: int, titles: Mapping[str, str]
+    state: State, user: str, year: int, kinds: Mapping[str, DocumentKind], sites: Sites
 ) -> list[Finding]:
-    """Hinweis je Vorschlag mit offenen Feldern, für Dokumente des Jahrs oder ohne Bezugszeitraum.
+    """Hinweis je Vorschlag mit offenen Feldern, für Dokumente des Jahrs (`belongs_to_year`).
 
     Der Fingerabdruck nennt die offenen Felder; bestätigt der Nutzer eines, kehrt ein
     ausgeblendeter Hinweis zurück.
@@ -238,12 +239,12 @@ def proposal_findings(
         proposal = latest_proposal(state, document)
         if proposal is None:
             continue
-        if document.period_start is not None and not document.touches_year(year):
+        if not belongs_to_year(document, year, state, sites):
             continue
         open_keys = proposal.open_keys
         if not open_keys:
             continue
-        title = titles.get(document.document_kind or "", document.document_kind or "Dokument")
+        title = kind_title(kinds, document.document_kind) or "Dokument"
         text = (
             f"Unbestätigter Vorschlag zu {title} {document.path}: "
             f"{len(open_keys)} von {len(proposal.fields)} Feldern offen"
