@@ -13,8 +13,8 @@
 {% if action %}<form{% if form_cls %} class="{{ form_cls }}"{% endif %} method="post" action="{{ action }}">{% if caller %}{{ caller() }}{% endif %}
   <button type="submit" class="ib{% if cls %} {{ cls }}{% endif %}" title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</button>
 </form>
-{%- elif href %}<a class="ib{% if cls %} {{ cls }}{% endif %}" href="{{ href }}"{% if attr %} {{ attr }}{% endif %} title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</a>
-{%- else %}<button type="button" class="ib{% if cls %} {{ cls }}{% endif %}"{% if popover %} popovertarget="{{ popover }}"{% endif %}{% if attr %} {{ attr }}{% endif %} title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</button>{% endif %}
+{%- elif href %}<a class="ib{% if cls %} {{ cls }}{% endif %}" href="{{ href }}"{% if attr %} {{ attr | safe }}{% endif %} title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</a>
+{%- else %}<button type="button" class="ib{% if cls %} {{ cls }}{% endif %}"{% if popover %} popovertarget="{{ popover }}"{% endif %}{% if attr %} {{ attr | safe }}{% endif %} title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</button>{% endif %}
 {%- endmacro %}
 
 {#- Icon-Aktion als Kopf eines aufklappenden Formulars (`<summary>` in `<details>`). -#}
@@ -84,4 +84,10 @@ streifen-{{ {"error": "fehler", "warning": "warnung", "proven": "gut", "fits": "
 {#- Zahl mit Einzahl oder Mehrzahl: „1 Beleg“, „2 Belege“. -#}
 {% macro zahl(n, einzahl, mehrzahl) -%}
 {{ n }} {{ einzahl if n == 1 else mehrzahl }}
+{%- endmacro %}
+
+{#- Knopf mit Icon und sichtbarem Text, für unumkehrbare oder mehrdeutige Aktionen und für Formular-Knöpfe (Speichern, Löschen, …); der Text ist der Name,
+    deshalb kein aria-label. type="submit" (Vorgabe) oder "button"; titel ist eine zusätzliche Kurzinfo. Rein als Icon: ib(). -#}
+{% macro bt(name, text, type="submit", cls="", attr="", titel="") -%}
+<button type="{{ type }}" class="bt{% if cls %} {{ cls }}{% endif %}"{% if titel %} title="{{ titel }}"{% endif %}{% if attr %} {{ attr | safe }}{% endif %}>{{ icon(name) }}<span class="bt-text">{{ text }}</span></button>
 {%- endmacro %}

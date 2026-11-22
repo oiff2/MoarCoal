@@ -1,4 +1,4 @@
-{% from "_ui.html" import abschnitt %}
+{% from "_ui.html" import abschnitt, bt %}
 {#- Karte der Dienstreisen: Startorte als Raute mit Haus-Symbol, Reiseziele als Kreis mit der Zahl der Fahrten; der Name steht neben dem Punkt und im Tooltip. Die Lage eines Orts sucht nur der Klick auf „Suchen“ (ADR 0008). -#}
 {#- Haus aus Lucide „house“ (ISC-Lizenz), 24er Raster, hier auf Rautengröße verkleinert und mittig gesetzt. -#}
 {% macro house() -%}
@@ -6,7 +6,7 @@
 {%- endmacro %}
 {% macro place_button(place, action, label) -%}
 <form method="post" action="/arbeit/dienstreisen/{{ year }}/orte/{{ action }}" class="inline">
-  <input type="hidden" name="ort" value="{{ place }}"><button type="submit">{{ label }}</button>
+  <input type="hidden" name="ort" value="{{ place }}">{{ bt("auge-aus", label) }}
 </form>
 {%- endmacro %}
 {% call abschnitt("karte", "Karte der Orte", none) %}
@@ -38,7 +38,7 @@
       <form method="post" action="/arbeit/dienstreisen/{{ year }}/orte/suche" class="inline">
         <input type="hidden" name="ort" value="{{ use.name }}">
         <label class="inline">{{ use.name }} <input name="suche" value="{% if search and search.place == use.name %}{{ search.text }}{% else %}{{ use.name }}{% endif %}" size="24"></label>
-        <button type="submit">Suchen</button>
+        {{ bt("suchen", "Suchen") }}
       </form>
       {{ place_button(use.name, "ausblenden", "nicht auf der Karte zeigen") }}
       {% if search and search.place == use.name %}
@@ -52,7 +52,7 @@
             <input type="hidden" name="breite" value="{{ hit.latitude }}">
             <input type="hidden" name="laenge" value="{{ hit.longitude }}">
             <input type="hidden" name="name" value="{{ hit.name }}">
-            <button type="submit">wählen</button> {{ hit.name }}{% if hit.state %} · {{ hit.state }}{% endif %}
+            {{ bt("haken", "wählen") }} {{ hit.name }}{% if hit.state %} · {{ hit.state }}{% endif %}
           </form>
         </li>
         {% endfor %}

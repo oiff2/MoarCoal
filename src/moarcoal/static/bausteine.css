@@ -15,6 +15,7 @@ form.inline { display: inline; }
 .nur-vorlesen { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .nur-js { display: none; }
 html.js .nur-js { display: inline; }
+html.js .bt.nur-js { display: inline-flex; }
 html.js .ohne-js { display: none; }
 html:not(.js) .darstellung { display: none; }
 tr:target { outline: var(--rahmen-dick) solid var(--warnung-rand); }
@@ -241,3 +242,8 @@ table.arbeitsmittel tr.bearbeiten td { padding-top: 0; border-bottom: var(--lini
 .anlagen-baum summary a { flex: 1; font-weight: 600; }
 .anlagen-baum summary small { opacity: 0.6; }
 .anlagen-baum ul { list-style: none; margin: 0 0 var(--abstand-2) var(--abstand-5); padding: 0; font-size: var(--fs-s); }
+
+/* Knopf mit Icon und Text (bt in _ui.html), Kästchen mit Icon und Text, aufklappende Formulare mit Plus */
+.bt, label.bt-label { display: inline-flex; align-items: center; gap: var(--abstand-2); }
+.bt .icon, label.bt-label .icon, .formular-eintrag > summary .icon { width: var(--icon-knopf); height: var(--icon-knopf); flex: none; }
+.formular-eintrag > summary .icon { display: inline-block; vertical-align: text-bottom; }

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_ui.html" import abschnitt %}
+{% from "_ui.html" import abschnitt, bt %}
 {% from "issuers/_references.html" import documents_table, expected_table %}
 {% block title %}{{ issuer.name }} – MoarCoal{% endblock %}
 {% block main %}
@@ -28,7 +28,7 @@
     Privatperson (Name und Anschrift sind sensibel)
   </label>
   {% endif %}
-  <div><button type="submit">Speichern</button></div>
+  <div>{{ bt("speichern", "Speichern") }}</div>
 </form>
 {% endcall %}
 
@@ -56,7 +56,7 @@
       {% for other in others %}<option value="{{ other.id }}">{{ other.name }}</option>{% endfor %}
     </select>
   </label>
-  <div><button type="submit">Folgen ansehen</button></div>
+  <div>{{ bt("auge", "Folgen ansehen") }}</div>
 </form>
 {% endcall %}
 {% endif %}
@@ -69,7 +69,7 @@
 {% else %}
 <form method="post" action="/aussteller/{{ issuer.id }}/loeschen" class="inline">
   <input type="hidden" name="checksum" value="{{ checksum }}">
-  <button type="submit">Löschen</button>
+  {{ bt("loeschen", "Löschen") }}
 </form>
 {% endif %}
 {% endcall %}

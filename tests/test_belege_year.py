@@ -190,7 +190,7 @@ def test_expected_lists_the_due_ones_with_state_and_remove(client: httpx.Client)
     assert "Übertragungsprotokoll" in erwartet
     assert "ausstehend" in erwartet
     assert "/loeschen" in erwartet and "Entfernen" in erwartet
-    assert "+ erwarteten Beleg anlegen" in erwartet
+    assert "erwarteten Beleg anlegen" in erwartet
 
 
 def test_expected_state_is_there_with_a_link_to_the_document(

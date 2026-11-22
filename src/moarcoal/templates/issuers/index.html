@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% from "_ui.html" import bt %}
 {% block title %}Aussteller – MoarCoal{% endblock %}
 {% block main %}
 <h1>Aussteller</h1>
 <form class="suche" method="get" action="/aussteller" role="search">
   <input type="search" name="q" value="{{ query }}" placeholder="Suche in Name und weiteren Namen" aria-label="Suche in Name und weiteren Namen">
-  <button type="submit">Suchen</button>
+  {{ bt("suchen", "Suchen") }}
   {% if query %}<a href="/aussteller">Zurücksetzen</a>{% endif %}
 </form>
 {% if rows %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_ui.html" import abschnitt %}
+{% from "_ui.html" import abschnitt, bt %}
 {% from "issuers/_references.html" import documents_table, expected_table %}
 {% block title %}Zusammenführen – MoarCoal{% endblock %}
 {% block main %}
@@ -42,7 +42,7 @@
     <input type="checkbox" name="confirm">
     Ja, „{{ source.name }}“ mit „{{ target.name }}“ zusammenführen
   </label>
-  <div><button type="submit">Zusammenführen</button></div>
+  <div>{{ bt("zusammenfuehren", "Zusammenführen") }}</div>
 </form>
 {% endcall %}
 {% endblock %}

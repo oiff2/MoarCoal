@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_issuer_field.html" import issuer_field %}
-{% from "_ui.html" import abschnitt, chip, dateityp, hide_button, ib, status, zahl %}
+{% from "_ui.html" import abschnitt, chip, dateityp, hide_button, ib, status, zahl, bt, icon %}
 {% from "_belege.html" import preview, rejection %}
 {% from "_findings.html" import finding_list %}
 {% from "documents/_detail.html" import document_detail with context %}
@@ -32,12 +32,12 @@
     </label>
     <label>Bezeichnung (freiwillig) <input type="text" name="label" value="{{ form.get('label', '') }}" maxlength="500"></label>
     <label class="jahr">Jahr{% if suggestion.year and not linked.year %} <small class="aus-name" data-aus-name>aus Name</small>{% endif %} <input name="year" value="{{ form.get('year', suggestion.year or default_year) }}" size="6"></label>
-    <button type="submit">Aufnehmen</button>
+    {{ bt("plus", "Aufnehmen") }}
   </form>
   <form method="post" action="{{ keep_filter('/belege/ausblenden') }}">
     <input type="hidden" name="sha256" value="{{ file.sha256 }}">
     <label>Notiz (freiwillig) <input type="text" name="note"></label>
-    <button type="submit">Ausblenden</button>
+    {{ bt("auge-aus", "Ausblenden") }}
   </form>
 </div>
 {{ preview(preview_kind, preview_url, file.path) }}
@@ -64,7 +64,7 @@
   {% if linked.kind %}<input type="hidden" name="dokumentart" value="{{ linked.kind }}">{% endif %}
   {% for type in search.types | sort(attribute="value") %}<input type="hidden" name="typ" value="{{ type.value }}">{% endfor %}
   <input type="search" name="suche" value="{{ search.query }}" placeholder="Suche in Name, Ordner, Aussteller, Bezeichnung" aria-label="Suche">
-  <button type="submit">Filtern</button>
+  {{ bt("filtern", "Filtern") }}
   {% if search.active %}<a href="/belege{% if linked.year %}?jahr={{ linked.year }}{% endif %}">Zurücksetzen</a>{% endif %}
 </form>
 <div class="chips" role="group" aria-label="Dateityp">
@@ -74,7 +74,7 @@
   {{ chip(type.label, count, href=site_url(document_kind=linked.kind, year=linked.year, query=search.query, types=toggled | sort), gedrueckt=type in search.types) }}
   {% endfor %}
 </div>
-<p class="werkzeug"><button type="button" class="nur-js" data-umschalten="detailspalte-aus" data-umschalten-ziel=".arbeit" data-umschalten-klasse="ohne-detail" data-text-an="Detailspalte einblenden" data-text-aus="Detailspalte ausblenden" aria-controls="detailspalte" aria-expanded="true">Detailspalte ausblenden</button></p>
+<p class="werkzeug">{{ bt("detailspalte", "Detailspalte ausblenden", type="button", cls="nur-js", attr='data-umschalten="detailspalte-aus" data-umschalten-ziel=".arbeit" data-umschalten-klasse="ohne-detail" data-text-an="Detailspalte einblenden" data-text-aus="Detailspalte ausblenden" aria-controls="detailspalte" aria-expanded="true"') }}</p>
 {% if notice and not selected_document %}<p class="fehler">{{ notice }}</p>{% endif %}
 {% if taken is not none %}<p class="fehler">{{ zahl(taken, "Beleg", "Belege") }} aufgenommen.{% if skipped %} Übersprungen: {{ skipped | join("; ") }}{% endif %}</p>{% endif %}
 <div class="baum" data-pfeile data-pfeile-enter=".formular input:not([type=hidden])">
@@ -86,7 +86,7 @@
     {% if new.files() %}
     <form class="alle-aufnehmen" method="post" action="{{ keep_filter('/belege/alle-aufnehmen') }}">
       {% for row in new.files() %}<input type="hidden" name="site" value="{{ row.file.site }}"><input type="hidden" name="path" value="{{ row.file.path }}"><input type="hidden" name="sha256" value="{{ row.file.sha256 }}">{% endfor %}
-      <button type="submit">alle neuen aufnehmen ({{ new.files() | length }})</button>
+      {{ bt("plus", "alle neuen aufnehmen (" ~ (new.files() | length) ~ ")") }}
       <small>Die Art wird danach je Beleg gesetzt. Es folgen keine Claude-Aufrufe.</small>
     </form>
     {% endif %}
@@ -146,7 +146,7 @@
         <td class="stand">{% if row.pending %}ausstehend{% else %}da: {% for doc in row.documents %}<a href="{{ keep_filter(entry_url(doc.address)) }}">{{ document_name(doc) }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</td>
         <td class="aktionen"><form class="direkt" method="post" action="{{ keep_filter('/belege/erwartet/' ~ row.entry.id ~ '/loeschen') }}">
           <input type="hidden" name="checksum" value="{{ row.checksum }}">
-          <button type="submit">Entfernen</button>
+          {{ bt("loeschen", "Entfernen") }}
         </form></td>
       </tr>
       {% endfor %}
@@ -156,12 +156,12 @@
     <p>Für {{ year }} ist kein Beleg erwartet.</p>
     {% endif %}
     <details class="formular-eintrag"{% if expected_errors %} open{% endif %}>
-      <summary>+ erwarteten Beleg anlegen</summary>
+      <summary>{{ icon("plus") }} erwarteten Beleg anlegen</summary>
       {% if expected_kinds %}
       {% with errors=expected_errors %}{% include "work/_errors.html" %}{% endwith %}
       <form method="post" action="{{ keep_filter('/belege/erwartet') }}">
         {% with kinds=expected_kinds, values=expected_values %}{% include "expected_documents/_fields.html" %}{% endwith %}
-        <button type="submit">Speichern</button>
+        {{ bt("speichern", "Speichern") }}
       </form>
       {% else %}
       <p>Keine Dokumentart mit Bezugszeitraum angemeldet.</p>

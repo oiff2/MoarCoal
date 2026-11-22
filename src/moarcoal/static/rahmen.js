@@ -131,7 +131,7 @@
       } else {
         button.setAttribute("aria-pressed", String(on));
       }
-      if (button.dataset.textAn && button.dataset.textAus) button.textContent = on ? button.dataset.textAn : button.dataset.textAus;
+      if (button.dataset.textAn && button.dataset.textAus) (button.querySelector(".bt-text") || button).textContent = on ? button.dataset.textAn : button.dataset.textAus;
     }
     var on = key ? lies(key) === "1" : button.getAttribute("aria-pressed") === "true";
     show(on);

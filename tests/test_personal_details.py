@@ -143,7 +143,7 @@ def test_without_user_the_start_page_shows_the_form_only(tmp_path: Path) -> None
     page = make_client(tmp_path).get("/").text
     assert "Bitte Nutzer anlegen" in page
     assert 'name="first_name"' in page and 'name="last_name"' in page
-    assert "Nutzer anlegen</button>" in page
+    assert "Nutzer anlegen</span>" in page
     assert "MoarCoal</span></a>" in page
     for link in ("/belege", "/aussteller", "/befunde", "/arbeit", "/steuerjahr"):
         assert f'href="{link}' not in page

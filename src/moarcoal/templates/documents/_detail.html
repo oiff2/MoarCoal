@@ -1,6 +1,6 @@
 {# Detailspalte eines Dokuments: Felder, Vorschlag bestätigen, Auslesen, Einträge, Aktionen. `d` kommt von
    `document_detail` (site_pages.py). Eingebunden rechts auf der Belege-Seite. #}
-{% from "_ui.html" import abschnitt %}
+{% from "_ui.html" import abschnitt, bt %}
 {% from "_document_form.html" import document_form, document_entries, document_actions with context %}
 {% macro document_detail(d) %}
 {% set document = d.document %}
@@ -23,7 +23,7 @@
     <form method="post" action="{{ keep_filter('/dokumente/' ~ document.id ~ '/bestaetigen') }}">
       <input type="hidden" name="field" value="{{ key }}">
       <label>Korrektur <input type="text" name="correction" value="{{ field.correction or '' }}" size="18"></label>
-      <button type="submit">bestätigen</button>
+      {{ bt("haken", "bestätigen") }}
     </form>
   </li>
   {% endfor %}
@@ -31,7 +31,7 @@
 {% if d.proposal.open_keys %}
 <form method="post" action="{{ keep_filter('/dokumente/' ~ document.id ~ '/bestaetigen') }}">
   <input type="hidden" name="all" value="1">
-  <button type="submit">alle bestätigen</button>
+  {{ bt("haken-doppelt", "alle bestätigen") }}
 </form>
 {% else %}
 <p>Alle Felder sind bestätigt.</p>
@@ -39,13 +39,13 @@
 {% endcall %}
 {% call abschnitt("dokument-neu-auslesen", "Neu auslesen", none, "Liest das Dokument noch einmal aus. Der neue Vorschlag gilt dann; bestätigt werden muss er neu, der alte bleibt gespeichert.") %}
 <form method="post" action="{{ keep_filter('/dokumente/' ~ document.id ~ '/auslesen') }}">
-  <button type="submit">Neu auslesen</button>
+  {{ bt("neu-auslesen", "Neu auslesen") }}
 </form>
 {% endcall %}
 {% elif d.template %}
 {% call abschnitt("dokument-auslesen", "Auslesen", none, "Claude liest dieses Dokument nach der Auslese-Vorlage der Dokumentart aus. Das Ergebnis ist ein Vorschlag, den Sie danach je Feld bestätigen oder korrigieren.") %}
 <form method="post" action="{{ keep_filter('/dokumente/' ~ document.id ~ '/auslesen') }}">
-  <button type="submit">Auslesen</button>
+  {{ bt("auslesen", "Auslesen") }}
 </form>
 {% endcall %}
 {% else %}

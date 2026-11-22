@@ -1,5 +1,5 @@
 {#- Sonderteil der Anlage SA, unten auf jeder Seite (`data`: die Zahlungen mit ihren Formularen). Kirchensteuerzahlungen des Jahrs auf der Seite der Anlage SA: Liste mit aufklappenden Formularen zum Ändern, darunter „Neue Kirchensteuerzahlung“. Nach einer Abweisung steht das Formular offen, mit den Gründen. -#}
-{% from "_ui.html" import ib_summary %}
+{% from "_ui.html" import ib_summary, bt, icon %}
 {% macro payment_form(form, data) %}
 <form method="post" action="{{ form.action }}">
   <input type="hidden" name="page_year" value="{{ data.year }}">
@@ -26,7 +26,7 @@
       {% for choice in data.documents %}<option value="{{ choice.id }}"{% if choice.id == form.values.get('document', '') %} selected{% endif %}>{{ choice.label }}</option>{% endfor %}
     </select>
   </label>
-  <button type="submit">Speichern</button>
+  {{ bt("speichern", "Speichern") }}
 </form>
 {% endmacro %}
 <section class="kirchensteuerzahlungen" id="kirchensteuerzahlungen">
@@ -50,7 +50,7 @@
         <form method="post" action="{{ form.action }}/loeschen" class="inline">
           <input type="hidden" name="page_year" value="{{ data.year }}">
           <input type="hidden" name="checksum" value="{{ form.checksum }}">
-          <button type="submit">Löschen</button>
+          {{ bt("loeschen", "Löschen") }}
         </form>
       </details>
     </td></tr>
@@ -60,7 +60,7 @@
   <p>Für {{ data.year }} ist noch keine Kirchensteuerzahlung erfasst.</p>
   {% endif %}
   <details class="formular-eintrag"{% if data.new.open %} open{% endif %}>
-    <summary>Neue Kirchensteuerzahlung</summary>
+    <summary>{{ icon("plus") }} Neue Kirchensteuerzahlung</summary>
     {{ payment_form(data.new, data) }}
   </details>
 </section>

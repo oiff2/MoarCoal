@@ -1,4 +1,4 @@
-{% from "_ui.html" import icon, ib, severity as status_severity %}<!doctype html>
+{% from "_ui.html" import icon, ib, severity as status_severity, bt %}<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8">
@@ -32,7 +32,7 @@
     <form class="jahrwahl" method="post" action="/jahr">
       <input type="hidden" name="back" value="{{ request.url.path }}">
       <label>Jahr <select name="year" data-absenden>{% for y in year_choices() %}<option value="{{ y }}"{% if y == shell_year %} selected{% endif %}>{{ y }}</option>{% endfor %}</select></label>
-      <button class="ohne-js">Wählen</button>
+      {{ bt("haken", "Wählen", cls="ohne-js") }}
     </form>
     {% set summary = findings_summary() %}
     {% set plural = {"Fehler": "Fehler", "Warnung": "Warnungen", "Hinweis": "Hinweise"} %}

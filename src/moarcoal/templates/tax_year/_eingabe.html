@@ -1,5 +1,5 @@
 {#- Eintippfeld einer Anlage: Angabe und darunter die Auswahl oder ein Textfeld direkt am Feld (htmx). Der Austausch ersetzt das ganze Teil. -#}
-{% from "_ui.html" import not_yet %}
+{% from "_ui.html" import not_yet, bt %}
 {% macro input_cell(form_slug, year, field, typed, content, error) %}
 <div id="eingabe-{{ field.elster_id }}">
   {% if content %}
@@ -16,7 +16,7 @@
     {% else %}
     <input name="content" type="text" value="{{ content or '' }}" aria-label="{{ field.label }}"{% if typed.day_range %} placeholder="TT.MM-TT.MM"{% endif %}>
     {% endif %}
-    <button type="submit">Speichern</button>
+    {{ bt("speichern", "Speichern") }}
     {% if error %}<span class="fehler">{{ error }}</span>{% endif %}
   </form>
 </div>

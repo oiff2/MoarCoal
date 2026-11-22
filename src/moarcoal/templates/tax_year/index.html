@@ -1,5 +1,5 @@
 {% extends "tax_year/_rahmen.html" %}
-{% from "_ui.html" import abschnitt %}
+{% from "_ui.html" import abschnitt, bt %}
 {% block title %}Steuerjahr – MoarCoal{% endblock %}
 {% block inhalt %}
 <h1>Steuerjahr {{ year }}</h1>
@@ -34,7 +34,7 @@
   <label>Persönliche Bearbeitungsnotiz (wird nicht an das Finanzamt übermittelt)
     <textarea name="note" rows="4" maxlength="600">{{ person.note }}</textarea>
   </label>
-  <button type="submit">Speichern</button>
+  {{ bt("speichern", "Speichern") }}
 </form>
 
 {% endcall %}

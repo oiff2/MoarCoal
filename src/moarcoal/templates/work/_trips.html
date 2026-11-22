@@ -1,4 +1,4 @@
-{% from "_ui.html" import abschnitt, belegstand, ib, icon, not_yet %}
+{% from "_ui.html" import abschnitt, belegstand, ib, icon, not_yet, bt %}
 {% macro cell(row, n, name, col, value, size, extra="") -%}
 <input name="{{ name }}-{{ n }}" value="{{ value }}" size="{{ size }}" data-col="{{ col }}"{{ extra | safe }}{% if row.errors[name] %} class="ungueltig" title="{{ row.errors[name] }}"{% endif %}>
 {%- endmacro %}
@@ -26,12 +26,12 @@
 <p class="stand">
   {% if confirmation %}
   Vollständig bestätigt am {{ confirmation.confirmed_on.strftime("%d.%m.%Y") }}.
-  <form method="post" action="/arbeit/dienstreisen/{{ year }}/vollstaendig/aufheben" class="inline"><button type="submit">Bestätigung aufheben</button></form>
+  <form method="post" action="/arbeit/dienstreisen/{{ year }}/vollstaendig/aufheben" class="inline">{{ bt("rueckgaengig", "Bestätigung aufheben") }}</form>
   {% else %}
   Noch nicht als vollständig bestätigt. Ändert sich eine Reise, ist die Bestätigung aufgehoben.
   <form method="post" action="/arbeit/dienstreisen/{{ year }}/vollstaendig" class="inline">
     <input type="hidden" name="stand" value="{{ stand }}">
-    <button type="submit" title="Alle Dienstreisen des Jahres sind erfasst (oder es gab keine)">Dienstreisen vollständig</button>
+    {{ bt("liste-haken", "Dienstreisen vollständig", titel="Alle Dienstreisen des Jahres sind erfasst (oder es gab keine)") }}
   </form>
   {% endif %}
 </p>
@@ -75,14 +75,14 @@
         {% endfor %}
       </tbody>
     </table>
-    <button type="submit">Gewählte übernehmen</button>
+    {{ bt("haken", "Gewählte übernehmen") }}
   </form>
   {% else %}
   <p>Claude hat keine Reise gefunden.</p>
   {% endif %}
   <form method="post" action="/arbeit/dienstreisen/{{ year }}/vorschlag/{{ s.proposal.id }}/loeschen" class="inline">
     <input type="hidden" name="pruefsumme" value="{{ s.checksum }}">
-    <button type="submit">Vorschlag löschen</button>
+    {{ bt("loeschen", "Vorschlag löschen") }}
   </form>
   {% endif %}
   {% endfor %}
@@ -109,7 +109,7 @@
         <td>{{ cell(row, n, "notiz", 4, row.note, 24) }}</td>
         <td class="aktionen">{% if row.entry_id %}
           {{ ib("kopieren", "Reise kopieren: Orte, km und Notiz in die neue Reise", cls="reise-kopieren", attr="hidden") }}
-          <label title="Reise beim Speichern löschen"><input type="checkbox" name="loeschen-{{ n }}" value="ja" data-col="5"{% if row.delete %} checked{% endif %}> löschen</label>
+          <label class="bt-label" title="Reise beim Speichern löschen"><input type="checkbox" name="loeschen-{{ n }}" value="ja" data-col="5"{% if row.delete %} checked{% endif %}>{{ icon("loeschen") }} löschen</label>
         {% endif %}</td>
       </tr>
       {% if row.errors %}<tr class="fehler-zeile"><td></td><td colspan="7" class="fehler">{{ row.errors.values() | join(" ") }}</td></tr>{% endif %}
@@ -133,9 +133,9 @@
   </table>
   </div>
   <div class="knoepfe">
-    <button type="button" id="reise-dazu" hidden>+ Reise</button>
-    <button type="submit">Speichern</button>
-    <button type="button" id="abbrechen" hidden>Abbrechen</button>
+    {{ bt("plus", "Reise", type="button", attr='id="reise-dazu" hidden') }}
+    {{ bt("speichern", "Speichern") }}
+    {{ bt("abbrechen", "Abbrechen", type="button", attr='id="abbrechen" hidden') }}
   </div>
 </form>
 <script src="/static/trip_table.js" defer></script>
