@@ -144,3 +144,12 @@ form.ausblenden::backdrop { background: var(--text); opacity: 0.3; }
 
 nav.seiten { display: flex; flex-wrap: wrap; gap: var(--abstand-2) var(--abstand-5); margin: var(--abstand-3) 0; }
 nav.seiten a[aria-current="page"] { font-weight: bold; text-decoration: none; }
+
+/* Icon-Aktionen, die ein Formular aufklappen (summary) oder erst beim Speichern wirken (Haken) */
+.formular-eintrag > summary.ib { display: inline-block; list-style: none; }
+.formular-eintrag > summary.ib::-webkit-details-marker { display: none; }
+.haken { position: relative; display: inline-block; cursor: pointer; }
+.haken input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.haken:hover, .haken:has(input:checked) { background: var(--hover); }
+.haken:has(input:checked) { color: var(--fehler); outline: var(--linienstaerke) solid var(--fehler-rand); border-radius: var(--radius); }
+.haken:has(input:focus-visible) { outline: var(--rahmen-dick) solid var(--akzent); border-radius: var(--radius); }

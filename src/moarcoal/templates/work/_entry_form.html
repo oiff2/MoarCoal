@@ -1,7 +1,8 @@
+{% from "_ui.html" import ib_summary %}
 {#- Ein Formular der Seite Arbeit, aufklappend: zu einem Eintrag (mit Löschen) oder neu. Nach einer Abweisung steht es offen, mit den Gründen. -#}
 {% macro entry_form(form, label) %}
 <details class="formular-eintrag"{% if form.open %} open{% endif %}{% if form.entry_id %} id="eintrag-{{ form.entry_id }}"{% endif %}>
-  <summary>{{ label }}</summary>
+  {% if form.entry_id %}{{ ib_summary("stift", label) }}{% else %}<summary>{{ label }}</summary>{% endif %}
   {% with errors = form.errors, values = form.values, kind = form.kind %}
   {% include "work/_errors.html" %}
   <form method="post" action="{{ form.action }}">

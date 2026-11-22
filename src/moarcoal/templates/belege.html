@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_issuer_field.html" import issuer_field %}
-{% from "_ui.html" import abschnitt, dateityp, hide_button, zahl %}
+{% from "_ui.html" import abschnitt, dateityp, hide_button, ib, zahl %}
 {% from "_belege.html" import preview, rejection %}
 {% from "_findings.html" import finding_list %}
 {% from "documents/_detail.html" import document_detail with context %}
@@ -12,7 +12,7 @@
   <a class="name" href="{{ keep_filter(site_url(file=file.sha256, document_kind=linked.kind, year=linked.year)) }}"{% if selected and selected.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
   <span class="ordner-name">{{ row.folder }}{% if row.folder %} {{ hide_button(keep_filter('/belege/ausblenden-direkt'), site=site, path=row.folder) }}{% endif %}</span>
   <a class="aktion" href="{{ keep_filter(site_url(file=file.sha256, document_kind=linked.kind, year=linked.year)) }}">aufnehmen</a>
-  <a class="aktion" href="{{ row.preview_url }}" target="_blank" rel="noopener">öffnen</a>
+  {{ ib("extern", "Öffnen in neuem Tab", href=row.preview_url, attr='target="_blank" rel="noopener"') }}
   {{ hide_button(keep_filter('/belege/ausblenden-direkt'), sha256=file.sha256) }}
 </div>
 {% endmacro %}
@@ -48,11 +48,10 @@
 <div class="formular">
   <p class="dateiname">{{ entry.site }}/{{ entry.path }}</p>
   <p>Für alle Nutzer ausgeblendet, bis jemand die Datei wieder einblendet; sie zählt in keinem Zähler.{% if entry.note %} Notiz: {{ entry.note }}{% endif %}</p>
-  <form method="post" action="{{ keep_filter('/belege/einblenden') }}">
+  {% call ib("auge", "Wieder einblenden", action=keep_filter('/belege/einblenden')) %}
     <input type="hidden" name="sha256" value="{{ entry.sha256 }}">
     <input type="hidden" name="checksum" value="{{ checksum }}">
-    <button type="submit">Wieder einblenden</button>
-  </form>
+  {% endcall %}
 </div>
 {{ preview(preview_kind, preview_url, entry.path) }}
 {% endmacro %}
@@ -103,12 +102,11 @@
         <span class="name">{{ entry.path }}/</span>
         <span class="zahl">{{ count }} {{ "Datei" if count == 1 else "Dateien" }}</span>
         <span class="stand">ausgeblendet</span>
-        <form class="direkt" method="post" action="{{ keep_filter('/belege/einblenden-ordner') }}">
+        {% call ib("auge", "Wieder einblenden", action=keep_filter('/belege/einblenden-ordner'), form_cls="direkt") %}
           <input type="hidden" name="site" value="{{ entry.site }}">
           <input type="hidden" name="path" value="{{ entry.path }}">
           <input type="hidden" name="checksum" value="{{ checksum }}">
-          <button type="submit">Wieder einblenden</button>
-        </form>
+        {% endcall %}
       </div>
       {% endfor %}
       {% for row in new.hidden_files %}{% set entry, file = row.entry, row.file %}

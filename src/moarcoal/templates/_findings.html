@@ -25,7 +25,7 @@
     {% if year %}
     {% set failed = error == finding.identity %}
     {% set dialog_id = "ausblenden-" ~ scope ~ loop.index ~ "-" ~ finding.fingerprint %}
-    {{ ib("auge", "Ausblenden", popover=dialog_id) }}
+    {{ ib("auge-aus", "Ausblenden", popover=dialog_id) }}
     <form id="{{ dialog_id }}" class="ausblenden" {% if not failed %}popover{% endif %} method="post" action="/befunde/ausblenden">
       <p>{{ finding.message }}</p>
       <input type="hidden" name="year" value="{{ year }}">
@@ -54,11 +54,10 @@
   <li>
     {% if item.finding.href %}<a href="{{ item.finding.href }}">{{ item.finding.message }}</a>{% else %}{{ item.finding.message }}{% endif %}
     <br><em>ausgeblendet: {{ item.dismissal.note }} ({{ item.dismissal.noted_on.strftime("%d.%m.%Y") }})</em>
-    <form method="post" action="/befunde/einblenden">
+    {% call ib("auge", "Einblenden", action="/befunde/einblenden") %}
       <input type="hidden" name="year" value="{{ year }}">
       <input type="hidden" name="id" value="{{ item.dismissal.id }}">
-      <button type="submit">Einblenden</button>
-    </form>
+    {% endcall %}
   </li>
   {% endfor %}
 </ul>

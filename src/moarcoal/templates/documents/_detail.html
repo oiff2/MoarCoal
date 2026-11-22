@@ -1,5 +1,6 @@
 {# Detailspalte eines Dokuments: Felder, Vorschlag bestätigen, Auslesen, Einträge, Aktionen. `d` kommt von
    `document_detail` (site_pages.py). Eingebunden rechts auf der Belege-Seite. #}
+{% from "_ui.html" import ib %}
 {% from "_document_form.html" import document_form, document_entries, document_actions with context %}
 {% macro document_detail(d) %}
 {% set document = d.document %}
@@ -38,9 +39,7 @@
 {% endif %}
 <h2>Neu auslesen</h2>
 <p>Liest das Dokument noch einmal aus. Der neue Vorschlag gilt dann; bestätigt werden muss er neu, der alte bleibt gespeichert.</p>
-<form method="post" action="{{ keep_filter('/dokumente/' ~ document.id ~ '/auslesen') }}">
-  <button type="submit">Neu auslesen</button>
-</form>
+{{ ib("neu-auslesen", "Neu auslesen", action=keep_filter('/dokumente/' ~ document.id ~ '/auslesen')) }}
 {% elif d.template %}
 <h2>Auslesen</h2>
 <p>Claude liest dieses Dokument nach der Auslese-Vorlage der Dokumentart aus. Das Ergebnis ist ein Vorschlag, den Sie danach je Feld bestätigen oder korrigieren.</p>

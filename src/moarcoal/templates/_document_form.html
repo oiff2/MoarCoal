@@ -3,6 +3,7 @@
    `bound` sind alle Einträge, die am Dokument hängen: solange es welche gibt, sind Art und Jahr
    gesperrt. `references` sind die, die das Löschen sperren (was mit dem Dokument wegfällt oder nur
    schwach verweist, zählt nicht): solange es welche gibt, ist Löschen nicht möglich. #}
+{% from "_ui.html" import ib %}
 {% from "_issuer_field.html" import issuer_field %}
 {% macro entry_link(ref, labels) %}{% set url = entry_url(ref.address) %}{% if url %}<a href="{{ keep_filter(url) }}">{{ labels.get(ref.address.kind, ref.address.kind) }}</a>{% else %}{{ labels.get(ref.address.kind, ref.address.kind) }}{% endif %}{% endmacro %}
 {% macro document_form(document, kinds, bound, default_year, issuer_text="", year="") %}
@@ -31,7 +32,7 @@
 {% endmacro %}
 {% macro document_actions(document, file_url, references, bound, checksum, labels) %}
 <h2>Aktionen</h2>
-<p><a href="{{ file_url }}" target="_blank" rel="noopener">Datei öffnen</a></p>
+<p>{{ ib("extern", "Datei öffnen", href=file_url, attr='target="_blank" rel="noopener"') }}</p>
 {% if references %}
 <p>Das Dokument lässt sich nicht löschen, solange daran hängt:
   {% for ref in references %}{{ entry_link(ref, labels) }}{% if not loop.last %}, {% endif %}{% endfor %}.</p>

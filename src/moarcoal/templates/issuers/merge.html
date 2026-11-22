@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_ui.html" import ib %}
 {% block title %}Zusammenführen – MoarCoal{% endblock %}
 {% block main %}
 <h1>{{ source.name }} zusammenführen mit {{ target.name }}</h1>
@@ -36,7 +37,7 @@
 <p>Keine Erwarteten Belege.</p>
 {% endif %}
 
-<form method="post" action="/aussteller/{{ source.id }}/zusammenfuehren">
+{% call ib("zusammenfuehren", "Zusammenführen", action="/aussteller/" ~ source.id ~ "/zusammenfuehren") %}
   <input type="hidden" name="into" value="{{ target.id }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   <input type="hidden" name="target_checksum" value="{{ target_checksum }}">
@@ -44,6 +45,5 @@
     <input type="checkbox" name="confirm">
     Ja, „{{ source.name }}“ mit „{{ target.name }}“ zusammenführen
   </label>
-  <button type="submit">Zusammenführen</button>
-</form>
+{% endcall %}
 {% endblock %}

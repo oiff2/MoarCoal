@@ -1,4 +1,5 @@
 {#- Sonderteil der Anlage SA, unten auf jeder Seite (`data`: die Zahlungen mit ihren Formularen). Kirchensteuerzahlungen des Jahrs auf der Seite der Anlage SA: Liste mit aufklappenden Formularen zum Ändern, darunter „Neue Kirchensteuerzahlung“. Nach einer Abweisung steht das Formular offen, mit den Gründen. -#}
+{% from "_ui.html" import ib_summary %}
 {% macro payment_form(form, data) %}
 <form method="post" action="{{ form.action }}">
   <input type="hidden" name="page_year" value="{{ data.year }}">
@@ -44,7 +45,7 @@
     </tr>
     <tr class="bearbeiten"><td colspan="5">
       <details class="formular-eintrag"{% if form.open %} open{% endif %} id="eintrag-{{ payment.id }}">
-        <summary>Ändern</summary>
+        {{ ib_summary("stift", "Ändern") }}
         {{ payment_form(form, data) }}
         <form method="post" action="{{ form.action }}/loeschen" class="inline">
           <input type="hidden" name="page_year" value="{{ data.year }}">

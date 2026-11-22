@@ -13,13 +13,23 @@
 {% if action %}<form{% if form_cls %} class="{{ form_cls }}"{% endif %} method="post" action="{{ action }}">{% if caller %}{{ caller() }}{% endif %}
   <button type="submit" class="ib{% if cls %} {{ cls }}{% endif %}" title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</button>
 </form>
-{%- elif href %}<a class="ib{% if cls %} {{ cls }}{% endif %}" href="{{ href }}" title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</a>
+{%- elif href %}<a class="ib{% if cls %} {{ cls }}{% endif %}" href="{{ href }}"{% if attr %} {{ attr }}{% endif %} title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</a>
 {%- else %}<button type="button" class="ib{% if cls %} {{ cls }}{% endif %}"{% if popover %} popovertarget="{{ popover }}"{% endif %}{% if attr %} {{ attr }}{% endif %} title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</button>{% endif %}
+{%- endmacro %}
+
+{#- Icon-Aktion als Kopf eines aufklappenden Formulars (`<summary>` in `<details>`). -#}
+{% macro ib_summary(name, label) -%}
+<summary class="ib" title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</summary>
+{%- endmacro %}
+
+{#- Icon-Haken: ein Häkchen-Feld (wirkt erst beim Speichern des Formulars) als Icon; der Haken bleibt das Eingabefeld (Tastatur, Screenreader), das Icon zeigt den Zustand. -#}
+{% macro ib_haken(name, label, field, checked=false, attr="") -%}
+<label class="ib haken" title="{{ label }}"><input type="checkbox" name="{{ field }}" value="ja"{% if attr %} {{ attr }}{% endif %}{% if checked %} checked{% endif %} aria-label="{{ label }}">{{ icon(name) }}</label>
 {%- endmacro %}
 
 {#- „Ausblenden“ für Dateien und Ordner der Belege-Seite: ein Icon-Formular mit dem Auge. Die Adresse bestimmt die Seite. -#}
 {% macro hide_button(action, sha256="", site="", path="") -%}
-{% call ib("auge", "Ausblenden", action=action, form_cls="direkt") -%}
+{% call ib("auge-aus", "Ausblenden", action=action, form_cls="direkt") -%}
 {% if sha256 %}<input type="hidden" name="sha256" value="{{ sha256 }}">{% else %}<input type="hidden" name="site" value="{{ site }}"><input type="hidden" name="path" value="{{ path }}">{% endif %}
 {%- endcall %}
 {%- endmacro %}
