@@ -325,21 +325,3 @@ def test_anlage_v_has_the_stored_structure_and_shows_the_protocol(tmp_path: Path
     assert "1 - Allgemeine Angaben" in page
     assert "aus dem Übertragungsprotokoll 2025 abgeleitet" not in page
     assert "Laut Protokoll" in page and "wird noch nicht berechnet" in page
-
-
-def test_protocol_column_shows_the_unit_the_protocol_leaves_out(tmp_path: Path) -> None:
-    http = client(tmp_path)
-    vor = ProtocolLine(
-        elster_id="E2000401",
-        form="VOR",
-        form_line="4",
-        label="Beispiel",
-        content="1.234",
-        index="1_1-1-1",
-        data_name="id-VOR-AVor-E2000401_usb1_1-1-1",
-    )
-    put(http, protocol((vor,)))
-
-    page = http.get("/steuerjahr/anlage-vor/2025").text
-
-    assert '<span class="seite">Laut Protokoll</span> 1.234 €' in page

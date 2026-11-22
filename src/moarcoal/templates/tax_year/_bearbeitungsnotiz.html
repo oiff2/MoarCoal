@@ -1,0 +1,5 @@
+{#- Sonderteil der ESt 1 A, oben auf der ersten Seite: die Persönliche Bearbeitungsnotiz (`data`: der Text oder nichts). -#}
+<aside class="notiz-kasten" id="bearbeitungsnotiz">
+  <div class="feld-kopf">Persönliche Bearbeitungsnotiz <span class="einheit">wird nicht übermittelt</span></div>
+  <div class="feld-wert">{% if data %}<span class="inhalt notiz">{{ data }}</span>{% else %}<span class="offen">keine Notiz</span> (<a href="/steuerjahr">in der Übersicht</a> eintragen){% endif %}</div>
+</aside>

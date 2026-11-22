@@ -1,38 +1,37 @@
 """Seiten des Moduls Steuerjahr: Übersicht der Anlagen, Protokollzeilen, Seiten je Anlage."""
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import year_of
-from moarcoal.modules.tax_year.anlagen import Anlage, YearAnlage, protocol_contents, year_anlagen
-from moarcoal.modules.tax_year.assessment_check import current_assessment
-from moarcoal.modules.tax_year.capture import foreign_refs
+from moarcoal.modules.tax_year.anlage_view import anlage_view
+from moarcoal.modules.tax_year.anlagen import Anlage, year_anlagen
 from moarcoal.modules.tax_year.church_tax import ChurchTaxPayment
 from moarcoal.modules.tax_year.church_tax_pages import (
     PaymentForm,
     add_routes,
-    church_view,
 )
-from moarcoal.modules.tax_year.entries import MODULE_KEY, TRANSFER_PROTOCOL_KEY, ProtocolReading
-from moarcoal.modules.tax_year.field_checks import field_checks
-from moarcoal.modules.tax_year.fields import FormField, TextSource, TypedInput
+from moarcoal.modules.tax_year.entries import (
+    MODULE_KEY,
+    TRANSFER_PROTOCOL_KEY,
+    ProtocolReading,
+    current_person_input,
+)
+from moarcoal.modules.tax_year.fields import FormField
 from moarcoal.modules.tax_year.inputs import changes_for_input, current_input, typed_field
 from moarcoal.modules.tax_year.links import protocol_url
 from moarcoal.modules.tax_year.person_input import (
-    current_person_input,
-    field_reasons,
-    field_texts,
     in_this_return_choices,
     year_person_input_changes,
 )
 from moarcoal.modules.tax_year.protocol_check import latest_reading
-from moarcoal.modules.tax_year.snapshot_check import describe_frozen, latest_snapshot
+from moarcoal.modules.tax_year.special_parts import PageParams
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Applied, Document, EntryAddress
-from moarcoal.values.model import Period
+from moarcoal.values.model import ValueRef
 from moarcoal.web.helpers import (
     capture_links,
     entry_of,
@@ -57,13 +56,6 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
     """Die Seiten des Steuerjahrs über den angemeldeten `anlagen`; jede Anlage hat dieselben
     Seiten, ihr Katalog und ihre Struktur machen den Unterschied."""
     router = APIRouter(prefix="/steuerjahr")
-
-    def year_anlage(request: Request, form: str, year: int) -> YearAnlage:
-        reading = latest_reading(_own_state(request), year)
-        found = next((a for a in year_anlagen(anlagen, year, reading) if a.slug == form), None)
-        if found is None:
-            raise HTTPException(404)
-        return found
 
     @router.get("", response_class=HTMLResponse)
     def index(request: Request) -> HTMLResponse:
@@ -134,106 +126,56 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
     @router.get("/anlage-{form}/{year}", response_class=HTMLResponse)
     def anlage(request: Request, form: str, year: int) -> HTMLResponse:
         """Die erste Seite der Anlage; die Befunde verweisen auf diese Adresse."""
-        return _anlage_page(request, year_anlage(request, form, year), None)
+        return _anlage_page(request, year, form, None)
 
     @router.get("/anlage-{form}/{year}/{slug}", response_class=HTMLResponse)
     def anlage_page(request: Request, form: str, year: int, slug: str) -> HTMLResponse:
-        return _anlage_page(request, year_anlage(request, form, year), slug)
+        return _anlage_page(request, year, form, slug)
 
     def _anlage_page(
         request: Request,
-        anlage: YearAnlage,
+        year: int,
+        form: str,
         slug: str | None,
         status: int = 200,
         sent: PaymentForm | None = None,
     ) -> HTMLResponse:
-        year = anlage.year
-        page = next((p for p in anlage.pages if slug is None or p.slug == slug), None)
-        if page is None:
+        listed = year_anlagen(anlagen, year, latest_reading(_own_state(request), year))
+        anlage = next((a for a in listed if a.slug == form), None)
+        if anlage is None:
             raise HTTPException(404)
-        values = values_of(request)
-        user = user_of(request)
-        state = _own_state(request)
-        reading = latest_reading(state, year)
-        snapshot = latest_snapshot(state, year)
-        assessment = current_assessment(state, year, anlage.fields)
-        printed = {} if assessment is None else assessment[1]
-        frozen: dict[str, str] | None = None
-        if snapshot is not None:
-            frozen = {
-                v.ref.key: describe_frozen(row.field, v)
-                for row in page.rows
-                for v in snapshot.values
-                if v.requested and v.ref.key == row.field.key
-            }
-        transferred = None if reading is None else protocol_contents(reading, anlage.structure)
-        texts = field_texts(state, anlage.fields, year)
-        person_input = current_person_input(state, year)
-        saved_note = person_input.note if person_input else None
-        reasons = field_reasons(state, anlage.fields, year)
         found = finding_list_of(request, year)
-        findings = [*found.visible, *(h.finding for h in found.hidden)]
-        rows = [
-            (
-                row,
-                values.get(row.field.key, user, Period.year(year)) if row.field.computed else None,
-                field_checks(
-                    row.field,
-                    transferred=transferred,
-                    frozen=frozen,
-                    printed=printed,
-                    findings=findings,
-                    content=texts.get(row.field.elster_id),
-                ),
-            )
-            for row in page.rows
-        ]
+        store_state = store_of(request).state()
         modules = request.app.state.modules
-        captures = {
-            row.field.key: capture_links(
-                modules, store_of(request).state(), user, foreign_refs(result)
-            )
-            for row, result, _ in rows
-            if result is not None
-        }
-        typed = {
-            row.field.elster_id: row.field.kind
-            for row in page.rows
-            if isinstance(row.field.kind, TypedInput)
-        }
-        church = (
-            church_view(state, year, request.query_params.get("eintrag", ""), sent)
-            if anlage.form == "SA"
-            else None
+        user = user_of(request)
+
+        def captures(refs: Iterable[ValueRef]) -> list[tuple[str, str]]:
+            return capture_links(modules, store_state, user, refs)
+
+        view = anlage_view(
+            _own_state(request),
+            values_of(request),
+            [*found.visible, *(h.finding for h in found.hidden)],
+            captures,
+            anlage,
+            slug,
+            PageParams(request.query_params.get("eintrag", ""), sent),
         )
+        if view is None:
+            raise HTTPException(404)
         return render(
             request,
             "tax_year/anlage.html",
             status,
-            church=church,
             year=year,
             anlage=anlage,
-            page=page,
-            rows=rows,
-            captures=captures,
-            texts=texts,
-            note=saved_note,
-            reasons=reasons,
-            snapshot=snapshot,
-            typed=typed,
-            text_ids={
-                row.field.elster_id for row in page.rows if isinstance(row.field.kind, TextSource)
-            },
-            inputs={
-                row.field.elster_id: entry.content
-                for row in page.rows
-                if row.field.elster_id in typed and (entry := current_input(state, year, row.field))
-            },
-            anlagen=year_anlagen(anlagen, year, reading),
+            page=view.page,
+            view=view,
+            anlagen=listed,
         )
 
     def sa_page(request: Request, year: int, status: int, sent: PaymentForm | None) -> HTMLResponse:
-        return _anlage_page(request, year_anlage(request, "sa", year), None, status, sent)
+        return _anlage_page(request, year, "sa", None, status, sent)
 
     add_routes(router, sa_page)
 

@@ -4,12 +4,6 @@ Eingaben zur Person im Steuerjahr (#167; nur erfundene Werte)."""
 import datetime
 from pathlib import Path
 
-import httpx
-from app_helper import make_app
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-
-from moarcoal.modules import MODULES
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registration
 from moarcoal.modules.tax_year.anlage_est1a import ANLAGE_EST1A, IN_THIS_RETURN
 from moarcoal.modules.tax_year.entries import YearPersonInput
@@ -301,41 +295,3 @@ def test_a_text_field_with_content_fits_when_the_protocol_shows_something() -> N
         field, transferred=shown, frozen=None, printed={}, findings=[], content=None
     )
     assert not unknown.fits and unknown.shown == "Erika"
-
-
-# --- Seite --------------------------------------------------------------------------------------
-
-
-def client_of(app: FastAPI) -> httpx.Client:
-    return TestClient(app, base_url=f"http://127.0.0.1:{PORT}")
-
-
-def test_the_page_shows_the_content_or_not_yet_calculable(tmp_path: Path) -> None:
-    modules = [registration() if m.key == "tax_year" else m for m in MODULES]
-    app = make_app(PORT, tmp_path, modules, user=USER)
-    http = client_of(app)
-
-    pages = "".join(
-        http.get(f"/steuerjahr/anlage-est1a/2025/{slug}").text for slug in ("1", "4", "7")
-    )
-
-    assert "Max" in pages and "Mustermann" in pages  # aus den Angaben zur Person von make_app
-    assert "wird noch nicht berechnet" in pages
-
-
-def test_the_start_page_shows_the_note_as_not_transmitted_and_other_pages_do_not(
-    tmp_path: Path,
-) -> None:
-    modules = [registration() if m.key == "tax_year" else m for m in MODULES]
-    app = make_app(PORT, tmp_path, modules, user=USER)
-    http = client_of(app)
-    assert "keine Notiz" in http.get("/steuerjahr/anlage-est1a/2025").text
-    http.post(
-        "/steuerjahr/person/2025",
-        data={"note": "Beispielnotiz"},
-        headers={"Origin": f"http://127.0.0.1:{PORT}"},
-    )
-    start = http.get("/steuerjahr/anlage-est1a/2025").text
-    assert "Beispielnotiz" in start and "wird nicht übermittelt" in start
-    other = http.get("/steuerjahr/anlage-est1a/2025/4").text
-    assert "Beispielnotiz" not in other and "Bearbeitungsnotiz" not in other

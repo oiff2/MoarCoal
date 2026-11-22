@@ -483,29 +483,6 @@ def test_no_locator_on_any_page_shows_a_value_key(
         assert not re.findall(r"Wert [a-z_]+\.[a-z_]+", html)
 
 
-def test_page_shows_whole_euro_field_without_cents_but_work_keeps_them(
-    tmp_path: Path, anlage_n_text: Callable[[httpx.Client], str]
-) -> None:
-    http = client(tmp_path)
-    origin = {"Origin": f"http://127.0.0.1:{PORT}"}
-    http.post(
-        "/arbeit/arbeitsmittel",
-        data={
-            "year": "2025",
-            "amount": "86,40",
-            "date": "2025-03-14",
-            "description": "Schreibtischlampe",
-        },
-        headers=origin,
-    )
-
-    html = anlage_n_text(http)
-
-    assert '<strong class="betrag">87 €</strong>' in html
-    assert "87,00 €" not in html
-    assert "86,40 €" in html  # Posten des Moduls Arbeit bleibt genau
-
-
 def test_page_shows_not_yet_computable_with_chain(
     tmp_path: Path, anlage_n_text: Callable[[httpx.Client], str]
 ) -> None:

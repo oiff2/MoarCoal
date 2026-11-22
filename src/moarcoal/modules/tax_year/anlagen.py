@@ -14,6 +14,7 @@ from pathlib import Path
 from moarcoal.modules.tax_year.entries import ProtocolReading
 from moarcoal.modules.tax_year.fields import Computed, FieldMeaning, FormField, NotComputed
 from moarcoal.modules.tax_year.form_names import FORM_ORDER, form_name, form_rank
+from moarcoal.modules.tax_year.special_parts import SpecialPart
 from moarcoal.modules.tax_year.structure import (
     DIRECTORY,
     FormPage,
@@ -61,7 +62,8 @@ class Anlage:
     Bedeutungen ihrer Felder je Jahr (der Katalog). Die Anlage lädt für jedes dieser Jahre die
     Struktur aus `structure_directory` und leitet daraus `fields` und die Werte der berechneten
     Felder (`values`) ab. Mit `all_structure_fields` nimmt sie auch die Felder der Struktur auf,
-    die der Katalog nicht nennt (als `NotComputed`). Ein Jahr mit leerem Katalog hat eine
+    die der Katalog nicht nennt (als `NotComputed`). `parts` sind ihre Sonderteile (was
+    die Seite außer den Feldern zeigt). Ein Jahr mit leerem Katalog hat eine
     Struktur, aber keinen Katalog (`YearAnlage.catalogued` ist dann falsch).
     """
 
@@ -70,6 +72,7 @@ class Anlage:
         default_factory=dict[int, Sequence[FieldMeaning]]
     )
     all_structure_fields: bool = False
+    parts: tuple[SpecialPart, ...] = ()
     structure_directory: Path = DIRECTORY
     structures: Mapping[int, FormStructure] = field(init=False, repr=False, compare=False)
     fields: Mapping[int, tuple[FormField, ...]] = field(init=False, repr=False, compare=False)
@@ -145,6 +148,7 @@ class YearAnlage:
     structure: FormStructure
     pages: tuple[FormPage, ...]
     catalogued: bool  # eigener Katalog für das Jahr; ohne: die Felder der Struktur, unberechnet
+    parts: tuple[SpecialPart, ...] = ()
 
     @property
     def provisional(self) -> bool:
@@ -191,6 +195,7 @@ def year_anlagen(
                 structure,
                 form_pages(structure, fields),
                 bool(anlage.catalogs.get(year)),
+                anlage.parts,
             )
         )
     return tuple(found)
