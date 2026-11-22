@@ -263,3 +263,48 @@ def test_a_field_in_a_list_of_entries_gets_its_own_heading():
 
     assert entry["headings"] == ["Bescheinigungen", "Einzelne Einträge"]
     assert total["headings"] == ["Bescheinigungen"]
+
+
+def test_the_subtitle_of_a_page_title_never_reaches_the_structure():
+    # Mein ELSTER names the person a page belongs to in a subtitle of the page title.
+    page = """
+    <h1 data-ipe-type="Page.title"> 1 - Seite<span class="_helper-subTitle">Erika Mustermann</span>
+    </h1>
+    <h2>Abschnitt<span class="_helper-subTitle">1. Eintrag</span></h2>
+    <label for="X_fields(aE0100001)">Betrag</label>
+    <input name="fields[aE0100001]">
+    """
+    start = """
+    <h1><span> Startseite</span> <span class="_helper-subTitle" data-ipe-type="Page.title">
+    Erklärung (ESt&nbsp;1&nbsp;A)</span></h1>
+    <label for="X_fields(aE0100002)">Name</label><input name="fields[aE0100002]">
+    """
+
+    first, second = structure_of(page, start)["fields"]
+
+    assert (first["page"], first["headings"]) == ("1 - Seite", ["Abschnitt"])
+    assert "Mustermann" not in str(structure_of(page))
+    # The start page of a form keeps its title, which Mein ELSTER puts into a subtitle.
+    assert second["page"] == "Startseite Erklärung (ESt 1 A)"
+
+
+def test_a_page_title_without_number_takes_the_page_number_of_the_file_name():
+    untitled = '<h1>Zweite Seite</h1><label for="X_fields(aE0100001)">A</label>'
+    untitled += '<input name="fields[aE0100001]">'
+    titled = '<h1>3 - Dritte Seite</h1><label for="X_fields(aE0100002)">B</label>'
+    titled += '<input name="fields[aE0100002]">'
+    pages = [("ELSTER - X - 2 - Zweite Seite.htm", untitled), ("ELSTER - X - 3 - D.htm", titled)]
+    pages.append(("Ohne Nummer.htm", untitled.replace("E0100001", "E0100003")))
+    # A sub-page of a list entry: Mein ELSTER files it under the number of its parent page.
+    entry = '<h1>Ein Eintrag</h1><label for="X_fields(aE0100004)">C</label>'
+    entry += '<input name="fields[aE0100004]">'
+    pages.append(("ELSTER - X - 3 - Ein Eintrag.htm", entry))
+
+    fields = epf.build_structure(pages, "VOR", 2025)["fields"]
+
+    assert [f["page"] for f in fields] == [
+        "2 - Zweite Seite",
+        "3 - Dritte Seite",
+        "Zweite Seite",
+        "Ein Eintrag",
+    ]
