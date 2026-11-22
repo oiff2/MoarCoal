@@ -1,20 +1,19 @@
 {% extends "base.html" %}
 {% from "_issuer_field.html" import issuer_field %}
-{% from "_ui.html" import abschnitt, dateityp, hide_button, ib, zahl %}
+{% from "_ui.html" import abschnitt, chip, dateityp, hide_button, ib, status, zahl %}
 {% from "_belege.html" import preview, rejection %}
 {% from "_findings.html" import finding_list %}
 {% from "documents/_detail.html" import document_detail with context %}
 {% block title %}Belege {{ year }} – MoarCoal{% endblock %}
 {% macro new_row(row, site) %}
 {% set file = row.file %}
-<div class="datei" title="{{ file.site }}/{{ file.path }}">
-  {{ dateityp(file.path) }}
-  <a class="name" href="{{ keep_filter(site_url(file=file.sha256, document_kind=linked.kind, year=linked.year)) }}"{% if selected and selected.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
-  <span class="ordner-name">{{ row.folder }}{% if row.folder %} {{ hide_button(keep_filter('/belege/ausblenden-direkt'), site=site, path=row.folder) }}{% endif %}</span>
-  <a class="aktion" href="{{ keep_filter(site_url(file=file.sha256, document_kind=linked.kind, year=linked.year)) }}">aufnehmen</a>
-  {{ ib("extern", "Öffnen in neuem Tab", href=row.preview_url, attr='target="_blank" rel="noopener"') }}
-  {{ hide_button(keep_filter('/belege/ausblenden-direkt'), sha256=file.sha256) }}
-</div>
+{% set pick = keep_filter(site_url(file=file.sha256, document_kind=linked.kind, year=linked.year)) %}
+<tr title="{{ file.site }}/{{ file.path }}">
+  <td><div class="datei-zelle">{{ dateityp(file.path) }}<span class="zelle-text"><a class="name" href="{{ pick }}"{% if selected and selected.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>{% if row.folder %}<small class="pfad">{{ row.folder }} {{ hide_button(keep_filter('/belege/ausblenden-direkt'), site=site, path=row.folder) }}</small>{% endif %}</span></div></td>
+  <td class="aktionen"><a class="aktion" href="{{ pick }}">aufnehmen</a>
+    {{ ib("extern", "Öffnen in neuem Tab", href=row.preview_url, attr='target="_blank" rel="noopener"') }}
+    {{ hide_button(keep_filter('/belege/ausblenden-direkt'), sha256=file.sha256) }}</td>
+</tr>
 {% endmacro %}
 {% macro pane() %}
 {% set file = selected %}
@@ -63,12 +62,18 @@
 <form class="suche" method="get" action="/belege" role="search">
   {% if linked.year %}<input type="hidden" name="jahr" value="{{ linked.year }}">{% endif %}
   {% if linked.kind %}<input type="hidden" name="dokumentart" value="{{ linked.kind }}">{% endif %}
+  {% for type in search.types | sort(attribute="value") %}<input type="hidden" name="typ" value="{{ type.value }}">{% endfor %}
   <input type="search" name="suche" value="{{ search.query }}" placeholder="Suche in Name, Ordner, Aussteller, Bezeichnung" aria-label="Suche">
-  {% for type, count in type_counts.items() %}<label class="typ"><input type="checkbox" name="typ" value="{{ type.value }}"{% if type in search.types %} checked{% endif %}> {{ type.label }} ({{ count }})</label>
-  {% endfor %}
   <button type="submit">Filtern</button>
   {% if search.active %}<a href="/belege{% if linked.year %}?jahr={{ linked.year }}{% endif %}">Zurücksetzen</a>{% endif %}
 </form>
+<div class="chips" role="group" aria-label="Dateityp">
+  {% for type, count in type_counts.items() %}
+  {% set chosen = search.types | map(attribute="value") | list %}
+  {% set toggled = chosen | reject("equalto", type.value) | list if type in search.types else chosen + [type.value] %}
+  {{ chip(type.label, count, href=site_url(document_kind=linked.kind, year=linked.year, query=search.query, types=toggled | sort), gedrueckt=type in search.types) }}
+  {% endfor %}
+</div>
 <p class="werkzeug"><button type="button" class="nur-js" data-umschalten="detailspalte-aus" data-umschalten-ziel=".arbeit" data-umschalten-klasse="ohne-detail" data-text-an="Detailspalte einblenden" data-text-aus="Detailspalte ausblenden" aria-controls="detailspalte" aria-expanded="true">Detailspalte ausblenden</button></p>
 {% if notice and not selected_document %}<p class="fehler">{{ notice }}</p>{% endif %}
 {% if taken is not none %}<p class="fehler">{{ zahl(taken, "Beleg", "Belege") }} aufgenommen.{% if skipped %} Übersprungen: {{ skipped | join("; ") }}{% endif %}</p>{% endif %}
@@ -86,11 +91,13 @@
     </form>
     {% endif %}
     {% for group in new.groups %}
-    <h3>{{ group.site }}{% if group.site == new.year_folder %} (Jahresordner){% endif %}</h3>
     {% if group.files %}
-    <div class="datei kopf"><span class="name">Datei</span><span class="ordner-name">Unterordner</span></div>
-    {% for row in group.files %}{{ new_row(row, group.site) }}{% endfor %}
-    {% else %}<p>Keine neuen Dateien.</p>{% endif %}
+    <table class="liste">
+      <caption>{{ group.site }}{% if group.site == new.year_folder %} (Jahresordner){% endif %}</caption>
+      <thead><tr><th>Datei</th><th class="aktionen">Aktionen</th></tr></thead>
+      <tbody>{% for row in group.files %}{{ new_row(row, group.site) }}{% endfor %}</tbody>
+    </table>
+    {% else %}<h3 class="gruppenname">{{ group.site }}{% if group.site == new.year_folder %} (Jahresordner){% endif %}</h3><p>Keine neuen Dateien.</p>{% endif %}
     {% endfor %}
     {% for hint in new.duplicates %}
     <p class="hinweis">{{ hint.name }} hat denselben Inhalt wie <a href="{{ hint.document_url }}">{{ hint.document_name }}</a> und wird nicht noch einmal aufgenommen.</p>
@@ -98,44 +105,56 @@
     {% if new.hidden_files or new.hidden_folders %}
     <details class="ausgeblendet"{% if selected_hidden %} open{% endif %}>
       <summary>Ausgeblendet ({{ new.hidden_files | length + new.hidden_folders | length }})</summary>
-      {% for row in new.hidden_folders %}{% set entry, checksum, count = row.entry, row.checksum, row.count %}
-      <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
-        <span class="name">{{ entry.path }}/</span>
-        <span class="zahl">{{ count }} {{ "Datei" if count == 1 else "Dateien" }}</span>
-        <span class="stand">ausgeblendet</span>
-        {% call ib("auge", "Wieder einblenden", action=keep_filter('/belege/einblenden-ordner'), form_cls="direkt") %}
-          <input type="hidden" name="site" value="{{ entry.site }}">
-          <input type="hidden" name="path" value="{{ entry.path }}">
-          <input type="hidden" name="checksum" value="{{ checksum }}">
-        {% endcall %}
-      </div>
-      {% endfor %}
-      {% for row in new.hidden_files %}{% set entry, file = row.entry, row.file %}
-      <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
-        {{ dateityp(entry.path) }}
-        <a class="name" href="{{ keep_filter(site_url(file=entry.sha256)) }}"{% if selected_hidden and selected_hidden.entry.sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a>
-        <span class="stand">ausgeblendet</span>
-      </div>
-      {% endfor %}
+      <table class="liste">
+        <thead><tr><th>Datei oder Ordner</th><th class="zahl">Dateien</th><th>Stand</th><th class="aktionen">Aktionen</th></tr></thead>
+        <tbody>
+        {% for row in new.hidden_folders %}{% set entry, checksum, count = row.entry, row.checksum, row.count %}
+        <tr title="{{ entry.site }}/{{ entry.path }}">
+          <td>{{ entry.path }}/</td>
+          <td class="zahl">{{ count }}</td>
+          <td class="stand">ausgeblendet</td>
+          <td class="aktionen">{% call ib("auge", "Wieder einblenden", action=keep_filter('/belege/einblenden-ordner'), form_cls="direkt") %}
+            <input type="hidden" name="site" value="{{ entry.site }}">
+            <input type="hidden" name="path" value="{{ entry.path }}">
+            <input type="hidden" name="checksum" value="{{ checksum }}">
+          {% endcall %}</td>
+        </tr>
+        {% endfor %}
+        {% for row in new.hidden_files %}{% set entry, file = row.entry, row.file %}
+        <tr title="{{ entry.site }}/{{ entry.path }}">
+          <td><div class="datei-zelle">{{ dateityp(entry.path) }}<a class="name" href="{{ keep_filter(site_url(file=entry.sha256)) }}"{% if selected_hidden and selected_hidden.entry.sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a></div></td>
+          <td class="zahl"></td>
+          <td class="stand">ausgeblendet</td>
+          <td class="aktionen"></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
     </details>
     {% endif %}
   {% endcall %}
   {% endif %}
   {% call abschnitt("erwartet", "Erwartete Belege", expected | length) %}
-    {% for row in expected %}
-    <div class="datei">
-      <span class="aussteller">{% if row.issuer %}<a href="{{ entry_url(row.issuer.address) }}">{{ row.issuer.display_name }}</a>{% endif %}</span>
-      <a class="name" href="{{ keep_filter(entry_url(row.entry.address)) }}">{{ row.title }}</a>
-      <span class="beschreibung">{{ row.entry.description }}</span>
-      <span class="stand">{% if row.pending %}ausstehend{% else %}da: {% for doc in row.documents %}<a href="{{ keep_filter(entry_url(doc.address)) }}">{{ document_name(doc) }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</span>
-      <form class="direkt" method="post" action="{{ keep_filter('/belege/erwartet/' ~ row.entry.id ~ '/loeschen') }}">
-        <input type="hidden" name="checksum" value="{{ row.checksum }}">
-        <button type="submit">Entfernen</button>
-      </form>
-    </div>
+    {% if expected %}
+    <table class="liste">
+      <thead><tr><th>Aussteller</th><th>Beleg</th><th>Stand</th><th class="aktionen">Aktionen</th></tr></thead>
+      <tbody>
+      {% for row in expected %}
+      <tr>
+        <td class="aussteller">{% if row.issuer %}<a href="{{ entry_url(row.issuer.address) }}">{{ row.issuer.display_name }}</a>{% endif %}</td>
+        <td><span class="zelle-text"><a class="name" href="{{ keep_filter(entry_url(row.entry.address)) }}">{{ row.title }}</a>{% if row.entry.description %}<small class="pfad">{{ row.entry.description }}</small>{% endif %}</span></td>
+        <td class="stand">{% if row.pending %}ausstehend{% else %}da: {% for doc in row.documents %}<a href="{{ keep_filter(entry_url(doc.address)) }}">{{ document_name(doc) }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</td>
+        <td class="aktionen"><form class="direkt" method="post" action="{{ keep_filter('/belege/erwartet/' ~ row.entry.id ~ '/loeschen') }}">
+          <input type="hidden" name="checksum" value="{{ row.checksum }}">
+          <button type="submit">Entfernen</button>
+        </form></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
     {% else %}
     <p>Für {{ year }} ist kein Beleg erwartet.</p>
-    {% endfor %}
+    {% endif %}
     <details class="formular-eintrag"{% if expected_errors %} open{% endif %}>
       <summary>+ erwarteten Beleg anlegen</summary>
       {% if expected_kinds %}
@@ -150,19 +169,23 @@
     </details>
   {% endcall %}
   {% call abschnitt("aufgenommen", "Aufgenommene Belege", taken_in | length) %}
-    {% for row in taken_in %}{% set doc = row.document %}
-    <div class="datei" title="{{ doc.site }}/{{ doc.path }}">
-      {{ dateityp(doc.path) }}
-      <a class="name" href="{{ keep_filter(entry_url(doc.address)) }}"{% if selected_document and selected_document.id == doc.id %} aria-current="true"{% endif %}>{{ document_name(doc) }}</a>
-      <span class="pfad">{{ doc.site }}/{{ doc.path }}</span>
-      <span class="art">{{ row.kind }}</span>
-      <a title="Einträge mit diesem Beleg" class="eintraege" href="{{ keep_filter(entry_url(doc.address)) }}">{{ row.entries }}</a>
-      <span class="stand">{{ row.state }}</span>
-      {% if row.findings %}<div class="hinweise">{{ finding_list(row.findings, year=year, scope=doc.id ~ "-", back=keep_filter(site_url(document=doc.id, year=year))) }}</div>{% endif %}
-    </div>
+    {% if taken_in %}
+    <table class="liste">
+      <thead><tr><th>Beleg</th><th>Art</th><th class="zahl">Einträge</th><th>Stand</th></tr></thead>
+      <tbody>
+      {% for row in taken_in %}{% set doc = row.document %}
+      <tr title="{{ doc.site }}/{{ doc.path }}">
+        <td><div class="datei-zelle">{{ dateityp(doc.path) }}<span class="zelle-text"><a class="name" href="{{ keep_filter(entry_url(doc.address)) }}"{% if selected_document and selected_document.id == doc.id %} aria-current="true"{% endif %}>{{ document_name(doc) }}</a><small class="pfad">{{ doc.site }}/{{ doc.path }}</small>{% if row.findings %}<div class="hinweise">{{ finding_list(row.findings, year=year, scope=doc.id ~ "-", back=keep_filter(site_url(document=doc.id, year=year))) }}</div>{% endif %}</span></div></td>
+        <td class="art">{{ row.kind }}</td>
+        <td class="zahl"><a title="Einträge mit diesem Beleg" class="eintraege" href="{{ keep_filter(entry_url(doc.address)) }}">{{ row.entries }}</a></td>
+        <td class="stand">{{ row.state }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
     {% else %}
     <p>Für {{ year }} ist noch kein Beleg aufgenommen.</p>
-    {% endfor %}
+    {% endif %}
   {% endcall %}
 </div>
 </div>

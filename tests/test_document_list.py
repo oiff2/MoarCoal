@@ -121,19 +121,19 @@ def test_section_lists_the_documents_with_state_and_get_writes_nothing(two: http
     page = taken_in(two)
     assert "protokoll.html" in page and "bescheid.txt" in page
     assert 'Aufgenommene Belege <span class="n">(2)</span>' in main_of(two, "/belege")
-    assert page.count('<span class="stand">fertig</span>') == 1  # das eingelesene Protokoll
-    assert page.count('<span class="stand">auszulesen</span>') == 1  # der Bescheid
+    assert page.count('<td class="stand">fertig') == 1  # das eingelesene Protokoll
+    assert page.count('<td class="stand">auszulesen') == 1  # der Bescheid
     assert state_of(two) == before
 
 
 def test_kind_with_template_and_no_proposal_is_to_extract(two: httpx.Client) -> None:
     """Ein nie ausgelesener Bescheid ist nicht „fertig“, sondern „auszulesen“; das Protokoll hat
     keine Auslese-Vorlage und ist fertig."""
-    rows = taken_in(two).split('<div class="datei"')[1:]
+    rows = taken_in(two).split("<tr title=")[1:]
     [bescheid] = [r for r in rows if "bescheid.txt" in r]
     [protocol] = [r for r in rows if "protokoll.html" in r]
-    assert '<span class="stand">auszulesen</span>' in bescheid
-    assert '<span class="stand">fertig</span>' in protocol
+    assert '<td class="stand">auszulesen' in bescheid
+    assert '<td class="stand">fertig' in protocol
 
 
 def test_state_is_to_confirm_while_a_proposal_has_open_fields(two: httpx.Client) -> None:
@@ -147,14 +147,14 @@ def test_state_is_to_confirm_while_a_proposal_has_open_fields(two: httpx.Client)
         created_at=datetime.datetime.now(datetime.UTC),
     )
     store_of(two).apply([Put(proposal)])
-    assert '<span class="stand">zu bestätigen</span>' in taken_in(two)
+    assert '<td class="stand">zu bestätigen' in taken_in(two)
     confirmed = proposal.model_copy(
         update={"fields": {"x": proposal.fields["x"].model_copy(update={"confirmed": True})}}
     )
     store_of(two).apply([Put(confirmed, entry_checksum(proposal))])
     page = taken_in(two)
-    assert '<span class="stand">zu bestätigen</span>' not in page
-    assert page.count('<span class="stand">fertig</span>') == 2
+    assert '<td class="stand">zu bestätigen' not in page
+    assert page.count('<td class="stand">fertig') == 2
 
 
 def test_document_without_kind_has_no_period_and_so_belongs_to_no_year_here(
@@ -470,7 +470,7 @@ def test_belege_page_shows_no_file_size(two: httpx.Client) -> None:
 
 
 def row_of(client: httpx.Client, name: str) -> str:
-    [row] = [r for r in taken_in(client).split('<div class="datei"')[1:] if name in r]
+    [row] = [r for r in taken_in(client).split("<tr title=")[1:] if name in r]
     return row
 
 

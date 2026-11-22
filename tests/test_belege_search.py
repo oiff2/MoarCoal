@@ -55,19 +55,19 @@ def test_type_filter_is_a_multiple_choice_and_counts_ignore_the_type_choice(
     assert "miete.pdf" in neu and "auszug.PDF" in neu and "foto.png" in neu
     assert "liste.xlsx" not in neu and "notiz.txt" not in neu
     for label, count in (("PDF", 2), ("Bild", 1), ("Tabelle", 1), ("Sonstiges", 1), ("eDaten", 0)):
-        assert f"{label} ({count})" in page
+        assert f'{label} <span class="n">{count}</span>' in page
 
 
 def test_counts_follow_the_search(client: httpx.Client) -> None:
     page = main_of(client, "/belege?suche=miete")
-    assert "PDF (1)" in page and "Bild (0)" in page
+    assert 'PDF <span class="n">1</span>' in page and 'Bild <span class="n">0</span>' in page
 
 
 def test_search_and_choice_stay_in_the_form(client: httpx.Client) -> None:
     page = main_of(client, "/belege?suche=miete&typ=pdf")
     assert 'name="suche" value="miete"' in page
-    assert 'value="pdf" checked' in page
-    assert 'value="bild" checked' not in page
+    assert 'name="typ" value="pdf"' in page and 'name="typ" value="bild"' not in page
+    assert page.count('aria-pressed="true"') == 1
 
 
 def test_selecting_a_file_keeps_search_and_types(client: httpx.Client) -> None:
@@ -141,7 +141,7 @@ def test_clicking_a_document_keeps_the_filter(client: httpx.Client) -> None:
     assert f'href="/belege?dokument={document.id}&amp;{FILTER_HTML}"' in page
     # die Seite des gewählten Dokuments behält Suche und Wahl in Formular und Aktionen
     chosen = main_of(client, f"/belege?dokument={document.id}&{FILTER}")
-    assert 'name="suche" value="miete"' in chosen and 'value="pdf" checked' in chosen
+    assert 'name="suche" value="miete"' in chosen and 'name="typ" value="pdf"' in chosen
     assert f'action="/dokumente/{document.id}/aendern?{FILTER_HTML}"' in chosen
 
 

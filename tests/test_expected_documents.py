@@ -419,4 +419,4 @@ def test_pages_show_no_suggestion_without_issuer(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     (entry,) = stored(tmp_path)
     assert "Aussteller im Vorjahr" not in client.get(f"/belege/erwartet/{entry.id}").text
-    assert 'class="aussteller"></span>' in client.get("/belege").text
+    assert 'class="aussteller"></td>' in client.get("/belege").text

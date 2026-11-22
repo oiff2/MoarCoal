@@ -471,7 +471,7 @@ def test_hidden_files_are_flat_clickable_rows_with_a_preview_and_the_note_in_the
     hide(client, "Muster-Notiz")
     page = main_of(client, "/belege")
     assert f'<a class="name" href="/belege?datei={SHA}">protokoll.html</a>' in page
-    assert "<table" not in page and 'stand">ausgeblendet<' in page
+    assert 'stand">ausgeblendet<' in page
     assert "Wieder einblenden" not in page  # erst nach Auswahl
     chosen = main_of(client, f"/belege?datei={SHA}")
     assert '<details class="ausgeblendet" open>' in chosen and 'aria-current="true"' in chosen
@@ -527,8 +527,8 @@ def test_hiding_a_folder_takes_its_content_with_it_also_later_files(root: Path, 
     assert sorted(f.path for f in waiting_files) == ["2025/protokoll.html", "lose.txt"]
     page = main_of(client, "/belege")
     assert "auszug.txt" not in page and "neu.txt" not in page
-    assert "Ausgeblendet (1)" in page and "2024/</span>" in page
-    assert "3 Dateien" in page  # der Ordner ist eine Zeile mit Zahl
+    assert "Ausgeblendet (1)" in page and "2024/</td>" in page
+    assert 'class="zahl">3</td>' in page  # der Ordner ist eine Zeile mit Zahl
     assert belege_count(client.get("/").text) == 2
     assert hide_directly(client, site="Belege", path="2024").status_code == 303  # nochmal: nichts
     assert len(hidden_folders_of(root, site)) == 1

@@ -39,9 +39,11 @@
 </details>
 {%- endmacro %}
 
-{#- Filter-Chip mit Anzahl; data-umschalten schaltet aria-pressed (rahmen.js). Noch ohne Aufrufer. -#}
-{% macro chip(label, n, name="", gedrueckt=false) -%}
-<button type="button" class="chip" aria-pressed="{{ 'true' if gedrueckt else 'false' }}" data-umschalten>{% if name %}{{ icon(name) }}{% endif %}{{ label }} <span class="n">{{ n }}</span></button>
+{#- Filter-Chip mit Anzahl. Ohne href schaltet data-umschalten aria-pressed (rahmen.js); mit href ist er ein Link auf die Seite mit dem
+    umgeschalteten Filter (Belege), dann steht aria-pressed mit role="button" am Link und die Seite lädt neu. -#}
+{% macro chip(label, n, name="", gedrueckt=false, href=none) -%}
+{% if href %}<a class="chip" role="button" href="{{ href }}" aria-pressed="{{ 'true' if gedrueckt else 'false' }}">{% if name %}{{ icon(name) }}{% endif %}{{ label }} <span class="n">{{ n }}</span></a>
+{%- else %}<button type="button" class="chip" aria-pressed="{{ 'true' if gedrueckt else 'false' }}" data-umschalten>{% if name %}{{ icon(name) }}{% endif %}{{ label }} <span class="n">{{ n }}</span></button>{% endif %}
 {%- endmacro %}
 
 {#- Statussprache: Symbol, Farbe und Wort, nie Farbe allein. art ist der kleingeschriebene Name der Stufe (Schweregrad, Belegstand) oder „fits“. -#}

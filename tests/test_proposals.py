@@ -595,7 +595,7 @@ def test_extract_and_confirm_redirect_into_the_documents_tab(tmp_path: Path) -> 
     page = setup.client.get(tab).text  # Kopf und Vorschau auf derselben Seite, ohne Link „Dokument“
     assert "Alle Felder sind bestätigt." in page and "Seite 1, Zeile 4" in page
     assert '<ul class="vorschlag">' in page and 'class="vorschau"' in page
-    assert "<table" not in page
+    assert "<table" not in page.split('id="detailspalte"')[1]
 
 
 def test_taken_in_document_shows_its_head_on_the_belege_page(tmp_path: Path) -> None:

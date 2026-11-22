@@ -128,7 +128,7 @@ def test_new_shows_the_year_folder_with_subfolder_and_the_sites_without_year(
     client: httpx.Client,
 ) -> None:
     neu = section(main_of(client), "neu")
-    assert "steuer25" in neu and "Unterordner" in neu
+    assert "steuer25" in neu and "(Jahresordner)" in neu
     assert "auszug25.txt" in neu and "brief25.txt" in neu and "bank" in neu
     assert not shows_file_size(neu)
     assert "brief24.txt" not in neu  # Jahresordner eines anderen Jahrs
@@ -246,7 +246,7 @@ def test_taken_in_lists_the_documents_of_the_year_with_name_path_kind_and_state(
     aufgenommen = section(page, "aufgenommen")
     assert "Mitteilung" in aufgenommen
     assert "steuer25/brief25.txt" in aufgenommen
-    assert '<span class="stand">Beleg</span>' in aufgenommen
+    assert '<td class="stand">Beleg' in aufgenommen
     client.cookies.set("jahr", "2024")
     assert "brief25" not in section(main_of(client), "aufgenommen")
 

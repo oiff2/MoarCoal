@@ -12,6 +12,6 @@ for (const mark of document.querySelectorAll("[data-aus-name]")) {
 document.querySelector(".baum")?.addEventListener("click", (event) => {
   const target = event.target;
   if (event.defaultPrevented || !(target instanceof Element) || target.closest("a, button, form, input, select, summary")) return;
-  const link = target.closest(".datei")?.querySelector("a.name");
+  const link = target.closest("tr")?.querySelector("a.name");
   if (link instanceof HTMLAnchorElement) window.location.href = link.href;
 });
