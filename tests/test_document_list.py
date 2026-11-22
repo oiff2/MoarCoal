@@ -11,7 +11,7 @@ import httpx
 import pytest
 from app_helper import make_app, stylesheet
 from fastapi.testclient import TestClient
-from test_belege_year import section
+from test_belege_year import section, shows_file_size
 
 from moarcoal.storage import (
     COMMON_OWNER,
@@ -462,7 +462,7 @@ def test_column_grip_shares_the_sidebar_grip_logic(two: httpx.Client) -> None:
 def test_belege_page_shows_no_file_size(two: httpx.Client) -> None:
     for url in ("/belege", f"/belege?datei={doc(two, 'bescheid.txt').sha256}"):
         page = two.get(url).text.split("<main>")[1]
-        assert "KB" not in page and "groesse" not in page
+        assert not shows_file_size(page) and "groesse" not in page
     assert "groesse" not in stylesheet()
 
 

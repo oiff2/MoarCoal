@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import httpx
@@ -71,6 +72,20 @@ def section(page: str, name: str) -> str:
     return rest.split('<details class="abschnitt"', 1)[0]
 
 
+FILE_SIZE = re.compile(r"(?<![\w-])\d[\d.,]*\s*(?:KB|MB|GB|Bytes?)\b", re.IGNORECASE)
+
+
+def shows_file_size(text: str) -> bool:
+    """Steht eine Dateigröße (Zahl mit Einheit) im Text? Zufällige Kennungen zählen nicht."""
+    return FILE_SIZE.search(text) is not None
+
+
+def test_file_size_pattern_ignores_ids_but_finds_sizes() -> None:
+    assert not shows_file_size('<code>KB12345678</code> <a href="/belege/9KBxyz">AKB</a>')
+    for size in ("12 KB", "1,5 MB", "3.2GB", "512 Bytes", "7 kb"):
+        assert shows_file_size(f"<td>{size}</td>")
+
+
 def take(client: httpx.Client, text: str, **fields: str) -> None:
     data = {"sha256": sha(text), "kind": "", "year": "2025", **fields}
     assert client.post("/belege/aufnehmen", data=data, headers=ORIGIN).status_code == 303
@@ -113,7 +128,7 @@ def test_new_shows_the_year_folder_with_subfolder_and_the_sites_without_year(
     neu = section(main_of(client), "neu")
     assert "steuer25" in neu and "Unterordner" in neu
     assert "auszug25.txt" in neu and "brief25.txt" in neu and "bank" in neu
-    assert "KB" not in neu
+    assert not shows_file_size(neu)
     assert "brief24.txt" not in neu  # Jahresordner eines anderen Jahrs
     assert "scans" in neu and "scan.txt" in neu
     assert neu.index("brief25.txt") < neu.index("scan.txt")  # erst der Jahresordner
