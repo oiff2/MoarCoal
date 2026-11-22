@@ -1,3 +1,4 @@
+{% from "_ui.html" import abschnitt %}
 {#- Karte der Dienstreisen: Startorte als Raute mit Haus-Symbol, Reiseziele als Kreis mit der Zahl der Fahrten; der Name steht neben dem Punkt und im Tooltip. Die Lage eines Orts sucht nur der Klick auf „Suchen“ (ADR 0008). -#}
 {#- Haus aus Lucide „house“ (ISC-Lizenz), 24er Raster, hier auf Rautengröße verkleinert und mittig gesetzt. -#}
 {% macro house() -%}
@@ -8,8 +9,8 @@
   <input type="hidden" name="ort" value="{{ place }}"><button type="submit">{{ label }}</button>
 </form>
 {%- endmacro %}
-<section class="karte" id="karte">
-  <h3>Karte der Orte</h3>
+{% call abschnitt("karte", "Karte der Orte", none) %}
+<div class="karte">
   <p>
     {{ map_places.points | length }} {{ "Ort" if map_places.points | length == 1 else "Orte" }} auf der Karte{% if map_places.unplaced %}, {{ map_places.unplaced | length }} ohne Lage{% endif %}.
     <span class="legende"><svg viewBox="-11 -11 22 22" aria-hidden="true"><path class="marke start" d="M0 -10L10 0L0 10L-10 0Z"/><g transform="scale(0.7)">{{ house() }}</g></svg> Startort
@@ -64,23 +65,22 @@
   {% endif %}
 
   {% if map_places.points %}
-  <details>
-    <summary>Orte auf der Karte ({{ map_places.points | length }})</summary>
+  {% call abschnitt("karte-orte", "Orte auf der Karte", map_places.points | length, offen=false) %}
     <ul class="orte">
       {% for point in map_places.points %}
       <li>{{ point.use.name }} · {{ point.place.found_as }} {{ place_button(point.use.name, "vergessen", "Lage vergessen") }}</li>
       {% endfor %}
     </ul>
-  </details>
+  {% endcall %}
   {% endif %}
   {% if map_places.hidden %}
-  <details>
-    <summary>Nicht auf der Karte gezeigt ({{ map_places.hidden | length }})</summary>
+  {% call abschnitt("karte-ausgeblendet", "Nicht auf der Karte gezeigt", map_places.hidden | length, offen=false) %}
     <ul class="orte">
       {% for use in map_places.hidden %}
       <li>{{ use.name }} {{ place_button(use.name, "vergessen", "wieder zeigen") }}</li>
       {% endfor %}
     </ul>
-  </details>
+  {% endcall %}
   {% endif %}
-</section>
+</div>
+{% endcall %}

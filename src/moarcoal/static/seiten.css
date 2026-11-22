@@ -59,22 +59,22 @@ main:has(.arbeit-seite) { display: flex; flex-direction: column; overflow: hidde
 .arbeit-seite h2 { font-size: var(--fs-xl); margin: 0 0 var(--abstand-3); }
 .arbeit-seite h3 { font-size: var(--fs-l); margin: var(--abstand-3) 0 var(--abstand-1); }
 .arbeit-seite .spalte > section + section { margin-top: var(--abstand-6); }
-.arbeit-seite .hinweis { opacity: 0.75; margin: var(--abstand-2) 0; }
-.arbeit-seite .zahl { text-align: right; white-space: nowrap; }
+.arbeit-seite .hinweis { color: var(--text-gedaempft); font-size: var(--fs-s); margin: var(--abstand-2) 0; }
 .formular-eintrag label input { width: 9rem; }
-.arbeitsmittel { width: 100%; }
-.arbeitsmittel tr:not(.bearbeiten) td { border-bottom: 0; padding-bottom: 0; }
-.arbeitsmittel tr.bearbeiten td { padding-top: 0; }
+/* Werte einer Spalte: eine Zelle je Wert, darf umbrechen; Bearbeiten-Zeile einer Anschaffung hängt an ihrer Zeile */
+table.werte td:first-child { width: auto; white-space: normal; }
+table.arbeitsmittel tr:has(+ tr.bearbeiten) td, table.arbeitsmittel tr.bearbeiten td { border-bottom: 0; }
+table.arbeitsmittel tr:has(+ tr.bearbeiten) td { padding-bottom: 0; }
+table.arbeitsmittel tr.bearbeiten td { padding-top: 0; border-bottom: var(--linienstaerke) solid var(--linie); }
 .spalte.dienstreisen { display: flex; flex-direction: column; overflow: hidden; }
 .dienstreisen > * { flex: none; }
 .dienstreisen .stand { margin: var(--abstand-3) 0; }
-.dienstreisen .aufstellungen { max-height: 40%; overflow: auto; margin: var(--abstand-2) 0; }
-.dienstreisen .aufstellungen > summary { cursor: pointer; }
+.dienstreisen > .abschnitt { max-height: 40%; overflow: auto; }
 .dienstreisen #dienstreisen { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: flex-start; }
 .dienstreisen .tabelle { flex: 0 1 auto; min-height: 0; max-width: 100%; overflow: auto; margin-bottom: var(--abstand-3); }
-.dienstreisen .tabelle thead th, .dienstreisen .tabelle tfoot td { position: sticky; background: var(--grund); }
+.dienstreisen .tabelle thead th, .dienstreisen .tabelle tfoot td { position: sticky; background: var(--grund); z-index: 1; }
 .dienstreisen .tabelle thead th { top: 0; }
-.dienstreisen .reisen td { white-space: nowrap; padding-top: var(--abstand-1); padding-bottom: var(--abstand-1); }
+.dienstreisen .reisen td { white-space: nowrap; }
 .dienstreisen .reisen td label { display: inline; margin-left: var(--abstand-3); }
 .dienstreisen .reisen input[data-col="4"] { width: 9rem; }
 .dienstreisen .knoepfe { display: flex; gap: var(--abstand-3); }
@@ -83,6 +83,18 @@ main:has(.arbeit-seite) { display: flex; flex-direction: column; overflow: hidde
 .reisen tr.mit-fehler td { background: var(--fehler-grund); }
 .reisen td.unsicher { background: var(--warnung-grund); }
 .reisen tfoot td { font-weight: bold; }
+
+/* Arbeit, schmales Fenster: die Seite scrollt normal, die Spalten stehen untereinander, die Tabelle der Dienstreisen scrollt nur seitwärts */
+@media (max-width: 60rem) {
+  main:has(.arbeit-seite) { display: block; overflow: auto; }
+  .arbeit-seite { display: block; }
+  .arbeit-seite .spalte { overflow: visible; margin-bottom: var(--abstand-6); }
+  .spalte.dienstreisen { display: block; }
+  .dienstreisen > .abschnitt { max-height: none; overflow: visible; }
+  .dienstreisen #dienstreisen { display: block; }
+  .dienstreisen .tabelle { max-width: 100%; overflow-x: auto; }
+  .dienstreisen .tabelle thead th, .dienstreisen .tabelle tfoot td { position: static; }
+}
 
 /* Aussteller-Feld */
 .aussteller-feld { border: 0; padding: 0; margin: 0; position: relative; }
@@ -99,8 +111,8 @@ main:has(.arbeit-seite) { display: flex; flex-direction: column; overflow: hidde
 
 /* Dienstreisen: Karte von Deutschland (Farben aus dem Seitenschema, kein Inline-Style wegen der CSP) */
 .deutschlandkarte { width: 100%; height: auto; }
-.deutschlandkarte .land { fill: color-mix(in srgb, currentColor 6%, var(--flaeche)); stroke: currentColor; stroke-width: 1.2; }
-.deutschlandkarte .grenzen { fill: none; stroke: var(--linie); stroke-width: 0.6; }
+.deutschlandkarte .land { fill: var(--flaeche-2); stroke: var(--linie-stark); stroke-width: 1.2; }
+.deutschlandkarte .grenzen { fill: none; stroke: var(--linie-stark); stroke-width: 0.6; }
 .marke.ziel { fill: color-mix(in srgb, var(--akzent) 25%, var(--flaeche)); stroke: var(--akzent); stroke-width: 2; }
 .marke.start { fill: color-mix(in srgb, var(--warnung) 30%, var(--flaeche)); stroke: var(--warnung); stroke-width: 2.4; stroke-linejoin: round; }
 .haus { fill: none; stroke: var(--text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

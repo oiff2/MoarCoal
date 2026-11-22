@@ -548,7 +548,7 @@ def test_arbeit_shows_the_four_values_with_a_link_to_the_document(
     taken = take(app.state.store)
     assert isinstance(taken, TakenIn)
     page = client.get("/arbeit?jahr=2025").text
-    section = page.split("<h2>Lohnsteuerbescheinigung</h2>", 1)[1].split("</section>", 1)[0]
+    section = page.split('id="arbeit-lohnsteuer"', 1)[1].split('class="spalte dienstreisen"', 1)[0]
     for label in ("Steuerklasse", "Bruttoarbeitslohn", "Lohnsteuer", "Solidaritätszuschlag"):
         assert f"{label}:" in section
     assert "45.678,90 €" in section and "6.543,21 €" in section
@@ -630,6 +630,6 @@ def test_every_certificate_line_has_a_catalog_value_and_an_overview_row(
     )
     app = make_app(4711, root, user=USER)
     page = page_client(app).get("/arbeit?jahr=2025").text
-    section = page.split("<h2>Lohnsteuerbescheinigung</h2>", 1)[1].split("</section>", 1)[0]
+    section = page.split('id="arbeit-lohnsteuer"', 1)[1].split('class="spalte dienstreisen"', 1)[0]
     for line in CERTIFICATE_LINES:
         assert f"{line.overview_label}:" in section

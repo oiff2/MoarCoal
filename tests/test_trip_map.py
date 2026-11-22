@@ -375,7 +375,7 @@ def test_an_ort_can_be_hidden_forgotten_and_a_position_taken_back(setup: Setup) 
     assert place.hidden and place.name == "Wien"
     html = setup.page()
     assert "Ohne Lage (3)" in html and '<input name="suche" value="Wien"' not in html
-    assert "Nicht auf der Karte gezeigt (1)" in html
+    assert 'Nicht auf der Karte gezeigt <span class="n">(1)</span>' in html
 
     setup.post("vergessen", ort="Wien")
     assert setup.places() == [] and '<input name="suche" value="Wien"' in setup.page()

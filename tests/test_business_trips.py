@@ -687,7 +687,7 @@ def test_chain_titles_are_catalog_titles(tmp_path: Path) -> None:
 
 
 def costs_table(page: str) -> str:
-    return page.split('class="reisekosten"', 1)[1].split("</table>", 1)[0]
+    return page.split('class="liste reisekosten"', 1)[1].split("</table>", 1)[0]
 
 
 def test_arbeit_shows_the_travel_costs_as_a_small_table_without_expanding(tmp_path: Path) -> None:

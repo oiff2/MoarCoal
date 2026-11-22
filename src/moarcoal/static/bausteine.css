@@ -165,11 +165,8 @@ table.felder tr.zwischenkopf th { padding-top: var(--abstand-5); color: var(--te
 .notiz-kasten { margin: var(--abstand-3) 0 var(--abstand-3) var(--abstand-5); padding: var(--abstand-3) var(--abstand-4); border: var(--linienstaerke) dashed var(--akzent); border-left: var(--balken) solid var(--akzent); border-radius: var(--radius-gross); background: var(--akzent-weich); }
 .notiz { white-space: pre-wrap; }
 
-/* Kleine Tabelle der Reisekosten */
-.reisekosten { margin: var(--abstand-2) 0; }
-.reisekosten th, .reisekosten td { padding-right: var(--abstand-5); text-align: left; }
-.reisekosten td:nth-child(2) { text-align: right; }
-.reisekosten .begruendung { display: block; opacity: 0.75; }
+/* Tabelle der Reisekosten: Begründung gedämpft unter dem Posten */
+.reisekosten .begruendung { display: block; color: var(--text-gedaempft); }
 
 nav.seiten { display: flex; flex-wrap: wrap; gap: var(--abstand-2) var(--abstand-5); margin: var(--abstand-3) 0; }
 nav.seiten a[aria-current="page"] { font-weight: bold; text-decoration: none; }

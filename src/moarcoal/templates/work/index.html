@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_value.html" import value_view %}
-{% from "_ui.html" import not_yet %}
+{% from "_ui.html" import abschnitt, not_yet, streifen %}
 {% from "work/_entry_form.html" import entry_form %}
 {% block title %}Arbeit {{ year }} – MoarCoal{% endblock %}
 {#- Was eine Anschaffung im Jahr zählt: Betrag mit Monaten der AfA, oder warum es noch nicht feststeht. -#}
@@ -11,7 +11,7 @@
 {%- endif -%}
 {%- endmacro %}
 {% macro purchase_head(year) -%}
-<tr><th>Datum</th><th>Beschreibung</th><th class="zahl">Betrag</th><th class="zahl">{{ year }}</th></tr>
+<thead><tr><th>Datum</th><th>Beschreibung</th><th class="zahl">Betrag</th><th class="zahl">{{ year }}</th></tr></thead>
 {%- endmacro %}
 {#- Eine Anschaffung als Zeile der Tabellen; mit `url` verlinkt die Beschreibung auf den Eintrag. -#}
 {% macro purchase_row(entry, share, date_format, url=none) -%}
@@ -23,55 +23,67 @@
   <td class="zahl">{{ afa(share) }}</td>
 </tr>
 {%- endmacro %}
+{#- Ausgewiesene Werte als Feldtabelle: Statusstreifen aus dem Ergebnis (Belegstand, bei „noch nicht berechenbar“ Fehler), nie Farbe allein, das Wort steht in der Zelle. -#}
+{% macro werte(rows) -%}
+<table class="liste felder werte">
+  <tbody>
+    {% for label, result in rows %}
+    <tr class="{{ streifen('error' if result.outcome == 'not_yet' else (result.backing.name | lower if result.outcome == 'amount' else '')) }}">
+      <td>{{ value_view(label, result) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{%- endmacro %}
 {% block main %}
-{#- Eine Seite für das ganze Modul (docs/grundgeruest.md §6): drei Spalten, jede scrollt in sich, die Seite nie. -#}
+{#- Eine Seite für das ganze Modul (docs/grundgeruest.md §6): drei Spalten, jede scrollt in sich, die Seite nie; schmal scrollt die Seite. -#}
 <div class="arbeit-seite">
   <div class="spalte teile">
-    <section>
-      <h2>Erste Tätigkeitsstätte</h2>
+    {% call abschnitt("arbeit-taetigkeitsstaette", "Erste Tätigkeitsstätte", workplaces | length) %}
       {% for entry, form, workdays, distance in workplaces %}
       <div class="eintrag">
         <h3>{{ entry.description or "Ohne Beschreibung" }}</h3>
-        {{ value_view("Arbeitstage", workdays) }}
-        {{ value_view("Einfache Entfernung", distance) }}
+        {{ werte([("Arbeitstage", workdays), ("Einfache Entfernung", distance)]) }}
         {{ entry_form(form, "Ändern") }}
       </div>
       {% else %}
       <p>Für {{ year }} noch keine Angaben.</p>
       {% endfor %}
       {{ entry_form(new_workplace, "Neue erste Tätigkeitsstätte") }}
-    </section>
+    {% endcall %}
 
-    <section>
-      <h2>Arbeitsmittel</h2>
+    {% call abschnitt("arbeit-arbeitsmittel", "Arbeitsmittel", equipment | length) %}
       {% if equipment %}
-      <table class="arbeitsmittel">
+      <table class="liste arbeitsmittel">
         {{ purchase_head(year) }}
+        <tbody>
         {% for entry, form, share in equipment %}
         {{ purchase_row(entry, share, "%d.%m.") }}
         <tr class="bearbeiten"><td colspan="4">{{ entry_form(form, "Ändern") }}</td></tr>
         {% endfor %}
+        </tbody>
       </table>
       {% endif %}
       {% if running %}
-      <h3>Laufende Abschreibungen aus Vorjahren</h3>
-      <table class="arbeitsmittel">
+      <h3 class="gruppenname">Laufende Abschreibungen aus Vorjahren</h3>
+      <table class="liste arbeitsmittel">
         {{ purchase_head(year) }}
+        <tbody>
         {% for entry, share, url in running %}
         {{ purchase_row(entry, share, "%d.%m.%Y", url) }}
         {% endfor %}
+        </tbody>
       </table>
       {% endif %}
-      {{ value_view("Summe der Arbeitsmittel", equipment_total) }}
+      {{ werte([("Summe der Arbeitsmittel", equipment_total)]) }}
       {{ entry_form(new_equipment, "Neues Arbeitsmittel") }}
-    </section>
+    {% endcall %}
 
-    <section>
-      <h2>Lohnsteuerbescheinigung</h2>
-      {% for label, result in wage_tax["values"] %}{{ value_view(label, result) }}{% endfor %}
+    {% call abschnitt("arbeit-lohnsteuer", "Lohnsteuerbescheinigung", none) %}
+      {{ werte(wage_tax["values"]) }}
       {% for url in wage_tax.documents %}<p><a href="{{ url }}">Beleg ansehen</a></p>{% endfor %}
       {% if not wage_tax.documents %}<p>Die Bescheinigung nehmen Sie auf der Belege-Seite auf (Dokumentart „Lohnsteuerbescheinigung“, Jahr {{ year }}).</p>{% endif %}
-    </section>
+    {% endcall %}
   </div>
 
   <div class="spalte dienstreisen">
