@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MoarCoal">
+  <!-- App-Icon, Entwurf 3 "M" (aufbewahrt, #207): das M als zwei Kohlegipfel auf Bernstein -->
+  <rect x="2" y="2" width="60" height="60" rx="13" fill="#f0a531"/>
+  <polygon points="10,52 10,18 20,12 32,30 44,12 54,18 54,52 42,52 42,32 32,46 22,32 22,52" fill="#1c1c22"/>
+  <polygon points="10,18 20,12 22,32 10,36" fill="#5a5a66"/>
+  <polygon points="44,12 54,18 54,36 42,32" fill="#3b3b45"/>
+  <polygon points="22,32 32,46 42,32 32,30" fill="#2e2e36"/>
+</svg>
