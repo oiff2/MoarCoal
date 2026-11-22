@@ -6,6 +6,7 @@ die angemeldeten Anlagen für die Sonderteile; nur erfundene Werte.
 
 import ast
 import datetime
+import re
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
@@ -27,6 +28,7 @@ from moarcoal.modules.tax_year.anlage_view import (
     ValueContent,
     anlage_view,
 )
+from moarcoal.modules.tax_year.anlage_vor import ANLAGE_VOR, WORK_EMPLOYEE_PENSION
 from moarcoal.modules.tax_year.anlagen import Anlage, YearAnlage, year_anlagen
 from moarcoal.modules.tax_year.assessment import COMMUTE_DAYS
 from moarcoal.modules.tax_year.church_tax import ChurchTaxPayment
@@ -46,6 +48,8 @@ from moarcoal.modules.tax_year.protocol_check import latest_reading
 from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.snapshot_check import snapshot_on_filing
 from moarcoal.modules.tax_year.special_parts import PageParams, Place, SpecialPart
+from moarcoal.modules.work import REGISTRATION as WORK
+from moarcoal.modules.work.wage_tax.entries import WageTaxCertificate
 from moarcoal.registration import ModuleState
 from moarcoal.storage import (
     Document,
@@ -65,6 +69,7 @@ from moarcoal.values.model import (
     Period,
     Unit,
     ValueKey,
+    ValueLocator,
     ValueRef,
 )
 from moarcoal.values.testing import evaluate
@@ -532,3 +537,42 @@ def test_the_pure_view_imports_neither_fastapi_nor_the_pages_of_the_binding() ->
             and (m.startswith(forbidden) or m.endswith(("church_tax_pages", "tax_year.pages")))
         ]
         assert bad == [], f"{name} importiert {bad}"
+
+
+def test_vor_shows_the_short_catalog_title_in_the_locator_of_a_foreign_value() -> None:
+    """Auch auf Anlage VOR nennt die Fundstelle eines Werts aus Arbeit den Katalogtitel (#229)."""
+    document = Document(
+        owner=USER,
+        site="Belege",
+        path="lstb.xml",
+        sha256=f"{2:064x}",
+        document_kind="wage_tax_certificate",
+        period_start=datetime.date(YEAR, 1, 1),
+        period_end=datetime.date(YEAR, 12, 31),
+        taken_in_at=datetime.datetime(YEAR + 1, 3, 1, tzinfo=datetime.UTC),
+    )
+    certificate = WageTaxCertificate(
+        owner=USER,
+        document=document.address,
+        reader_version=3,
+        year=YEAR,
+        employee_pension_cents=123456,
+        places={"employee_pension": "id-Beispiel-employee-pension"},
+    )
+    module = registration((ANLAGE_VOR,))
+    entries = [document, certificate]
+    state = ModuleState(State({e.address: e for e in entries}), module, USER)
+    values = evaluate([WORK, module], entries)
+    anlage = next(a for a in year_anlagen((ANLAGE_VOR,), YEAR, None) if a.form == "VOR")
+    page = next(p for p in anlage.pages for r in p.rows if r.field.elster_id == "E2000401")
+    shown = anlage_view(state, values, (), no_links, anlage, page.slug, NO_PARAMS)
+
+    content = rows_of(shown)["E2000401"].content  # Nr. 23 a/b, ein Wert aus Arbeit
+    assert isinstance(content, ValueContent)
+    assert isinstance(content.result, ExposedValue)
+    (item,) = content.result.items
+    assert isinstance(item.locator, ValueLocator)
+    title = next(d.entry.title for d in WORK.values if d.entry.key == WORK_EMPLOYEE_PENSION)
+    assert title != WORK_EMPLOYEE_PENSION  # ein Katalogtitel, nicht der Schlüssel
+    assert item.locator.label == f"Wert {title}"
+    assert not re.search(r"Wert [a-z_]+\.[a-z_]+", item.locator.label)
