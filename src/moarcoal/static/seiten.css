@@ -128,13 +128,16 @@ main:has(.steuerjahr) { display: flex; flex-direction: column; overflow: hidden;
 .anlagen-baum summary small { opacity: 0.6; }
 .anlagen-baum ul { list-style: none; margin: 0 0 var(--abstand-2) var(--abstand-5); padding: 0; font-size: var(--fs-s); }
 
-/* Steuerjahr: je Feld eine Zeile wie in Mein ELSTER: Nr. links, dann Bezeichnung, Wert und Gegenproben nebeneinander in festen Spalten (bündig über alle Felder); in schmalen Karten untereinander */
-.feld { grid-template-columns: 4.5rem minmax(0, 1fr); }
-.feld-rumpf { grid-template-columns: minmax(0, 22rem) minmax(0, 14rem) minmax(0, 1fr); }
-@container (max-width: 46rem) { .feld-rumpf { display: block; } .feld-rumpf .feld-wert { margin: var(--abstand-2) 0; } .feld-rumpf .gegenproben { margin-top: var(--abstand-2); } }
 .notiz-kasten { float: right; width: 20rem; }
 @media (max-width: 70rem) { .notiz-kasten { float: none; width: auto; margin: var(--abstand-3) 0; } }
 .gegenproben { --seite-breite: 7.5rem; }
 .gegenproben .seite { min-width: var(--seite-breite); }
 .gegenproben .text { padding-left: calc(var(--seite-breite) + var(--abstand-3)); }
 form.ausblenden:not([popover]) { max-width: 32rem; }
+/* Steuerjahr, schmales Fenster: die Seite scrollt normal, erst die Anlagen, darunter die Seite */
+@media (max-width: 60rem) {
+  main:has(.steuerjahr) { display: block; overflow: auto; }
+  .steuerjahr { display: block; }
+  .anlagen-baum { overflow: visible; border-right: 0; border-bottom: var(--linienstaerke) solid var(--linie); }
+  .steuerjahr-inhalt { overflow-x: auto; padding: var(--abstand-5) var(--abstand-4); }
+}

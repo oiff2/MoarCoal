@@ -33,7 +33,7 @@
   <h2>Kirchensteuerzahlungen {{ data.year }}</h2>
   <p>Zahlungen und Erstattungen von Kirchensteuer, die nicht über den Lohn oder die Abgeltungsteuer liefen. Sie zählen im Jahr des Zahlungsdatums und ergeben die Felder „gezahlt“ und „erstattet“ oben.</p>
   {% if data.payments %}
-  <table>
+  <table class="liste">
     <tr><th>Datum</th><th>Art der Leistung</th><th></th><th class="zahl">Betrag</th><th>Beleg</th></tr>
     {% for payment, form, link in data.payments %}
     <tr>

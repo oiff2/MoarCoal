@@ -503,14 +503,14 @@ def test_the_note_of_est1a_sits_on_top_of_the_first_page_only(tmp_path: Path) ->
     other = http.get("/steuerjahr/anlage-est1a/2025/4").text
 
     assert "Beispielnotiz" in first and "wird nicht übermittelt" in first
-    assert first.index("Beispielnotiz") < first.index('class="feld"')
+    assert first.index("Beispielnotiz") < first.index('id="feld-')
     assert "Beispielnotiz" not in other and "Bearbeitungsnotiz" not in other
 
 
 def test_the_church_tax_payments_sit_below_the_fields_of_sa(tmp_path: Path) -> None:
     page = client(tmp_path).get("/steuerjahr/anlage-sa/2025").text
 
-    assert page.rindex('class="feld"') < page.index("Neue Kirchensteuerzahlung")
+    assert page.rindex('id="feld-') < page.index("Neue Kirchensteuerzahlung")
 
 
 def test_the_pure_view_imports_neither_fastapi_nor_the_pages_of_the_binding() -> None:

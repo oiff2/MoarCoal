@@ -1,8 +1,25 @@
 {% extends "tax_year/_rahmen.html" %}
 {% from "_value.html" import value_view %}
 {% from "tax_year/_eingabe.html" import input_cell %}
-{% from "_ui.html" import severity as status_severity, fits as status_fits, not_yet as status_not_yet %}
+{% from "_ui.html" import severity as status_severity, fits as status_fits, not_yet as status_not_yet, streifen %}
 {% block title %}{{ anlage.name }} {{ year }} – MoarCoal{% endblock %}
+
+{#- Stufe des Statusstreifens einer Zeile, nur aus dem, was anlage_view liefert (Inhalt und Gegenproben): noch nicht berechenbar oder Fehlerbefund = error,
+    Warnbefund = warning, sonst bei einem Betrag sein Belegstand (belegt = proven, die anderen still), sonst eine passende Gegenprobe = fits, sonst still.
+    Nie Farbe allein: Wort und Symbol stehen in der Zelle. -#}
+{% macro stufe(row) -%}
+{%- set s = namespace(art="", fits=false) -%}
+{%- if row.content.shape == "value" and row.content.result.outcome == "not_yet" %}{% set s.art = "error" %}{% endif -%}
+{%- for check in row.checks %}
+  {%- if check.deviation and check.severity %}
+    {%- if check.severity.name == "ERROR" %}{% set s.art = "error" %}{% elif check.severity.name == "WARNING" and s.art != "error" %}{% set s.art = "warning" %}{% endif %}
+  {%- elif check.fits %}{% set s.fits = true %}{% endif -%}
+{%- endfor -%}
+{%- if not s.art and row.content.shape == "value" and row.content.result.outcome == "amount" %}{% set s.art = row.content.result.backing.name | lower %}{% endif -%}
+{%- if not s.art and s.fits %}{% set s.art = "fits" %}{% endif -%}
+{{ s.art }}
+{%- endmacro %}
+
 {% block inhalt %}
 <h1>{{ anlage.name }} {{ year }}</h1>
 {% if anlage.provisional %}
@@ -21,26 +38,29 @@
 {% include part.template %}
 {% endfor %}
 
+<table class="liste felder">
+  <thead><tr><th>Z.</th><th>Bezeichnung</th><th>Angabe</th><th>Gegenproben</th></tr></thead>
+  <tbody>
 {% for row in view.rows %}
 {% set field = row.field %}{% set content = row.content %}
 {% for heading in row.headings %}
-<h3 class="feld-ueberschrift">{{ heading }}</h3>
+  <tr class="zwischenkopf"><th colspan="4" scope="colgroup">{{ heading }}</th></tr>
 {% endfor %}
-<section class="feld" id="feld-{{ field.elster_id }}">
-  <div class="feld-nr"><span title="Nummer im Vordruck">Z. {{ field.form_line or "–" }}</span>{% if field.elster_id %}<span class="e-kennung" role="img" title="{{ field.elster_id }}" aria-label="E-Kennung {{ field.elster_id }}">E</span>{% endif %}</div>
-  <div class="feld-rumpf">
-    <div class="feld-kopf">{{ field.label }}{% if row.unit %} <span class="einheit">{{ row.unit }}</span>{% endif %}</div>
-    <div class="feld-wert">{% if content.shape == "input" %}{{ input_cell(anlage.slug, year, field, content.typed, content.saved, none) }}{% elif content.shape == "text" %}{% if content.text %}<span class="inhalt">{{ content.text }}</span>{% elif content.reason %}{{ status_not_yet(content.reason, "wird noch nicht berechnet") }}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}{% elif content.shape == "value" %}{{ value_view("Angabe", content.result, whole=content.whole_euros) }}{% for label, url in content.links %} <a href="{{ url }}">{{ label }}</a>{% endfor %}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}</div>
-    {% if row.checks %}
-    <ul class="gegenproben">
-      {% for check in row.checks %}
-      <li><span class="seite">{{ check.side }}</span> {{ check.shown }}{% if check.deviation %} {{ status_severity(check.severity, "weicht ab") }} <span class="text">{{ check.deviation }}</span>{% elif check.fits %} {{ status_fits() }}{% endif %}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-  </div>
-</section>
+  <tr class="{{ streifen(stufe(row) | trim) }}" id="feld-{{ field.elster_id }}">
+    <td class="feld-nr"><span title="Nummer im Vordruck">Z. {{ field.form_line or "–" }}</span>{% if field.elster_id %}<span class="e-kennung" role="img" title="{{ field.elster_id }}" aria-label="E-Kennung {{ field.elster_id }}">E</span>{% endif %}</td>
+    <td class="feld-kopf">{{ field.label }}{% if row.unit %} <span class="einheit">{{ row.unit }}</span>{% endif %}</td>
+    <td class="feld-wert">{% if content.shape == "input" %}{{ input_cell(anlage.slug, year, field, content.typed, content.saved, none) }}{% elif content.shape == "text" %}{% if content.text %}<span class="inhalt">{{ content.text }}</span>{% elif content.reason %}{{ status_not_yet(content.reason, "wird noch nicht berechnet") }}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}{% elif content.shape == "value" %}{{ value_view("Angabe", content.result, whole=content.whole_euros) }}{% for label, url in content.links %} <a href="{{ url }}">{{ label }}</a>{% endfor %}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}</td>
+    <td>{% if row.checks %}
+      <ul class="gegenproben">
+        {% for check in row.checks %}
+        <li><span class="seite">{{ check.side }}</span> {{ check.shown }}{% if check.deviation %} {{ status_severity(check.severity, "weicht ab") }} <span class="text">{{ check.deviation }}</span>{% elif check.fits %} {{ status_fits() }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}</td>
+  </tr>
 {% endfor %}
+  </tbody>
+</table>
 {% for part, data in view.parts if part.place == "bottom" %}
 {% include part.template %}
 {% endfor %}

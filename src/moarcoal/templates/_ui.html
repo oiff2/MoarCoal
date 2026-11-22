@@ -29,11 +29,11 @@
 {%- endcall %}
 {%- endmacro %}
 
-{#- Abschnitt: einklappbar, mit Überschrift, Anzahl in Klammern und optionaler Erklärzeile; der Inhalt kommt aus dem Aufrufblock.
+{#- Abschnitt: einklappbar, mit Überschrift, Anzahl in Klammern (anzahl=none: ohne) und optionaler Erklärzeile; der Inhalt kommt aus dem Aufrufblock.
     id ist zugleich der Schlüssel, unter dem der Browser merkt, ob er zu ist (data-merken, rahmen.js). -#}
 {% macro abschnitt(id, titel, anzahl, erklaerung="", offen=true) -%}
 <details class="abschnitt" id="{{ id }}"{% if offen %} open{% endif %} data-merken="{{ id }}">
-  <summary>{{ titel }} <span class="n">({{ anzahl }})</span></summary>
+  <summary>{{ titel }}{% if anzahl is not none %} <span class="n">({{ anzahl }})</span>{% endif %}</summary>
   {% if erklaerung %}<p class="erklaerung">{{ erklaerung }}</p>{% endif %}
   {{ caller() }}
 </details>

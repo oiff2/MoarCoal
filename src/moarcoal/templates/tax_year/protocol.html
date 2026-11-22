@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_ui.html" import abschnitt %}
 {% block title %}Übertragungsprotokoll {{ reading.year }} – MoarCoal{% endblock %}
 {% block main %}
 <h1>Übertragungsprotokoll {{ reading.year }}</h1>
@@ -14,8 +15,8 @@
 <p class="fehler">Das Dokument zu diesem Übertragungsprotokoll fehlt.</p>
 {% endif %}
 {% if reading.received %}<p>Eingang auf Server: {{ reading.received.strftime("%d.%m.%Y") }}</p>{% endif %}
-<h2>Eingelesene Angaben ({{ reading.lines | length }})</h2>
-<table>
+{% call abschnitt("angaben", "Eingelesene Angaben", reading.lines | length) %}
+<table class="liste">
   <tr><th>Anlage</th><th>Nr. im Vordruck</th><th>E-Kennung</th><th>Bezeichnung</th><th>Inhalt</th><th>Index</th><th>Stelle im Dokument</th></tr>
   {% for line in reading.lines %}
   <tr id="{{ line.data_name }}">
@@ -29,4 +30,5 @@
   </tr>
   {% endfor %}
 </table>
+{% endcall %}
 {% endblock %}
