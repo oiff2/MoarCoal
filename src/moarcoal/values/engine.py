@@ -125,7 +125,7 @@ class Values:
                 time,
                 subject,
                 signal.reason,
-                tuple(ChainEntry(r, self.label(str(r.key))) for r in signal.chain),
+                tuple(ChainEntry(r, self.title(str(r.key))) for r in signal.chain),
             )
         except NotApplicableSignal as signal:
             result = NotApplicable(entry.key, user, time, subject, signal.reason)
@@ -230,7 +230,7 @@ class Values:
     def _document_kinds(self) -> dict[str, DocumentKind]:
         return {k.key: k for m in self._modules.values() for k in m.document_kinds}
 
-    def label(self, key: str) -> str:
+    def title(self, key: str) -> str:
         """Der kurze Titel des Werts im Katalog; vorgegebene fremde Werte haben keinen."""
         try:
             return self.catalog.definition(key).entry.title

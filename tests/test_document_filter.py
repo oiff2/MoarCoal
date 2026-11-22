@@ -29,28 +29,28 @@ def test_parse_file_types_ignores_unknown_values() -> None:
 
 
 def test_empty_filter_lets_everything_through_even_without_a_file() -> None:
-    flt = SearchFilter()
-    assert not flt.active
-    assert flt.matches([], [])
+    search = SearchFilter()
+    assert not search.active
+    assert search.matches([], [])
 
 
 def test_search_ignores_case_and_matches_any_text() -> None:
-    flt = SearchFilter(query="  MIET ")
-    assert flt.active
-    assert flt.matches(["Scans", "vertraege/mietvertrag.pdf"], [FileType.PDF])
-    assert not flt.matches(["Scans", "vertraege/kaufvertrag.pdf"], [FileType.PDF])
+    search = SearchFilter(query="  MIET ")
+    assert search.active
+    assert search.matches(["Scans", "vertraege/mietvertrag.pdf"], [FileType.PDF])
+    assert not search.matches(["Scans", "vertraege/kaufvertrag.pdf"], [FileType.PDF])
 
 
 def test_several_types_are_an_or_and_an_item_without_file_drops_out() -> None:
-    flt = SearchFilter(types=frozenset({FileType.PDF, FileType.IMAGE}))
-    assert flt.matches(["x"], [FileType.IMAGE])
-    assert not flt.matches(["x"], [FileType.TABLE])
-    assert not flt.matches(["x"], [])
+    search = SearchFilter(types=frozenset({FileType.PDF, FileType.IMAGE}))
+    assert search.matches(["x"], [FileType.IMAGE])
+    assert not search.matches(["x"], [FileType.TABLE])
+    assert not search.matches(["x"], [])
 
 
 def test_search_and_type_must_both_hold() -> None:
-    flt = SearchFilter("bank", frozenset({FileType.PDF}))
-    assert flt.matches(["bank"], [FileType.PDF])
-    assert not flt.matches(["bank"], [FileType.IMAGE])
-    assert not flt.matches(["post"], [FileType.PDF])
-    assert flt.without_types().matches(["bank"], [FileType.IMAGE])
+    search = SearchFilter("bank", frozenset({FileType.PDF}))
+    assert search.matches(["bank"], [FileType.PDF])
+    assert not search.matches(["bank"], [FileType.IMAGE])
+    assert not search.matches(["post"], [FileType.PDF])
+    assert search.without_types().matches(["bank"], [FileType.IMAGE])

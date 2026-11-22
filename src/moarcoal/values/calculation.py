@@ -50,7 +50,7 @@ class ValueSource(Protocol):
 
     def subjects(self, key: str, user: str, time: TimeRef) -> list[Subject]: ...
 
-    def label(self, key: str) -> str:
+    def title(self, key: str) -> str:
         """Der kurze Titel des Werts im Wertekatalog (ohne Eintrag: der Schlüssel)."""
         ...
 
@@ -96,11 +96,11 @@ class Calculation:
         return self._source.get(key, self.own.user, time or self.time, subject)
 
     def _used_item(self, result: ExposedValue, label: str | None) -> LineItem:
-        locator = ValueLocator(result, self._source.label(result.key))
+        locator = ValueLocator(result, self._source.title(result.key))
         return self.item(label or str(result.key), result.amount, locator)
 
     def _not_yet_signal(self, result: NotYetComputable) -> NotYetSignal:
-        reason = f"{self._source.label(result.key)} ist noch nicht berechenbar: {result.reason}"
+        reason = f"{self._source.title(result.key)} ist noch nicht berechenbar: {result.reason}"
         return NotYetSignal(reason, (result.ref, *(link.ref for link in result.chain)))
 
     def use(
@@ -122,7 +122,7 @@ class Calculation:
             case NotYetComputable():
                 raise self._not_yet_signal(result)
             case NotApplicable():
-                self.decide(f"{self._source.label(result.key)} entfällt: {result.reason}")
+                self.decide(f"{self._source.title(result.key)} entfällt: {result.reason}")
                 return None
 
     def require(
@@ -142,7 +142,7 @@ class Calculation:
                 raise self._not_yet_signal(result)
             case NotApplicable():
                 raise NotApplicableSignal(
-                    f"{self._source.label(result.key)} entfällt: {result.reason}"
+                    f"{self._source.title(result.key)} entfällt: {result.reason}"
                 )
 
     def try_use(
@@ -160,7 +160,7 @@ class Calculation:
             case NotYetComputable():
                 return Missing(result)
             case NotApplicable():
-                self.decide(f"{self._source.label(result.key)} entfällt: {result.reason}")
+                self.decide(f"{self._source.title(result.key)} entfällt: {result.reason}")
                 return None
 
     def subjects_of(self, key: ValueKey | str, time: TimeRef | None = None) -> list[Subject]:

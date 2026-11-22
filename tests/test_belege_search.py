@@ -128,9 +128,9 @@ def location(response: httpx.Response) -> str:
 
 
 def test_with_filter_appends_to_any_address_before_the_fragment() -> None:
-    flt = SearchFilter("a b", frozenset({FileType.PDF}))
-    assert with_filter("/belege?dokument=X", flt) == "/belege?dokument=X&suche=a+b&typ=pdf"
-    assert with_filter("/belege#erwartet", flt) == "/belege?suche=a+b&typ=pdf#erwartet"
+    search = SearchFilter("a b", frozenset({FileType.PDF}))
+    assert with_filter("/belege?dokument=X", search) == "/belege?dokument=X&suche=a+b&typ=pdf"
+    assert with_filter("/belege#erwartet", search) == "/belege?suche=a+b&typ=pdf#erwartet"
     assert with_filter("/belege", SearchFilter()) == "/belege"
 
 

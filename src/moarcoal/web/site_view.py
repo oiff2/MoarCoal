@@ -267,7 +267,7 @@ def _issuer_name(state: State, issuer: EntryAddress | None) -> str:
     return found.name if isinstance(found, Issuer) else ""
 
 
-def filter_new(section: NewSection, flt: SearchFilter) -> NewSection:
+def filter_new(section: NewSection, search: SearchFilter) -> NewSection:
     """Der Abschnitt Neu mit den Dateien, die Suche (Ablageort, Pfad mit Ordner und Name) und
     Dateityp treffen, ebenso die Hinweise auf gleichen Inhalt. Die Ausblendungen bleiben stehen:
     sie sind eine Pflegeliste."""
@@ -279,26 +279,26 @@ def filter_new(section: NewSection, flt: SearchFilter) -> NewSection:
                 [
                     f
                     for f in g.files
-                    if flt.matches([f.file.site, f.file.path], [file_type(f.file.path)])
+                    if search.matches([f.file.site, f.file.path], [file_type(f.file.path)])
                 ],
             )
             for g in section.groups
         ],
         duplicates=[
-            replace(h, document_url=with_filter(h.document_url, flt))
+            replace(h, document_url=with_filter(h.document_url, search))
             for h in section.duplicates
-            if flt.matches([h.file.site, h.file.path], [file_type(h.file.path)])
+            if search.matches([h.file.site, h.file.path], [file_type(h.file.path)])
         ],
     )
 
 
-def filter_expected(rows: Sequence[ExpectedRow], flt: SearchFilter) -> list[ExpectedRow]:
+def filter_expected(rows: Sequence[ExpectedRow], search: SearchFilter) -> list[ExpectedRow]:
     """Die Erwarteten Belege, die Suche (Belegtyp, Beschreibung, Aussteller) und Dateityp treffen;
     ein Dateityp haben nur die Dokumente, die den Eintrag erfüllen, ein ausstehender keinen."""
     return [
         r
         for r in rows
-        if flt.matches(
+        if search.matches(
             [r.title, r.entry.description or "", r.issuer.name if r.issuer else ""],
             [file_type(d.path) for d in r.documents],
         )
@@ -306,14 +306,14 @@ def filter_expected(rows: Sequence[ExpectedRow], flt: SearchFilter) -> list[Expe
 
 
 def filter_documents(
-    rows: Sequence[DocumentRow], flt: SearchFilter, state: State
+    rows: Sequence[DocumentRow], search: SearchFilter, state: State
 ) -> list[DocumentRow]:
     """Die Aufgenommenen Belege, die Suche (Ablageort, Pfad, Name, Bezeichnung, Aussteller) und
     Dateityp treffen."""
     return [
         r
         for r in rows
-        if flt.matches(
+        if search.matches(
             [
                 r.document.site,
                 r.document.path,
@@ -327,12 +327,12 @@ def filter_documents(
 
 
 def type_counts(
-    new: NewSection, documents: Sequence[DocumentRow], flt: SearchFilter, state: State
+    new: NewSection, documents: Sequence[DocumentRow], search: SearchFilter, state: State
 ) -> dict[FileType, int]:
     """Wie viele Dateien (Neu und Aufgenommen) je Dateityp die Suche trifft; die Wahl der
     Dateitypen bleibt außen vor, sonst zeigte jeder Typ nur „0“, sobald ein anderer gewählt ist."""
-    search = flt.without_types()
-    paths = [f.file.path for f in filter_new(new, search).files()]
-    paths += [r.document.path for r in filter_documents(documents, search, state)]
+    typeless = search.without_types()
+    paths = [f.file.path for f in filter_new(new, typeless).files()]
+    paths += [r.document.path for r in filter_documents(documents, typeless, state)]
     counts = Counter(file_type(p) for p in paths)
     return {t: counts[t] for t in FileType}
