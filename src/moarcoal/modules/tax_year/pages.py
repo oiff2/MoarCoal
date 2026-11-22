@@ -10,10 +10,8 @@ from moarcoal.defaults import year_of
 from moarcoal.modules.tax_year.anlage_view import anlage_view
 from moarcoal.modules.tax_year.anlagen import Anlage, year_anlagen
 from moarcoal.modules.tax_year.church_tax import ChurchTaxPayment
-from moarcoal.modules.tax_year.church_tax_pages import (
-    PaymentForm,
-    add_routes,
-)
+from moarcoal.modules.tax_year.church_tax_pages import add_routes
+from moarcoal.modules.tax_year.church_tax_view import PaymentForm
 from moarcoal.modules.tax_year.entries import (
     MODULE_KEY,
     TRANSFER_PROTOCOL_KEY,
