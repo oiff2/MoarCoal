@@ -1,0 +1,97 @@
+{% extends "rahmen.html" %}
+{% from "_ui.html" import icon, abschnitt, status, belegstand %}
+{% block title %}Anlage N {{ jahr }}{% endblock %}
+
+{#- Der Wert eines Felds: Betrag mit Belegstand, noch nicht berechenbar, entfällt oder Eingabe. Nie eine stille Null. -#}
+{% macro wert(f) -%}
+{% if f.art == "betrag" %}<strong class="betrag">{{ f.wert }}</strong> {{ belegstand(f.belegstand) }}
+{%- elif f.art == "offen" %}<span class="kurzinfo" tabindex="0" title="{{ f.grund }}"><strong class="status-fehler">noch nicht berechenbar</strong><span class="kurzinfo-text">{{ f.grund }}</span></span>
+{%- elif f.art == "entfaellt" %}<span class="kurzinfo" tabindex="0" title="{{ f.grund }}"><strong>entfällt</strong><span class="kurzinfo-text">{{ f.grund }}</span></span>
+{%- else %}<input type="text" class="feldeingabe" value="{{ f.wert }}" aria-label="{{ f.bez }}">{% endif %}
+{%- endmacro %}
+{% macro proben(f) -%}
+{% if f.proben %}<ul class="gegenproben">{% for p in f.proben %}
+  <li><span class="seite">{{ p.seite }}</span> {{ p.wert }} {% if p.ok %}{{ status("gut", "passt") }}{% else %}{{ status("warnung", "weicht ab") }}{% endif %}{% if p.text %}<span class="text">{{ p.text }}</span>{% endif %}</li>{% endfor %}</ul>{% endif %}
+{%- endmacro %}
+{% macro nr(f) -%}
+<span class="feld-nr"><span title="Nummer im Vordruck">Z. {{ f.z }}</span><span class="e-kennung" role="img" title="{{ f.e }}" aria-label="E-Kennung {{ f.e }}">E</span></span>
+{%- endmacro %}
+{% macro streifen(f) -%}
+{{ 'fehler' if f.art == 'offen' else ('warnung' if f.proben and not f.proben[-1].ok else ('still' if f.art in ('entfaellt', 'eingabe') or f.belegstand == 'angenommen' else 'gut')) }}
+{%- endmacro %}
+
+{% block main %}
+<div class="steuerjahr">
+  <nav class="anlagen-baum" aria-label="Anlagen {{ jahr }}">
+    <a class="uebersicht" href="#">Übersicht {{ jahr }}</a>
+    {% for a in anlagen %}
+    <details{% if a.offen %} open{% endif %}>
+      <summary><a href="#"{% if a.offen %} class="aktuell"{% endif %}>{{ a.name }}</a></summary>
+      <ul>{% for s in a.seiten %}<li><a href="#"{% if a.offen and loop.first %} aria-current="page"{% endif %}>{{ s }}</a></li>{% endfor %}</ul>
+    </details>
+    {% endfor %}
+  </nav>
+  <section class="steuerjahr-inhalt">
+    <h1>Anlage N {{ jahr }}</h1>
+    <p class="erklaerung">Die Angaben aus den Modulen und die Eingaben direkt am Feld, aufgeteilt wie die Seiten der Anlage N in Mein ELSTER.</p>
+    <aside class="notiz-kasten">
+      <div class="feld-kopf">Persönliche Bearbeitungsnotiz <span class="einheit">wird nicht übermittelt</span></div>
+      <span class="gedaempft">Beispiel: Fahrtkosten mit dem Rad prüfen.</span>
+    </aside>
+    <h2>Arbeitslohn und Werbungskosten</h2>
+
+    {% if v == 'a' %}
+    {#- A: eine Karte je Feld, Gegenproben daneben (wie heute, mit den Bausteinen) -#}
+    {% for titel, felder in abschnitte %}
+    <h3 class="feld-ueberschrift">{{ titel }}</h3>
+    {% for f in felder %}
+    <section class="feld">
+      {{ nr(f) }}
+      <div class="feld-rumpf">
+        <div class="feld-kopf">{{ f.bez }} <span class="einheit">{{ f.einheit }}</span></div>
+        <div class="feld-wert">{{ wert(f) }}</div>
+        {{ proben(f) }}
+      </div>
+    </section>
+    {% endfor %}
+    {% endfor %}
+
+    {% elif v == 'b' %}
+    {#- B: eine dichte Tabelle wie die Feldliste in Mein ELSTER, Abschnitte mit Anzahl -#}
+    {% for titel, felder in abschnitte %}
+    {% call abschnitt(titel, felder | length, "Felder", merken="anlage-" ~ loop.index) %}
+    <table class="liste felder" data-pfeile>
+      <thead><tr><th>Z.</th><th>Bezeichnung</th><th class="zahl">Angabe</th><th>Gegenproben</th></tr></thead>
+      <tbody>
+      {% for f in felder %}
+      <tr><td>{{ nr(f) }}</td>
+        <td>{{ f.bez }} <span class="einheit">{{ f.einheit }}</span></td>
+        <td class="zahl">{{ wert(f) }}</td>
+        <td>{{ proben(f) }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endcall %}
+    {% endfor %}
+
+    {% else %}
+    {#- C: Tabelle mit farbigem Streifen je Zeile (Status auf einen Blick), Abschnitte mit Anzahl -#}
+    {% for titel, felder in abschnitte %}
+    {% call abschnitt(titel, felder | length, "Felder", merken="anlage-" ~ loop.index) %}
+    <table class="liste felder mit-streifen" data-pfeile>
+      <thead><tr><th>Z.</th><th>Bezeichnung</th><th class="zahl">Angabe</th><th>Gegenproben</th></tr></thead>
+      <tbody>
+      {% for f in felder %}
+      <tr class="streifen-{{ streifen(f) | trim }}"><td>{{ nr(f) }}</td>
+        <td>{{ f.bez }} <span class="einheit">{{ f.einheit }}</span></td>
+        <td class="zahl">{{ wert(f) }}</td>
+        <td>{{ proben(f) }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endcall %}
+    {% endfor %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "rahmen.html" %}
+{% from "_ui.html" import icon, ib, abschnitt, chip, status, dateityp %}
+{% block title %}Belege {{ jahr }}{% endblock %}
+{% macro datei_name(typ, name, pfad, auswahl=false) -%}
+<td class="name"><div class="zelle">{{ dateityp(typ) }}<span class="text"><a href="#"{% if auswahl %} aria-current="true"{% endif %}>{{ name }}</a><small class="pfad">{{ pfad }}</small></span></div></td>
+{%- endmacro %}
+{% block main %}
+{#- Variante B teilt die Seite in Liste und Detailspalte wie die Belege-Seite heute; A und C nutzen die ganze Breite. -#}
+<div class="belege-seite{% if v == 'b' %} mit-detail{% endif %}">
+<div class="belege-liste">
+  <div class="seitenkopf">
+    <h1>Belege {{ jahr }}</h1>
+    <div class="werkzeugleiste">
+      <label class="suchfeld">{{ icon("search") }}<input type="search" placeholder="Suche in Name, Ordner, Aussteller, Bezeichnung" aria-label="Suche"></label>
+      <span class="chips" role="group" aria-label="Dateityp">{{ chip("PDF", 21, "file-text") }}{{ chip("eDaten", 12, "file-code") }}{{ chip("Bild", 3, "file-image") }}</span>
+      <a class="knopf" href="#">{{ icon("folder") }}Weitere Ordner einbinden</a>
+      <label class="ablage" tabindex="0">{{ icon("upload") }}Dateien hierher ziehen oder auswählen<input type="file" multiple></label>
+    </div>
+  </div>
+
+  {% call abschnitt("Neu im Jahresordner", neu | length, "Dateien", merken="neu", erklaerung="Dateien aus den Ablageorten, die noch nicht aufgenommen oder ausgeblendet sind. Daraus wird nichts von selbst übernommen.") %}
+  <table class="liste" data-pfeile>
+    <thead><tr><th>Datei</th><th class="zahl">Größe</th><th class="aktionen">Aktionen</th></tr></thead>
+    <tbody>
+    {% for r in neu %}
+    <tr>{{ datei_name(r.typ, r.name, r.pfad, loop.first) }}<td class="zahl">{{ r.groesse }}</td>
+      <td class="aktionen">{{ ib("file-plus", "Aufnehmen", "#", "gehe") }}{{ ib("external-link", "Öffnen", "#") }}{{ ib("eye-off", "Ausblenden") }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endcall %}
+
+  {% call abschnitt("Erwartete Belege", erwartet | length, "Belege", merken="erwartet") %}
+  <table class="liste" data-pfeile>
+    <thead><tr><th>Beleg</th><th>Zeitraum</th><th>Stand</th><th class="aktionen">Aktionen</th></tr></thead>
+    <tbody>
+    {% for r in erwartet %}
+    <tr><td class="name"><span class="text"><a href="#">{{ r.name }}</a></span></td><td>{{ r.zeitraum }}</td>
+      <td>{% if r.stand == "da" %}{{ status("gut", "da") }}{% else %}{{ status("warnung", "ausstehend") }}{% endif %}</td>
+      <td class="aktionen">{{ ib("pencil", "Bearbeiten") }}{{ ib("x", "Entfernen", cls="schlecht") }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p><a class="knopf" href="#">{{ icon("plus") }}Erwarteten Beleg anlegen</a></p>
+  {% endcall %}
+
+  {% call abschnitt("Aufgenommene Belege", aufgenommen | length, "Belege", merken="aufgenommen") %}
+  <table class="liste" data-pfeile>
+    <thead><tr><th>Beleg</th><th>Art</th><th class="zahl">Einträge</th><th>Stand</th><th class="aktionen">Aktionen</th></tr></thead>
+    <tbody>
+    {% for r in aufgenommen %}
+    <tr>{{ datei_name(r.typ, r.name, r.pfad) }}<td>{{ r.art }}</td><td class="zahl">{{ r.eintraege }}</td>
+      <td>{{ status(r.stand_art, r.stand) }}{% if r.befund %}<small class="befund">{{ status("hinweis", r.befund) }}</small>{% endif %}</td>
+      <td class="aktionen">{{ ib("refresh-cw", "Neu auslesen") }}{{ ib("external-link", "Öffnen", "#") }}{{ ib("eye-off", "Ausblenden") }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endcall %}
+</div>
+
+{% if v == 'b' %}
+<aside class="detail" aria-label="Ausgewählte Datei">
+  <p class="dateiname gedaempft">Jahresordner 2025/Werkstatt/Rechnung_Werkzeughandel_0412.pdf</p>
+  <form class="aufnehmen" action="#">
+    <label>Aussteller <input type="text" value="Werkzeughandel"></label>
+    <label>Dokumentart <select><option>Beleg</option><option>Kontoauszug</option></select></label>
+    <label>Bezeichnung (freiwillig) <input type="text"></label>
+    <label>Jahr <input type="text" value="2025" size="6"></label>
+    <div class="knopfreihe"><button type="button" class="primaer">Aufnehmen</button><button type="button">Ausblenden</button></div>
+  </form>
+  <div class="vorschau" role="img" aria-label="Platz für die Vorschau des Belegs"><span class="gedaempft">Vorschau</span></div>
+</aside>
+{% endif %}
+</div>
+{% endblock %}

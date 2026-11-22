@@ -1,0 +1,66 @@
+/* Seitenregeln (Frage 2): nur Raster und Seitenaufbau, alles andere kommt aus den Bausteinen. */
+
+/* Belege */
+.seitenkopf { position: sticky; top: calc(-1 * var(--abstand-5)); z-index: 5; margin: calc(-1 * var(--abstand-5)) calc(-1 * var(--abstand-6)) var(--abstand-3); padding: var(--abstand-5) var(--abstand-6) var(--abstand-4); background: var(--grund); border-bottom: var(--linienstaerke) solid var(--linie); }
+.seitenkopf h1 { margin-bottom: var(--abstand-3); }
+.werkzeugleiste { display: flex; flex-wrap: wrap; gap: var(--abstand-4); align-items: center; }
+.werkzeugleiste .chips { display: inline-flex; gap: var(--abstand-3); }
+.werkzeugleiste .ablage { margin-left: auto; }
+.belege-seite { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--abstand-6); }
+.belege-seite.mit-detail { grid-template-columns: minmax(0, 1.5fr) minmax(20rem, 1fr); align-items: start; }
+.belege-seite.mit-detail .werkzeugleiste .ablage { margin-left: 0; }
+.belege-seite.mit-detail .suchfeld input { width: 12rem; }
+.detail { position: sticky; top: var(--abstand-1); display: flex; flex-direction: column; gap: var(--abstand-4); }
+.detail .dateiname { margin: 0; overflow-wrap: anywhere; }
+.aufnehmen { display: grid; gap: var(--abstand-4); padding: var(--abstand-5); border: var(--linienstaerke) solid var(--linie); border-radius: var(--radius-gross); background: var(--flaeche); }
+.aufnehmen label { display: flex; flex-direction: column; gap: var(--abstand-1); }
+.knopfreihe { display: flex; gap: var(--abstand-4); }
+.vorschau { min-height: 16rem; display: grid; place-items: center; border: var(--linienstaerke) solid var(--linie); border-radius: var(--radius-gross); background: var(--flaeche-2); }
+
+/* Steuerjahr: links die Anlagen, rechts die Seite */
+main:has(.steuerjahr) { padding: 0; overflow: hidden; }
+.steuerjahr { height: 100%; display: grid; grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr); }
+.steuerjahr-inhalt { min-height: 0; overflow: auto; padding: var(--abstand-5) var(--abstand-6) 4rem; }
+.anlagen-baum { min-height: 0; overflow: auto; padding: var(--abstand-4); border-right: var(--linienstaerke) solid var(--linie); }
+.anlagen-baum a { display: block; padding: var(--abstand-2) var(--abstand-4); border-radius: var(--radius); color: var(--text); text-decoration: none; }
+.anlagen-baum a:hover { background: var(--hover); }
+.anlagen-baum a[aria-current], .anlagen-baum a.aktuell { font-weight: 600; }
+.anlagen-baum a[aria-current] { background: var(--auswahl); }
+.anlagen-baum summary { cursor: pointer; list-style: none; display: flex; align-items: center; }
+.anlagen-baum summary::-webkit-details-marker { display: none; }
+.anlagen-baum summary::before { content: "\203A"; width: 0.9rem; flex: none; text-align: center; transition: transform 0.1s; }
+.anlagen-baum details[open] > summary::before { transform: rotate(90deg); }
+.anlagen-baum summary a { flex: 1; }
+.anlagen-baum ul { list-style: none; margin: 0 0 var(--abstand-3) 1.2rem; padding: 0; font-size: var(--fs-s); }
+
+/* Variante A: Feldkarten, Nr. links, Bezeichnung, Wert und Gegenproben in festen Spalten */
+.feld { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: var(--abstand-6); margin: var(--abstand-3) 0; padding: var(--abstand-4) var(--abstand-5); border: var(--linienstaerke) solid var(--linie); border-radius: var(--radius-gross); background: var(--flaeche); }
+.feld-rumpf { display: grid; grid-template-columns: minmax(0, 20rem) minmax(0, 14rem) minmax(0, 1fr); gap: var(--abstand-2) var(--abstand-6); align-items: baseline; }
+.feld-ueberschrift { margin: var(--abstand-6) 0 var(--abstand-2); }
+
+/* Variante B: Felder als Tabelle, keine Senkrechten, nur feine Linien zwischen den Zeilen */
+body.v-b table.liste { background: transparent; }
+body.v-b table.liste thead th { background: transparent; border-bottom-color: var(--linie-stark); }
+body.v-b table.liste th, body.v-b table.liste td { padding-left: var(--abstand-5); padding-right: var(--abstand-5); }
+body.v-b table.felder td { vertical-align: top; }
+body.v-b table.felder td:first-child { width: 6.5rem; }
+
+/* Variante C: dichte Tabelle, Kopfzeile in Kapitälchen, farbiger Streifen links je Feldzeile, Aktionen erst bei Hover/Fokus kräftig */
+body.v-c table.liste thead th { text-transform: uppercase; letter-spacing: 0.05em; font-size: var(--fs-xs); }
+body.v-c table.liste .ib { opacity: 0.55; }
+body.v-c table.liste tr:hover .ib, body.v-c table.liste tr:focus-within .ib { opacity: 1; }
+body.v-c table.felder td:first-child { width: 6.5rem; border-left: 4px solid var(--linie); }
+body.v-c table.felder td { vertical-align: top; }
+body.v-c tr.streifen-fehler td:first-child { border-left-color: var(--fehler); }
+body.v-c tr.streifen-warnung td:first-child { border-left-color: var(--warnung); }
+body.v-c tr.streifen-gut td:first-child { border-left-color: var(--gut); }
+body.v-c tr.streifen-still td:first-child { border-left-color: var(--linie-stark); }
+body.v-c .seitenleiste .logo { padding-top: var(--abstand-2); }
+
+/* App-Icon-Tafel */
+.icon-tafel { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: var(--abstand-6); }
+.icon-entwurf { padding: var(--abstand-5); border: var(--linienstaerke) solid var(--linie); border-radius: var(--radius-gross); background: var(--flaeche); }
+.icon-entwurf h2 { margin-top: 0; }
+.icon-entwurf .grund { display: flex; align-items: flex-end; gap: var(--abstand-6); padding: var(--abstand-5); border-radius: var(--radius-gross); margin-bottom: var(--abstand-4); }
+.icon-entwurf .grund.hell { background: var(--probe-hell); }
+.icon-entwurf .grund.dunkel { background: var(--probe-dunkel); }

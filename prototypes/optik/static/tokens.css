@@ -1,0 +1,98 @@
+/* Tokens (Fragen 1 und 2): jede Farbe, Größe und jeder Abstand nur hier. Farben als light-dark(hell, dunkel);
+   Hell/Dunkel setzt data-darstellung am <html>. Die Varianten B und C überschreiben nur Tokens (Klasse am <body>),
+   die Bausteine in bausteine.css bleiben dieselben. Namen wie heute in app.css (deutsch). */
+:root {
+  color-scheme: light dark;
+  /* Flächen, Text, Akzent: Variante A = VS Code Light Modern / beruhigtes Windows-11-Dunkel wie Kohlebau */
+  --grund: light-dark(#f8f8f8, #1e1e1e);
+  --flaeche: light-dark(#ffffff, #262626);
+  --flaeche-2: light-dark(#f3f3f3, #2c2c2c);
+  --linie: light-dark(#e5e5e5, #383838);
+  --linie-stark: light-dark(#8a8a8a, #808080);
+  --text: light-dark(#3b3b3b, #e2e2e2);
+  --text-gedaempft: light-dark(#616161, #adadad);
+  --akzent: light-dark(#005fb8, #5aaee0);
+  --auf-akzent: light-dark(#ffffff, #000000);
+  --akzent-weich: light-dark(#e8f1fb, #1d2f3c);
+  --hover: light-dark(#f2f2f2, #303030);
+  --auswahl: light-dark(#e4e6f1, #2f3a44);
+  --seitenleiste-grund: light-dark(#f3f3f3, #252526);
+  --kopfleiste-grund: light-dark(#f8f8f8, #262626);
+  /* Statusfarben (Windows Fluent): Text, Hintergrund, Rand je Stufe */
+  --fehler: light-dark(#b42318, #ff99a4);
+  --fehler-grund: light-dark(#fde7e9, #442726);
+  --fehler-rand: light-dark(#e5998f, #8a3b3b);
+  --warnung: light-dark(#7a4d00, #fce100);
+  --warnung-grund: light-dark(#fff4ce, #433519);
+  --warnung-rand: light-dark(#e3c35a, #7a6420);
+  --gut: light-dark(#0f7b0f, #6ccb5f);
+  --gut-grund: light-dark(#dff6dd, #2a3a1f);
+  --gut-rand: light-dark(#9fd3ad, #4f6b2a);
+  /* Schrift */
+  --schrift: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --schrift-mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --fs-xs: 0.8rem;
+  --fs-s: 0.875rem;
+  --fs-m: 1rem;
+  --fs-l: 1.15rem;
+  --fs-xl: 1.35rem;
+  --zeilenhoehe: 1.35;
+  /* Abstände, Radius, Linie, Zeilenhöhe der Tabellen */
+  --abstand-1: 0.1rem;
+  --abstand-2: 0.2rem;
+  --abstand-3: 0.3rem;
+  --abstand-4: 0.4rem;
+  --abstand-5: 0.6rem;
+  --abstand-6: 0.9rem;
+  --radius: 0.2rem;
+  --radius-gross: 0.3rem;
+  --linienstaerke: 1px;
+  --zeile-pad: var(--abstand-2);
+  --kopf-hoehe: 2.5rem;
+  --seitenleiste: 13rem;
+  --auswahl-balken: 0px;
+  --probe-hell: #f3f3f3; /* feste Probeflächen der Icon-Tafel, in beiden Darstellungen gleich */
+  --probe-dunkel: #1e1e1e;
+  --schatten: light-dark(rgb(0 0 0 / 0.18), rgb(0 0 0 / 0.6));
+}
+:root[data-darstellung="hell"] { color-scheme: light; }
+:root[data-darstellung="dunkel"] { color-scheme: dark; }
+
+/* Variante B: ruhig, luftig; Linien nur zwischen den Zeilen */
+body.v-b {
+  --grund: light-dark(#fbfbfa, #1b1c1e);
+  --flaeche: light-dark(#ffffff, #232426);
+  --flaeche-2: light-dark(#f4f4f2, #2a2b2e);
+  --linie: light-dark(#ebebe8, #33353a);
+  --akzent: light-dark(#0b62c0, #6cb6f0);
+  --akzent-weich: light-dark(#eaf2fc, #1f3040);
+  --auswahl: light-dark(#e8eef7, #2b3744);
+  --seitenleiste-grund: light-dark(#f4f4f2, #202124);
+  --kopfleiste-grund: light-dark(#fbfbfa, #1b1c1e);
+  --radius: 0.35rem;
+  --radius-gross: 0.6rem;
+  --zeile-pad: var(--abstand-5);
+}
+
+/* Variante C: dicht, warm; Akzent aus dem Kohle-Bernstein des App-Icons, schmale Zeilen, Balken an der Auswahl */
+body.v-c {
+  --grund: light-dark(#f6f4f0, #1a1a1d);
+  --flaeche: light-dark(#fffdf9, #232327);
+  --flaeche-2: light-dark(#efece5, #2b2b30);
+  --linie: light-dark(#ddd8cf, #36363c);
+  --linie-stark: light-dark(#8c857a, #85858c);
+  --text: light-dark(#2c2a26, #e6e3dc);
+  --text-gedaempft: light-dark(#66615a, #b0aca3);
+  --akzent: light-dark(#9a5700, #f0a531);
+  --auf-akzent: light-dark(#ffffff, #1c1c22);
+  --akzent-weich: light-dark(#f8ead2, #3a3123);
+  --hover: light-dark(#efebe3, #2e2e33);
+  --auswahl: light-dark(#f6e7cc, #3a3123);
+  --seitenleiste-grund: light-dark(#ece8e0, #151518);
+  --kopfleiste-grund: light-dark(#f6f4f0, #1a1a1d);
+  --radius: 0.15rem;
+  --radius-gross: 0.25rem;
+  --fs-s: 0.84rem;
+  --zeile-pad: var(--abstand-1);
+  --auswahl-balken: 3px;
+}

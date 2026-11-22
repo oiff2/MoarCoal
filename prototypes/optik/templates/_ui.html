@@ -1,0 +1,85 @@
+{#- Gemeinsame Bausteine (Frage 3): jedes wiederkehrende Stück der Oberfläche steht hier genau einmal.
+    Icons: nur über icon(); die Pfade kommen aus static/icons/<name>.svg (Lucide, ISC), nie als Maske, nie mit style-Attribut. -#}
+{% macro icon(name) -%}
+<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{{ icon_inner(name) }}</svg>
+{%- endmacro %}
+
+{#- Icon-Knopf: Link (href) oder Knopf; Name als Kurzinfo und für Screenreader, das Icon ist Zierde. -#}
+{% macro ib(name, label, href=none, cls="") -%}
+{% if href %}<a class="ib {{ cls }}" href="{{ href }}" title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</a>
+{%- else %}<button type="button" class="ib {{ cls }}" title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</button>{% endif %}
+{%- endmacro %}
+
+{#- Abschnitt mit Pfeil, Überschrift und gedämpfter Anzahl; der Inhalt kommt vom Aufrufer. -#}
+{% macro abschnitt(titel, anzahl, einheit="Dateien", offen=true, merken="", erklaerung="") -%}
+<details class="abschnitt"{% if offen %} open{% endif %}{% if merken %} data-merken="{{ merken }}"{% endif %}>
+  <summary><h2>{{ titel }}</h2><span class="gedaempft">{{ anzahl }} {{ einheit }}</span></summary>
+  <div class="abschnitt-inhalt">{% if erklaerung %}<p class="erklaerung">{{ erklaerung }}</p>{% endif %}{{ caller() }}</div>
+</details>
+{%- endmacro %}
+
+{% macro chip(label, n, name="", gedrueckt=false) -%}
+<button type="button" class="chip" aria-pressed="{{ 'true' if gedrueckt else 'false' }}" data-umschalten>{% if name %}{{ icon(name) }}{% endif %}{{ label }} <span class="n">{{ n }}</span></button>
+{%- endmacro %}
+
+{#- Statussprache aus #129: Symbol plus Farbe plus Wort. art: fehler | warnung | hinweis | gut | still -#}
+{% set symbole = {"fehler": "✕", "warnung": "▲", "hinweis": "ℹ", "gut": "✓", "still": "·"} %}
+{% macro status(art, text) -%}
+<span class="status status-{{ art }}"><span class="symbol" aria-hidden="true">{{ symbole[art] }}</span> {{ text }}</span>
+{%- endmacro %}
+
+{% macro dateityp(typ) -%}
+<span class="dateityp" title="{{ {'pdf': 'PDF', 'bild': 'Bild', 'html': 'eDaten'}.get(typ, 'Datei') }}">{{ icon({'pdf': 'file-text', 'bild': 'file-image', 'html': 'file-code'}.get(typ, 'file-text')) }}</span>
+{%- endmacro %}
+
+{#- Belegstand wie in der App: ○ ausstehend, ◐ angenommen, ● belegt -#}
+{% macro belegstand(art) -%}
+{% set m = {"belegt": ("●", "gut"), "angenommen": ("◐", "still"), "ausstehend": ("○", "warnung")} %}
+<span class="status status-{{ m[art][1] }}" title="Belegstand"><span class="symbol" aria-hidden="true">{{ m[art][0] }}</span> {{ art }}</span>
+{%- endmacro %}
+
+{#- App-Icon-Entwürfe (64x64). Füllfarben sind Entwurfsfarben des Icons, keine Oberflächen-Tokens. -#}
+{% macro app_icon(nr, cls="") -%}
+<svg class="app-icon {{ cls }}" viewBox="0 0 64 64" role="img" aria-label="MoarCoal">
+{% if nr == "1" %}
+  <rect x="2" y="2" width="60" height="60" rx="13" fill="#f0a531"/>
+  <polygon points="8,53 11,41 22,35 33,41 35,53" fill="#1c1c22"/>
+  <polygon points="11,41 22,35 24,46 15,47" fill="#5a5a66"/>
+  <polygon points="29,53 33,39 46,33 57,40 56,53" fill="#26262d"/>
+  <polygon points="33,39 46,33 44,45 36,46" fill="#5a5a66"/>
+  <polygon points="46,33 57,40 44,45" fill="#3b3b45"/>
+  <polygon points="18,35 23,21 36,14 47,22 45,36 32,41" fill="#1c1c22"/>
+  <polygon points="23,21 36,14 38,28 27,32" fill="#5a5a66"/>
+  <polygon points="36,14 47,22 38,28" fill="#3b3b45"/>
+{% elif nr == "2" %}
+  <rect x="2" y="2" width="60" height="60" rx="13" fill="#1c1c22" stroke="#52525c" stroke-width="1.5"/>
+  <g transform="translate(3 10) scale(.84)">
+    <polygon points="9,41 18,21 33,12 51,20 56,39 44,53 21,53" fill="#c9821c"/>
+    <polygon points="18,21 33,12 35,30 23,35" fill="#ffc766"/>
+    <polygon points="33,12 51,20 35,30" fill="#f0a531"/>
+    <polygon points="9,41 18,21 23,35" fill="#a9680f"/>
+    <polygon points="35,30 51,20 56,39" fill="#b87414"/>
+  </g>
+  <circle cx="47" cy="18" r="11" fill="#f8f8f8"/>
+  <path d="M47 12v12M41 18h12" stroke="#1c1c22" stroke-width="4" stroke-linecap="round"/>
+{% else %}
+  <rect x="2" y="2" width="60" height="60" rx="13" fill="#f0a531"/>
+  <polygon points="10,52 10,18 20,12 32,30 44,12 54,18 54,52 42,52 42,32 32,46 22,32 22,52" fill="#1c1c22"/>
+  <polygon points="10,18 20,12 22,32 10,36" fill="#5a5a66"/>
+  <polygon points="44,12 54,18 54,36 42,32" fill="#3b3b45"/>
+  <polygon points="22,32 32,46 42,32 32,30" fill="#2e2e36"/>
+{% endif %}
+</svg>
+{%- endmacro %}
+
+{#- Zum Vergleich: das Kohlebau-Icon (nachgezeichnet), nur auf der Seite der Entwürfe. -#}
+{% macro vorlage_icon(cls="") -%}
+<svg class="app-icon {{ cls }}" viewBox="0 0 64 64" role="img" aria-label="Kohlebau-Icon zum Vergleich">
+  <rect x="2" y="2" width="60" height="60" rx="13" fill="#f0a531"/>
+  <polygon points="9,41 18,21 33,12 51,20 56,39 44,53 21,53" fill="#1c1c22"/>
+  <polygon points="18,21 33,12 35,30 23,35" fill="#5a5a66"/>
+  <polygon points="33,12 51,20 35,30" fill="#3b3b45"/>
+  <polygon points="9,41 18,21 23,35" fill="#2e2e36"/>
+  <polygon points="35,30 51,20 56,39" fill="#26262d"/>
+</svg>
+{%- endmacro %}

@@ -1,0 +1,23 @@
+{% extends "rahmen.html" %}
+{% from "_ui.html" import app_icon, vorlage_icon %}
+{% block title %}App-Icon{% endblock %}
+{% block main %}
+<h1>App-Icon: drei Entwürfe</h1>
+<p class="erklaerung">Abgewandelt vom Kohlebau-Icon (ein facettiertes Kohlestück auf Bernstein-Kachel). Jeder Entwurf in vier Größen, auf hellem und dunklem Grund; die Seitenleiste links zeigt den gewählten Entwurf.</p>
+<div class="icon-tafel">
+  <section class="icon-entwurf">
+    <h2>Vorlage (Kohlebau)</h2>
+    <div class="grund hell">{{ vorlage_icon("gross") }}{{ vorlage_icon("mittel") }}{{ vorlage_icon("klein") }}{{ vorlage_icon("winzig") }}</div>
+    <div class="grund dunkel">{{ vorlage_icon("gross") }}{{ vorlage_icon("mittel") }}{{ vorlage_icon("klein") }}{{ vorlage_icon("winzig") }}</div>
+    <p class="gedaempft">Nur zum Vergleich, nicht zur Wahl.</p>
+  </section>
+  {% for key, name in app_icons.items() %}
+  <section class="icon-entwurf">
+    <h2>Entwurf {{ key }}: {{ name }}</h2>
+    <div class="grund hell">{{ app_icon(key, "gross") }}{{ app_icon(key, "mittel") }}{{ app_icon(key, "klein") }}{{ app_icon(key, "winzig") }}</div>
+    <div class="grund dunkel">{{ app_icon(key, "gross") }}{{ app_icon(key, "mittel") }}{{ app_icon(key, "klein") }}{{ app_icon(key, "winzig") }}</div>
+    <p class="gedaempft">{% if key == "1" %}Mehrere Kohlestücke auf Bernstein, „moar coal“ als Haufen.{% elif key == "2" %}Dunkle Kachel, das Kohlestück in Bernstein, ein Plus für „moar“.{% else %}Das M als zwei Kohlegipfel auf Bernstein, auch bei 16 Pixeln lesbar.{% endif %}</p>
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}
