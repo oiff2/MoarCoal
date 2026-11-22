@@ -48,6 +48,8 @@ WORK_CAR_DISTANCE = ValueKey("work.car_distance_km")
 WORK_HOMEOFFICE_DAYS = ValueKey("work.homeoffice_days")
 WORK_TRIP_DAYS = ValueKey("work.trip_days")
 WORK_TRAVEL_FARE = ValueKey("work.travel_fare")
+WORK_TRAVEL_LODGING = ValueKey("work.travel_lodging")
+WORK_TRAVEL_INCIDENTALS = ValueKey("work.travel_incidentals")
 WORK_TRAVEL_TOTAL = ValueKey("work.travel_total")
 WORK_BENEFITS_TAX_FREE = ValueKey("work.employer_benefits_tax_free")
 WORK_BENEFITS_FLAT_TAXED = ValueKey("work.employer_benefits_flat_taxed")
@@ -67,6 +69,8 @@ N_INCOME_TAX_SINGLE = ValueKey("tax_year.n_income_tax_single")
 N_SOLI = ValueKey("tax_year.n_soli")
 N_SOLI_SINGLE = ValueKey("tax_year.n_soli_single")
 N_TRAVEL_FARE = ValueKey("tax_year.n_travel_fare")
+N_TRAVEL_LODGING = ValueKey("tax_year.n_travel_lodging")
+N_TRAVEL_INCIDENTALS = ValueKey("tax_year.n_travel_incidentals")
 N_TRAVEL_TOTAL = ValueKey("tax_year.n_travel_total")
 N_REFUND_TAX_FREE = ValueKey("tax_year.n_refund_tax_free")
 N_REFUND_FLAT_TAXED = ValueKey("tax_year.n_refund_flat_taxed")
@@ -275,6 +279,22 @@ def catalog_2025(structure: FormStructure) -> tuple[FieldMeaning, ...]:
             FromValue(WORK_TRAVEL_FARE, "Fahrtkosten"),
             Direction.EXPENSE,
             assessment=(BUSINESS_TRAVEL,),
+        ),
+        _from_value(
+            "E0206302",
+            N_TRAVEL_LODGING,
+            Unit.EUR,
+            Rounding.WHOLE_EUROS,
+            FromValue(WORK_TRAVEL_LODGING, "Übernachtungskosten"),
+            Direction.EXPENSE,
+        ),
+        _from_value(
+            "E0206406",
+            N_TRAVEL_INCIDENTALS,
+            Unit.EUR,
+            Rounding.WHOLE_EUROS,
+            FromValue(WORK_TRAVEL_INCIDENTALS, "Reisenebenkosten"),
+            Direction.EXPENSE,
         ),
         _from_value(
             "E0205518",

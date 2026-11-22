@@ -1,12 +1,15 @@
-"""Ausgewiesene Werte der Dienstreisen: Tage, Fahrtkosten, Summe der Reisekosten.
+"""Ausgewiesene Werte der Dienstreisen: Tage, Reisekosten (Nr. 66 bis 69 der Anlage N).
 
 Die Fahrtkosten sind die km des Jahrs mal dem km-Satz des Jahrs. Ohne Reisen gilt nur die
-Bestätigung als vollständig (dann 0); sonst sind die Werte noch nicht berechenbar.
+Bestätigung als vollständig (dann 0); sonst sind die Werte noch nicht berechenbar. Übernachtungs-
+und Reisenebenkosten erfasst MoarCoal nicht: sie sind 0 €, begründet mit der Abrechnung des
+Arbeitgebers, sobald es die Fahrtkosten gibt.
 """
 
 from collections.abc import Callable
+from decimal import Decimal
 
-from moarcoal.modules.work.common import work_url
+from moarcoal.modules.work.common import trips_url
 from moarcoal.modules.work.trips.entries import BusinessTrip
 from moarcoal.modules.work.trips.table import (
     KM_RATES,
@@ -23,6 +26,8 @@ from moarcoal.values.model import Amount, Period, Unit, UserInputLocator, ValueK
 
 TRIP_DAYS = ValueKey("work.trip_days")
 TRAVEL_FARE = ValueKey("work.travel_fare")
+TRAVEL_LODGING = ValueKey("work.travel_lodging")
+TRAVEL_INCIDENTALS = ValueKey("work.travel_incidentals")
 TRAVEL_TOTAL = ValueKey("work.travel_total")
 
 
@@ -74,13 +79,37 @@ def compute_travel_fare(calculation: Calculation) -> Amount:
     )
 
 
+def _settled_by_employer(calculation: Calculation, label: str) -> Amount:
+    """0 € ohne Einzelposten: nicht erfasst, der Arbeitgeber rechnet es ab. Gilt nur, sobald es die
+    Fahrtkosten gibt; sonst ist es wie sie noch nicht berechenbar oder entfällt."""
+    calculation.require(TRAVEL_FARE)
+    calculation.decide(f"{label} nicht erfasst: rechnet der Arbeitgeber ab")
+    return calculation.step(label, Amount.eur_cents(0))
+
+
+def compute_travel_lodging(calculation: Calculation) -> Amount:
+    return _settled_by_employer(calculation, "Übernachtungskosten")
+
+
+def compute_travel_incidentals(calculation: Calculation) -> Amount:
+    return _settled_by_employer(calculation, "Reisenebenkosten")
+
+
 def compute_travel_total(calculation: Calculation) -> Amount:
-    """Summe der Reisekosten: erfasst sind nur Fahrtkosten, Verpflegung, Übernachtung und
-    Nebenkosten rechnet der Arbeitgeber ab."""
-    item = calculation.use(TRAVEL_FARE, label="Fahrtkosten")
-    if item is None:
-        calculation.not_applicable("Fahrtkosten entfallen")
-    return calculation.step("Summe der Reisekosten (nur Fahrtkosten erfasst)", item.amount)
+    """Summe der Reisekosten: Fahrtkosten, Übernachtungskosten und Reisenebenkosten."""
+    parts: list[Amount] = []
+    for key, label in (
+        (TRAVEL_FARE, "Fahrtkosten"),
+        (TRAVEL_LODGING, "Übernachtungskosten"),
+        (TRAVEL_INCIDENTALS, "Reisenebenkosten"),
+    ):
+        item = calculation.use(key, label=label)
+        if item is None:
+            calculation.not_applicable(f"{label} entfallen")
+        parts.append(item.amount)
+    return calculation.step(
+        "Summe der Reisekosten", Amount(sum((p.value for p in parts), Decimal(0)), Unit.EUR)
+    )
 
 
 TRIPS_TO_FILL = "work.trips_to_fill"
@@ -97,7 +126,7 @@ def trip_findings(state: ModuleState, values: ValueSource, year: int) -> list[Fi
         "(auch wenn es keine gab)."
     )
     ref = ValueRef(TRAVEL_FARE, state.user, Period.year(year), None)
-    return [Finding(TRIPS_TO_FILL, Severity.NOTE, ref, text, href=work_url(year))]
+    return [Finding(TRIPS_TO_FILL, Severity.NOTE, ref, text, href=trips_url(year))]
 
 
 VALUES: tuple[ValueDefinition, ...] = (
@@ -120,6 +149,26 @@ VALUES: tuple[ValueDefinition, ...] = (
             TimeKind.PERIOD,
         ),
         compute_travel_fare,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            TRAVEL_LODGING,
+            "Übernachtungskosten der Dienstreisen im Steuerjahr",
+            "Übernachtungskosten",
+            Unit.EUR,
+            TimeKind.PERIOD,
+        ),
+        compute_travel_lodging,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            TRAVEL_INCIDENTALS,
+            "Reisenebenkosten der Dienstreisen im Steuerjahr",
+            "Reisenebenkosten",
+            Unit.EUR,
+            TimeKind.PERIOD,
+        ),
+        compute_travel_incidentals,
     ),
     ValueDefinition(
         CatalogEntry(

@@ -11,9 +11,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import MAX_YEAR, MIN_YEAR
-from moarcoal.modules.work.common import MODULE_KEY, work_url
+from moarcoal.modules.work.common import MODULE_KEY, trip_row_url, work_url
 from moarcoal.modules.work.overview import work_page
-from moarcoal.modules.work.trips.entries import trips_fingerprint
+from moarcoal.modules.work.trips.entries import BusinessTrip, trips_fingerprint
 from moarcoal.modules.work.trips.germany_map import germany_map
 from moarcoal.modules.work.trips.place_search import PlaceSearch, PlaceSearchError
 from moarcoal.modules.work.trips.places import (
@@ -73,6 +73,16 @@ def _apply(request: Request, year: int, changes: Sequence[Change]) -> Response:
     if isinstance(result, Applied):
         return RedirectResponse(work_url(year), status_code=303)
     return _page(request, year, error=rejection_text(result), status_code=409)
+
+
+@router.get("/reise/{trip_id}")
+def trip_page(request: Request, trip_id: str) -> Response:
+    """Die Adresse einer Dienstreise: die Seite Arbeit ihres Jahrs, bei ihrer Zeile."""
+    state = module_state(request, MODULE_KEY)
+    for trip in state.all(BusinessTrip):
+        if trip.id == trip_id:
+            return RedirectResponse(trip_row_url(trip.year, trip.id), status_code=303)
+    raise HTTPException(404)
 
 
 @router.get("/{year}")

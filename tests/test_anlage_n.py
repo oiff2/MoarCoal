@@ -200,10 +200,12 @@ def test_catalog_has_every_known_field_but_values_only_for_the_computed_ones() -
         "E0204403",
         "E0204507",
         "E0205004",
+        "E0206302",
+        "E0206406",
         "E0205518",
     }
-    assert len(fields) == len({f.key for f in fields}) == 23
-    assert len({f.elster_id for f in fields}) == 23
+    assert len(fields) == len({f.key for f in fields}) == 25
+    assert len({f.elster_id for f in fields}) == 25
     assert {"E0200201", "E0205518", "E0204901"} <= {f.elster_id for f in fields}
 
 

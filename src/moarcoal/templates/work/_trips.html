@@ -1,14 +1,27 @@
-{% from "_value.html" import value_view %}
+{% from "_status.html" import backing, not_yet %}
 {% macro cell(row, n, name, col, value, size, extra="") -%}
 <input name="{{ name }}-{{ n }}" value="{{ value }}" size="{{ size }}" data-col="{{ col }}"{{ extra | safe }}{% if row.errors[name] %} class="ungueltig" title="{{ row.errors[name] }}"{% endif %}>
 {%- endmacro %}
 <h2>Dienstreisen {{ year }}</h2>
 <p class="hinweis">Nur Fahrten mit dem privaten Pkw: Summe der km mal km-Satz{% if rate %} ({{ rate | string | replace(".", ",") }} € je km){% endif %}. Verpflegung, Übernachtung und Nebenkosten rechnet der Arbeitgeber ab und stehen hier nicht.</p>
 
-<div class="werte">
-  {{ value_view("Fahrtkosten", fare, whole=true) }}
-  {{ value_view("Summe der Reisekosten", total, whole=true) }}
-</div>
+<table class="reisekosten">
+  <thead><tr><th>Posten</th><th>Betrag</th><th>Belegstand</th></tr></thead>
+  <tbody>
+    {% for cost in costs %}
+    <tr>
+      <td>{% if cost.href %}<a href="{{ cost.href }}">{{ cost.label }}</a>{% else %}{{ cost.label }}{% endif %}
+        {% if cost.reason %}<small class="begruendung">{{ cost.reason }}</small>{% endif %}</td>
+      {% if cost.result.outcome == "amount" %}
+      <td><strong class="betrag">{{ cost.result.amount | amount }}</strong></td>
+      <td>{{ backing(cost.result.backing) }}</td>
+      {% else %}
+      <td colspan="2">{% if cost.result.outcome == "not_yet" %}{{ not_yet(cost.result.reason) }}{% else %}{{ not_yet(cost.result.reason, "entfällt", "") }}{% endif %}</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 
 <p class="stand">
   {% if confirmation %}
@@ -78,7 +91,7 @@
 
 <p class="hinweis">Orte in Reihenfolge, Rückweg ausdrücklich (A → B → A). Pfeiltasten ↑/↓ wechseln die Reise, Enter speichert die ganze Tabelle.</p>
 {% if error %}<ul class="fehler"><li>{{ error }}</li></ul>{% endif %}
-<form method="post" action="/arbeit/dienstreisen/{{ year }}" id="dienstreisen">
+<form method="post" action="/arbeit/dienstreisen/{{ year }}" id="{{ trips_anchor }}">
   <input type="hidden" name="zeilen" value="{{ rows | length }}">
   <div class="tabelle">
   <table class="reisen">
@@ -86,7 +99,7 @@
     <tbody>
       {% for row in rows %}{% set n = loop.index0 %}
       {% set is_new = not row.entry_id and loop.last %}
-      <tr{% if is_new %} id="neu"{% endif %}{% if row.errors %} class="mit-fehler"{% endif %}>
+      <tr{% if is_new %} id="neu"{% elif row.entry_id %} id="{{ trip_anchor(row.entry_id) }}"{% endif %}{% if row.errors %} class="mit-fehler"{% endif %}>
         <td>{% if row.entry_id %}{{ n + 1 }}{% else %}+{% endif %}
           <input type="hidden" name="id-{{ n }}" value="{{ row.entry_id }}"><input type="hidden" name="pruefsumme-{{ n }}" value="{{ row.checksum }}"></td>
         <td>{{ cell(row, n, "start", 0, row.start, 10, ' type="date" min="%s" max="%s"' % (min_date, max_date) ~ (' autofocus' if is_new and not row.errors else '')) }}</td>
@@ -105,9 +118,17 @@
     </tbody>
     <tfoot>
       <tr>
-        <td></td><td colspan="3">Summe {{ trip_count }} {{ "Dienstreise" if trip_count == 1 else "Dienstreisen" }} (gespeicherter Stand)</td>
-        <td>{{ total_km }} km</td>
-        <td colspan="3">{% if fare.outcome == "amount" %}{{ fare.amount | amount }}{% endif %}</td>
+        <td></td>
+        <td colspan="7">
+          {% if fare.outcome == "amount" %}
+          Summe {{ trip_count }} {{ "Dienstreise" if trip_count == 1 else "Dienstreisen" }}
+          · {{ trip_days.amount.value }} {{ "Tag" if trip_days.amount.value == 1 else "Tage" }}
+          · {{ total_km }} km × {{ rate | string | replace(".", ",") }} €/km = {{ fare.amount | amount }}
+          {{ backing(fare.backing) }}
+          {% else %}
+          Summe {{ trip_count }} {{ "Dienstreise" if trip_count == 1 else "Dienstreisen" }}: {% if fare.outcome == "not_yet" %}{{ not_yet(fare.reason) }}{% else %}{{ not_yet(fare.reason, "entfällt", "") }}{% endif %}
+          {% endif %}
+        </td>
       </tr>
     </tfoot>
   </table>

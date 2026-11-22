@@ -251,3 +251,9 @@ main:has(.steuerjahr) { display: flex; flex-direction: column; overflow: hidden;
   position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: normal;
   display: block; font-size: 0.85em; color: var(--text); text-decoration: none;
 }
+
+/* Arbeit: kleine Tabelle der Reisekosten */
+.reisekosten { margin: 0.25rem 0; }
+.reisekosten th, .reisekosten td { padding-right: 1rem; text-align: left; }
+.reisekosten td:nth-child(2) { text-align: right; }
+.reisekosten .begruendung { display: block; opacity: 0.75; }

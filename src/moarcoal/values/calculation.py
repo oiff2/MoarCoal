@@ -128,6 +128,29 @@ class Calculation:
                 self.decide(f"{self._source.label(result.key)} entfällt: {result.reason}")
                 return None
 
+    def require(
+        self,
+        key: ValueKey | str,
+        subject: Subject | None = None,
+        time: TimeRef | None = None,
+    ) -> None:
+        """Einen anderen Wert voraussetzen, ohne ihn als Einzelposten zu verwenden.
+
+        Ist er noch nicht berechenbar oder entfällt er, ist es diese Rechnung auch."""
+        result = self._fetch(key, subject, time)
+        match result:
+            case ExposedValue():
+                return
+            case NotYetComputable():
+                raise NotYetSignal(
+                    f"{self._source.label(result.key)} ist noch nicht berechenbar: {result.reason}",
+                    (result.ref, *result.chain),
+                )
+            case NotApplicable():
+                raise NotApplicableSignal(
+                    f"{self._source.label(result.key)} entfällt: {result.reason}"
+                )
+
     def try_use(
         self,
         key: ValueKey | str,
