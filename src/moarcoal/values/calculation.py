@@ -99,6 +99,10 @@ class Calculation:
         locator = ValueLocator(result, self._source.label(result.key))
         return self.item(label or str(result.key), result.amount, locator)
 
+    def _not_yet_signal(self, result: NotYetComputable) -> NotYetSignal:
+        reason = f"{self._source.label(result.key)} ist noch nicht berechenbar: {result.reason}"
+        return NotYetSignal(reason, (result.ref, *result.chain))
+
     def use(
         self,
         key: ValueKey | str,
@@ -114,16 +118,9 @@ class Calculation:
         result = self._fetch(key, subject, time)
         match result:
             case ExposedValue():
-                return self.item(
-                    label or str(result.key),
-                    result.amount,
-                    ValueLocator(result, self._source.label(result.key)),
-                )
+                return self._used_item(result, label)
             case NotYetComputable():
-                raise NotYetSignal(
-                    f"{self._source.label(result.key)} ist noch nicht berechenbar: {result.reason}",
-                    (result.ref, *result.chain),
-                )
+                raise self._not_yet_signal(result)
             case NotApplicable():
                 self.decide(f"{self._source.label(result.key)} entfällt: {result.reason}")
                 return None
@@ -142,10 +139,7 @@ class Calculation:
             case ExposedValue():
                 return
             case NotYetComputable():
-                raise NotYetSignal(
-                    f"{self._source.label(result.key)} ist noch nicht berechenbar: {result.reason}",
-                    (result.ref, *result.chain),
-                )
+                raise self._not_yet_signal(result)
             case NotApplicable():
                 raise NotApplicableSignal(
                     f"{self._source.label(result.key)} entfällt: {result.reason}"
@@ -162,11 +156,7 @@ class Calculation:
         result = self._fetch(key, subject, time)
         match result:
             case ExposedValue():
-                return self.item(
-                    label or str(result.key),
-                    result.amount,
-                    ValueLocator(result, self._source.label(result.key)),
-                )
+                return self._used_item(result, label)
             case NotYetComputable():
                 return Missing(result)
             case NotApplicable():
