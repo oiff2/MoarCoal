@@ -19,7 +19,7 @@ from functools import partial
 
 from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.church_tax import ChurchTaxPayment, payments_in_year
-from moarcoal.modules.tax_year.church_tax_pages import ChurchView, church_view
+from moarcoal.modules.tax_year.church_tax_view import ChurchView, church_view
 from moarcoal.modules.tax_year.field_catalog import rounded
 from moarcoal.modules.tax_year.fields import Computed, Direction, FieldMeaning, FormField, Rounding
 from moarcoal.modules.tax_year.special_parts import PageParams, Place, SpecialPart

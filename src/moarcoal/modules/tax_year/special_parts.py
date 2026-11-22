@@ -10,7 +10,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 
-from moarcoal.modules.tax_year.church_tax_pages import PaymentForm
+from moarcoal.modules.tax_year.church_tax_view import PaymentForm
 from moarcoal.registration import ModuleState
 
 

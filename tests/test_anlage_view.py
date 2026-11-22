@@ -4,6 +4,7 @@ Geprüft wird über `anlage_view` an einer erfundenen Anlage KAP mit je einem Fe
 die angemeldeten Anlagen für die Sonderteile; nur erfundene Werte.
 """
 
+import ast
 import datetime
 from collections.abc import Iterable, Sequence
 from pathlib import Path
@@ -29,7 +30,7 @@ from moarcoal.modules.tax_year.anlage_view import (
 from moarcoal.modules.tax_year.anlagen import Anlage, YearAnlage, year_anlagen
 from moarcoal.modules.tax_year.assessment import COMMUTE_DAYS
 from moarcoal.modules.tax_year.church_tax import ChurchTaxPayment
-from moarcoal.modules.tax_year.church_tax_pages import ChurchView, sent_form
+from moarcoal.modules.tax_year.church_tax_view import ChurchView, sent_form
 from moarcoal.modules.tax_year.entries import FormInput, YearPersonInput
 from moarcoal.modules.tax_year.field_checks import FieldCheck
 from moarcoal.modules.tax_year.fields import (
@@ -505,3 +506,29 @@ def test_the_church_tax_payments_sit_below_the_fields_of_sa(tmp_path: Path) -> N
     page = client(tmp_path).get("/steuerjahr/anlage-sa/2025").text
 
     assert page.rindex('class="feld"') < page.index("Neue Kirchensteuerzahlung")
+
+
+def test_the_pure_view_imports_neither_fastapi_nor_the_pages_of_the_binding() -> None:
+    """Prinzip 4: Anlage-Ansicht, Sonderteile und Ansicht der Kirchensteuer binden weder FastAPI
+    noch Routen und Helfer der Anbindung ein; erlaubt ist nur `moarcoal.web.links` (Adressen).
+    (Das Paket `tax_year` selbst und `registration` laden FastAPI; geprüft werden die eigenen
+    Importe der Dateien.)"""
+    folder = Path(__file__).parent.parent / "src" / "moarcoal" / "modules" / "tax_year"
+    pure = ("anlage_view.py", "special_parts.py", "church_tax_view.py")
+    forbidden = ("fastapi", "starlette", "moarcoal.web", "moarcoal.modules.tax_year.pages")
+    allowed = {"moarcoal.web.links"}
+    for name in pure:
+        tree = ast.parse((folder / name).read_text(encoding="utf-8"))
+        imported: list[str] = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imported += [a.name for a in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                imported.append(node.module)
+        bad = [
+            m
+            for m in imported
+            if m not in allowed
+            and (m.startswith(forbidden) or m.endswith(("church_tax_pages", "tax_year.pages")))
+        ]
+        assert bad == [], f"{name} importiert {bad}"
