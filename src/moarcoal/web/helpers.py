@@ -7,7 +7,7 @@ from typing import Any, Protocol
 from urllib.parse import parse_qs
 
 from fastapi import HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ValidationError
 
@@ -328,6 +328,12 @@ def search_of(request: Request) -> SearchFilter:
     Seite schicken sie in der Adresse mit (`with_filter`), damit sie nach dem Absenden bleiben."""
     params = request.query_params
     return SearchFilter(params.get("suche", ""), parse_file_types(params.getlist("typ")))
+
+
+def redirect_keeping_filter(request: Request, url: str, status_code: int = 303) -> RedirectResponse:
+    """Weiterleitung auf `url` mit Suche und Dateitypen der Belege-Seite aus `request`; so bleiben
+    sie nach jeder Aktion stehen. Der einzige Ort für diese Weiterleitung."""
+    return RedirectResponse(with_filter(url, search_of(request)), status_code=status_code)
 
 
 def render(request: Request, name: str, status_code: int = 200, **context: Any) -> HTMLResponse:

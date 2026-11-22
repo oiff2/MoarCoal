@@ -24,13 +24,13 @@ from moarcoal.web.helpers import (
     document_kinds,
     entry_of,
     form_fields,
+    redirect_keeping_filter,
     rejection_text,
-    search_of,
     store_of,
     user_of,
     values_on,
 )
-from moarcoal.web.links import document_url, site_url, with_filter
+from moarcoal.web.links import document_url, site_url
 from moarcoal.web.previews import file_response
 from moarcoal.web.site_pages import belege_page
 
@@ -50,8 +50,7 @@ def _refused(request: Request, document: Document, status_code: int, notice: str
 
 def _in_list(request: Request, document: Document) -> RedirectResponse:
     """Zurück auf die Belege-Seite, das Dokument gewählt; Suche und Dateitypen bleiben."""
-    url = with_filter(document_url(document.id), search_of(request))
-    return RedirectResponse(url, status_code=303)
+    return redirect_keeping_filter(request, document_url(document.id))
 
 
 @router.get("/{document_id}")
@@ -115,7 +114,7 @@ def delete(
     result = store_of(request).apply([Delete(document.address, fields.get("checksum", ""))])
     if not isinstance(result, Applied):
         return _refused(request, document, 409, rejection_text(result))
-    return RedirectResponse(with_filter(site_url(), search_of(request)), status_code=303)
+    return redirect_keeping_filter(request, site_url())
 
 
 @router.post("/{document_id}/auslesen")

@@ -23,14 +23,14 @@ from moarcoal.web.helpers import (
     document_kinds,
     entry_of,
     form_fields,
+    redirect_keeping_filter,
     rejection_reasons,
     render,
-    search_of,
     store_of,
     user_of,
     validated,
 )
-from moarcoal.web.links import expected_documents_url, with_filter
+from moarcoal.web.links import expected_documents_url
 from moarcoal.web.site_pages import belege_page
 
 router = APIRouter(prefix="/belege/erwartet")
@@ -137,9 +137,7 @@ def create(request: Request, fields: Annotated[Fields, Depends(form_fields)]) ->
         return belege_page(
             request, 409, expected_errors=rejection_reasons(result), expected_values=fields
         )
-    return RedirectResponse(
-        with_filter(expected_documents_url(), search_of(request)), status_code=303
-    )
+    return redirect_keeping_filter(request, expected_documents_url())
 
 
 @router.get("/{entry_id}", response_class=HTMLResponse)
@@ -160,9 +158,7 @@ def update(
     result = store_of(request).apply([Put(entry, expected=checksum)])
     if not isinstance(result, Applied):
         return _edit(request, entry_id, fields, rejection_reasons(result), checksum, 409)
-    return RedirectResponse(
-        with_filter(expected_documents_url(), search_of(request)), status_code=303
-    )
+    return redirect_keeping_filter(request, expected_documents_url())
 
 
 @router.post("/{entry_id}/loeschen")
@@ -174,6 +170,4 @@ def delete(
     result = store_of(request).apply([Delete(entry.address, expected=checksum)])
     if not isinstance(result, Applied):
         return _edit(request, entry_id, _prefill(entry), rejection_reasons(result), checksum, 409)
-    return RedirectResponse(
-        with_filter(expected_documents_url(), search_of(request)), status_code=303
-    )
+    return redirect_keeping_filter(request, expected_documents_url())

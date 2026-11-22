@@ -43,6 +43,7 @@ from moarcoal.web.helpers import (
     form_lists,
     global_year,
     incoming_of,
+    redirect_keeping_filter,
     rejection_text,
     render,
     search_of,
@@ -55,7 +56,6 @@ from moarcoal.web.links import (
     document_url,
     site_file_url,
     site_url,
-    with_filter,
 )
 from moarcoal.web.previews import file_response, preview_kind
 from moarcoal.web.site_view import (
@@ -220,13 +220,15 @@ def belege_page(
 
 def _back(request: Request) -> RedirectResponse:
     """Zurück auf die Belege-Seite, Suche und Dateitypen bleiben."""
-    return RedirectResponse(with_filter(site_url(), search_of(request)), status_code=303)
+    return redirect_keeping_filter(request, site_url())
 
 
-def _kept(request: Request, url: str) -> str:
-    """`url` mit Suche und Dateitypen, wenn es eine Adresse der Belege-Seite ist; die Seite eines
-    anderen Moduls bleibt, wie sie ist."""
-    return with_filter(url, search_of(request)) if url.startswith(site_url()) else url
+def _to(request: Request, url: str) -> RedirectResponse:
+    """Weiter auf `url`; Suche und Dateitypen bleiben, wenn es eine Adresse der Belege-Seite ist;
+    die Seite eines anderen Moduls bleibt, wie sie ist."""
+    if url.startswith(site_url()):
+        return redirect_keeping_filter(request, url)
+    return RedirectResponse(url, status_code=303)
 
 
 def _after(request: Request, sha256: str) -> RedirectResponse | None:
@@ -238,8 +240,7 @@ def _after(request: Request, sha256: str) -> RedirectResponse | None:
     following = next_open([f.file.sha256 for f in new.files()], sha256)
     if following is None:
         return None
-    url = site_url(file=following)
-    return RedirectResponse(with_filter(url, search_of(request)), status_code=303)
+    return redirect_keeping_filter(request, site_url(file=following))
 
 
 def _linked(request: Request, dokumentart: str, jahr: str) -> Prefill:
@@ -320,7 +321,7 @@ def take_in_file(request: Request, fields: Annotated[Fields, Depends(form_fields
         target = document_url(result.document.id)
     elif following is not None:
         return following
-    return RedirectResponse(_kept(request, target or site_url()), status_code=303)
+    return _to(request, target or site_url())
 
 
 @router.post("/alle-aufnehmen")

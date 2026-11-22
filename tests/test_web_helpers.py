@@ -3,7 +3,7 @@
 from dataclasses import replace
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from pydantic import BaseModel, Field
 
 from moarcoal.storage import Entry, EntryAddress, ExpectedDocument, Issuer, Rejected, State
@@ -12,6 +12,7 @@ from moarcoal.values.findings import INCOMING_FILES, INCOMING_TARGET, Finding, S
 from moarcoal.web.helpers import (
     entry_of,
     finding_url,
+    redirect_keeping_filter,
     rejection_reasons,
     rejection_text,
     validated,
@@ -125,3 +126,19 @@ def test_finding_url_uses_an_explicit_href_first_then_the_target() -> None:
     assert finding_url((), State({found.address: found}), replace(plain, target=found.address)) == (
         f"/aussteller/{found.id}"
     )
+
+
+def _request(query: str) -> Request:
+    return Request({"type": "http", "query_string": query.encode(), "headers": []})
+
+
+def test_redirect_keeping_filter_carries_search_and_types_before_the_fragment() -> None:
+    out = redirect_keeping_filter(_request("suche=miete&typ=pdf"), "/belege#erwartet")
+    assert out.status_code == 303
+    assert out.headers["location"] == "/belege?suche=miete&typ=pdf#erwartet"
+
+
+def test_redirect_keeping_filter_leaves_the_address_without_filter_and_takes_a_status() -> None:
+    out = redirect_keeping_filter(_request(""), "/belege", status_code=308)
+    assert out.status_code == 308
+    assert out.headers["location"] == "/belege"
