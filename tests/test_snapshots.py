@@ -29,6 +29,8 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_SOLI,
     WORK_TAX_CLASS,
     WORK_TRAVEL_FARE,
+    WORK_TRAVEL_INCIDENTALS,
+    WORK_TRAVEL_LODGING,
     WORK_TRAVEL_TOTAL,
     WORK_WORKDAYS,
 )
@@ -392,6 +394,8 @@ def foreign(**given: ForeignResult) -> Foreign:
                 WORK_INCOME_TAX,
                 WORK_SOLI,
                 WORK_TRAVEL_FARE,
+                WORK_TRAVEL_LODGING,
+                WORK_TRAVEL_INCIDENTALS,
                 WORK_TRAVEL_TOTAL,
                 *VOR_WORK_KEYS,
             )

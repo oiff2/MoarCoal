@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import Request
 
 from moarcoal.defaults import year_of
-from moarcoal.modules.work.common import MODULE_KEY
+from moarcoal.modules.work.common import MODULE_KEY, TRIPS_ANCHOR, trip_anchor
 from moarcoal.modules.work.trips.entries import BusinessTrip, trips_fingerprint
 from moarcoal.modules.work.trips.germany_map import germany_map
 from moarcoal.modules.work.trips.place_search import PlaceHit
@@ -20,9 +20,16 @@ from moarcoal.modules.work.trips.table import (
     place_prefill,
     trips_in,
 )
-from moarcoal.modules.work.trips.values import TRAVEL_FARE, TRAVEL_TOTAL
+from moarcoal.modules.work.trips.values import (
+    TRAVEL_FARE,
+    TRAVEL_INCIDENTALS,
+    TRAVEL_LODGING,
+    TRAVEL_TOTAL,
+    TRIP_DAYS,
+)
 from moarcoal.storage import entry_checksum
-from moarcoal.values.model import Period
+from moarcoal.values.calculation import ValueSource
+from moarcoal.values.model import ExposedValue, Period, ValueResult
 from moarcoal.web.helpers import (
     global_year,
     module_state,
@@ -75,6 +82,38 @@ def _statements(request: Request, year: int, trips: Sequence[BusinessTrip]) -> l
     return found
 
 
+@dataclass(frozen=True)
+class CostRow:
+    """Eine Zeile der Tabelle der Reisekosten: Posten, Wert, bei 0 € die Begründung, Verweis."""
+
+    label: str
+    result: ValueResult
+    reason: str = ""
+    href: str = ""
+
+
+def _decision(result: ValueResult) -> str:
+    """Die Entscheidung im Rechenweg, die einen Betrag begründet (z. B. 0 € ohne Einzelposten)."""
+    if not isinstance(result, ExposedValue) or result.items:
+        return ""
+    return " ".join(step.text for step in result.workings.steps if step.kind == "decision")
+
+
+def _cost_rows(values: ValueSource, user: str, period: Period) -> list[CostRow]:
+    """Reisekosten der Dienstreisen (Nr. 66 bis 69 der Anlage N) als Zeilen der kleinen Tabelle."""
+    rows: list[CostRow] = []
+    for label, key in (
+        ("Fahrtkosten", TRAVEL_FARE),
+        ("Übernachtungskosten", TRAVEL_LODGING),
+        ("Reisenebenkosten", TRAVEL_INCIDENTALS),
+        ("Summe der Reisekosten", TRAVEL_TOTAL),
+    ):
+        result = values.get(key, user, period)
+        href = f"#{TRIPS_ANCHOR}" if key == TRAVEL_FARE else ""
+        rows.append(CostRow(label, result, _decision(result), href))
+    return rows
+
+
 def trips_context(
     request: Request,
     year: int,
@@ -97,6 +136,7 @@ def trips_context(
     return {
         "year": year,
         "rows": rows,
+        "trip_anchor": trip_anchor,
         "error": error,
         "trip_count": len(trips),
         "total_km": sum(t.distance_km for t in trips),
@@ -104,7 +144,9 @@ def trips_context(
         "confirmation": confirmation_in(module_state(request, MODULE_KEY), year),
         "stand": trips_fingerprint(trips),
         "fare": values.get(TRAVEL_FARE, user, period),
-        "total": values.get(TRAVEL_TOTAL, user, period),
+        "trip_days": values.get(TRIP_DAYS, user, period),
+        "costs": _cost_rows(values, user, period),
+        "trips_anchor": TRIPS_ANCHOR,
         "statements": found,
         "to_take": sum(1 for s in found for t in s["trips"] if not t.taken),
         "germany": germany_map(),

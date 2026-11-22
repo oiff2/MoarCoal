@@ -1,4 +1,4 @@
-"""Tests: Dienstreisen (Tabelle, Fahrtkosten, vollständig bestätigen, Anlage N Nr. 66/69).
+"""Tests: Dienstreisen (Tabelle, Fahrtkosten, vollständig bestätigen, Anlage N Nr. 66 bis 69).
 
 Alle Orte und Werte sind erfunden; geschrieben wird nur in `tmp_path`.
 """
@@ -7,6 +7,7 @@ import datetime
 import html
 import json
 import re
+from collections.abc import Callable
 from decimal import Decimal
 from pathlib import Path
 
@@ -16,7 +17,12 @@ from app_helper import make_app
 from fastapi.testclient import TestClient
 
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
-from moarcoal.modules.tax_year.anlage_n import N_TRAVEL_FARE, N_TRAVEL_TOTAL
+from moarcoal.modules.tax_year.anlage_n import (
+    N_TRAVEL_FARE,
+    N_TRAVEL_INCIDENTALS,
+    N_TRAVEL_LODGING,
+    N_TRAVEL_TOTAL,
+)
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.modules.work import BusinessTrip, TripsConfirmation
 from moarcoal.modules.work.trips.table import (
@@ -29,8 +35,22 @@ from moarcoal.modules.work.trips.table import (
     rows_from_form,
     split_places,
 )
-from moarcoal.modules.work.trips.values import TRAVEL_FARE, TRAVEL_TOTAL, TRIPS_TO_FILL
-from moarcoal.storage import Applied, Delete, Put, Rejected, entry_checksum, open_store
+from moarcoal.modules.work.trips.values import (
+    TRAVEL_FARE,
+    TRAVEL_INCIDENTALS,
+    TRAVEL_LODGING,
+    TRAVEL_TOTAL,
+    TRIPS_TO_FILL,
+)
+from moarcoal.storage import (
+    Applied,
+    Delete,
+    EntryAddress,
+    Put,
+    Rejected,
+    entry_checksum,
+    open_store,
+)
 from moarcoal.values.model import (
     Amount,
     ExposedValue,
@@ -211,10 +231,36 @@ def test_confirmed_without_trips_is_an_explicit_zero() -> None:
     assert any("es gab keine" in s.text for s in result.workings.steps)
 
 
-def test_total_is_the_fare() -> None:
+def test_total_is_the_sum_of_fare_lodging_and_incidentals_with_an_item_each() -> None:
     result = value(TRAVEL_TOTAL, [trip(3, 10)])
+
     assert isinstance(result, ExposedValue) and result.amount.value == Decimal("3.00")
+    assert [i.label for i in result.items] == [
+        "Fahrtkosten",
+        "Übernachtungskosten",
+        "Reisenebenkosten",
+    ]
     assert isinstance(value(TRAVEL_TOTAL, []), NotYetComputable)
+
+
+@pytest.mark.parametrize("key", [TRAVEL_LODGING, TRAVEL_INCIDENTALS])
+def test_lodging_and_incidentals_are_zero_with_a_reason_once_there_is_a_fare(key: str) -> None:
+    result = value(key, [trip(3, 10)])
+
+    assert isinstance(result, ExposedValue)
+    assert result.amount == Amount(Decimal("0.00"), Unit.EUR)
+    assert result.items == ()
+    assert any("rechnet der Arbeitgeber ab" in s.text for s in result.workings.steps)
+
+
+@pytest.mark.parametrize("key", [TRAVEL_LODGING, TRAVEL_INCIDENTALS])
+def test_lodging_and_incidentals_follow_the_fare_when_it_is_not_computable(key: str) -> None:
+    assert isinstance(value(key, []), NotYetComputable)
+    confirmed = value(key, [confirmation([])])
+    assert isinstance(confirmed, ExposedValue) and confirmed.amount.value == 0
+    other = trip().model_copy(update={"year": 2030, "start": datetime.date(2030, 2, 3)})
+    result = evaluate([WORK], [other]).get(key, USER, Period.year(2030))
+    assert isinstance(result, NotYetComputable) and "km-Satz" in result.reason
 
 
 def test_a_year_without_rate_is_not_yet_computable() -> None:
@@ -245,7 +291,7 @@ def test_finding_until_confirmed_then_none() -> None:
     assert kinds([only, confirmation([only])]) == []
 
 
-def test_anlage_n_fields_66_and_69_take_the_work_values() -> None:
+def test_anlage_n_fields_66_to_69_take_the_work_values() -> None:
     values = evaluate([WORK, TAX_YEAR], [trip(3, 101), trip(10, 52)])
     fare = values.get(N_TRAVEL_FARE, USER, YEAR)
     total = values.get(N_TRAVEL_TOTAL, USER, YEAR)
@@ -254,6 +300,29 @@ def test_anlage_n_fields_66_and_69_take_the_work_values() -> None:
     assert isinstance(total, ExposedValue) and total.amount.value == Decimal("46")
     assert any("→" in s.text for s in fare.workings.steps)
     assert isinstance(evaluate([WORK, TAX_YEAR]).get(N_TRAVEL_FARE, USER, YEAR), NotYetComputable)
+
+
+def test_anlage_n_fields_67_and_68_are_zero_with_a_reason_and_sum_into_69() -> None:
+    values = evaluate([WORK, TAX_YEAR], [trip(3, 101), trip(10, 52)])
+
+    for key in (N_TRAVEL_LODGING, N_TRAVEL_INCIDENTALS):
+        result = values.get(key, USER, YEAR)
+        assert isinstance(result, ExposedValue) and result.amount.value == 0
+        assert any("rechnet der Arbeitgeber ab" in s for s in reasons_in_steps(result))
+    total = values.get(N_TRAVEL_TOTAL, USER, YEAR)
+    assert isinstance(total, ExposedValue) and total.amount.value == Decimal("46")
+    assert isinstance(
+        evaluate([WORK, TAX_YEAR]).get(N_TRAVEL_LODGING, USER, YEAR), NotYetComputable
+    )
+
+
+def reasons_in_steps(result: ExposedValue) -> list[str]:
+    """Die Entscheidungen im Rechenweg, auch in den verwendeten Werten."""
+    found = [s.text for s in result.workings.steps if s.kind == "decision"]
+    for item in result.items:
+        if item.locator.used_value is not None:
+            found += reasons_in_steps(item.locator.used_value)
+    return found
 
 
 # --- Schreibweg ---------------------------------------------------------------------------------
@@ -533,7 +602,7 @@ def test_finding_links_to_the_work_page_of_its_year() -> None:
     (found,) = evaluate([WORK], []).finding_list(USER, 2024).visible
 
     assert found.kind == TRIPS_TO_FILL
-    assert found.href == "/arbeit?jahr=2024"  # direkt, ohne Umleitung über die alte Adresse
+    assert found.href == "/arbeit?jahr=2024#dienstreisen"  # direkt auf die Tabelle der Dienstreisen
 
 
 def test_not_computable_reason_is_a_focusable_tooltip(tmp_path: Path) -> None:
@@ -612,3 +681,112 @@ def test_chain_titles_are_catalog_titles(tmp_path: Path) -> None:
     page = make_client(tmp_path).get("/steuerjahr/anlage-n/2025").text
 
     assert "Einbehaltene Lohnsteuer" in chain_titles_of(page)
+
+
+# --- Tabelle der Reisekosten und Fußzeile der Dienstreisen --------------------------------------
+
+
+def costs_table(page: str) -> str:
+    return page.split('class="reisekosten"', 1)[1].split("</table>", 1)[0]
+
+
+def test_arbeit_shows_the_travel_costs_as_a_small_table_without_expanding(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    post_trip(client, 2025)
+    page = client.get("/arbeit?jahr=2025").text
+
+    assert '<span class="titel">Fahrtkosten:' not in page  # kein aufklappbarer Wert mehr
+    assert '<span class="titel">Summe der Reisekosten:' not in page
+    assert "<summary>" not in costs_table(page)
+    rows = re.findall(r"<tr[^>]*>(.*?)</tr>", costs_table(page), re.S)
+    first_cells = [" ".join(re.sub(r"<[^>]+>", " ", r.split("</td>")[0]).split()) for r in rows[1:]]
+    wanted = ["Fahrtkosten", "Übernachtungskosten", "Reisenebenkosten", "Summe der Reisekosten"]
+    assert (
+        all(c.startswith(w) for c, w in zip(first_cells, wanted, strict=False))
+        and len(first_cells) == 4
+    )
+    table = costs_table(page)
+    assert table.count("rechnet der Arbeitgeber ab") == 2
+    assert 'href="#dienstreisen"' in table  # Fahrtkosten führt auf die Tabelle
+    assert "Angenommen" in table or "angenommen" in table
+    assert "2,70" in table
+
+
+def test_travel_costs_show_the_reason_instead_of_an_amount(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    table = costs_table(client.get("/arbeit?jahr=2025").text)
+
+    assert table.count('<strong class="fehler">noch nicht berechenbar') == 4
+    assert "vollständig bestätigt" in table
+
+
+def test_trip_table_has_no_backing_column_and_a_compact_footer(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    data = post_data(2025) | {
+        "zeilen": "2",
+        "start-1": "10.02.2025",
+        "ende-1": "11.02.2025",
+        "orte-1": "A → C → A",
+        "km-1": "21",
+    }
+    client.post("/arbeit/dienstreisen/2025", data=data, headers=ORIGIN)
+    page = client.get("/arbeit?jahr=2025").text
+    form = page.split('id="dienstreisen"', 1)[1].split("</form>", 1)[0]
+
+    assert "<th>Belegstand" not in form
+    footer = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", form.split("<tfoot>", 1)[1]))
+    assert "Summe 2 Dienstreisen · 3 Tage · 30 km × 0,30 €/km = 9,00 €" in footer
+    assert "angenommen" in footer.lower()
+
+
+def test_trip_footer_shows_the_reason_without_a_rate_or_confirmation(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    form = client.get("/arbeit?jahr=2025").text.split('id="dienstreisen"', 1)[1]
+    footer = form.split("<tfoot>", 1)[1].split("</tfoot>", 1)[0]
+    assert "noch nicht berechenbar" in footer and "0,00" not in footer
+
+    post_trip(client, 2030)  # für 2030 gibt es keinen km-Satz
+    form = client.get("/arbeit?jahr=2030").text.split('id="dienstreisen"', 1)[1]
+    footer = form.split("<tfoot>", 1)[1].split("</tfoot>", 1)[0]
+    assert "noch nicht berechenbar" in footer and "km-Satz" in footer
+
+    client.post(
+        "/arbeit/dienstreisen/2025/vollstaendig",
+        data={"stand": hidden(client.get("/arbeit?jahr=2025").text, "stand")},
+        headers=ORIGIN,
+    )
+    form = client.get("/arbeit?jahr=2025").text.split('id="dienstreisen"', 1)[1]
+    footer = form.split("<tfoot>", 1)[1].split("</tfoot>", 1)[0]
+    assert "Summe 0 Dienstreisen" in footer and "0,00 €" in footer
+
+
+# --- Anker und Adresse einer Reise --------------------------------------------------------------
+
+
+def test_every_saved_trip_has_an_anchor_and_an_address_that_leads_to_it(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    post_trip(client, 2025)
+    (saved,) = trips_in(tmp_path)
+    trip_id = str(saved["id"])
+    page = client.get("/arbeit?jahr=2025").text
+
+    assert f'id="reise-{trip_id}"' in page
+    assert 'id="dienstreisen"' in page
+    link = client.get(f"/arbeit/dienstreisen/reise/{trip_id}")
+    assert link.status_code == 303
+    assert link.headers["location"] == f"/arbeit?jahr=2025#reise-{trip_id}"
+    assert client.get("/arbeit/dienstreisen/reise/UNBEKANNT0").status_code == 404
+
+    address = EntryAddress(kind="BusinessTrip", id=trip_id)
+    assert WORK.entry_url(address) == f"/arbeit/dienstreisen/reise/{trip_id}"
+
+
+def test_the_item_of_a_trip_under_nr_66_links_to_its_row(
+    tmp_path: Path, anlage_n_text: Callable[[httpx.Client], str]
+) -> None:
+    client = make_client(tmp_path)
+    post_trip(client, 2025)
+    (saved,) = trips_in(tmp_path)
+    page = anlage_n_text(client)
+
+    assert f'href="/arbeit/dienstreisen/reise/{saved["id"]}"' in page

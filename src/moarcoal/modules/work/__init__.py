@@ -4,7 +4,7 @@
 from fastapi import APIRouter
 
 from moarcoal.modules.work.capture import capture_url
-from moarcoal.modules.work.common import MODULE_KEY
+from moarcoal.modules.work.common import MODULE_KEY, trip_url
 from moarcoal.modules.work.pages import router as pages_router
 from moarcoal.modules.work.trips import entries as trip_entries
 from moarcoal.modules.work.trips import values as trip_values
@@ -21,6 +21,7 @@ from moarcoal.modules.work.workplace import values as workplace_values
 from moarcoal.modules.work.workplace.entries import FirstWorkplace, UserInput, WorkEquipment
 from moarcoal.modules.work.workplace.forms import entry_url
 from moarcoal.registration import ModuleRegistration, ModuleState
+from moarcoal.storage import EntryAddress
 from moarcoal.values.calculation import ValueSource
 from moarcoal.values.findings import Finding
 
@@ -28,6 +29,13 @@ from moarcoal.values.findings import Finding
 router = APIRouter()
 router.include_router(trip_router)
 router.include_router(pages_router)
+
+
+def work_entry_url(address: EntryAddress) -> str | None:
+    """Adresse eines Eintrags des Moduls: eine Dienstreise führt auf ihre Zeile, sonst Formular."""
+    if address.kind == BusinessTrip.__name__:
+        return trip_url(address.id)
+    return entry_url(address)
 
 
 def work_findings(state: ModuleState, values: ValueSource, year: int) -> list[Finding]:
@@ -47,7 +55,7 @@ REGISTRATION = ModuleRegistration(
     kinds=workplace_entries.KINDS + wage_tax_entries.KINDS + trip_entries.KINDS + PLACE_KINDS,
     values=workplace_values.VALUES + wage_tax_values.VALUES + trip_values.VALUES,
     document_kinds=(WAGE_TAX_CERTIFICATE, STATEMENT),
-    entry_url=entry_url,
+    entry_url=work_entry_url,
     capture_url=capture_url,
     finding_kinds=workplace_values.FINDING_KINDS + trip_values.FINDING_KINDS,
     findings=work_findings,
