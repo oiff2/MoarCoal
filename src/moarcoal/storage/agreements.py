@@ -12,13 +12,15 @@ from moarcoal.storage.issuers import MIN_DENYLIST_LENGTH, Issuer, name_key
 AGREEMENT_SCHEMA = "datenebene/1"
 NAME_MAX = 200
 NUMBER_MAX = 100
-CATEGORY_MAX = 60
+CATEGORIES = ("Versicherung", "Darlehen", "Depot", "Konto", "Sonstiges")
+"""Die Arten eines Vertrags; neue Werte kommen hier im Code dazu, nicht über die Oberfläche."""
 
 
 class Agreement(Entry):
     """Ein Vertrag des Nutzers: `issuer` ist der Vertragspartner, `name` die Bezeichnung (der
-    Anzeigename), `number` die Vertragsnummer (sensibel), `category` die Art als freier kurzer Text
-    (z. B. Versicherung, Darlehen). Beginn und Ende sind optional; ohne Ende läuft der Vertrag.
+    Anzeigename), `number` die Vertragsnummer (sensibel), `category` die Art (einer der
+    `CATEGORIES`; die Prüfung im Schreibweg weist anderes ab). Beginn und Ende sind optional;
+    ohne Ende läuft der Vertrag.
 
     Was der Vertrag steuerlich bedeutet, weiß das Modul; es verweist mit eigenen Einträgen auf ihn.
     """
@@ -26,7 +28,7 @@ class Agreement(Entry):
     issuer: EntryAddress
     name: str = Field(min_length=1, max_length=NAME_MAX)
     number: str = Field(default="", max_length=NUMBER_MAX)
-    category: str = Field(default="", max_length=CATEGORY_MAX)
+    category: str = "Sonstiges"
     start: datetime.date | None = None
     end: datetime.date | None = None
 
@@ -73,19 +75,30 @@ def denylist_lines(agreements: list[Agreement]) -> list[str]:
     return sorted(found)
 
 
+def _number_key(number: str) -> str:
+    return number.strip().casefold()
+
+
 def check_agreement(agreement: Agreement, entries: Mapping[EntryAddress, Entry]) -> str | None:
-    """Prüfung im Schreibweg: der Vertragspartner ist ein vorhandener Aussteller, und der Nutzer
-    hat bei diesem Vertragspartner keinen zweiten Vertrag gleicher Bezeichnung."""
+    """Prüfung im Schreibweg: die Art steht in der Liste, der Vertragspartner ist ein vorhandener
+    Aussteller, und der Nutzer hat bei diesem Vertragspartner keinen zweiten Vertrag gleicher
+    Bezeichnung oder, wenn vorhanden, gleicher Vertragsnummer (Groß/klein egal)."""
+    if agreement.category not in CATEGORIES:
+        return f"Art muss eine von {', '.join(CATEGORIES)} sein."
     if not isinstance(entries.get(agreement.issuer), Issuer):
         return "Vertragspartner existiert nicht."
-    if any(
-        isinstance(e, Agreement)
-        and e.id != agreement.id
-        and (e.owner, e.issuer, name_key(e.name))
-        == (agreement.owner, agreement.issuer, name_key(agreement.name))
+    others = [
+        e
         for e in entries.values()
-    ):
+        if isinstance(e, Agreement)
+        and e.id != agreement.id
+        and (e.owner, e.issuer) == (agreement.owner, agreement.issuer)
+    ]
+    if any(name_key(e.name) == name_key(agreement.name) for e in others):
         return "Diesen Vertrag gibt es schon."
+    number = _number_key(agreement.number)
+    if number and any(_number_key(e.number) == number for e in others):
+        return "Diese Vertragsnummer gibt es bei diesem Vertragspartner schon."
     return None
 
 

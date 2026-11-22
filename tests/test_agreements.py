@@ -34,6 +34,7 @@ from moarcoal.storage import (
     entry_checksum,
     open_store,
 )
+from moarcoal.storage.agreements import CATEGORIES
 from moarcoal.web.links import document_url
 
 PORT = 4711
@@ -295,7 +296,7 @@ def test_create_via_page_with_a_new_partner(tmp_path: Path) -> None:
             "issuer_text": "Neue Stadtwerke",
             "name": "Strom",
             "number": NUMBER,
-            "category": "Strom",
+            "category": "Sonstiges",
             "start": "2022-03-01",
             "end": "",
         },
@@ -326,7 +327,7 @@ def test_create_duplicate_is_rejected_with_the_reason(tmp_path: Path) -> None:
     store_with(tmp_path, partner, agreement(partner))
     response = make_client(tmp_path).post(
         "/vertraege",
-        data={"issuer_choice": f"id:{partner.id}", "name": "hausrat"},
+        data={"issuer_choice": f"id:{partner.id}", "name": "hausrat", "category": "Depot"},
         headers=ORIGIN,
     )
     assert response.status_code == 409
@@ -348,6 +349,7 @@ def test_edit_page_prefills_and_saves(tmp_path: Path) -> None:
             "checksum": checksum_of(page.text),
             "issuer_choice": f"id:{partner.id}",
             "name": "Hausrat neu",
+            "category": "Konto",
             "number": NUMBER,
             "end": "2031-01-01",
         },
@@ -355,6 +357,7 @@ def test_edit_page_prefills_and_saves(tmp_path: Path) -> None:
     )
     assert response.status_code == 303
     (changed,) = stored(tmp_path)
+    assert changed.category == "Konto"
     assert (changed.name, changed.end, changed.start) == (
         "Hausrat neu",
         datetime.date(2031, 1, 1),
@@ -368,7 +371,12 @@ def test_edit_with_a_stale_checksum_is_rejected(tmp_path: Path) -> None:
     store_with(tmp_path, partner, contract)
     response = make_client(tmp_path).post(
         f"/vertraege/{contract.id}",
-        data={"checksum": "0" * 64, "issuer_choice": f"id:{partner.id}", "name": "Anders"},
+        data={
+            "checksum": "0" * 64,
+            "issuer_choice": f"id:{partner.id}",
+            "name": "Anders",
+            "category": "Konto",
+        },
         headers=ORIGIN,
     )
     assert response.status_code == 409
@@ -399,7 +407,7 @@ def test_assign_list_and_release_via_pages(tmp_path: Path) -> None:
     page = client.get(f"/vertraege/{contract.id}").text
     assert f'href="{document_url(letter.id)}"' in page
     assert f'<option value="{letter.id}">' not in page
-    assert "Wird noch verwendet" not in page and "/loeschen" not in page  # Löschen gesperrt
+    assert "/loeschen" in page  # Löschen-Knopf ist immer da
     detail = client.get(document_url(letter.id)).text
     assert f'href="/vertraege/{contract.id}"' in detail  # das Dokument nennt seinen Vertrag
     released = client.post(f"/vertraege/{contract.id}/dokumente/{letter.id}/loesen", headers=ORIGIN)
@@ -429,7 +437,7 @@ def test_delete_via_page_and_lock(tmp_path: Path) -> None:
         data={"checksum": entry_checksum(contract)},
         headers=ORIGIN,
     )
-    assert blocked.status_code == 409 and "Wird noch verwendet." in blocked.text
+    assert blocked.status_code == 409 and "1 Dokument zugeordnet – erst lösen" in blocked.text
     assert len(stored(tmp_path)) == 1
     assigned = store.state().get(letter.address)
     assert isinstance(assigned, Document)
@@ -449,3 +457,50 @@ def test_agreement_link_resolves_for_findings_and_references(tmp_path: Path) -> 
     partner = issuer()
     contract = agreement(partner)
     assert entry_url((), contract.address) == f"/vertraege/{contract.id}"
+
+
+def test_category_only_from_the_fixed_list(tmp_path: Path) -> None:
+    partner = issuer()
+    store = store_with(tmp_path, partner)
+    for category in CATEGORIES:
+        entry = agreement(partner, name=f"V {category}", category=category)
+        assert isinstance(store.apply([Put(entry)]), Applied)
+    result = store.apply([Put(agreement(partner, name="Strom", category="Strom"))])
+    assert isinstance(result, Rejected)
+    assert any("Art muss eine von" in reason for reason in result.reasons.values())
+    page = make_client(tmp_path).get("/vertraege").text
+    assert page.count("<option") >= len(CATEGORIES)
+
+
+def test_same_contract_number_at_the_same_partner_is_rejected(tmp_path: Path) -> None:
+    partner, other = issuer(), issuer("Andere Versicherung")
+    store = store_with(tmp_path, partner, other, agreement(partner, number="ab-123456"))
+    same = store.apply([Put(agreement(partner, name="Zweit", number=" AB-123456 "))])
+    assert isinstance(same, Rejected)
+    assert any("Vertragsnummer" in reason for reason in same.reasons.values())
+    elsewhere = agreement(other, name="Zweit", number="AB-123456")
+    assert isinstance(store.apply([Put(elsewhere)]), Applied)  # anderer Vertragspartner
+    same_name = agreement(other, name="ZWEIT", number="CD-9")
+    assert isinstance(store.apply([Put(same_name)]), Rejected)
+    no_number = [agreement(partner, name="Ohne eins"), agreement(partner, name="Ohne zwei")]
+    assert isinstance(store.apply([Put(no_number[0])]), Applied)
+    assert isinstance(store.apply([Put(no_number[1])]), Applied)  # leere Nummer kollidiert nicht
+
+
+def test_delete_button_stays_and_the_reason_names_the_documents(tmp_path: Path) -> None:
+    partner = issuer()
+    contract = agreement(partner)
+    letters = [document(sha=c * 64) for c in "bc"]
+    store = store_with(tmp_path, partner, contract, *letters)
+    for letter in letters:
+        assert isinstance(store.apply([assign(letter, contract.address)]), Applied)
+    client = make_client(tmp_path)
+    assert "/loeschen" in client.get(f"/vertraege/{contract.id}").text
+    blocked = client.post(
+        f"/vertraege/{contract.id}/loeschen",
+        data={"checksum": entry_checksum(contract)},
+        headers=ORIGIN,
+    )
+    assert blocked.status_code == 409
+    assert "2 Dokumente zugeordnet – erst lösen" in blocked.text
+    assert len(stored(tmp_path)) == 1

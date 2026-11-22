@@ -42,14 +42,10 @@
 {% endif %}
 {% endcall %}
 
-{% call abschnitt("vertrag-loeschen", "Löschen", none) %}
-{% if documents %}
-<p>Dem Vertrag sind noch Dokumente zugeordnet (siehe oben). Er lässt sich löschen, sobald nichts mehr auf ihn verweist.</p>
-{% else %}
+{% call abschnitt("vertrag-loeschen", "Löschen", none, "Solange Dokumente zugeordnet sind, lehnt MoarCoal das Löschen ab; erst die Zuordnungen lösen.") %}
 <form method="post" action="{{ agreement_url(agreement.id) }}/loeschen" class="inline">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   {{ bt("loeschen", "Löschen") }}
 </form>
-{% endif %}
 {% endcall %}
 {% endblock %}

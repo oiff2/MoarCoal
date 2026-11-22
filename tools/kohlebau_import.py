@@ -7,20 +7,14 @@ Aufruf (das Datenverzeichnis ist Pflicht, damit nie versehentlich das echte besc
 
 Gelesen wird, was Kohlebau im Quellordner ablegt: `aussteller.json` (Aussteller mit Aliassen und
 früheren Kennungen) und `<jahr>/.kohlebau/steuerjahr.json` (Schlüssel `belege`: Art, Belegtyp,
-Aussteller, Pfad, Prüfsumme). Aus den Einträgen (`eintraege`) kommen nur Aussteller, Bezeichnung
-und Belegverweis: Kohlebau kennt
-keinen Vertrag als eigenes Ding, ein Vertrag ist dort ein Aussteller mit einer Bezeichnung, die
-mehrere Einträge einer Zeile unterscheidet (z. B. „Depot“). Feldwerte, Bescheid-Positionen und
-Dienstreisen werden nicht gelesen.
+Aussteller, Pfad, Prüfsumme). Feldwerte, Bescheid-Positionen und Dienstreisen werden nicht gelesen.
 
-Teile: Aussteller, Belege, dann Verträge. Weitere Teile (Freistellungsbeträge, Immobilie) hängen
+Teile: Aussteller, dann Belege. Weitere Teile (Verträge, Freistellungsbeträge, Immobilie) hängen
 sich an `PARTS` an: jeder liest `Source`, schreibt über `store.apply` und meldet in `Report`.
 
 Wiederholbar: ein vorhandener Aussteller (Name oder Alias) wird erkannt, eine schon aufgenommene
-Datei (SHA-256), ein vorhandener Vertrag (Vertragspartner und Bezeichnung) und eine vorhandene
-Zuordnung auch; ein zweiter Lauf ändert nichts. Die Ausgabe nennt Aussteller mit Namen, damit
-der Nutzer die Liste prüfen kann, Belege nur mit der Kennung aus Kohlebau, Verträge nur gezählt,
-nie Pfade oder Werte.
+Datei (SHA-256) auch; ein zweiter Lauf ändert nichts. Die Ausgabe nennt Aussteller mit Namen, damit
+der Nutzer die Liste prüfen kann, Belege nur mit der Kennung aus Kohlebau, nie Pfade oder Werte.
 """
 
 from __future__ import annotations
@@ -33,7 +27,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
 
-from moarcoal.agreements import agreements_of, assign
 from moarcoal.defaults import DEFAULT_USER, DEFAULT_YEAR, year_of
 from moarcoal.documents import IntakeRejected, take_in
 from moarcoal.incoming import all_site_files
@@ -44,7 +37,6 @@ from moarcoal.modules.work.wage_tax.reading import WAGE_TAX_CERTIFICATE
 from moarcoal.registration import ModuleRegistration, open_module_store
 from moarcoal.storage import (
     COMMON_OWNER,
-    Agreement,
     Applied,
     Document,
     EntryAddress,
@@ -96,22 +88,12 @@ class KohlebauDocument:
 
 
 @dataclass(frozen=True)
-class KohlebauAgreement:
-    """Ein Vertrag aus Kohlebau: Aussteller und Bezeichnung, dazu die Belege seiner Einträge."""
-
-    issuer_id: str
-    label: str
-    document_ids: tuple[str, ...]
-
-
-@dataclass(frozen=True)
 class Source:
     """Was aus Kohlebau gelesen ist."""
 
     year: int
     issuers: tuple[KohlebauIssuer, ...]
     documents: tuple[KohlebauDocument, ...]
-    agreements: tuple[KohlebauAgreement, ...] = ()
 
 
 @dataclass
@@ -206,29 +188,7 @@ def read_source(root: Path, year: int) -> Source:
                 sha256=checksum.removeprefix(SHA256_PREFIX).lower(),
             )
         )
-    return Source(year, issuers, tuple(documents), _agreements(year_data, year_file))
-
-
-def _agreements(year_data: Mapping[str, Any], file: str) -> tuple[KohlebauAgreement, ...]:
-    """Die Verträge aus den Einträgen: je Aussteller und nicht leerer Bezeichnung einer (der
-    Aussteller „selbst“ hat keine), mit den Belegen, auf die diese Einträge verweisen. Einträge
-    ohne Schlüssel oder ohne Bezeichnung gehören zu keinem Vertrag."""
-    found: dict[tuple[str, str], list[str]] = {}
-    for item in _items(year_data, "eintraege", file):
-        key = item.get("schluessel")
-        if not isinstance(key, dict):
-            continue
-        issuer = _text(key, "aussteller", file, required=False)  # pyright: ignore[reportUnknownArgumentType]
-        label = _text(key, "bezeichnung", file, required=False)  # pyright: ignore[reportUnknownArgumentType]
-        if not issuer or not label or issuer == OWN_ISSUER_ID:
-            continue
-        documents = found.setdefault((issuer, label), [])
-        reference = item.get("beleg")
-        if isinstance(reference, dict):
-            document_id = _text(reference, "beleg", file, required=False)  # pyright: ignore[reportUnknownArgumentType]
-            if document_id and document_id not in documents:
-                documents.append(document_id)
-    return tuple(KohlebauAgreement(i, label, tuple(d)) for (i, label), d in found.items())
+    return Source(year, issuers, tuple(documents))
 
 
 def _own_issuer(ctx: Context) -> EntryAddress | None:
@@ -364,59 +324,7 @@ def import_documents(ctx: Context, source: Source, report: Report) -> None:
             report.count("Beleg aufgenommen (mit Art)")
 
 
-def import_agreements(ctx: Context, source: Source, report: Report) -> None:
-    """Legt je Kohlebau-Vertrag einen Vertrag an (Vertragspartner und Bezeichnung; ein vorhandener
-    wird erkannt) und ordnet ihm die aufgenommenen Dokumente seiner Belege zu. Ohne Aussteller
-    (unbekannt oder mehrdeutig) wird der Vertrag übersprungen; ein Beleg, der nicht aufgenommen ist,
-    wird gezählt. Art, Nummer und Laufzeit kennt Kohlebau nicht."""
-    sha_of = {d.id: d.sha256 for d in source.documents}
-    for kohlebau in source.agreements:
-        issuer = ctx.issuers.get(kohlebau.issuer_id)
-        if issuer is None:
-            report.count("Vertrag ohne Aussteller übersprungen")
-            continue
-        existing = next(
-            (
-                a
-                for a in agreements_of(ctx.store.state(), ctx.user)
-                if (a.issuer, name_key(a.name)) == (issuer, name_key(kohlebau.label))
-            ),
-            None,
-        )
-        if existing is not None:
-            agreement = existing
-            report.count("Vertrag vorhanden")
-        else:
-            agreement = Agreement(owner=ctx.user, issuer=issuer, name=kohlebau.label)
-            result = ctx.store.apply([Put(agreement)])
-            if not isinstance(result, Applied):
-                reasons = "; ".join(result.reasons.values())
-                report.count("Vertrag abgewiesen", f"Vertrag abgewiesen ({reasons})")
-                continue
-            report.count("Vertrag angelegt")
-        for document_id in kohlebau.document_ids:
-            found = documents_of_file(
-                ctx.store.state().entries, ctx.user, sha_of.get(document_id, "")
-            )
-            if not found:
-                report.count(
-                    "Zuordnung ohne aufgenommenes Beleg-Dokument",
-                    f"Beleg {document_id}: nicht aufgenommen, nicht zugeordnet.",
-                )
-            elif agreement.address in found[0].assignments:
-                report.count("Zuordnung vorhanden")
-            else:
-                result = ctx.store.apply([assign(found[0], agreement.address)])
-                if isinstance(result, Applied):
-                    report.count("Beleg einem Vertrag zugeordnet")
-                else:
-                    reasons = "; ".join(result.reasons.values())
-                    report.count(
-                        "Zuordnung abgewiesen", f"Beleg {document_id}: abgewiesen ({reasons})"
-                    )
-
-
-PARTS: tuple[Part, ...] = (import_issuers, import_documents, import_agreements)
+PARTS: tuple[Part, ...] = (import_issuers, import_documents)
 
 
 def run(
@@ -436,9 +344,7 @@ def run(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Übernimmt Aussteller, Belege und Verträge aus Kohlebau."
-    )
+    parser = argparse.ArgumentParser(description="Übernimmt Aussteller und Belege aus Kohlebau.")
     parser.add_argument("kohlebau_root", type=Path, help="Quellordner von Kohlebau")
     parser.add_argument(
         "--data-dir", type=Path, required=True, help="Datenverzeichnis von MoarCoal"

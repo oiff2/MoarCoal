@@ -16,7 +16,7 @@ from moarcoal.storage import (
     entry_checksum,
     name_key,
 )
-from moarcoal.storage.agreements import CATEGORY_MAX, NAME_MAX, NUMBER_MAX
+from moarcoal.storage.agreements import CATEGORIES, NAME_MAX, NUMBER_MAX
 
 
 class AgreementInvalid(ValueError):
@@ -97,8 +97,8 @@ def agreement_changes(
     if len(number) > NUMBER_MAX:
         problems.append(f"Vertragsnummer: höchstens {NUMBER_MAX} Zeichen")
     category = fields.get("category", "").strip()
-    if len(category) > CATEGORY_MAX:
-        problems.append(f"Art: höchstens {CATEGORY_MAX} Zeichen")
+    if category not in CATEGORIES:
+        problems.append(f"Art: eine von {', '.join(CATEGORIES)}")
     start = _date(fields.get("start", ""), "Beginn", problems)
     end = _date(fields.get("end", ""), "Ende", problems)
     if start and end and end < start:

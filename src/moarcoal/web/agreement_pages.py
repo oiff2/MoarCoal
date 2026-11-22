@@ -27,6 +27,7 @@ from moarcoal.storage import (
     entry_checksum,
     new_id,
 )
+from moarcoal.storage.agreements import CATEGORIES
 from moarcoal.web.helpers import (
     entry_of,
     form_fields,
@@ -81,6 +82,7 @@ def _overview(
         rows=rows,
         errors=errors,
         values=values,
+        categories=CATEGORIES,
         issuer_text=values.get("issuer_text", ""),
     )
 
@@ -111,6 +113,7 @@ def _detail(
         candidates=candidates,
         checksum=checksum or entry_checksum(agreement),
         values=values if values is not None else _prefill(agreement),
+        categories=CATEGORIES,
         issuer_text=(values or {}).get("issuer_text", ""),
         errors=errors or [],
     )
@@ -172,7 +175,13 @@ def delete(
     agreement = _own(request, agreement_id)
     result = store_of(request).apply([Delete(agreement.address, fields.get("checksum", ""))])
     if not isinstance(result, Applied):
-        return _detail(request, agreement, errors=rejection_reasons(result), status_code=409)
+        assigned = len(documents_of_agreement(store_of(request).state(), agreement))
+        reasons = (
+            [f"{assigned} {'Dokument' if assigned == 1 else 'Dokumente'} zugeordnet – erst lösen"]
+            if assigned
+            else rejection_reasons(result)
+        )
+        return _detail(request, agreement, errors=reasons, status_code=409)
     return RedirectResponse(agreements_url(), status_code=303)
 
 

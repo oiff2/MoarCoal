@@ -10,8 +10,10 @@
 <label>Vertragsnummer (sensibel, steht in der Sperrliste)
   <input name="number" value="{{ values.get('number', '') }}" autocomplete="off">
 </label>
-<label>Art (z. B. Versicherung, Darlehen, Strom)
-  <input name="category" value="{{ values.get('category', '') }}">
+<label>Art
+  <select name="category">
+    {% for category in categories %}<option{% if (values.get('category') or 'Sonstiges') == category %} selected{% endif %}>{{ category }}</option>{% endfor %}
+  </select>
 </label>
 <label>Beginn
   <input name="start" type="date" value="{{ values.get('start', '') }}">
