@@ -25,11 +25,14 @@ main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
 .arbeit.ohne-detail > .griff { display: none; }
 .arbeit.ohne-detail { grid-template-columns: minmax(0, 1fr); }
 .arbeit.ohne-detail .rechts { display: none; }
-/* Schmales Fenster: Liste oben, Detailspalte darunter, jede scrollt in sich; der Griff entfällt */
+/* Schmales Fenster: die Seite scrollt normal, Überschrift, Filterleiste, ganze Liste, darunter die Detailspalte; der Griff entfällt */
 @media (max-width: 60rem) {
-  .arbeit:not(.ohne-detail) { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
-  .arbeit > .rechts { grid-column: 1; grid-row: 2; }
+  main:has(.baum) { display: block; overflow: auto; }
+  .arbeit { display: block; }
+  .links { display: block; }
+  .baum { overflow: visible; }
   .arbeit > .griff { display: none; }
+  .arbeit > .rechts { margin-top: var(--abstand-5); min-height: 70vh; }
 }
 /* Rechts: der Kopf ist so hoch wie sein Inhalt, höchstens 45 % und scrollt darüber in sich; darunter scrollt die Vorschau in sich */
 .rechts { display: flex; flex-direction: column; gap: var(--abstand-3); min-height: 0; }
