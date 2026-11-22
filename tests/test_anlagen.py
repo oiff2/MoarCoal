@@ -3,8 +3,10 @@ Gegenproben für jede (nur tmp_path, erfundene Werte)."""
 
 import datetime
 from pathlib import Path
+from typing import Any, cast
 
 import httpx
+import pytest
 from app_helper import make_app
 from fastapi.testclient import TestClient
 
@@ -12,14 +14,22 @@ from moarcoal.modules import MODULES
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registration
 from moarcoal.modules.tax_year.anlage_n import ANLAGE_N
 from moarcoal.modules.tax_year.anlagen import Anlage, year_anlagen
-from moarcoal.modules.tax_year.fields import FormField, Rounding
+from moarcoal.modules.tax_year.fields import (
+    Computed,
+    FieldMeaning,
+    FormField,
+    NotComputed,
+    Rounding,
+    TextSource,
+    TypedInput,
+)
 from moarcoal.modules.tax_year.protocol_check import DEVIATION
 from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.snapshot_check import snapshot_on_filing
-from moarcoal.modules.tax_year.structure import FormStructure, StructureField
-from moarcoal.storage import Document, Entry, Put, Snapshot
-from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
-from moarcoal.values.model import Amount, Unit, ValueKey
+from moarcoal.modules.tax_year.structure import UnknownElsterId
+from moarcoal.storage import Document, Entry, Put, Snapshot, Store
+from moarcoal.values.calculation import Calculation
+from moarcoal.values.model import Amount, Period, Unit, ValueKey
 from moarcoal.values.testing import evaluate
 
 PORT = 4711
@@ -77,7 +87,7 @@ def client(tmp_path: Path, anlagen: tuple[Anlage, ...] = ANLAGEN) -> httpx.Clien
 
 
 def put(http: httpx.Client, entries: list[Entry]) -> None:
-    store = http.app.state.store  # type: ignore[attr-defined]
+    store: Store = cast(Any, http).app.state.store
     assert store.apply([Put(e) for e in entries])
 
 
@@ -159,27 +169,77 @@ def test_n_keeps_its_addresses_and_its_stored_structure(tmp_path: Path) -> None:
 # --- eine zweite Anlage anmelden, ohne Code der Seiten zu ändern ----------------------------
 
 KEY = ValueKey("tax_year.kap_demo")
-FIELD = FormField(
-    KEY, "E0900005", "7", "Beispiel", Unit.EUR, Rounding.EURO_CENTS, computed=True, form="KAP"
-)
-STRUCTURE = FormStructure(
-    "KAP",
-    2025,
-    False,
-    (StructureField("E0900005", "10 - Erträge", ("Abschnitt",), "7", "Beispiel"),),
-)
+STRUCTURES = Path(__file__).parent / "fixtures" / "strukturen"  # erfundene Struktur der KAP 2025
 
 
-def define_values(forms: object) -> tuple[ValueDefinition, ...]:
-    return (
-        ValueDefinition(
-            CatalogEntry(KEY, "Anlage KAP, Beispiel", "Beispiel", Unit.EUR, TimeKind.PERIOD),
-            lambda calculation: Amount.eur_cents(1000),
-        ),
+def ten_euros(calculation: Calculation, field: FormField) -> Amount:
+    return Amount.eur_cents(1000)
+
+
+EXAMPLE = FieldMeaning("E0900005", Computed(Unit.EUR, Rounding.EURO_CENTS, ten_euros), KEY)
+KAP = Anlage("KAP", {2025: (EXAMPLE,)}, structure_directory=STRUCTURES)
+
+
+def test_the_catalog_of_an_invented_anlage_gives_one_field_of_each_kind() -> None:
+    choice = TypedInput(("Ja", "Nein"))
+    text = TextSource(lambda details, entry, year: "Beispieltext")
+    catalog = (
+        FieldMeaning("E0900001", choice),
+        FieldMeaning("E0900002", text),
+        FieldMeaning("E0900003", NotComputed()),
+        EXAMPLE,
     )
 
+    anlage = Anlage("KAP", {2025: catalog}, structure_directory=STRUCTURES)
 
-KAP = Anlage("KAP", {2025: (FIELD,)}, {2025: STRUCTURE}, define_values)
+    # nur die Felder mit Bedeutung; Nr. und Bezeichnung aus der Struktur
+    fields = anlage.fields[2025]
+    assert [(f.elster_id, f.form_line, f.label) for f in fields] == [
+        ("E0900001", "3", "Eingabe"),
+        ("E0900002", "4", "Text aus der Person"),
+        ("E0900003", "5", "Noch nicht berechnet"),
+        ("E0900005", "7", "Beispiel"),
+    ]
+    assert [f.kind for f in fields] == [choice, text, NotComputed(), EXAMPLE.kind]
+    assert [f.computed for f in fields] == [False, False, False, True]
+    # der Schlüssel steht nur beim berechneten Feld ausdrücklich, sonst aus der E-Kennung
+    assert [f.key for f in fields] == [
+        "tax_year.kap_e0900001",
+        "tax_year.kap_e0900002",
+        "tax_year.kap_e0900003",
+        KEY,
+    ]
+    assert anlage.structures[2025].form == "KAP"
+    # ein Wert nur für das berechnete Feld
+    assert [v.entry.key for v in anlage.values] == [KEY]
+    assert evaluate([registration((anlage,))]).get(KEY, "anna", Period.year(2025)).amount == (  # type: ignore[union-attr]
+        Amount.eur_cents(1000)
+    )
+
+    # `all_structure_fields`: die übrigen Felder der Struktur kommen als „noch nicht berechnet“ dazu
+    everything = Anlage(
+        "KAP", {2025: catalog}, all_structure_fields=True, structure_directory=STRUCTURES
+    )
+    assert [f.elster_id for f in everything.fields[2025]] == [f"E090000{i}" for i in range(1, 6)]
+    assert everything.fields[2025][3].kind == NotComputed()
+    assert [v.entry.key for v in everything.values] == [KEY]
+
+
+def test_a_catalog_row_the_structure_does_not_know_is_an_error() -> None:
+    with pytest.raises(UnknownElsterId, match="E0999999"):
+        Anlage(
+            "KAP",
+            {2025: (FieldMeaning("E0999999", NotComputed()),)},
+            structure_directory=STRUCTURES,
+        )
+
+
+def test_a_year_without_a_catalog_has_no_values_and_a_year_with_an_empty_one_no_catalog() -> None:
+    assert KAP.fields.get(2024) is None
+    (listed,) = year_anlagen((KAP,), 2025, None)
+    assert listed.catalogued
+    empty = Anlage("KAP", {2025: ()}, structure_directory=STRUCTURES)
+    assert year_anlagen((empty,), 2025, None) == ()  # ohne Katalog und ohne Protokoll keine Seite
 
 
 def test_second_form_with_catalog_and_structure_gets_overview_and_pages(tmp_path: Path) -> None:

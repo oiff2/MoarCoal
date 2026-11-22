@@ -54,7 +54,7 @@ def snapshot_findings(
     period = Period.year(year)
     found: list[Finding] = []
     for anlage in anlagen:
-        for field in anlage.forms.get(year, ()):
+        for field in anlage.fields.get(year, ()):
             mine = [
                 d
                 for d in deviations

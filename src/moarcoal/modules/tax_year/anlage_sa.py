@@ -15,18 +15,14 @@ dem Austritt gehört ins Jahr der Zahlung); eine Richtung ohne Eintrag entfällt
 ELSTER lässt das Feld leer.
 """
 
-from collections.abc import Mapping
 from functools import partial
 
 from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.church_tax import ChurchTaxPayment, payments_in_year
-from moarcoal.modules.tax_year.field_catalog import Compute, catalog_field, rounded
-from moarcoal.modules.tax_year.field_catalog import values_for as define_values
-from moarcoal.modules.tax_year.fields import Direction, FormField, Forms, Rounding
-from moarcoal.modules.tax_year.structure import FormStructure, load_structure
+from moarcoal.modules.tax_year.field_catalog import rounded
+from moarcoal.modules.tax_year.fields import Computed, Direction, FieldMeaning, FormField, Rounding
 from moarcoal.personal_details import church_tax_applies
 from moarcoal.values.calculation import Calculation
-from moarcoal.values.catalog import ValueDefinition
 from moarcoal.values.model import Amount, Unit, UserInputLocator, ValueKey, format_eur
 
 FORM = "SA"  # Anlage Sonderausgaben
@@ -34,34 +30,6 @@ FORM = "SA"  # Anlage Sonderausgaben
 SA_PAID = ValueKey("tax_year.sa_church_tax_paid")  # Zeile 4, E0107601
 SA_REFUNDED = ValueKey("tax_year.sa_church_tax_refunded")  # Zeile 4, E0107602
 
-# E-Kennung, Richtung, Schlüssel; Erstattete Kirchensteuer mindert den Abzug und rundet wie eine
-# Einnahme ab.
-FIELD_TABLE: tuple[tuple[str, Direction, ValueKey], ...] = (
-    ("E0107601", Direction.EXPENSE, SA_PAID),
-    ("E0107602", Direction.INCOME, SA_REFUNDED),
-)
-
-
-def fields_sa(structure: FormStructure) -> tuple[FormField, ...]:
-    return tuple(
-        catalog_field(
-            FORM,
-            structure,
-            key,
-            elster_id,
-            Unit.EUR,
-            Rounding.WHOLE_EUROS,
-            direction,
-            computed=True,
-        )
-        for elster_id, direction, key in FIELD_TABLE
-    )
-
-
-STRUCTURES: Mapping[int, FormStructure] = {2025: load_structure(FORM, 2025)}
-FIELDS_2025 = fields_sa(STRUCTURES[2025])
-
-FORMS: Forms = {2025: FIELDS_2025}
 
 NO_PAYMENT = "Keine Kirchensteuerzahlung für {year} erfasst (Steuerjahr, Anlage Sonderausgaben)"
 
@@ -105,14 +73,28 @@ def compute_church_tax(calculation: Calculation, field: FormField, *, refunded: 
     return rounded(calculation, field, calculation.step(f"Summe {word}", total))
 
 
-_COMPUTE: dict[ValueKey, Compute] = {
-    SA_PAID: partial(compute_church_tax, refunded=False),
-    SA_REFUNDED: partial(compute_church_tax, refunded=True),
-}
+# Erstattete Kirchensteuer mindert den Abzug und rundet wie eine Einnahme ab.
+CATALOG_2025 = (
+    FieldMeaning(
+        "E0107601",
+        Computed(
+            Unit.EUR,
+            Rounding.WHOLE_EUROS,
+            partial(compute_church_tax, refunded=False),
+            Direction.EXPENSE,
+        ),
+        SA_PAID,
+    ),
+    FieldMeaning(
+        "E0107602",
+        Computed(
+            Unit.EUR,
+            Rounding.WHOLE_EUROS,
+            partial(compute_church_tax, refunded=True),
+            Direction.INCOME,
+        ),
+        SA_REFUNDED,
+    ),
+)
 
-
-def values_for(forms: Forms) -> tuple[ValueDefinition, ...]:
-    return define_values(FORM, forms, _COMPUTE)
-
-
-ANLAGE_SA = Anlage(FORM, FORMS, STRUCTURES, values_for)
+ANLAGE_SA = Anlage(FORM, {2025: CATALOG_2025})

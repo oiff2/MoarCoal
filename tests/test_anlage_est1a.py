@@ -11,14 +11,10 @@ from fastapi.testclient import TestClient
 
 from moarcoal.modules import MODULES
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registration
-from moarcoal.modules.tax_year.anlage_est1a import (
-    ANLAGE_EST1A,
-    FIELDS_2025,
-    IN_THIS_RETURN,
-    STRUCTURES,
-)
+from moarcoal.modules.tax_year.anlage_est1a import ANLAGE_EST1A, IN_THIS_RETURN
 from moarcoal.modules.tax_year.entries import YearPersonInput
 from moarcoal.modules.tax_year.field_checks import field_checks
+from moarcoal.modules.tax_year.fields import NotComputed, TextSource
 from moarcoal.modules.tax_year.person_input import field_reasons, field_texts
 from moarcoal.modules.tax_year.protocol_check import AMBIGUOUS, DEVIATION, MISSING
 from moarcoal.modules.tax_year.registered import ANLAGEN
@@ -42,9 +38,11 @@ PORT = 4711
 USER = "anna"
 IBAN = "DE89370400440532013000"  # Beispiel-IBAN aus Dokumentationen
 ID_NUMBER = "86095742719"  # Beispiel-Steuer-ID aus Dokumentationen
-BY_ID = {f.elster_id: f for f in FIELDS_2025}
-_SELECTION = BY_ID[IN_THIS_RETURN].text
-assert _SELECTION is not None
+FIELDS = ANLAGE_EST1A.fields[2025]
+STRUCTURE = ANLAGE_EST1A.structures[2025]
+BY_ID = {f.elster_id: f for f in FIELDS}
+_SELECTION = BY_ID[IN_THIS_RETURN].kind
+assert isinstance(_SELECTION, TextSource)
 CHOICES: tuple[str, ...] = _SELECTION.choices
 
 
@@ -73,7 +71,7 @@ def module_state(*entries: Entry | None) -> ModuleState:
 def texts(
     person: PersonalDetails | None, year_input: YearPersonInput | None = None, year: int = 2025
 ) -> dict[str, str]:
-    return field_texts(module_state(person, year_input), FIELDS_2025, year)
+    return field_texts(module_state(person, year_input), FIELDS, year)
 
 
 def since(year: int, month: int, day: int, religion: Religion) -> ReligionMembership:
@@ -85,14 +83,15 @@ def since(year: int, month: int, day: int, religion: Religion) -> ReligionMember
 
 def test_est1a_is_registered_with_its_stored_structure_and_lists_every_field() -> None:
     assert ANLAGE_EST1A in ANLAGEN
-    structure = STRUCTURES[2025]
+    structure = STRUCTURE
     assert structure.form == "ESt1A" and not structure.provisional
-    assert [f.elster_id for f in FIELDS_2025] == [f.e_kennung for f in structure.fields]
-    assert not any(f.computed or f.typed for f in FIELDS_2025)  # keine Beträge, keine Eintippfelder
+    assert [f.elster_id for f in FIELDS] == [f.e_kennung for f in structure.fields]
+    # keine Beträge, keine Eintippfelder
+    assert all(isinstance(f.kind, NotComputed | TextSource) for f in FIELDS)
 
 
 def test_text_fields_are_the_ones_with_a_source_in_the_person() -> None:
-    with_source = {f.elster_id for f in FIELDS_2025 if f.text}
+    with_source = {f.elster_id for f in FIELDS if isinstance(f.kind, TextSource)}
     assert with_source == {
         "E0100008", "E0100081", "E0100401", "E0100201", "E0100301", "E0101004", "E0101104",
         "E0101206", "E0100601", "E0100602", "E0100403", "E0100402", "E0102102", "E0102603",
@@ -160,8 +159,8 @@ def test_a_change_in_the_year_names_the_reason() -> None:
         religions=(since(2000, 1, 1, Religion.EVANGELICAL), since(2025, 6, 1, Religion.NONE))
     )
     state = module_state(person)
-    assert "2025" in field_reasons(state, FIELDS_2025, 2025)["E0100402"]
-    assert field_reasons(state, FIELDS_2025, 2024) == {}
+    assert "2025" in field_reasons(state, FIELDS, 2025)["E0100402"]
+    assert field_reasons(state, FIELDS, 2024) == {}
 
 
 def test_an_exit_in_the_following_year_leaves_the_year_unchanged() -> None:
@@ -178,7 +177,7 @@ def test_without_a_history_for_the_year_the_religion_is_not_known() -> None:
 
 
 def test_every_religion_has_an_option_of_mein_elster() -> None:
-    options = STRUCTURES[2025].get("E0100402").options
+    options = STRUCTURE.get("E0100402").options
     for religion in Religion:
         found = texts(details(religions=(since(2000, 1, 1, religion),)))["E0100402"]
         assert found in options
@@ -188,7 +187,7 @@ def test_every_religion_has_an_option_of_mein_elster() -> None:
 
 
 def test_the_selection_offers_the_options_of_the_structure_without_no_answer() -> None:
-    options = STRUCTURES[2025].get(IN_THIS_RETURN).options
+    options = STRUCTURE.get(IN_THIS_RETURN).options
     assert tuple(o for o in options if o != "Keine Angabe") == CHOICES
     assert len(CHOICES) == 4
 

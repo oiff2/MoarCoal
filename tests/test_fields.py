@@ -6,23 +6,36 @@ import pytest
 
 from moarcoal.modules.tax_year.fields import (
     AmbiguousLines,
+    Computed,
     Direction,
+    FieldMeaning,
     FormField,
     NotANumber,
+    NotComputed,
     Rounding,
 )
-from moarcoal.values.model import Unit, ValueKey
+from moarcoal.values.calculation import Calculation
+from moarcoal.values.model import Amount, Unit, ValueKey
 
 KEY = ValueKey("demo.x")
-EXPENSE = FormField(
-    KEY, None, "56", "Arbeitsmittel", Unit.EUR, Rounding.WHOLE_EUROS, Direction.EXPENSE, form="N"
-)
-INCOME = FormField(
-    KEY, None, "1", "Erstattung", Unit.EUR, Rounding.WHOLE_EUROS, Direction.INCOME, form="N"
-)
-CENTS = FormField(KEY, None, "2", "Lohnsteuer", Unit.EUR, Rounding.EURO_CENTS, form="N")
-KM = FormField(KEY, None, "30", "Entfernung", Unit.KM, Rounding.WHOLE_KM, form="N")
-DAYS = FormField(KEY, None, "29", "Tage", Unit.DAYS, Rounding.NONE, form="N")
+
+
+def unused(calculation: Calculation, field: FormField) -> Amount:
+    raise AssertionError("die Regeln eines Felds rechnen nicht")
+
+
+def computed(
+    label: str, unit: Unit, rounding: Rounding, direction: Direction | None = None
+) -> FormField:
+    kind = Computed(unit, rounding, unused, direction)
+    return FormField(FieldMeaning("E0000001", kind, KEY), "1", label, form="N")
+
+
+EXPENSE = computed("Arbeitsmittel", Unit.EUR, Rounding.WHOLE_EUROS, Direction.EXPENSE)
+INCOME = computed("Erstattung", Unit.EUR, Rounding.WHOLE_EUROS, Direction.INCOME)
+CENTS = computed("Lohnsteuer", Unit.EUR, Rounding.EURO_CENTS)
+KM = computed("Entfernung", Unit.KM, Rounding.WHOLE_KM)
+DAYS = computed("Tage", Unit.DAYS, Rounding.NONE)
 
 
 # --- runden -------------------------------------------------------------------------------------
@@ -46,9 +59,20 @@ def test_round(field: FormField, value: str, rounded: str, reason: str | None) -
 
 def test_euro_field_needs_a_direction_exactly_when_it_takes_whole_euros() -> None:
     with pytest.raises(ValueError, match="Richtung"):
-        FormField(KEY, None, "1", "x", Unit.EUR, Rounding.WHOLE_EUROS, form="N")
+        Computed(Unit.EUR, Rounding.WHOLE_EUROS, unused)
     with pytest.raises(ValueError, match="Richtung"):
-        FormField(KEY, None, "1", "x", Unit.EUR, Rounding.EURO_CENTS, Direction.EXPENSE, form="N")
+        Computed(Unit.EUR, Rounding.EURO_CENTS, unused, Direction.EXPENSE)
+
+
+def test_only_a_computed_field_has_a_key_and_an_amount() -> None:
+    with pytest.raises(ValueError, match="Schlüssel"):
+        FieldMeaning("E0000001", NotComputed(), KEY)
+    with pytest.raises(ValueError, match="Schlüssel"):
+        FieldMeaning("E0000001", Computed(Unit.DAYS, Rounding.NONE, unused))
+    open_field = FormField(FieldMeaning("E0000001", NotComputed()), "1", "Offen", form="N")
+    assert not open_field.computed and open_field.key == "tax_year.n_e0000001"
+    with pytest.raises(ValueError, match="keinen Betrag"):
+        open_field.show(Decimal(1))
 
 
 # --- anzeigen -----------------------------------------------------------------------------------

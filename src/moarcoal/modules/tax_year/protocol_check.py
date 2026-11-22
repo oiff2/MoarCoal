@@ -185,10 +185,10 @@ def _anlage_findings(
 ) -> Iterator[Finding]:
     if (structure := anlage.structures.get(year)) is not None:
         yield from _structure_findings(reading, structure)
-    fields = anlage.forms.get(year, ())
+    fields = anlage.fields.get(year, ())
     texts = field_texts(state, fields, year)
     for field in fields:
-        if (content := texts.get(field.elster_id or "")) is not None:
+        if (content := texts.get(field.elster_id)) is not None:
             ref = ValueRef(field.key, state.user, Period.year(year), None)
             yield from _text_findings(field, ref, content, reading)
         if not field.computed:
@@ -196,16 +196,7 @@ def _anlage_findings(
         period = Period.year(year)
         result = values.get(field.key, state.user, period)
         ref = ValueRef(field.key, state.user, period, None)
-        if field.elster_id is None:
-            yield Finding(
-                UNKNOWN_ELSTER_ID,
-                Severity.NOTE,
-                ref,
-                f"{form_name(field.form)}, {field.label}: E-Kennung unbekannt, nicht abgleichbar.",
-                href=protocol_url(reading.id),
-                fingerprint=fingerprint(field.key, field.label),
-            )
-        elif isinstance(result, ExposedValue):  # sonst gibt es nichts zu vergleichen
+        if isinstance(result, ExposedValue):  # sonst gibt es nichts zu vergleichen
             yield from _field_findings(field, ref, result, reading)
 
 

@@ -1,6 +1,6 @@
 {#- Eintippfeld einer Anlage: Angabe und darunter die Auswahl oder ein Textfeld direkt am Feld (htmx). Der Austausch ersetzt das ganze Teil. -#}
 {% from "_status.html" import not_yet %}
-{% macro input_cell(form_slug, year, field, content, error) %}
+{% macro input_cell(form_slug, year, field, typed, content, error) %}
 <div id="eingabe-{{ field.elster_id }}">
   {% if content %}
   <strong>{{ content }}</strong>
@@ -8,13 +8,13 @@
   {{ not_yet("noch nicht angegeben") }}
   {% endif %}
   <form method="post" action="/steuerjahr/anlage-{{ form_slug }}/{{ year }}/eingabe/{{ field.elster_id }}" hx-post="/steuerjahr/anlage-{{ form_slug }}/{{ year }}/eingabe/{{ field.elster_id }}" hx-target="#eingabe-{{ field.elster_id }}" hx-swap="outerHTML">
-    {% if field.typed.choices %}
+    {% if typed.choices %}
     <select name="content" aria-label="{{ field.label }}">
       <option value="">nicht angegeben</option>
-      {% for choice in field.typed.choices %}<option value="{{ choice }}"{% if choice == content %} selected{% endif %}>{{ choice }}</option>{% endfor %}
+      {% for choice in typed.choices %}<option value="{{ choice }}"{% if choice == content %} selected{% endif %}>{{ choice }}</option>{% endfor %}
     </select>
     {% else %}
-    <input name="content" type="text" value="{{ content or '' }}" aria-label="{{ field.label }}"{% if field.typed.day_range %} placeholder="TT.MM-TT.MM"{% endif %}>
+    <input name="content" type="text" value="{{ content or '' }}" aria-label="{{ field.label }}"{% if typed.day_range %} placeholder="TT.MM-TT.MM"{% endif %}>
     {% endif %}
     <button type="submit">Speichern</button>
     {% if error %}<span class="fehler">{{ error }}</span>{% endif %}

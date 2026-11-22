@@ -58,7 +58,7 @@ def registration(anlagen: Sequence[Anlage] = ANLAGEN) -> ModuleRegistration:
             *kinds(partial(input_problem, anlagen), partial(person_input_problem, anlagen)),
             CHURCH_TAX_KIND,
         ),
-        values=tuple(v for anlage in anlagen for v in anlage.define_values(anlage.forms)),
+        values=tuple(v for anlage in anlagen for v in anlage.values),
         document_kinds=(transfer_protocol(anlagen), ASSESSMENT),
         finding_kinds=FINDING_KINDS,
         findings=partial(module_findings, anlagen=anlagen),

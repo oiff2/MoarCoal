@@ -19,7 +19,7 @@ from moarcoal.documents import DocumentKind, IntakeRejected, TakenIn, change_doc
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolReading
 from moarcoal.modules.tax_year.anlage_n import (
-    FIELDS_2025,
+    ANLAGE_N,
     N_EQUIPMENT,
     N_WORKPLACE_DAYS,
     N_WORKPLACE_DISTANCE,
@@ -32,8 +32,8 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_TRAVEL_TOTAL,
     WORK_WORKDAYS,
 )
-from moarcoal.modules.tax_year.anlage_sa import FIELDS_2025 as SA_FIELDS_2025
-from moarcoal.modules.tax_year.anlage_vor import FIELDS_2025 as VOR_FIELDS_2025
+from moarcoal.modules.tax_year.anlage_sa import ANLAGE_SA
+from moarcoal.modules.tax_year.anlage_vor import ANLAGE_VOR
 from moarcoal.modules.tax_year.anlage_vor import WORK_KEYS as VOR_WORK_KEYS
 from moarcoal.modules.tax_year.snapshot_check import SNAPSHOT_DEVIATION, snapshot_on_filing
 from moarcoal.modules.work import REGISTRATION as WORK
@@ -92,6 +92,9 @@ PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
 YEAR = Period.year(2025)
 USER = "anna"
+COMPUTED_FIELDS = [
+    f for anlage in (ANLAGE_N, ANLAGE_SA, ANLAGE_VOR) for f in anlage.fields[2025] if f.computed
+]
 MODULES = [WORK, TAX_YEAR]
 FIELD_KEYS = [N_WORKPLACE_DAYS, N_WORKPLACE_DISTANCE, N_EQUIPMENT]
 
@@ -166,9 +169,7 @@ def test_take_in_writes_document_reading_and_snapshot_in_one_vorgang(store: Stor
     assert snapshot.module == "tax_year"
     assert snapshot.document == taken.document.address
     assert snapshot.taken_at == taken.document.taken_in_at
-    assert [v.ref.key for v in snapshot.values if v.requested] == [
-        f.key for f in (*FIELDS_2025, *SA_FIELDS_2025, *VOR_FIELDS_2025) if f.computed
-    ]
+    assert [v.ref.key for v in snapshot.values if v.requested] == [f.key for f in COMPUTED_FIELDS]
     assert frozen(snapshot, N_WORKPLACE_DAYS).amount.value == 219  # type: ignore[union-attr]
     kinds = {type(e).__name__ for e in store.state().entries.values()}
     assert {"Document", "ProtocolReading", "Snapshot"} <= kinds
@@ -297,9 +298,7 @@ def test_value_not_yet_computable_is_frozen_with_reason_and_gives_an_error(store
     # Tage, km, die sieben Felder der Lohnsteuerbescheinigung, fünf von VOR und zwei von SA
     # (keine Kirchensteuerzahlung, Religion offen); Arbeitsmittel 0 €
     assert {f.target.key for f in errors} == {  # type: ignore[union-attr]
-        k
-        for k in (f.key for f in (*FIELDS_2025, *SA_FIELDS_2025, *VOR_FIELDS_2025) if f.computed)
-        if k != N_EQUIPMENT
+        k for k in (f.key for f in COMPUTED_FIELDS) if k != N_EQUIPMENT
     }
     assert all("noch nicht berechenbar" in f.message for f in errors)
 

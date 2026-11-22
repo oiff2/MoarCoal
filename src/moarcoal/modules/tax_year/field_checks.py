@@ -56,7 +56,7 @@ def field_checks(
     mine = [f for f in findings if isinstance(f.target, ValueRef) and f.target.key == field.key]
     sides: list[tuple[str, str | None]] = []
     if transferred is not None:
-        sides.append((PROTOCOL, transferred.get(field.elster_id or "")))
+        sides.append((PROTOCOL, transferred.get(field.elster_id)))
     if frozen is not None and field.computed:  # eingefroren werden nur berechnete Felder
         sides.append((SNAPSHOT, frozen.get(field.key)))
     if printed:
