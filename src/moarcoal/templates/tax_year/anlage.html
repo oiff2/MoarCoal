@@ -12,31 +12,28 @@
 {% else %}
 <p>Die Angaben aus den Modulen und die Eingaben direkt am Feld, aufgeteilt wie die Seiten der {{ anlage.name }} in Mein ELSTER. Aufgeführt sind die Felder, die MoarCoal kennt; ein Betrag wird bisher nur für die Felder berechnet, die aus einem Modul kommen.</p>
 {% endif %}
-{% if snapshot %}
-<p>„Bei Abgabe“: eingefroren mit dem Schnappschuss am {{ snapshot.taken_at.strftime('%d.%m.%Y') }}. „Laut EStB“: was der bestätigte EStB druckt, ohne Minus.</p>
+{% if view.snapshot %}
+<p>„Bei Abgabe“: eingefroren mit dem Schnappschuss am {{ view.snapshot.taken_at.strftime('%d.%m.%Y') }}. „Laut EStB“: was der bestätigte EStB druckt, ohne Minus.</p>
 {% endif %}
 
 <h2>{{ page.title }}</h2>
-{% if anlage.form == "ESt1A" and page == anlage.pages[0] %}
-<aside class="notiz-kasten" id="bearbeitungsnotiz">
-  <div class="feld-kopf">Persönliche Bearbeitungsnotiz <span class="einheit">wird nicht übermittelt</span></div>
-  <div class="feld-wert">{% if note %}<span class="inhalt notiz">{{ note }}</span>{% else %}<span class="offen">keine Notiz</span> (<a href="/steuerjahr">in der Übersicht</a> eintragen){% endif %}</div>
-</aside>
-{% endif %}
+{% for part, data in view.parts if part.place == "top" %}
+{% include part.template %}
+{% endfor %}
 
-{% for row, result, checks in rows %}
-{% set field = row.field %}
+{% for row in view.rows %}
+{% set field = row.field %}{% set content = row.content %}
 {% for heading in row.headings %}
 <h3 class="feld-ueberschrift">{{ heading }}</h3>
 {% endfor %}
 <section class="feld" id="feld-{{ field.elster_id }}">
   <div class="feld-nr"><span title="Nummer im Vordruck">Z. {{ field.form_line or "–" }}</span>{% if field.elster_id %}<span class="e-kennung" role="img" title="{{ field.elster_id }}" aria-label="E-Kennung {{ field.elster_id }}">E</span>{% endif %}</div>
   <div class="feld-rumpf">
-    <div class="feld-kopf">{{ field.label }}{% if row.structure.unit %} <span class="einheit">{{ row.structure.unit }}</span>{% endif %}</div>
-    <div class="feld-wert">{% if field.elster_id in typed %}{{ input_cell(anlage.slug, year, field, typed[field.elster_id], inputs.get(field.elster_id), none) }}{% elif field.elster_id in text_ids %}{% if texts.get(field.elster_id) %}<span class="inhalt">{{ texts[field.elster_id] }}</span>{% else %}{% if reasons.get(field.elster_id) %}{{ status_not_yet(reasons[field.elster_id], "wird noch nicht berechnet") }}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}{% endif %}{% elif field.computed %}{{ value_view("Angabe", result, whole=field.whole_euros) }}{% for label, url in captures.get(field.key, []) %} <a href="{{ url }}">{{ label }}</a>{% endfor %}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}</div>
-    {% if checks %}
+    <div class="feld-kopf">{{ field.label }}{% if row.unit %} <span class="einheit">{{ row.unit }}</span>{% endif %}</div>
+    <div class="feld-wert">{% if content.shape == "input" %}{{ input_cell(anlage.slug, year, field, content.typed, content.saved, none) }}{% elif content.shape == "text" %}{% if content.text %}<span class="inhalt">{{ content.text }}</span>{% elif content.reason %}{{ status_not_yet(content.reason, "wird noch nicht berechnet") }}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}{% elif content.shape == "value" %}{{ value_view("Angabe", content.result, whole=content.whole_euros) }}{% for label, url in content.links %} <a href="{{ url }}">{{ label }}</a>{% endfor %}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}</div>
+    {% if row.checks %}
     <ul class="gegenproben">
-      {% for check in checks %}
+      {% for check in row.checks %}
       <li><span class="seite">{{ check.side }}</span> {{ check.shown }}{% if check.deviation %} {{ status_severity(check.severity, "weicht ab") }} <span class="text">{{ check.deviation }}</span>{% elif check.fits %} {{ status_fits() }}{% endif %}</li>
       {% endfor %}
     </ul>
@@ -44,7 +41,7 @@
   </div>
 </section>
 {% endfor %}
-{% if church %}
-{% include "tax_year/_kirchensteuer.html" %}
-{% endif %}
+{% for part, data in view.parts if part.place == "bottom" %}
+{% include part.template %}
+{% endfor %}
 {% endblock %}

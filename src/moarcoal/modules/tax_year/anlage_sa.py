@@ -19,9 +19,12 @@ from functools import partial
 
 from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.church_tax import ChurchTaxPayment, payments_in_year
+from moarcoal.modules.tax_year.church_tax_pages import ChurchView, church_view
 from moarcoal.modules.tax_year.field_catalog import rounded
 from moarcoal.modules.tax_year.fields import Computed, Direction, FieldMeaning, FormField, Rounding
+from moarcoal.modules.tax_year.special_parts import PageParams, Place, SpecialPart
 from moarcoal.personal_details import church_tax_applies
+from moarcoal.registration import ModuleState
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.model import Amount, Unit, UserInputLocator, ValueKey, format_eur
 
@@ -97,4 +100,12 @@ CATALOG_2025 = (
     ),
 )
 
-ANLAGE_SA = Anlage(FORM, {2025: CATALOG_2025})
+
+def church_payments(state: ModuleState, year: int, params: PageParams) -> ChurchView:
+    """Sonderteil unten auf jeder Seite: die Kirchensteuerzahlungen des Jahrs, je mit Formular."""
+    return church_view(state, year, params.entry, params.sent)
+
+
+CHURCH_PAYMENTS = SpecialPart("tax_year/_kirchensteuer.html", Place.BOTTOM, church_payments)
+
+ANLAGE_SA = Anlage(FORM, {2025: CATALOG_2025}, parts=(CHURCH_PAYMENTS,))

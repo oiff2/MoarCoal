@@ -4,15 +4,10 @@ from collections.abc import Iterable
 
 from moarcoal.modules.tax_year.anlage_est1a import IN_THIS_RETURN
 from moarcoal.modules.tax_year.anlagen import Anlage, field_catalog
-from moarcoal.modules.tax_year.entries import YearPersonInput
+from moarcoal.modules.tax_year.entries import YearPersonInput, current_person_input
 from moarcoal.modules.tax_year.fields import FormField, TextSource
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Change, Delete, Put, entry_checksum
-
-
-def current_person_input(state: ModuleState, year: int) -> YearPersonInput | None:
-    """Die Eingabe zur Person des Nutzers im Jahr, falls es eine gibt."""
-    return next((e for e in state.all(YearPersonInput) if e.year == year), None)
 
 
 def year_person_input_changes(

@@ -8,6 +8,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 from moarcoal.defaults import MAX_YEAR, MIN_YEAR
+from moarcoal.registration import ModuleState
 from moarcoal.storage import Entry, EntryAddress, EntryKind, ReadInEntry, entry_kind
 
 MODULE_KEY = "tax_year"
@@ -84,6 +85,11 @@ class YearPersonInput(Entry):
     phone: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
     in_this_return: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX)
     note: str | None = Field(default=None, min_length=1)
+
+
+def current_person_input(state: ModuleState, year: int) -> YearPersonInput | None:
+    """Die Eingabe zur Person des Nutzers im Jahr, falls es eine gibt."""
+    return next((e for e in state.all(YearPersonInput) if e.year == year), None)
 
 
 def taken_order(moment: datetime.datetime | None, entry_id: str) -> tuple[bool, float, str]:

@@ -11,10 +11,12 @@ import datetime
 from collections.abc import Callable, Mapping
 
 from moarcoal.modules.tax_year.anlagen import Anlage
-from moarcoal.modules.tax_year.entries import YearPersonInput
+from moarcoal.modules.tax_year.entries import YearPersonInput, current_person_input
 from moarcoal.modules.tax_year.fields import FieldMeaning, TextSource
+from moarcoal.modules.tax_year.special_parts import PageParams, Place, SpecialPart
 from moarcoal.modules.tax_year.structure import FormStructure, load_structure
 from moarcoal.personal_details import religion_on
+from moarcoal.registration import ModuleState
 from moarcoal.storage import PersonalDetails, Religion
 
 FORM = "ESt1A"  # Hauptvordruck ESt 1 A
@@ -112,6 +114,18 @@ def catalog_2025(structure: FormStructure) -> tuple[FieldMeaning, ...]:
     )
 
 
+def processing_note(state: ModuleState, year: int, params: PageParams) -> str | None:
+    """Sonderteil oben auf der ersten Seite: die Persönliche Bearbeitungsnotiz des Jahrs, falls es
+    eine gibt."""
+    saved = current_person_input(state, year)
+    return saved.note if saved else None
+
+
+PROCESSING_NOTE = SpecialPart("tax_year/_bearbeitungsnotiz.html", Place.TOP, processing_note)
+
 ANLAGE_EST1A = Anlage(
-    FORM, {2025: catalog_2025(load_structure(FORM, 2025))}, all_structure_fields=True
+    FORM,
+    {2025: catalog_2025(load_structure(FORM, 2025))},
+    all_structure_fields=True,
+    parts=(PROCESSING_NOTE,),
 )
