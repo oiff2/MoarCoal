@@ -1,0 +1,44 @@
+{% from "_ui.html" import icon, status, app_icon %}<!doctype html>
+<html lang="de" data-darstellung="{{ d }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Optik-Prototyp{% endblock %} – MoarCoal</title>
+  <link rel="stylesheet" href="/static/tokens.css">
+  <link rel="stylesheet" href="/static/bausteine.css">
+  <link rel="stylesheet" href="/static/seiten.css">
+  <script src="/static/proto.js" defer></script>
+</head>
+<body class="v-{{ v }}">
+  {#- Rahmen aus #129: Seitenleiste links über die ganze Höhe, Kopfleiste oben, nur der Inhalt scrollt. -#}
+  <aside class="seitenleiste">
+    <a class="logo" href="{{ link('/belege') }}" title="MoarCoal">{{ app_icon(i, "klein") }}<span class="lbl">MoarCoal</span></a>
+    <div class="gruppe"><span class="lbl">Themen</span><hr></div>
+    {% for name, ziel, sym, anzahl in seite %}
+    <a href="{{ link(ziel) }}" title="{{ name }}"{% if path == ziel and loop.index0 < 2 %} aria-current="page"{% endif %}>{{ icon(sym) }}<span class="lbl">{{ name }}</span>{% if anzahl %}<b class="anzahl">{{ anzahl }}</b>{% endif %}</a>
+    {% endfor %}
+  </aside>
+  <header class="kopfleiste">
+    <label class="jahrwahl">Jahr <select aria-label="Jahr"><option>{{ jahr }}</option><option>{{ jahr - 1 }}</option></select></label>
+    <a class="befunde-kopf" href="#" title="Befunde {{ jahr }}">{{ status("fehler", "1 Fehler") }} {{ status("warnung", "2 Warnungen") }} <span class="wichtigster gedaempft">Entfernungspauschale: noch nicht berechenbar</span></a>
+    <a class="mein-elster" href="#" title="Mein ELSTER öffnen">Mein ELSTER {{ icon("external-link") }}</a>
+    <button type="button" class="ib darstellung" title="Hell/Dunkel umschalten" aria-label="Hell/Dunkel umschalten" data-darstellung-umschalten>{{ icon("sun") }}</button>
+    <span class="ib" title="Beispiel Nutzer">{{ icon("user-round") }}</span>
+  </header>
+  <main>{% block main %}{% endblock %}</main>
+  <nav class="prototyp-leiste" aria-label="Prototyp-Schalter">
+    <span class="gruppe-leiste"><b>Variante</b>
+      {% for key, name in varianten.items() %}<a href="{{ link(v=key) }}" title="{{ name }}"{% if v == key %} aria-current="true"{% endif %}>{{ key | upper }}</a>{% endfor %}
+    </span>
+    <span class="gruppe-leiste"><b>Darstellung</b>
+      <button type="button" data-darstellung-setzen="system">System</button>
+      <button type="button" data-darstellung-setzen="hell">Hell</button>
+      <button type="button" data-darstellung-setzen="dunkel">Dunkel</button>
+    </span>
+    <span class="gruppe-leiste"><b>App-Icon</b>
+      {% for key, name in app_icons.items() %}<a href="{{ link(i=key) }}" title="Entwurf {{ key }}: {{ name }}"{% if i == key %} aria-current="true"{% endif %}>{{ key }}</a>{% endfor %}
+      <a href="{{ link('/app-icon') }}">alle</a>
+    </span>
+  </nav>
+</body>
+</html>
