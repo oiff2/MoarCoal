@@ -98,6 +98,17 @@ def test_changed_file_is_skipped_and_reported_the_others_are_taken(
     assert [d.path for d in documents(client)] == ["notiz.txt"]
 
 
+def test_feedback_sentence_uses_singular_and_plural_and_lists_skipped(
+    client: httpx.Client, tmp_path: Path
+) -> None:
+    (tmp_path / "steuer25" / "miete.pdf").write_text("geaendert")
+    one = post(client, ["miete.pdf", "notiz.txt"]).text
+    assert "1 Beleg aufgenommen. Übersprungen: miete.pdf:" in one
+    assert "1 Belege" not in one
+    two = post(client, ["miete.pdf", "foto.png", "bank/auszug.pdf"]).text
+    assert "2 Belege aufgenommen. Übersprungen: miete.pdf:" in two
+
+
 def test_file_changed_between_display_and_submit_is_reported_as_changed_not_as_gone(
     client: httpx.Client, tmp_path: Path
 ) -> None:

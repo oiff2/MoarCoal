@@ -1,6 +1,7 @@
 """Seite „Belege <Jahr>“: neue Dateien, Erwartete Belege und aufgenommene Belege des gewählten
 Jahrs, dazu Aufnehmen und Ausblenden der Dateien (Abschnitt Neu)."""
 
+from collections.abc import Sequence
 from itertools import zip_longest
 from typing import Annotated, Any
 
@@ -131,6 +132,8 @@ def belege_page(
     expected_errors: list[str] | None = None,
     expected_values: Fields | None = None,
     linked: Prefill | None = None,
+    taken: int | None = None,
+    skipped: Sequence[str] = (),
 ) -> HTMLResponse:
     """Die Seite des gewählten Jahrs. Rechts steht, was gewählt ist: eine Datei des Eingangs oder
     eine ausgeblendete (`selected`: SHA-256) oder ein Dokument (`document`). `rejected`, `values`
@@ -139,7 +142,8 @@ def belege_page(
     Dokuments wieder her); `expected_errors` und `expected_values`
     gehören zum Formular für einen Erwarteten Beleg. `linked` ist die Vorbelegung aus der Adresse
     (Dokumentart und Jahr, `site_url`); sie geht der aus dem Dateinamen vor. Suche und Dateityp-
-    Filter stehen in der Adresse (`search_of`) und wirken auf alle drei Abschnitte."""
+    Filter stehen in der Adresse (`search_of`) und wirken auf alle drei Abschnitte. `taken` und
+    `skipped` sind das Ergebnis von „Alle aufnehmen“; den Satz bildet die Vorlage."""
     store = store_of(request)
     state = store.state()
     user = user_of(request)
@@ -205,6 +209,8 @@ def belege_page(
         issuer_names={i.id: i.name for i in state.of_kind(Issuer)},
         default_year=year,
         notice=notice,
+        taken=taken,
+        skipped=skipped,
         errors={selected: list(rejected.reasons)} if rejected else {},
         values=values or {},
         existing=existing or (rejected.existing if rejected else None),
@@ -348,11 +354,7 @@ def take_in_all_files(
     skipped += [f"{file.path}: {reason}" for file, reason in result.skipped]
     if not skipped:
         return _back(request)
-    count = len(result.taken)
-    notice = f"{count} Beleg aufgenommen." if count == 1 else f"{count} Belege aufgenommen."
-    if skipped:
-        notice += " Übersprungen: " + "; ".join(skipped)
-    return belege_page(request, 200, notice)
+    return belege_page(request, 200, taken=len(result.taken), skipped=skipped)
 
 
 @router.post("/ausblenden")

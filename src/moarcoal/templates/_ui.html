@@ -67,3 +67,8 @@
 {% set art = {"pdf": "pdf", "image": "bild", "html": "html"}.get(preview_kind(path), "sonstige") -%}
 <span class="dateityp dateityp-{{ art }}" title="{{ {'pdf': 'PDF', 'bild': 'Bild', 'html': 'HTML'}.get(art, 'Datei') }}">{{ icon("datei-" ~ art) }}</span>
 {%- endmacro %}
+
+{#- Zahl mit Einzahl oder Mehrzahl: „1 Beleg“, „2 Belege“. -#}
+{% macro zahl(n, einzahl, mehrzahl) -%}
+{{ n }} {{ einzahl if n == 1 else mehrzahl }}
+{%- endmacro %}

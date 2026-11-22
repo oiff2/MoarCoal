@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_issuer_field.html" import issuer_field %}
-{% from "_ui.html" import abschnitt, dateityp, hide_button %}
+{% from "_ui.html" import abschnitt, dateityp, hide_button, zahl %}
 {% from "_belege.html" import preview, rejection %}
 {% from "_findings.html" import finding_list %}
 {% from "documents/_detail.html" import document_detail with context %}
@@ -69,6 +69,7 @@
 </form>
 <p class="werkzeug"><button type="button" class="nur-js" data-umschalten="detailspalte-aus" data-umschalten-ziel=".arbeit" data-umschalten-klasse="ohne-detail" data-text-an="Detailspalte einblenden" data-text-aus="Detailspalte ausblenden" aria-controls="detailspalte" aria-expanded="true">Detailspalte ausblenden</button></p>
 {% if notice and not selected_document %}<p class="fehler">{{ notice }}</p>{% endif %}
+{% if taken is not none %}<p class="fehler">{{ zahl(taken, "Beleg", "Belege") }} aufgenommen.{% if skipped %} Übersprungen: {{ skipped | join("; ") }}{% endif %}</p>{% endif %}
 <div class="arbeit">
 <div class="griff nur-js" role="separator" aria-orientation="vertical" aria-label="Breite der Liste" tabindex="0" title="Breite ziehen, Doppelklick setzt zurück" data-griff-var="--belege-links" data-griff-key="belege-links" data-griff-min="288" data-griff-max="1600" data-griff-rest="320" data-griff-ziel=".baum"></div>
 <div class="baum" data-pfeile data-pfeile-enter=".formular input:not([type=hidden])">
