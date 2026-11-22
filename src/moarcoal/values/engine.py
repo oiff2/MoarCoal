@@ -66,14 +66,15 @@ class Values:
         state: State,
         foreign: Foreign | None = None,
         site_files: Callable[[], Sequence[SiteFile]] | None = None,
-        sites: Sites | None = None,
+        *,
+        sites: Sites,
         entry_kinds: Mapping[str, EntryKind] | None = None,
     ) -> None:
         """`site_files` listet die Dateien der Ablageorte, erst wenn die Befunde sie brauchen;
         ohne Angabe gibt es keinen Befund „Dateien im Eingang“.
-        `sites` (Ablageorte) und `entry_kinds`
-        (Eintragsarten) sind nur lesend; ohne beide gibt es keinen Befund „Auf diesen Beleg verweist
-        kein Eintrag“."""
+        `sites` (Ablageorte, für die Jahreszugehörigkeit der Dokumente) und `entry_kinds`
+        (Eintragsarten) sind nur lesend; ohne `entry_kinds` gibt es keinen Befund „Auf diesen Beleg
+        verweist kein Eintrag“."""
         self._modules = {m.key: m for m in modules}
         self._site_files = site_files
         self._sites = sites

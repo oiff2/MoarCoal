@@ -65,7 +65,7 @@ def take_in(
         path,
         kind_key,
         year,
-        values_on=lambda state: Values([WORK, REGISTRATION], state),
+        values_on=lambda state: Values([WORK, REGISTRATION], state, sites=store.sites),
     )
 
 

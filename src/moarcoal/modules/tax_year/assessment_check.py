@@ -58,11 +58,7 @@ def current_assessment(
     """Der neueste EStB des Jahrs, zu dem schon Positionen bestätigt sind, mit
     den Beträgen je Feld. Ein neu aufgenommener, noch unbestätigter EStB verdrängt den
     bestätigten nicht."""
-    found = [
-        d
-        for d in state.documents(ASSESSMENT_KEY)
-        if d.period_start is not None and d.period_start.year == year
-    ]
+    found = [d for d in state.documents(ASSESSMENT_KEY) if d.touches_year(year)]
     for document in sorted(found, key=lambda d: taken_order(d.taken_in_at, d.id), reverse=True):
         if amounts := assessment_amounts(state, document, fields):
             return document, amounts

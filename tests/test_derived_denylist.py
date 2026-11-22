@@ -83,7 +83,7 @@ def test_failed_write_does_not_fail_the_operation(
 
 
 def denylist_findings(store: Store) -> list[Finding]:
-    found = Values([], store.state()).finding_list("anna", 2025).visible
+    found = Values([], store.state(), sites=store.sites).finding_list("anna", 2025).visible
     return [f for f in found if f.kind == DENYLIST_NOT_WRITTEN]
 
 
