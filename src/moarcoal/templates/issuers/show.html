@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% from "_ui.html" import abschnitt %}
+{% from "issuers/_references.html" import documents_table, expected_table %}
 {% block title %}{{ issuer.name }} – MoarCoal{% endblock %}
 {% block main %}
 <h1>{{ issuer.name }}</h1>
@@ -7,7 +9,8 @@
 {% if holder %}
 <ul class="fehler"><li>Duplikat zu: <a href="/aussteller/{{ holder.id }}">{{ holder.name }}</a></li></ul>
 {% endif %}
-<form method="post" action="/aussteller/{{ issuer.id }}">
+{% call abschnitt("aussteller-angaben", "Angaben zum Aussteller", none) %}
+<form class="aussteller-formular" method="post" action="/aussteller/{{ issuer.id }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   {% if from_details %}
   <p>Name: {{ issuer.name }} (Privatperson). Das kommt aus <a href="/person">Angaben zur Person</a>.</p>
@@ -25,45 +28,40 @@
     Privatperson (Name und Anschrift sind sensibel)
   </label>
   {% endif %}
-  <button type="submit">Speichern</button>
+  <div><button type="submit">Speichern</button></div>
 </form>
+{% endcall %}
 
-<h2>Dokumente ({{ documents | length }})</h2>
+{% call abschnitt("aussteller-dokumente", "Dokumente", documents | length) %}
 {% if documents %}
-<ul>
-  {% for document in documents %}
-  <li><a href="{{ entry_url(document.address) }}">{{ document_name(document) }}</a></li>
-  {% endfor %}
-</ul>
+{{ documents_table(documents) }}
 {% else %}
 <p>Keine Dokumente.</p>
 {% endif %}
+{% endcall %}
 
-<h2>Erwartete Belege ({{ expected | length }})</h2>
+{% call abschnitt("aussteller-erwartet", "Erwartete Belege", expected | length) %}
 {% if expected %}
-<ul>
-  {% for entry in expected %}
-  <li><a href="/belege/erwartet/{{ entry.id }}">{{ entry.document_kind }}, ab {{ entry.start_year }}{% if entry.description %}: {{ entry.description }}{% endif %}</a></li>
-  {% endfor %}
-</ul>
+{{ expected_table(expected) }}
 {% else %}
 <p>Keine Erwarteten Belege.</p>
 {% endif %}
+{% endcall %}
 
 {% if others %}
-<h2>Zusammenführen</h2>
-<p>Ein anderer Name desselben Ausstellers gehört normalerweise als weiterer Name dazu (siehe oben). Zusammenführen ist die Ausnahme, wenn derselbe Aussteller zweimal angelegt wurde.</p>
-<form method="get" action="/aussteller/{{ issuer.id }}/zusammenfuehren">
+{% call abschnitt("aussteller-zusammenfuehren", "Zusammenführen", none, "Ein anderer Name desselben Ausstellers gehört normalerweise als weiterer Name dazu (siehe oben). Zusammenführen ist die Ausnahme, wenn derselbe Aussteller zweimal angelegt wurde.") %}
+<form class="aussteller-formular" method="get" action="/aussteller/{{ issuer.id }}/zusammenfuehren">
   <label>Zusammenführen mit
     <select name="into" required>
       {% for other in others %}<option value="{{ other.id }}">{{ other.name }}</option>{% endfor %}
     </select>
   </label>
-  <button type="submit">Folgen ansehen</button>
+  <div><button type="submit">Folgen ansehen</button></div>
 </form>
+{% endcall %}
 {% endif %}
 
-<h2>Löschen</h2>
+{% call abschnitt("aussteller-loeschen", "Löschen", none) %}
 {% if from_details %}
 <p>Der Aussteller kommt aus <a href="/person">Angaben zur Person</a> und lässt sich nicht löschen.</p>
 {% elif documents or expected %}
@@ -74,4 +72,5 @@
   <button type="submit">Löschen</button>
 </form>
 {% endif %}
+{% endcall %}
 {% endblock %}

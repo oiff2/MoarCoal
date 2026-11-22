@@ -11,7 +11,7 @@ body { display: grid; grid-template-columns: var(--seitenleiste, 13rem) minmax(0
 main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
 .baum { flex: 1; min-height: 0; overflow: auto; }
 .suche { display: flex; flex-wrap: wrap; align-items: center; gap: var(--abstand-3) var(--abstand-5); margin: var(--abstand-3) 0; }
-.suche input[type=search] { flex: 1 1 100%; }
+.suche input[type=search] { flex: 1 1 100%; min-width: 0; }
 .arbeit { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(18rem, var(--belege-links, 1fr)) minmax(20rem, 1fr); grid-template-rows: minmax(0, 1fr); gap: var(--abstand-5); position: relative; }
 /* Links: Überschrift, Filterleiste und Schalter bleiben stehen, nur die Liste (.baum) scrollt; rechts steht die Detailspalte über die ganze Höhe */
 .links { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
@@ -104,10 +104,25 @@ table.arbeitsmittel tr.bearbeiten td { padding-top: 0; border-bottom: var(--lini
 .aussteller-feld .privat { display: none; white-space: nowrap; }
 .aussteller-feld:has(.suche:not(:placeholder-shown)):not(:has(.gewaehlt input)) .privat { display: inline; }
 /* Trefferliste klappt unter dem Feld auf, ohne den Seitenaufbau zu verschieben */
-.aussteller-feld .treffer { list-style: none; margin: var(--abstand-1) 0 0; padding: 0; position: absolute; left: 0; right: 0; z-index: 10; background: var(--flaeche); border: var(--linienstaerke) solid var(--linie); border-radius: var(--radius); }
+.aussteller-feld .treffer { list-style: none; margin: var(--abstand-1) 0 0; padding: 0; position: absolute; left: 0; right: 0; z-index: 10; background: var(--flaeche); border: var(--linienstaerke) solid var(--linie-stark); border-radius: var(--radius-gross); box-shadow: 0 var(--abstand-2) var(--abstand-4) var(--schatten); }
 .aussteller-feld .treffer:empty { display: none; }
-.aussteller-feld .treffer button { font: inherit; display: block; width: 100%; text-align: left; border: 0; background: none; padding: var(--abstand-2) var(--abstand-3); cursor: pointer; }
-.aussteller-feld .treffer button:hover { background: var(--hover); }
+.aussteller-feld .treffer button { font: inherit; color: inherit; display: block; width: 100%; text-align: left; border: 0; background: none; padding: var(--abstand-2) var(--abstand-3); cursor: pointer; }
+.aussteller-feld .treffer button:hover, .aussteller-feld .treffer button:focus-visible { background: var(--hover); }
+.aussteller-feld .treffer small { color: var(--text-gedaempft); }
+
+/* Aussteller-Seiten: Formulare in einer Spalte; schmales Fenster stapelt die Zeilen der Listen-Tabelle (Kopf entfällt, Zelle trägt ihre Spalte als data-label) */
+.aussteller-formular { max-width: 32rem; min-width: 0; }
+.aussteller-formular input:not([type=checkbox]), .aussteller-formular textarea, .aussteller-formular select { display: block; box-sizing: border-box; width: 100%; max-width: 100%; margin-top: var(--abstand-1); }
+.aussteller-formular div { margin-top: var(--abstand-3); }
+table.stapel td { overflow-wrap: anywhere; }
+@media (max-width: 40rem) {
+  table.stapel, table.stapel tbody, table.stapel tr, table.stapel td { display: block; }
+  table.stapel thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  table.stapel tr { padding: var(--abstand-2) 0; border-bottom: var(--linienstaerke) solid var(--linie); }
+  table.stapel td { display: flex; justify-content: space-between; gap: var(--abstand-4); border: 0; }
+  table.stapel td::before { content: attr(data-label); color: var(--text-gedaempft); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--buchstabenabstand); }
+  table.stapel td:first-child::before, table.stapel td:empty { display: none; }
+}
 
 /* Dienstreisen: Karte von Deutschland (Farben aus dem Seitenschema, kein Inline-Style wegen der CSP) */
 .deutschlandkarte { width: 100%; height: auto; }

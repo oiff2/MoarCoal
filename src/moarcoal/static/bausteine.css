@@ -4,6 +4,7 @@ html, body { height: 100%; }
 a { color: var(--akzent); }
 body { font: var(--fs-m)/var(--zeilenhoehe) var(--schrift); margin: 0; background: var(--grund); color: var(--text); overflow: hidden; }
 main { padding: var(--abstand-5) var(--abstand-6); min-height: 0; overflow: auto; }
+main h1 { overflow-wrap: anywhere; }
 table { border-collapse: collapse; }
 th, td { text-align: left; padding: var(--zeile-pad) var(--abstand-4); border-bottom: var(--linienstaerke) solid var(--linie); }
 label { display: block; margin: var(--abstand-2) 0; }
@@ -34,6 +35,7 @@ table.liste a.ib { display: inline-flex; }
 table.liste { width: 100%; }
 table.liste th { color: var(--text-gedaempft); font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--buchstabenabstand); border-bottom-color: var(--linie-stark); }
 table.liste td { vertical-align: middle; }
+table.liste .gedaempft { color: var(--text-gedaempft); }
 table.liste .zahl { text-align: right; white-space: nowrap; }
 table.liste th.aktionen, table.liste td.aktionen { text-align: right; white-space: nowrap; width: 1%; }
 table.liste tbody tr:hover td { background: var(--hover); }

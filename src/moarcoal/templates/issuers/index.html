@@ -2,22 +2,21 @@
 {% block title %}Aussteller – MoarCoal{% endblock %}
 {% block main %}
 <h1>Aussteller</h1>
-<form method="get" action="/aussteller">
-  <label>Suche in Name und weiteren Namen
-    <input type="search" name="q" value="{{ query }}">
-  </label>
+<form class="suche" method="get" action="/aussteller" role="search">
+  <input type="search" name="q" value="{{ query }}" placeholder="Suche in Name und weiteren Namen" aria-label="Suche in Name und weiteren Namen">
   <button type="submit">Suchen</button>
+  {% if query %}<a href="/aussteller">Zurücksetzen</a>{% endif %}
 </form>
 {% if rows %}
-<table class="liste">
+<table class="liste stapel">
   <thead><tr><th>Name</th><th>Weitere Namen</th><th class="zahl">Dokumente</th><th class="zahl">Erwartete Belege</th></tr></thead>
   <tbody>
   {% for issuer, documents, expected in rows %}
   <tr>
-    <td><a href="{{ entry_url(issuer.address) }}">{{ issuer.name }}</a>{% if own and issuer.id == own.id %} (<a href="/person">Angaben zur Person</a>){% elif issuer.private_person %} (Privatperson){% endif %}</td>
-    <td>{{ issuer.aliases | join(", ") }}</td>
-    <td class="zahl">{{ documents }}</td>
-    <td class="zahl">{{ expected }}</td>
+    <td data-label="Name"><a href="{{ entry_url(issuer.address) }}">{{ issuer.name }}</a>{% if own and issuer.id == own.id %} <small class="pfad">(<a href="/person">Angaben zur Person</a>)</small>{% elif issuer.private_person %} <small class="pfad">(Privatperson)</small>{% endif %}</td>
+    <td class="gedaempft" data-label="Weitere Namen">{{ issuer.aliases | join(", ") }}</td>
+    <td class="zahl" data-label="Dokumente">{{ documents }}</td>
+    <td class="zahl" data-label="Erwartete Belege">{{ expected }}</td>
   </tr>
   {% endfor %}
   </tbody>

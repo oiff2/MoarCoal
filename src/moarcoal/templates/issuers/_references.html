@@ -1,0 +1,27 @@
+{# Dokumente und Erwartete Belege eines Ausstellers als Listen-Tabellen (Aussteller-Seite und Zusammenführen). #}
+{% from "_ui.html" import dateityp %}
+{% macro documents_table(documents) %}
+<table class="liste stapel">
+  <thead><tr><th>Dokument</th></tr></thead>
+  <tbody>
+  {% for document in documents %}
+  <tr>
+    <td data-label="Dokument"><div class="datei-zelle">{{ dateityp(document.path) }}<span class="zelle-text"><a href="{{ entry_url(document.address) }}">{{ document_name(document) }}</a><small class="pfad">{{ document.site }}/{{ document.path }}</small></span></div></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+{% macro expected_table(expected) %}
+<table class="liste stapel">
+  <thead><tr><th>Erwarteter Beleg</th><th class="zahl">Ab</th></tr></thead>
+  <tbody>
+  {% for entry in expected %}
+  <tr>
+    <td data-label="Erwarteter Beleg"><a href="/belege/erwartet/{{ entry.id }}">{{ entry.document_kind }}{% if entry.description %}: {{ entry.description }}{% endif %}</a></td>
+    <td class="zahl" data-label="Ab">{{ entry.start_year }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}

@@ -134,7 +134,7 @@ def test_preview_shows_consequences_and_changes_nothing(tmp_path: Path) -> None:
 
     assert f'value="{target.id}"' in detail
     assert page.status_code == 200
-    assert "Betroffene Dokumente (1)" in page.text
+    assert re.search(r"Betroffene Dokumente <span[^>]*>\(1\)</span>", page.text)
     assert len(stored(tmp_path)) == 2
 
 

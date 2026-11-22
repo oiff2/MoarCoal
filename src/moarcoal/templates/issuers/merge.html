@@ -1,10 +1,12 @@
 {% extends "base.html" %}
+{% from "_ui.html" import abschnitt %}
+{% from "issuers/_references.html" import documents_table, expected_table %}
 {% block title %}Zusammenführen – MoarCoal{% endblock %}
 {% block main %}
 <h1>{{ source.name }} zusammenführen mit {{ target.name }}</h1>
 <p><a href="/aussteller/{{ source.id }}">Zurück zu {{ source.name }}</a></p>
 {% include "work/_errors.html" %}
-<h2>Folgen</h2>
+{% call abschnitt("zusammenfuehren-folgen", "Folgen", none) %}
 <ul>
   <li>„{{ source.name }}“{% for alias in source.aliases %}, „{{ alias }}“{% endfor %} werden weitere Namen von „{{ target.name }}“.</li>
   <li>Der Aussteller „{{ source.name }}“ entfällt; seine Adresse führt danach zu „{{ target.name }}“.</li>
@@ -13,30 +15,26 @@
   {% endif %}
   <li>Alles, was auf „{{ source.name }}“ verweist, verweist danach auf „{{ target.name }}“.</li>
 </ul>
+{% endcall %}
 
-<h2>Betroffene Dokumente ({{ documents | length }})</h2>
+{% call abschnitt("zusammenfuehren-dokumente", "Betroffene Dokumente", documents | length) %}
 {% if documents %}
-<ul>
-  {% for document in documents %}
-  <li><a href="{{ entry_url(document.address) }}">{{ document_name(document) }}</a></li>
-  {% endfor %}
-</ul>
+{{ documents_table(documents) }}
 {% else %}
 <p>Keine Dokumente.</p>
 {% endif %}
+{% endcall %}
 
-<h2>Betroffene Erwartete Belege ({{ expected | length }})</h2>
+{% call abschnitt("zusammenfuehren-erwartet", "Betroffene Erwartete Belege", expected | length) %}
 {% if expected %}
-<ul>
-  {% for entry in expected %}
-  <li><a href="/belege/erwartet/{{ entry.id }}">{{ entry.document_kind }}, ab {{ entry.start_year }}{% if entry.description %}: {{ entry.description }}{% endif %}</a></li>
-  {% endfor %}
-</ul>
+{{ expected_table(expected) }}
 {% else %}
 <p>Keine Erwarteten Belege.</p>
 {% endif %}
+{% endcall %}
 
-<form method="post" action="/aussteller/{{ source.id }}/zusammenfuehren">
+{% call abschnitt("zusammenfuehren-bestaetigen", "Bestätigen", none) %}
+<form class="aussteller-formular" method="post" action="/aussteller/{{ source.id }}/zusammenfuehren">
   <input type="hidden" name="into" value="{{ target.id }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   <input type="hidden" name="target_checksum" value="{{ target_checksum }}">
@@ -44,6 +42,7 @@
     <input type="checkbox" name="confirm">
     Ja, „{{ source.name }}“ mit „{{ target.name }}“ zusammenführen
   </label>
-  <button type="submit">Zusammenführen</button>
+  <div><button type="submit">Zusammenführen</button></div>
 </form>
+{% endcall %}
 {% endblock %}

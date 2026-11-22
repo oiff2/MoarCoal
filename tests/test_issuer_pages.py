@@ -61,7 +61,9 @@ def test_catalog_lists_name_aliases_counts_and_searches(tmp_path: Path) -> None:
     assert "Beispielbank AG" in page and "Musterfinanzamt" in page
     assert "Beispielbank, BB" in page and f'href="/aussteller/{bank.id}"' in page
     assert re.search(
-        r'Beispielbank AG</a>.*?<td class="zahl">2</td>\s*<td class="zahl">0</td>', page, re.S
+        r'Beispielbank AG</a>.*?<td class="zahl"[^>]*>2</td>\s*<td class="zahl"[^>]*>0</td>',
+        page,
+        re.S,
     )
     assert "Musterfinanzamt" not in client.get("/aussteller?q=beispielbank").text
     assert "Beispielbank, BB" in client.get("/aussteller?q=bb").text
