@@ -19,10 +19,8 @@ def new_id() -> str:
     return "".join(secrets.choice(ID_ALPHABET) for _ in range(ID_LENGTH))
 
 
-class EntryAddress(BaseModel):
+class EntryAddress(BaseModel, frozen=True):
     """Wie ein Eintrag überall genannt wird: `<Art>:<Kennung>`, z. B. `Expense:7KQ2M3XA4T`."""
-
-    model_config = ConfigDict(frozen=True)
 
     kind: str = Field(pattern=r"^[A-Za-z][A-Za-z0-9]*$")
     id: str = Field(pattern=ID_PATTERN)

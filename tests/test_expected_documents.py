@@ -19,6 +19,7 @@ from moarcoal.storage import (
     COMMON_OWNER,
     Applied,
     Document,
+    Entry,
     EntryAddress,
     ExpectedDocument,
     Issuer,
@@ -77,8 +78,8 @@ def findings(entries: list[object], year: int = 2025, user: str = "anna"):
     return [f for f in values.finding_list(user, year).visible if f.kind in (PENDING, DUPLICATE)]
 
 
-def linked(found: Finding, *entries: object) -> str | None:
-    state = State({e.address: e for e in entries})  # pyright: ignore[reportAttributeAccessIssue]
+def linked(found: Finding, *entries: Entry) -> str | None:
+    state = State({e.address: e for e in entries})
     return finding_url((WORK, TAX_YEAR), state, found)
 
 
