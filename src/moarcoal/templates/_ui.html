@@ -33,7 +33,7 @@
     id ist zugleich der Schlüssel, unter dem der Browser merkt, ob er zu ist (data-merken, rahmen.js). -#}
 {% macro abschnitt(id, titel, anzahl, erklaerung="", offen=true) -%}
 <details class="abschnitt" id="{{ id }}"{% if offen %} open{% endif %} data-merken="{{ id }}">
-  <summary>{{ titel }} ({{ anzahl }})</summary>
+  <summary>{{ titel }} <span class="n">({{ anzahl }})</span></summary>
   {% if erklaerung %}<p class="erklaerung">{{ erklaerung }}</p>{% endif %}
   {{ caller() }}
 </details>
@@ -48,6 +48,12 @@
 {% set status_symbols = {"error": "✕", "warning": "▲", "note": "ℹ", "pending": "○", "assumed": "◐", "proven": "●", "fits": "✓"} %}
 {% macro status(art, text, titel="") -%}
 <span class="status status-{{ art }}"{% if titel %} title="{{ titel }}"{% endif %}><span class="symbol" aria-hidden="true">{{ status_symbols[art] }}</span> {{ text }}</span>
+{%- endmacro %}
+
+{#- Statusstreifen einer Zeile der Feldtabelle (`<tr class="{{ streifen(art) }}">`): dieselbe Stufe wie status(), gröber gefasst:
+    error, warning, gut (proven, fits), alles andere still. -#}
+{% macro streifen(art) -%}
+streifen-{{ {"error": "fehler", "warning": "warnung", "proven": "gut", "fits": "gut"}.get(art, "still") }}
 {%- endmacro %}
 
 {% macro severity(value, text=none) -%}

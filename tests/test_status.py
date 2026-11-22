@@ -122,7 +122,7 @@ def test_abschnitt_is_a_remembered_details_with_count_and_explanation() -> None:
     )
     html = template.render()
     assert '<details class="abschnitt" id="neu" open data-merken="neu">' in html
-    assert "<summary>Titel (3)</summary>" in html
+    assert '<summary>Titel <span class="n">(3)</span></summary>' in html
     assert '<p class="erklaerung">Erklärt</p>' in html and "Inhalt" in html
 
 

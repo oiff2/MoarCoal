@@ -31,8 +31,8 @@ def client(tmp_path: Path) -> httpx.Client:
 def counted(client: httpx.Client, url: str, name: str, title: str) -> int:
     """Die Zahl im Titel des Abschnitts `name` der Seite `url`."""
     page = main_of(client, url)
-    assert f"<summary>{title} (" in section(page, name)
-    return int(section(page, name).split(f"<summary>{title} (")[1].split(")")[0])
+    assert f'<summary>{title} <span class="n">(' in section(page, name)
+    return int(section(page, name).split(f'<summary>{title} <span class="n">(')[1].split(")")[0])
 
 
 def test_site_url_carries_search_and_types() -> None:

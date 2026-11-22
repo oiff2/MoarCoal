@@ -113,9 +113,11 @@ def test_three_collapsible_sections_with_counts_in_the_title(client: httpx.Clien
     take(client, "brief25")
     page = main_of(client)
     assert page.index('id="neu"') < page.index('id="erwartet"') < page.index('id="aufgenommen"')
-    assert "<summary>Neu im Jahresordner (2)</summary>" in page  # auszug25 und scan
-    assert "<summary>Erwartete Belege (1)</summary>" in page
-    assert "<summary>Aufgenommene Belege (1)</summary>" in page
+    assert (
+        '<summary>Neu im Jahresordner <span class="n">(2)</span></summary>' in page
+    )  # auszug25 und scan
+    assert '<summary>Erwartete Belege <span class="n">(1)</span></summary>' in page
+    assert '<summary>Aufgenommene Belege <span class="n">(1)</span></summary>' in page
     assert page.count('<details class="abschnitt"') == 3
 
 

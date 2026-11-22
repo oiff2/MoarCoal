@@ -24,6 +24,28 @@ tr:target { outline: var(--rahmen-dick) solid var(--warnung-rand); }
 .ib.darstellung { margin-left: 0; display: flex; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; }
 .ib.darstellung .icon { width: var(--icon); height: var(--icon); }
 .befunde li > .ib { margin-left: var(--abstand-3); }
+/* In Tabellen gedämpft, voll sichtbar bei Hover oder Fokus der Zeile; immer bedienbar und per Tastatur erreichbar */
+table.liste .ib { opacity: 0.55; }
+table.liste tr:hover .ib, table.liste tr:focus-within .ib { opacity: 1; }
+
+/* Tabelle (Variante C): Listen-Tabelle `table.liste`, Feldtabelle `table.liste.felder`. Feine Waagrechte, Kopf in Kapitälchen,
+   Zahlen (`.zahl`) rechts, Aktionsspalte (`.aktionen`) rechts und schmal, gewählte Zeile (Link mit aria-current) mit Balken links */
+table.liste { width: 100%; }
+table.liste th { color: var(--text-gedaempft); font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--buchstabenabstand); border-bottom-color: var(--linie-stark); }
+table.liste td { vertical-align: middle; }
+table.liste .zahl { text-align: right; white-space: nowrap; }
+table.liste th.aktionen, table.liste td.aktionen { text-align: right; white-space: nowrap; width: 1%; }
+table.liste tbody tr:hover td { background: var(--hover); }
+table.liste tbody tr:has(a[aria-current]) td { background: var(--auswahl); }
+table.liste tbody tr:has(a[aria-current]) td:first-child { box-shadow: inset var(--auswahl-balken) 0 0 var(--akzent); }
+table.liste a[aria-current] { font-weight: 600; }
+/* Feldtabelle: erste Spalte (Nr.) schmal, Statusstreifen links; die Stufe setzt streifen() aus _ui.html */
+table.felder td { vertical-align: top; }
+table.felder td:first-child { width: 1%; white-space: nowrap; border-left: var(--balken) solid var(--linie); }
+table.felder tr.streifen-fehler td:first-child { border-left-color: var(--fehler); }
+table.felder tr.streifen-warnung td:first-child { border-left-color: var(--warnung); }
+table.felder tr.streifen-gut td:first-child { border-left-color: var(--gut); }
+table.felder tr.streifen-still td:first-child { border-left-color: var(--linie-stark); }
 
 /* Rahmen: Seitenleiste links über die ganze Höhe, Kopfleiste oben, nur der Inhalt scrollt */
 .seitenleiste { position: relative; display: flex; flex-direction: column; gap: var(--abstand-1); padding: var(--abstand-3) var(--abstand-2); border-right: var(--linienstaerke) solid var(--linie); background: var(--seitenleiste-grund); overflow: hidden; }
@@ -85,14 +107,21 @@ html.schmal .gruppe { margin: var(--abstand-3) var(--abstand-2); }
   display: block; font-size: var(--fs-s); color: var(--text); text-decoration: none;
 }
 
-/* Filter-Chip mit Anzahl (data-umschalten) */
-.chip { display: inline-flex; align-items: center; gap: var(--abstand-2); padding: 0 var(--abstand-3); border: var(--linienstaerke) solid var(--linie-stark); border-radius: var(--radius-gross); background: var(--flaeche); color: var(--text-gedaempft); font-size: var(--fs-s); }
+/* Filter-Chip mit Anzahl (data-umschalten): gedrückt über aria-pressed */
+.chip { display: inline-flex; align-items: center; gap: var(--abstand-2); padding: 0 var(--abstand-4); border: var(--linienstaerke) solid var(--linie-stark); border-radius: var(--radius-gross); background: var(--flaeche); color: var(--text-gedaempft); font: inherit; font-size: var(--fs-s); cursor: pointer; }
+.chip:hover { background: var(--hover); }
+.chip .icon { width: var(--icon-knopf); height: var(--icon-knopf); }
 .chip[aria-pressed="true"] { background: var(--akzent-weich); border-color: var(--akzent); color: var(--text); }
 .chip .n { color: var(--text-gedaempft); font-size: var(--fs-xs); }
 
-/* Abschnitt: einklappbar, Überschrift fett, Anzahl in Klammern, darunter eine Erklärzeile */
-.abschnitt { margin-bottom: var(--abstand-5); }
-.abschnitt > summary { cursor: pointer; font-weight: bold; }
+/* Abschnitt: einklappbar mit Pfeil, Überschrift fett, Anzahl gedämpft, darunter eine Erklärzeile */
+.abschnitt { margin-bottom: var(--abstand-5); border-top: var(--linienstaerke) solid var(--linie); }
+.abschnitt > summary { display: flex; align-items: baseline; gap: var(--abstand-3); padding: var(--abstand-3) 0; cursor: pointer; list-style: none; font-weight: 700; }
+.abschnitt > summary::-webkit-details-marker { display: none; }
+.abschnitt > summary::before { content: "\203A"; display: inline-block; width: var(--icon-knopf); text-align: center; transition: transform var(--dauer); }
+.abschnitt[open] > summary::before { transform: rotate(90deg); }
+.abschnitt > summary .n { color: var(--text-gedaempft); font-size: var(--fs-s); font-weight: 400; }
+.abschnitt > .erklaerung { margin: 0 0 var(--abstand-3); color: var(--text-gedaempft); font-size: var(--fs-s); }
 .abschnitt h3 { font-size: var(--fs-l); margin: var(--abstand-3) 0 var(--abstand-1); }
 
 /* Zeile einer Liste (Belege): Name, Angaben, Aktionen nebeneinander */

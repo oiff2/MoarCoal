@@ -120,7 +120,7 @@ def test_section_lists_the_documents_with_state_and_get_writes_nothing(two: http
     before = state_of(two)
     page = taken_in(two)
     assert "protokoll.html" in page and "bescheid.txt" in page
-    assert "Aufgenommene Belege (2)" in main_of(two, "/belege")
+    assert 'Aufgenommene Belege <span class="n">(2)</span>' in main_of(two, "/belege")
     assert page.count('<span class="stand">fertig</span>') == 1  # das eingelesene Protokoll
     assert page.count('<span class="stand">auszulesen</span>') == 1  # der Bescheid
     assert state_of(two) == before
@@ -357,7 +357,7 @@ def test_delete_with_stale_checksum_is_refused_on_the_page(two: httpx.Client) ->
 def test_other_users_documents_are_not_listed(two: httpx.Client) -> None:
     foreign = doc(two, "protokoll.html").model_copy(update={"owner": "ben", "id": "ABCDEFGHIJ"})
     store_of(two).apply([Put(foreign)])
-    assert "Aufgenommene Belege (2)" in main_of(two, "/belege")
+    assert 'Aufgenommene Belege <span class="n">(2)</span>' in main_of(two, "/belege")
     assert two.get(f"/dokumente/{foreign.id}/datei").status_code == 404
     assert f"/dokumente/{foreign.id}/aendern" not in main_of(two, document_url(foreign.id))
 

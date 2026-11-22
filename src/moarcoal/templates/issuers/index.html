@@ -9,16 +9,18 @@
   <button type="submit">Suchen</button>
 </form>
 {% if rows %}
-<table>
-  <tr><th>Name</th><th>Weitere Namen</th><th>Dokumente</th><th>Erwartete Belege</th></tr>
+<table class="liste">
+  <thead><tr><th>Name</th><th>Weitere Namen</th><th class="zahl">Dokumente</th><th class="zahl">Erwartete Belege</th></tr></thead>
+  <tbody>
   {% for issuer, documents, expected in rows %}
   <tr>
     <td><a href="{{ entry_url(issuer.address) }}">{{ issuer.name }}</a>{% if own and issuer.id == own.id %} (<a href="/person">Angaben zur Person</a>){% elif issuer.private_person %} (Privatperson){% endif %}</td>
     <td>{{ issuer.aliases | join(", ") }}</td>
-    <td>{{ documents }}</td>
-    <td>{{ expected }}</td>
+    <td class="zahl">{{ documents }}</td>
+    <td class="zahl">{{ expected }}</td>
   </tr>
   {% endfor %}
+  </tbody>
 </table>
 {% elif query %}
 <p>Kein Aussteller zu „{{ query }}“.</p>
