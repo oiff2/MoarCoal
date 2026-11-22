@@ -126,7 +126,8 @@ def test_overview_follows_the_year_of_the_header(tmp_path: Path) -> None:
 
 
 def test_form_without_a_stored_structure_gets_one_from_the_protocol(tmp_path: Path) -> None:
-    http = client(tmp_path)
+    # Jede der sechs Anlagen hat inzwischen eine gespeicherte Struktur; KAP hier ohne Anmeldung.
+    http = client(tmp_path, tuple(a for a in ANLAGEN if a.form != "KAP"))
     put(http, protocol(six_forms()))
 
     page = http.get("/steuerjahr/anlage-kap/2025").text

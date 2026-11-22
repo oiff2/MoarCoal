@@ -5,19 +5,335 @@
  "provisional": false,
  "fields": [
   {
-   "e_kennung": "E0107601",
-   "page": "Kirchensteuer",
-   "headings": [],
+   "e_kennung": "E0108003",
+   "page": "1 - Kirchensteuer",
+   "headings": [
+    "2025 gezahlt",
+    "Einzelne Einträge"
+   ],
    "line": "4",
-   "label": "Kirchensteuer, soweit nicht als Zuschlag zur Abgeltungsteuer einbehalten oder gezahlt (2025 gezahlt)",
+   "label": "Art der Leistung"
+  },
+  {
+   "e_kennung": "E0108004",
+   "page": "1 - Kirchensteuer",
+   "headings": [
+    "2025 gezahlt",
+    "Einzelne Einträge"
+   ],
+   "line": "4",
+   "label": "soweit diese nicht als Zuschlag zur Abgeltungsteuer einbehalten oder gezahlt wurde - Betrag (Euro, Cent)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0107601",
+   "page": "1 - Kirchensteuer",
+   "headings": [
+    "2025 gezahlt",
+    "Summe"
+   ],
+   "line": "4",
+   "label": "soweit diese nicht als Zuschlag zur Abgeltungsteuer einbehalten oder gezahlt wurde (Euro)",
    "unit": "€"
   },
   {
    "e_kennung": "E0107602",
-   "page": "Kirchensteuer",
-   "headings": [],
+   "page": "1 - Kirchensteuer",
+   "headings": [
+    "2025 erstattet"
+   ],
    "line": "4",
-   "label": "Kirchensteuer, soweit nicht als Zuschlag zur Abgeltungsteuer einbehalten oder gezahlt (2025 erstattet)",
+   "label": "soweit diese nicht als Zuschlag zur Abgeltungsteuer einbehalten oder gezahlt wurde (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108102",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "zur Förderung steuerbegünstigter Zwecke an Empfänger im Inland",
+    "Einzelne Einträge"
+   ],
+   "line": "",
+   "label": "Beschreibung"
+  },
+  {
+   "e_kennung": "E0108103",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "zur Förderung steuerbegünstigter Zwecke an Empfänger im Inland",
+    "Einzelne Einträge"
+   ],
+   "line": "",
+   "label": "Betrag laut Bestätigungen (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108104",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "zur Förderung steuerbegünstigter Zwecke an Empfänger im Inland",
+    "Einzelne Einträge"
+   ],
+   "line": "",
+   "label": "Betrag laut Betriebsfinanzamt (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108105",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "zur Förderung steuerbegünstigter Zwecke an Empfänger im Inland",
+    "Summen"
+   ],
+   "line": "5",
+   "label": "Summe laut Bestätigungen (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108106",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "zur Förderung steuerbegünstigter Zwecke an Empfänger im Inland",
+    "Summen"
+   ],
+   "line": "5",
+   "label": "Summe laut Betriebsfinanzamt (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0104704",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "zur Förderung steuerbegünstigter Zwecke an Empfänger im EU- / EWR-Ausland",
+    "Einzelne Einträge"
+   ],
+   "line": "",
+   "label": "Beschreibung"
+  },
+  {
+   "e_kennung": "E0104705",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "zur Förderung steuerbegünstigter Zwecke an Empfänger im EU- / EWR-Ausland",
+    "Einzelne Einträge"
+   ],
+   "line": "",
+   "label": "Betrag laut Bestätigungen (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0104708",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "zur Förderung steuerbegünstigter Zwecke an Empfänger im EU- / EWR-Ausland",
+    "Einzelne Einträge"
+   ],
+   "line": "",
+   "label": "Betrag laut Betriebsfinanzamt (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0104702",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "zur Förderung steuerbegünstigter Zwecke an Empfänger im EU- / EWR-Ausland",
+    "Summen"
+   ],
+   "line": "6",
+   "label": "Summe laut Bestätigungen (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0104703",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "zur Förderung steuerbegünstigter Zwecke an Empfänger im EU- / EWR-Ausland",
+    "Summen"
+   ],
+   "line": "6",
+   "label": "Summe laut Betriebsfinanzamt (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108716",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "an politische Parteien (§§ 34g, 10b EStG)",
+    "Einzelne Einträge"
+   ],
+   "line": "",
+   "label": "Beschreibung"
+  },
+  {
+   "e_kennung": "E0108717",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "an politische Parteien (§§ 34g, 10b EStG)",
+    "Einzelne Einträge"
+   ],
+   "line": "",
+   "label": "Betrag laut Bestätigungen (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108718",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "an politische Parteien (§§ 34g, 10b EStG)",
+    "Einzelne Einträge"
+   ],
+   "line": "",
+   "label": "Betrag laut Betriebsfinanzamt (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108701",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "an politische Parteien (§§ 34g, 10b EStG)",
+    "Summen"
+   ],
+   "line": "7",
+   "label": "Summe laut Bestätigungen (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108702",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "an politische Parteien (§§ 34g, 10b EStG)",
+    "Summen"
+   ],
+   "line": "7",
+   "label": "Summe laut Betriebsfinanzamt (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108804",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "an unabhängige Wählervereinigungen (§ 34g EStG)",
+    "Einzelne Einträge"
+   ],
+   "line": "",
+   "label": "Beschreibung"
+  },
+  {
+   "e_kennung": "E0108805",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "an unabhängige Wählervereinigungen (§ 34g EStG)",
+    "Einzelne Einträge"
+   ],
+   "line": "",
+   "label": "Betrag laut Bestätigungen (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108806",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "an unabhängige Wählervereinigungen (§ 34g EStG)",
+    "Einzelne Einträge"
+   ],
+   "line": "",
+   "label": "Betrag laut Betriebsfinanzamt (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108801",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "an unabhängige Wählervereinigungen (§ 34g EStG)",
+    "Summen"
+   ],
+   "line": "8",
+   "label": "Summe laut Bestätigungen (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108802",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden und Mitgliedsbeiträge (ohne Spenden in das zu erhaltende Vermögen einer Stiftung)",
+    "an unabhängige Wählervereinigungen (§ 34g EStG)",
+    "Summen"
+   ],
+   "line": "8",
+   "label": "Summe laut Betriebsfinanzamt (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108405",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden in das zu erhaltende Vermögen (Vermögensstock) einer Stiftung",
+    "Einzelne Einträge"
+   ],
+   "line": "9",
+   "label": "2025 geleistete Spenden an Empfänger im Inland (laut Bestätigungen / laut Betriebsfinanzamt) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0105502",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden in das zu erhaltende Vermögen (Vermögensstock) einer Stiftung",
+    "Einzelne Einträge"
+   ],
+   "line": "10",
+   "label": "2025 geleistete Spenden an Empfänger im EU- / EWR-Ausland (laut Bestätigungen / laut Betriebsfinanzamt) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108509",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden in das zu erhaltende Vermögen (Vermögensstock) einer Stiftung",
+    "Einzelne Einträge"
+   ],
+   "line": "11",
+   "label": "Von den Spenden in den Zeilen 9 und 10 sollen 2025 berücksichtigt werden (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0108607",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Spenden in das zu erhaltende Vermögen (Vermögensstock) einer Stiftung",
+    "Einzelne Einträge"
+   ],
+   "line": "12",
+   "label": "2025 zu berücksichtigende Spenden aus Vorjahren in das zu erhaltende Vermögen (Vermögensstock) einer Stiftung, die bisher noch nicht berücksichtigt wurden (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E0105902",
+   "page": "2 - Zuwendungen (Spenden und Mitgliedsbeiträge)",
+   "headings": [
+    "Berechnung des Spendenhöchstbetrags"
+   ],
+   "line": "12",
+   "label": "Summe der Umsätze, Löhne und Gehälter zur Ermittlung des Spendenhöchstbetrages (Euro)",
    "unit": "€"
   }
  ]

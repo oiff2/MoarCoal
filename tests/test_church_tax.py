@@ -105,7 +105,7 @@ def test_sa_is_registered_with_its_stored_structure() -> None:
 
 
 def test_paid_expense_rounds_up_and_refunded_income_rounds_down() -> None:
-    paid, refunded = ANLAGE_SA.fields[2025]
+    paid, refunded = [f for f in ANLAGE_SA.fields[2025] if f.computed]
     assert isinstance(paid.kind, Computed) and isinstance(refunded.kind, Computed)
     assert (paid.elster_id, paid.key, paid.kind.direction) == (
         "E0107601",

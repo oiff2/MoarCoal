@@ -1,0 +1,290 @@
+{
+ "schema": 1,
+ "form": "KAP",
+ "year": 2025,
+ "provisional": false,
+ "fields": [
+  {
+   "e_kennung": "E1900401",
+   "page": "1 - Anträge",
+   "headings": [],
+   "line": "4",
+   "label": "Ich beantrage die Günstigerprüfung für sämtliche Kapitalerträge. Bei Zusammenveranlagung: Die Anlage KAP meines Ehegatten / Lebenspartners ist beigefügt."
+  },
+  {
+   "e_kennung": "E1900501",
+   "page": "1 - Anträge",
+   "headings": [],
+   "line": "5",
+   "label": "Ich beantrage eine Überprüfung des Steuereinbehalts für bestimmte Kapitalerträge."
+  },
+  {
+   "e_kennung": "E1900701",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "7",
+   "label": "Betrag laut Steuerbescheinigung(en) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1900702",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "7",
+   "label": "Korrigierter Betrag (laut Erläuterung) (Euro)"
+  },
+  {
+   "e_kennung": "E1900703",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "7",
+   "label": "Erläuterung zum korrigierten Betrag"
+  },
+  {
+   "e_kennung": "E1900901",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "8",
+   "label": "Betrag laut Steuerbescheinigung(en) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1900902",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "8",
+   "label": "Korrigierter Betrag (laut Erläuterung) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1900903",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "8",
+   "label": "Erläuterung zum korrigierten Betrag"
+  },
+  {
+   "e_kennung": "E1900904",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "9",
+   "label": "Betrag laut Steuerbescheinigung(en) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1900905",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "9",
+   "label": "Korrigierter Betrag (laut Erläuterung) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1900906",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "9",
+   "label": "Erläuterung zum korrigierten Betrag"
+  },
+  {
+   "e_kennung": "E1900804",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "10",
+   "label": "Betrag laut Steuerbescheinigung(en) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1900805",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "10",
+   "label": "Korrigierter Betrag (laut Erläuterung) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1900806",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "10",
+   "label": "Erläuterung zum korrigierten Betrag"
+  },
+  {
+   "e_kennung": "E1901101",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "11",
+   "label": "Betrag laut Steuerbescheinigung(en) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1901102",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "11",
+   "label": "Korrigierter Betrag (laut Erläuterung) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1901103",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "11",
+   "label": "Erläuterung zum korrigierten Betrag"
+  },
+  {
+   "e_kennung": "E1901201",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "12",
+   "label": "Betrag laut Steuerbescheinigung(en) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1901202",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "12",
+   "label": "Korrigierter Betrag (laut Erläuterung) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1901203",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "12",
+   "label": "Erläuterung zum korrigierten Betrag"
+  },
+  {
+   "e_kennung": "E1901301",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "13",
+   "label": "Betrag laut Steuerbescheinigung(en) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1901302",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "13",
+   "label": "Korrigierter Betrag (laut Erläuterung) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1901303",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "13",
+   "label": "Erläuterung zum korrigierten Betrag"
+  },
+  {
+   "e_kennung": "E1901403",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "14",
+   "label": "Betrag laut Steuerbescheinigung(en) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1901404",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "14",
+   "label": "Korrigierter Betrag (laut Erläuterung) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1901405",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "14",
+   "label": "Erläuterung zum korrigierten Betrag"
+  },
+  {
+   "e_kennung": "E1901502",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "15",
+   "label": "Betrag laut Steuerbescheinigung(en) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1901503",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "15",
+   "label": "Korrigierter Betrag (laut Erläuterung) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1901504",
+   "page": "3 - Kapitalerträge, die dem inländischen Steuerabzug unterlegen haben",
+   "headings": [],
+   "line": "15",
+   "label": "Erläuterung zum korrigierten Betrag"
+  },
+  {
+   "e_kennung": "E1901401",
+   "page": "4 - Sparer-Pauschbetrag",
+   "headings": [],
+   "line": "16",
+   "label": "In Anspruch genommener Sparer-Pauschbetrag, der auf die in den Zeilen 7 bis 15, 30 und 33 erklärten Kapitalerträge entfällt (ggf. „0“) (Euro)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1901402",
+   "page": "4 - Sparer-Pauschbetrag",
+   "headings": [],
+   "line": "17",
+   "label": "In Anspruch genommener Sparer-Pauschbetrag, der auf die in der Anlage KAP nicht erklärten Kapitalerträge entfällt (ggf. „0“) (Euro)"
+  },
+  {
+   "e_kennung": "E1904701",
+   "page": "8 - Steuerabzugsbeträge zu Erträgen in den Zeilen 7 bis 23 und zu Investmenterträgen laut Anlage KAP-INV",
+   "headings": [],
+   "line": "37",
+   "label": "Kapitalertragsteuer (Euro, Cent)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1904901",
+   "page": "8 - Steuerabzugsbeträge zu Erträgen in den Zeilen 7 bis 23 und zu Investmenterträgen laut Anlage KAP-INV",
+   "headings": [],
+   "line": "38",
+   "label": "Solidaritätszuschlag (Euro, Cent)"
+  },
+  {
+   "e_kennung": "E1904801",
+   "page": "8 - Steuerabzugsbeträge zu Erträgen in den Zeilen 7 bis 23 und zu Investmenterträgen laut Anlage KAP-INV",
+   "headings": [],
+   "line": "39",
+   "label": "Kirchensteuer zur Kapitalertragsteuer (Euro, Cent)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1905001",
+   "page": "8 - Steuerabzugsbeträge zu Erträgen in den Zeilen 7 bis 23 und zu Investmenterträgen laut Anlage KAP-INV",
+   "headings": [],
+   "line": "40",
+   "label": "Angerechnete ausländische Steuern (Euro, Cent)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1905101",
+   "page": "8 - Steuerabzugsbeträge zu Erträgen in den Zeilen 7 bis 23 und zu Investmenterträgen laut Anlage KAP-INV",
+   "headings": [],
+   "line": "41",
+   "label": "Anrechenbare noch nicht angerechnete ausländische Steuern (Euro, Cent)",
+   "unit": "€"
+  },
+  {
+   "e_kennung": "E1905201",
+   "page": "8 - Steuerabzugsbeträge zu Erträgen in den Zeilen 7 bis 23 und zu Investmenterträgen laut Anlage KAP-INV",
+   "headings": [],
+   "line": "42",
+   "label": "Fiktive ausländische Quellensteuer (nicht in den Zeilen 40 und / oder 41 enthalten) (Euro, Cent)",
+   "unit": "€"
+  }
+ ]
+}

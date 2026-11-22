@@ -1,11 +1,10 @@
 """Felder der Anlage Sonderausgaben (SA) je Steuerjahr: die Kirchensteuer, aus den
 Kirchensteuerzahlungen.
 
-Struktur (`strukturen/sa-2025.json`) aus dem Katalog des Vorgängerprojekts Kohlebau,
-`regeln/2025/anlagen.yaml` (E-Kennung, Zeile, Bezeichnung, Richtung; keine Beträge). Die
-Einzelangaben
-(Art der Leistung E0108003, Betrag E0108004) und die übrigen Sonderausgaben (Spenden u. a.) stehen
-dort ohne Zeile oder Bezeichnung und fehlen darum, bis eine gespeicherte Seite sie liefert.
+Struktur (`strukturen/sa-2025.json`) aus den gespeicherten Seiten von Mein ELSTER (Kirchensteuer,
+Zuwendungen). Berechnet werden die beiden Summen der Kirchensteuer; die übrigen Felder der Struktur
+(die Einzelangaben Art der Leistung E0108003 und Betrag E0108004, die Zuwendungen) kommen als
+`NotComputed` dazu (`all_structure_fields`).
 
 Der Betrag eines Felds ist die Summe der Zahlungen (gezahlt) oder Erstattungen im Jahr der Zahlung,
 gerundet wie das Feld es verlangt. Fehlt jede Zahlung, entscheidet die Religionszugehörigkeit laut
@@ -108,4 +107,4 @@ def church_payments(state: ModuleState, year: int, params: PageParams) -> Church
 
 CHURCH_PAYMENTS = SpecialPart("tax_year/_kirchensteuer.html", Place.BOTTOM, church_payments)
 
-ANLAGE_SA = Anlage(FORM, {2025: CATALOG_2025}, parts=(CHURCH_PAYMENTS,))
+ANLAGE_SA = Anlage(FORM, {2025: CATALOG_2025}, all_structure_fields=True, parts=(CHURCH_PAYMENTS,))
