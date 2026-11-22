@@ -15,18 +15,7 @@ from moarcoal.defaults import year_of
 from moarcoal.modules.work.common import MODULE_KEY
 from moarcoal.modules.work.trips.view import trips_context
 from moarcoal.modules.work.wage_tax.entries import WageTaxCertificate
-from moarcoal.modules.work.wage_tax.values import (
-    BENEFITS_FLAT_TAXED,
-    BENEFITS_TAX_FREE,
-    EMPLOYEE_CARE,
-    EMPLOYEE_HEALTH,
-    GROSS_WAGES,
-    INCOME_TAX_WITHHELD,
-    SOLI_WITHHELD,
-    SUBSIDY_PUBLIC_HEALTH,
-    TAX_CLASS,
-    VORSORGE_VALUES,
-)
+from moarcoal.modules.work.wage_tax.values import CERTIFICATE_LINES
 from moarcoal.modules.work.workplace.entries import FirstWorkplace, WorkEquipment
 from moarcoal.modules.work.workplace.forms import (
     KINDS,
@@ -101,19 +90,7 @@ def _wage_tax(request: Request, year: int) -> dict[str, Any]:
     ]
     return {
         "values": [
-            (label, values.get(key, user, period))
-            for label, key in (
-                ("Steuerklasse", TAX_CLASS),
-                ("Bruttoarbeitslohn", GROSS_WAGES),
-                ("Lohnsteuer", INCOME_TAX_WITHHELD),
-                ("Solidaritätszuschlag", SOLI_WITHHELD),
-                ("Arbeitgeberleistungen steuerfrei (Nr. 17)", BENEFITS_TAX_FREE),
-                ("Arbeitgeberleistungen pauschal besteuert (Nr. 18)", BENEFITS_FLAT_TAXED),
-                ("Zuschuss gesetzliche Krankenversicherung (Nr. 24 a)", SUBSIDY_PUBLIC_HEALTH),
-                ("Beiträge gesetzliche Krankenversicherung (Nr. 25)", EMPLOYEE_HEALTH),
-                ("Beiträge soziale Pflegeversicherung (Nr. 26)", EMPLOYEE_CARE),
-                *((f"{label} (Nr. {number})", key) for key, _, label, number, _ in VORSORGE_VALUES),
-            )
+            (line.overview_label, values.get(line.key, user, period)) for line in CERTIFICATE_LINES
         ],
         "documents": [document_url(c.document.id) for c in certificates],
     }
