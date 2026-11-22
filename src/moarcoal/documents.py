@@ -35,6 +35,7 @@ from moarcoal.storage import (
     ReadInDifference,
     ReadInEntry,
     Rereading,
+    SiteFile,
     SiteFileError,
     Sites,
     State,
@@ -401,38 +402,40 @@ def take_in(
 
 @dataclass(frozen=True)
 class TakenInAll:
-    """`taken`: die neuen Belege; `skipped`: je übersprungene Datei (Pfad, Grund)."""
+    """`taken`: die neuen Belege; `skipped`: je übersprungene Datei (mit Grund)."""
 
     taken: tuple[Document, ...]
-    skipped: tuple[tuple[str, str], ...]
+    skipped: tuple[tuple[SiteFile, str], ...]
 
 
-def take_in_all(
-    store: Store, user: str, files: Sequence[tuple[str, str, str]]
-) -> TakenInAll | IntakeRejected:
-    """Nimmt alle Dateien (Ablageort, Pfad, SHA-256 wie angezeigt) als Beleg ohne Dokumentart in
+def take_in_all(store: Store, user: str, files: Sequence[SiteFile]) -> TakenInAll | IntakeRejected:
+    """Nimmt alle Dateien (SHA-256 wie angezeigt) als Beleg ohne Dokumentart in
     **einem** Vorgang auf; keine Einlese-Regel, kein Claude. Eine Datei, deren Inhalt nicht mehr
     der angezeigte ist, fehlt oder schon aufgenommen ist, wird übersprungen und gemeldet. Wird
     nichts aufgenommen, ist das Ergebnis die Abweisung; weist der Schreibweg ab, bleibt nichts."""
     taken: list[Document] = []
     changes: list[Change] = []
-    skipped: list[tuple[str, str]] = []
+    skipped: list[tuple[SiteFile, str]] = []
     seen: set[str] = set()
-    for site, path, sha256 in files:
+    for file in files:
         prepared = (
             IntakeRejected((ALREADY_TAKEN_IN,))
-            if sha256 in seen
-            else _intake(store, {}, user, site, path, "", DEFAULT_YEAR, expected_sha256=sha256)
+            if file.sha256 in seen
+            else _intake(
+                store, {}, user, file.site, file.path, "", DEFAULT_YEAR, expected_sha256=file.sha256
+            )
         )
         if isinstance(prepared, IntakeRejected):
-            skipped.append((path, " ".join(prepared.reasons)))
+            skipped.append((file, " ".join(prepared.reasons)))
             continue
-        seen.add(sha256)
+        seen.add(file.sha256)
         document, _, document_changes = prepared
         taken.append(document)
         changes.extend(document_changes)
     if not taken:
-        return IntakeRejected(tuple(f"{path}: {reason}" for path, reason in skipped) or (NO_FILES,))
+        return IntakeRejected(
+            tuple(f"{file.path}: {reason}" for file, reason in skipped) or (NO_FILES,)
+        )
     result = store.apply(changes)
     if not isinstance(result, Applied):
         return IntakeRejected(tuple(result.reasons.values()))

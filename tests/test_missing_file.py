@@ -9,12 +9,13 @@ from moarcoal.block_findings import block_findings
 from moarcoal.documents import TakenIn, take_in
 from moarcoal.incoming import (
     MISSING_FILE,
+    Incoming,
     all_site_files,
     missing_file_findings,
     relocate_documents,
 )
 from moarcoal.storage import Document, Store, open_store
-from moarcoal.values.findings import Severity
+from moarcoal.values.findings import Finding, Severity
 
 
 @pytest.fixture
@@ -35,8 +36,12 @@ def take(store: Store) -> Document:
     return result.document
 
 
+def missing(store: Store, user: str = "anna") -> list[Finding]:
+    return missing_file_findings(Incoming(all_site_files(store), store.state(), user), user)
+
+
 def findings(store: Store) -> list[str]:
-    return [f.message for f in missing_file_findings(all_site_files(store), store.state(), "anna")]
+    return [f.message for f in missing(store)]
 
 
 def test_present_file_gives_no_finding(store: Store) -> None:
@@ -47,7 +52,7 @@ def test_present_file_gives_no_finding(store: Store) -> None:
 def test_vanished_file_gives_an_error_on_the_document(store: Store, tmp_path: Path) -> None:
     document = take(store)
     (tmp_path / "ablage" / "2025" / "brief.txt").unlink()
-    (finding,) = missing_file_findings(all_site_files(store), store.state(), "anna")
+    (finding,) = missing(store)
     assert finding.kind == MISSING_FILE
     assert finding.severity is Severity.ERROR
     assert finding.target == document.address
@@ -57,7 +62,7 @@ def test_vanished_file_gives_an_error_on_the_document(store: Store, tmp_path: Pa
 def test_file_of_another_user_is_not_reported(store: Store, tmp_path: Path) -> None:
     take(store)
     (tmp_path / "ablage" / "2025" / "brief.txt").unlink()
-    assert missing_file_findings(all_site_files(store), store.state(), "berta") == []
+    assert missing(store, "berta") == []
 
 
 def test_moved_within_the_site_is_found_again_and_followed(store: Store, tmp_path: Path) -> None:

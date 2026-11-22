@@ -14,7 +14,7 @@ from pydantic import BaseModel, ValidationError
 from moarcoal.defaults import DEFAULT_YEAR, year_of
 from moarcoal.document_filter import SearchFilter, parse_file_types
 from moarcoal.documents import DocumentKind, read_entries_of
-from moarcoal.incoming import all_site_files, incoming_files
+from moarcoal.incoming import Incoming, all_site_files
 from moarcoal.personal_details import details_of
 from moarcoal.registration import ModuleRegistration, ModuleState
 from moarcoal.storage import (
@@ -160,6 +160,13 @@ def finding_list_of(request: Request, year: int) -> FindingList:
     return linked_findings(request.app.state.modules, state, found)
 
 
+def incoming_of(request: Request) -> Incoming:
+    """Der Eingang des Nutzers auf dem jetzigen Stand; die Seite baut ihn einmal und gibt ihn
+    weiter."""
+    store = store_of(request)
+    return Incoming(all_site_files(store), store.state(), user_of(request))
+
+
 def values_on(request: Request, state: State) -> Values:
     """`Values` der Anwendung auf einem beliebigen Stand (z. B. einem vorläufigen)."""
     store = store_of(request)
@@ -285,8 +292,7 @@ def _sidebar(request: Request, open_files: int | None) -> list[tuple[str, list[N
     """Die Seitenleiste: Module unter „Bereiche“, Belege und Aussteller unter „Allgemein“."""
     registrations: tuple[ModuleRegistration, ...] = request.app.state.modules
     if open_files is None:
-        store = store_of(request)
-        open_files = len(incoming_files(all_site_files(store), store.state(), user_of(request)))
+        open_files = len(incoming_of(request).open_files())
     areas = [NavEntry(r.nav_label, r.nav_url, r.icon) for r in registrations]
     general = [
         NavEntry("Belege", site_url(), "belege", open_files),

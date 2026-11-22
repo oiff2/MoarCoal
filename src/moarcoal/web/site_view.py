@@ -18,7 +18,7 @@ from moarcoal.document_filter import (
 )
 from moarcoal.documents import DocumentKind, belongs_to_year, document_name, kind_title
 from moarcoal.expected_documents import matching_documents, previous_year_issuer
-from moarcoal.incoming import hidden_files, hidden_folders, in_hidden_folder, incoming_files
+from moarcoal.incoming import Incoming, hidden_files, hidden_folders
 from moarcoal.storage import (
     Document,
     EntryAddress,
@@ -139,60 +139,32 @@ def next_open(shas: Sequence[str], sha256: str) -> str | None:
     return others[0] if others else None
 
 
-def duplicate_hints(
-    files: Sequence[SiteFile], ordered: Sequence[SiteFile], state: State, user: str
-) -> list[DuplicateHint]:
-    """Je nicht ausgeblendeter Datei in `ordered`, deren Inhalt (SHA-256) ein Dokument von `user`
-    schon hat, ein Hinweis auf dieses Dokument (bei mehreren das erste nach Pfad). Die Datei, die
-    das Dokument selbst ist (Ablageort und Pfad), bekommt keinen; ebenso keine im Ablageort des
-    Dokuments, wenn dessen Datei dort fehlt (sie wurde verschoben, `relocate_documents` führt den
-    Pfad beim Start nach)."""
-    present = {(f.site, f.path, f.sha256) for f in files}
-    documents: dict[str, Document] = {}
-    for d in sorted(state.of_kind(Document), key=lambda d: (d.path, d.site, d.id)):
-        if d.owner == user:
-            documents.setdefault(d.sha256, d)
-    hidden = {h.sha256 for h in state.of_kind(HiddenFile)}
-    folders = state.of_kind(HiddenFolder)
-    return [
-        DuplicateHint(f, d, document_name(d, state), document_url(d.id))
-        for f in ordered
-        if (d := documents.get(f.sha256)) is not None
-        and (f.site, f.path) != (d.site, d.path)
-        and ((d.site, d.path, d.sha256) in present or f.site != d.site)
-        and f.sha256 not in hidden
-        and not in_hidden_folder(f, folders)
-    ]
-
-
-def new_section(
-    files: Sequence[SiteFile], sites: Sites, state: State, user: str, year: int
-) -> NewSection:
+def new_section(incoming: Incoming, sites: Sites, state: State, user: str, year: int) -> NewSection:
     """Der Abschnitt Neu von `user` für `year`: der Jahresordner zuerst, dann die Ablageorte
-    ohne Jahr (nach Name). Ablageorte, die zu einem anderen Jahr gehören, fehlen."""
+    ohne Jahr (nach Name). Ablageorte, die zu einem anderen Jahr gehören, fehlen. Was offen,
+    ausgeblendet oder gleichen Inhalts ist, sagt `incoming`."""
     year_folder = sites.year_folder(year)
     shown = ([year_folder] if year_folder else []) + [
         s for s in sites.names() if sites.year_of(s) is None
     ]
-    ordered = [f for site in shown for f in files if f.site == site]  # erster Ort gewinnt
-    open_files = incoming_files(ordered, state, user)
-    taken = {d.sha256 for d in state.of_kind(Document) if d.owner == user}
+    open_files = incoming.open_files(shown)
     return NewSection(
         year=year,
         year_folder=year_folder,
         groups=[
             NewGroup(site, [NewFile(f) for f in open_files if f.site == site]) for site in shown
         ],
-        duplicates=duplicate_hints(files, ordered, state, user),
+        duplicates=[
+            DuplicateHint(f, d, document_name(d, state), document_url(d.id))
+            for f, d in incoming.same_content(shown)
+        ],
         hidden_files=[
-            HiddenFileRow(
-                h, entry_checksum(h), next((f for f in files if f.sha256 == h.sha256), None)
-            )
+            HiddenFileRow(h, entry_checksum(h), incoming.file_with(h.sha256))
             for h in hidden_files(state)
-            if h.site in shown and h.sha256 not in taken
+            if h.site in shown and not incoming.is_taken(h.sha256)
         ],
         hidden_folders=[
-            HiddenFolderRow(h, entry_checksum(h), sum(1 for f in files if in_hidden_folder(f, [h])))
+            HiddenFolderRow(h, entry_checksum(h), incoming.count_under(h))
             for h in hidden_folders(state)
             if h.site in shown
         ],

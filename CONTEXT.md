@@ -274,7 +274,7 @@ _Avoid_: Jahresablage, Steuerordner
 Die Art einer Datei nach ihrer Endung: PDF, eDaten (HTML und XML aus Mein ELSTER), Bild, Tabelle (xlsx, ods, csv) oder Sonstiges (Code: `FileType`). Die Belege-Seite sucht und filtert danach (mehrere Typen gelten als „oder“); die Suche trifft Dateiname, Ordner, Aussteller und Bezeichnung in allen drei Abschnitten, Suche und gewählte Typen stehen in der Adresse. Ein ausstehender Erwarteter Beleg hat keine Datei und damit keinen Dateityp.
 
 **Eingang** _(geprägt)_:
-Die Dateien in den Ablageorten, die weder aufgenommen noch ausgeblendet sind; in der Oberfläche der Abschnitt „Neu im Jahresordner“ der Belege-Seite (mit den Ablageorten ohne Jahr darunter), im Befund „n Dateien im Eingang“ gezählt. Daraus wird nichts von selbst übernommen.
+Die Dateien in den Ablageorten, die weder aufgenommen noch ausgeblendet sind; in der Oberfläche der Abschnitt „Neu im Jahresordner“ der Belege-Seite (mit den Ablageorten ohne Jahr darunter), im Befund „n Dateien im Eingang“ gezählt. Daraus wird nichts von selbst übernommen. Jede Datei der Ablageorte hat für einen Nutzer genau eine Einordnung: offen (im Eingang), aufgenommen (auch wenn sie jemand ausgeblendet hat: aufgenommen schlägt ausgeblendet), ausgeblendet, im ausgeblendeten Ordner oder gleicher Inhalt wie ein aufgenommenes Dokument an anderer Stelle (nur ein Hinweis, Code: `Classification`); gleicher Inhalt (SHA-256) ist im Eingang eine Zeile mit dem ersten Pfad. Je Dokument ist sichtbar, ob seine Datei da, verschoben (gleicher SHA-256 im selben Ablageort, der Pfad wird beim Start nachgeführt) oder fehlend ist. Das alles ordnet ein Baustein der Datenebene einmal ein, die Seiten lesen nur (Code: `Incoming`).
 _Avoid_: Inbox, Import, Vorschlag
 
 **aufnehmen**:

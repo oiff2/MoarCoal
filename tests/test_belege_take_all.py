@@ -25,7 +25,13 @@ def client(tmp_path: Path) -> httpx.Client:
 
 
 def post(client: httpx.Client, texts: list[str], url: str = URL) -> httpx.Response:
-    return client.post(url, data={"sha256": [sha(t) for t in texts]}, headers=ORIGIN)
+    """Sendet die Dateien wie das Formular: Ablageort, Pfad und SHA-256 je Datei, wie angezeigt."""
+    data = {
+        "site": ["steuer25" for _ in texts],
+        "path": [t for t in texts],
+        "sha256": [sha(t) for t in texts],
+    }
+    return client.post(url, data=data, headers=ORIGIN)
 
 
 def shown_form(page: str) -> tuple[str, list[str]]:
@@ -90,6 +96,39 @@ def test_changed_file_is_skipped_and_reported_the_others_are_taken(
     assert response.status_code == 200
     assert "1 Beleg aufgenommen" in response.text and "miete.pdf" in response.text
     assert [d.path for d in documents(client)] == ["notiz.txt"]
+
+
+def test_file_changed_between_display_and_submit_is_reported_as_changed_not_as_gone(
+    client: httpx.Client, tmp_path: Path
+) -> None:
+    _, shown = shown_form(section(main_of(client), "neu"))
+    assert sha("miete.pdf") in shown
+    (tmp_path / "steuer25" / "miete.pdf").write_text("geaendert")
+    response = client.post(
+        URL,
+        data={
+            "site": ["steuer25", "steuer25"],
+            "path": ["miete.pdf", "notiz.txt"],
+            "sha256": [sha("miete.pdf"), sha("notiz.txt")],
+        },
+        headers=ORIGIN,
+    )
+    assert "miete.pdf: Die Datei hat sich seit der Anzeige geändert." in response.text
+    assert "nicht mehr in der Ablage" not in response.text
+    assert [d.path for d in documents(client)] == ["notiz.txt"]
+
+
+def test_vanished_file_is_reported_as_gone(client: httpx.Client, tmp_path: Path) -> None:
+    (tmp_path / "steuer25" / "miete.pdf").unlink()
+    response = post(client, ["miete.pdf", "notiz.txt"])
+    assert "miete.pdf: Die Datei ist nicht mehr in der Ablage." in response.text
+    assert [d.path for d in documents(client)] == ["notiz.txt"]
+
+
+def test_form_sends_site_path_and_sha256_of_every_shown_file(client: httpx.Client) -> None:
+    form = section(main_of(client), "neu").split('class="alle-aufnehmen"', 1)[1].split("</form>")[0]
+    assert len(re.findall(r'name="site" value="steuer25"', form)) == len(FILES)
+    assert sorted(re.findall(r'name="path" value="([^"]+)"', form)) == sorted(FILES)
 
 
 def test_nothing_taken_when_every_file_changed(client: httpx.Client, tmp_path: Path) -> None:
