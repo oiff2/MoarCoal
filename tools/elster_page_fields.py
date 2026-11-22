@@ -93,6 +93,10 @@ class _PageParser(HTMLParser):
         self.fields: dict[str, PageField] = {}
         self._headings: dict[int, str] = {}
         self._heading: tuple[int, list[str]] | None = None
+        # Stack depth of an open subtitle of a heading (Mein ELSTER puts the person's name
+        # or "1. Eintrag" there); its text never goes into the heading. A subtitle that is the
+        # page title itself (data-ipe-type="Page.title", the start page of a form) stays.
+        self._subtitle: int | None = None
         # Open elements; a Line element remembers its Zeile.
         self._stack: list[tuple[str, bool]] = []
         self._line: str = ""
@@ -114,6 +118,12 @@ class _PageParser(HTMLParser):
             is_line = attributes.get("data-node-type") == "Line"
             if is_line:
                 self._line = self._group_label = ""
+            if (
+                self._heading
+                and "_helper-subTitle" in (attributes.get("class") or "").split()
+                and attributes.get("data-ipe-type") != "Page.title"
+            ):
+                self._subtitle = len(self._stack)
             self._stack.append((tag, is_line))
         if re.fullmatch(r"h[1-6]", tag):
             self._heading = (int(tag[1]), [])
@@ -173,12 +183,14 @@ class _PageParser(HTMLParser):
                 if any(is_line for _, is_line in self._stack[index:]):
                     self._line = self._group_label = ""
                 del self._stack[index:]
+                if self._subtitle is not None and self._subtitle >= index:
+                    self._subtitle = None
                 break
 
     def handle_data(self, data: str) -> None:
         if self._option is not None:
             self._option.append(data)
-        if self._heading:
+        if self._heading and self._subtitle is None:
             self._heading[1].append(data)
         if self._label is not None:
             self._label[1].append(data)
@@ -234,6 +246,7 @@ type Structure = dict[str, Any]
 
 
 PAGE_NUMBER_RE = re.compile(r" - (\d+) - ")
+PAGE_TITLE_NUMBER_RE = re.compile(r"(\d+) - ")
 
 
 def page_order(names: list[str]) -> tuple[list[str], list[str]]:
@@ -252,20 +265,41 @@ def page_order(names: list[str]) -> tuple[list[str], list[str]]:
     return [name for _, name in sorted(numbered)] + unnumbered, unnumbered
 
 
+def _page_numbers(read: list[tuple[str, list[PageField]]]) -> dict[str, str]:
+    """The page number of the file name, per file whose page title has no number.
+
+    Not when another page already carries that number: then the page is a sub-page of a list
+    entry, which Mein ELSTER files under the number of its parent page.
+    """
+    titles = {name: items[0].headings[0] for name, items in read if items and items[0].headings}
+    taken = {m.group(1) for t in titles.values() if (m := PAGE_TITLE_NUMBER_RE.match(t))}
+    numbers: dict[str, str] = {}
+    for name, title in titles.items():
+        number = PAGE_NUMBER_RE.search(Path(name).stem)
+        if number and not PAGE_TITLE_NUMBER_RE.match(title) and number.group(1) not in taken:
+            numbers[name] = number.group(1)
+    return numbers
+
+
 def build_structure(pages: list[tuple[str, str]], form: str, year: int) -> Structure:
     """The structure of a year from (file name, HTML) pages, in the order given.
 
-    The page is the first heading (Mein ELSTER's page title, else the file name); the other
+    The page is the first heading (Mein ELSTER's page title, else the file name), with the page
+    number of the file name in front where the title has none (`_page_numbers`); the other
     headings follow. An E-Kennung appears once; a later page repeating it is ignored.
     """
     fields: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for name, html in pages:
-        for item in read_page(html):
+    read = [(name, read_page(html)) for name, html in pages]
+    numbers = _page_numbers(read)
+    for name, items in read:
+        for item in items:
             if item.e_kennung in seen:
                 continue
             seen.add(item.e_kennung)
             page, *headings = item.headings or (Path(name).stem,)
+            if name in numbers and item.headings:
+                page = f"{numbers[name]} - {page}"
             if item.list_entry:
                 headings.append(LIST_HEADING)
             entry: dict[str, Any] = {
