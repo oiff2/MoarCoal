@@ -1,4 +1,4 @@
-{% from "_ui.html" import belegstand, ib, ib_haken, icon, not_yet %}
+{% from "_ui.html" import belegstand, ib, icon, not_yet %}
 {% macro cell(row, n, name, col, value, size, extra="") -%}
 <input name="{{ name }}-{{ n }}" value="{{ value }}" size="{{ size }}" data-col="{{ col }}"{{ extra | safe }}{% if row.errors[name] %} class="ungueltig" title="{{ row.errors[name] }}"{% endif %}>
 {%- endmacro %}
@@ -110,7 +110,7 @@
         <td>{{ cell(row, n, "notiz", 4, row.note, 24) }}</td>
         <td>{% if row.entry_id %}
           {{ ib("kopieren", "Reise kopieren: Orte, km und Notiz in die neue Reise", cls="reise-kopieren", attr="hidden") }}
-          {{ ib_haken("papierkorb", "Reise beim Speichern löschen", "loeschen-" ~ n, row.delete, 'data-col="5"') }}
+          <label title="Reise beim Speichern löschen"><input type="checkbox" name="loeschen-{{ n }}" value="ja" data-col="5"{% if row.delete %} checked{% endif %}> löschen</label>
         {% endif %}</td>
       </tr>
       {% if row.errors %}<tr class="fehler-zeile"><td></td><td colspan="7" class="fehler">{{ row.errors.values() | join(" ") }}</td></tr>{% endif %}

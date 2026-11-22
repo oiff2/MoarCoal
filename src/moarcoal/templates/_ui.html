@@ -22,11 +22,6 @@
 <summary class="ib" title="{{ label }}" aria-label="{{ label }}">{{ icon(name) }}</summary>
 {%- endmacro %}
 
-{#- Icon-Haken: ein Häkchen-Feld (wirkt erst beim Speichern des Formulars) als Icon; der Haken bleibt das Eingabefeld (Tastatur, Screenreader), das Icon zeigt den Zustand. -#}
-{% macro ib_haken(name, label, field, checked=false, attr="") -%}
-<label class="ib haken" title="{{ label }}"><input type="checkbox" name="{{ field }}" value="ja"{% if attr %} {{ attr }}{% endif %}{% if checked %} checked{% endif %} aria-label="{{ label }}">{{ icon(name) }}</label>
-{%- endmacro %}
-
 {#- „Ausblenden“ für Dateien und Ordner der Belege-Seite: ein Icon-Formular mit dem Auge. Die Adresse bestimmt die Seite. -#}
 {% macro hide_button(action, sha256="", site="", path="") -%}
 {% call ib("auge-aus", "Ausblenden", action=action, form_cls="direkt") -%}
