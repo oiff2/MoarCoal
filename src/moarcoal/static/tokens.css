@@ -1,35 +1,36 @@
 /* Tokens: jede Farbe, Schriftgröße, jeder Abstand, Radius und jede Linie nur hier. Farben als light-dark(hell, dunkel):
    Vorgabe folgt dem System, der Schalter der Kopfleiste setzt data-darstellung am <html> (rahmen.js, im Browser gemerkt).
    bausteine.css und seiten.css nehmen nur var(--…) und kennen keinen festen Farbwert und keine feste Schriftgröße.
-   Die Werte sind die von vor dem Umbau (#232); eine neue Optik (#233) ändert nur diese Datei. Namen deutsch. */
+   Eine neue Optik (#233) ändert nur diese Datei. Namen deutsch. */
 :root {
   color-scheme: light dark;
-  /* Flächen, Linien, Text, Akzent */
-  --grund: light-dark(#f7f7f5, #16181b);
-  --flaeche: light-dark(#ffffff, #1f2226);
-  --flaeche-2: var(--flaeche);
-  --linie: light-dark(#c9ccd1, #3a3f46);
-  --linie-stark: var(--linie);
-  --text: light-dark(#1d1f22, #dcdfe3);
-  --text-gedaempft: color-mix(in srgb, var(--text) 70%, var(--grund));
-  --akzent: light-dark(#1f6fd1, #4c9bf0);
-  --auf-akzent: light-dark(#ffffff, #0d1117);
-  --akzent-weich: color-mix(in srgb, var(--akzent) 8%, var(--flaeche));
-  /* Hover und Auswahl: leichter Schleier in der Farbe des Texts (currentColor gilt dort, wo der Token benutzt wird) */
-  --hover: color-mix(in srgb, currentColor 12%, transparent);
-  --auswahl: color-mix(in srgb, currentColor 12%, transparent);
-  --seitenleiste-grund: var(--grund);
-  /* Statusfarben je Stufe: Text, Grund, Rand */
-  --fehler: light-dark(#c0283c, #f0687a);
-  --fehler-grund: color-mix(in srgb, var(--fehler) 8%, transparent);
-  --fehler-rand: var(--fehler);
-  --warnung: light-dark(#b85c00, #f0a040);
-  --warnung-grund: color-mix(in srgb, var(--warnung) 18%, transparent);
-  --warnung-rand: var(--warnung);
-  --gut: light-dark(#2a7d3a, #5cc46e);
-  --gut-grund: color-mix(in srgb, var(--gut) 8%, transparent);
-  --gut-rand: var(--gut);
-  --schatten: none;
+  /* Flächen, Linien, Text, Akzent: Variante C (#207, #239), warm, Akzent aus dem Kohle-Bernstein des App-Icons.
+     Jeder Wert ist von tests/test_theme.py auf WCAG AA geprüft (Text 4,5:1, Linien und Zeichen 3:1). */
+  --grund: light-dark(#f6f4f0, #1a1a1d);
+  --flaeche: light-dark(#fffdf9, #232327);
+  --flaeche-2: light-dark(#efece5, #2b2b30);
+  --linie: light-dark(#ddd8cf, #36363c);
+  --linie-stark: light-dark(#8c857a, #85858c);
+  --text: light-dark(#2c2a26, #e6e3dc);
+  --text-gedaempft: light-dark(#66615a, #b0aca3);
+  --akzent: light-dark(#9a5700, #f0a531);
+  --auf-akzent: light-dark(#ffffff, #1c1c22);
+  --akzent-weich: light-dark(#f8ead2, #3a3123);
+  --hover: light-dark(#efebe3, #2e2e33);
+  --auswahl: light-dark(#f6e7cc, #3a3123);
+  --seitenleiste-grund: light-dark(#ece8e0, #151518);
+  --kopfleiste-grund: light-dark(#f6f4f0, #1a1a1d);
+  /* Statusfarben je Stufe: Text, Grund, Rand (Grund opak, damit der Kontrast prüfbar ist) */
+  --fehler: light-dark(#b42318, #ff99a4);
+  --fehler-grund: light-dark(#fde7e9, #442726);
+  --fehler-rand: light-dark(#d47167, #a85356);
+  --warnung: light-dark(#7a4d00, #fce100);
+  --warnung-grund: light-dark(#fff4ce, #433519);
+  --warnung-rand: light-dark(#ae882d, #826c1e);
+  --gut: light-dark(#0f7b0f, #6ccb5f);
+  --gut-grund: light-dark(#dff6dd, #2a3a1f);
+  --gut-rand: light-dark(#4a9f50, #527730);
+  --schatten: light-dark(rgb(0 0 0 / 0.18), rgb(0 0 0 / 0.6));
   /* Schrift: Skala von klein bis groß; der Fließtext (m) ist fest 15px, der Rest wächst mit der Schriftgröße des Browsers */
   --schrift: system-ui, sans-serif;
   --zeilenhoehe: 1.4;
@@ -47,12 +48,13 @@
   --abstand-5: 1rem;
   --abstand-6: 1.5rem;
   /* Radius, Linien, Zeilenhöhe der Tabellen, Icons */
-  --radius: 0.25rem;
-  --radius-gross: 0.4rem;
+  --radius: 0.15rem;
+  --radius-gross: 0.25rem;
   --linienstaerke: 1px;
   --rahmen-dick: 2px;
   --balken: 4px;
-  --zeile-pad: 0.25rem;
+  --auswahl-balken: 3px; /* Balken an der gewählten Menüpunkt-Zeile */
+  --zeile-pad: var(--abstand-1);
   --kopf-hoehe: 2.2rem;
   --griff-breite: 6px;
   --icon: 1.4rem;

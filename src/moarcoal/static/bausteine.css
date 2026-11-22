@@ -29,7 +29,7 @@ tr:target { outline: var(--rahmen-dick) solid var(--warnung-rand); }
 .seitenleiste { position: relative; display: flex; flex-direction: column; gap: var(--abstand-1); padding: var(--abstand-3) var(--abstand-2); border-right: var(--linienstaerke) solid var(--linie); background: var(--seitenleiste-grund); overflow: hidden; }
 .seitenleiste a { position: relative; display: flex; align-items: center; gap: var(--abstand-3); padding: var(--abstand-2) var(--abstand-3); border-radius: var(--radius); color: inherit; text-decoration: none; white-space: nowrap; }
 .seitenleiste a:hover { background: var(--hover); }
-.seitenleiste a[aria-current] { background: var(--auswahl); font-weight: 600; }
+.seitenleiste a[aria-current] { background: var(--auswahl); font-weight: 600; box-shadow: inset var(--auswahl-balken) 0 0 var(--akzent); }
 .seitenleiste .logo { font-weight: 700; margin-bottom: var(--abstand-2); }
 .seitenleiste .marke { width: var(--icon); text-align: center; flex: none; }
 .seitenleiste .anzahl { margin-left: auto; padding: 0 var(--abstand-3); border-radius: var(--radius-gross); font-size: var(--fs-xs); background: var(--akzent); color: var(--auf-akzent); }
@@ -43,7 +43,7 @@ html.schmal .seitenleiste .lbl { display: none; }
 html.schmal .seitenleiste a { justify-content: center; padding: var(--abstand-3) 0; }
 html.schmal .seitenleiste .anzahl { position: absolute; top: 0; right: var(--abstand-1); }
 html.schmal .gruppe { margin: var(--abstand-3) var(--abstand-2); }
-.kopfleiste { display: flex; align-items: center; gap: calc(var(--abstand-5) + var(--abstand-2)); padding: var(--abstand-2) var(--abstand-5); border-bottom: var(--linienstaerke) solid var(--linie); min-height: var(--kopf-hoehe); }
+.kopfleiste { display: flex; align-items: center; gap: calc(var(--abstand-5) + var(--abstand-2)); padding: var(--abstand-2) var(--abstand-5); border-bottom: var(--linienstaerke) solid var(--linie); min-height: var(--kopf-hoehe); background: var(--kopfleiste-grund); }
 .kopfleiste label { display: inline; margin: 0; }
 .befunde-kopf { display: flex; align-items: center; gap: var(--abstand-4); min-width: 0; color: inherit; text-decoration: none; }
 .befunde-kopf .wichtigster { margin-left: var(--abstand-3); opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
