@@ -1,17 +1,22 @@
 {% extends "base.html" %}
+{% from "_ui.html" import abschnitt %}
 {% block title %}Erwarteten Beleg ändern – MoarCoal{% endblock %}
 {% block main %}
 <h1>Erwarteten Beleg ändern</h1>
 <p><a href="{{ keep_filter('/belege#erwartet') }}">Zurück zu den Belegen</a></p>
-{% include "expected_documents/_suggestion.html" %}
 {% include "work/_errors.html" %}
-<form method="post" action="{{ keep_filter('/belege/erwartet/' ~ entry_id) }}">
+{% call abschnitt("erwartet-angaben", "Angaben zum Erwarteten Beleg", none) %}
+{% include "expected_documents/_suggestion.html" %}
+<form class="formular-seite" method="post" action="{{ keep_filter('/belege/erwartet/' ~ entry_id) }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   {% include "expected_documents/_fields.html" %}
-  <button type="submit">Speichern</button>
+  <div><button type="submit">Speichern</button></div>
 </form>
+{% endcall %}
+{% call abschnitt("erwartet-loeschen", "Löschen", none) %}
 <form method="post" action="{{ keep_filter('/belege/erwartet/' ~ entry_id ~ '/loeschen') }}" class="inline">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   <button type="submit">Löschen</button>
 </form>
+{% endcall %}
 {% endblock %}

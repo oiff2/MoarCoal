@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% from "_ui.html" import abschnitt %}
 {% block main %}
 <h1>MoarCoal</h1>
 {% if not user_name %}
-<h2>Bitte Nutzer anlegen</h2>
+{% call abschnitt("start-nutzer", "Bitte Nutzer anlegen", none) %}
 {% with button = "Nutzer anlegen" %}{% include "person/_form.html" %}{% endwith %}
+{% endcall %}
 {% endif %}
 {% endblock %}

@@ -56,6 +56,7 @@ a.chip { text-decoration: none; }
 /* Feldtabelle: erste Spalte (Nr.) schmal, Statusstreifen links; die Stufe setzt streifen() aus _ui.html */
 table.felder td { vertical-align: top; }
 table.felder td:first-child { width: 1%; white-space: nowrap; border-left: var(--balken) solid var(--linie); }
+table.felder table td:first-child { width: auto; white-space: normal; border-left: 0; }
 table.felder tr.streifen-fehler td:first-child { border-left-color: var(--fehler); }
 table.felder tr.streifen-warnung td:first-child { border-left-color: var(--warnung); }
 table.felder tr.streifen-gut td:first-child { border-left-color: var(--gut); }
@@ -81,7 +82,8 @@ html.schmal .seitenleiste .anzahl { position: absolute; top: 0; right: var(--abs
 html.schmal .gruppe { margin: var(--abstand-3) var(--abstand-2); }
 .kopfleiste { display: flex; align-items: center; gap: calc(var(--abstand-5) + var(--abstand-2)); padding: var(--abstand-2) var(--abstand-5); border-bottom: var(--linienstaerke) solid var(--linie); min-height: var(--kopf-hoehe); background: var(--kopfleiste-grund); }
 .kopfleiste label { display: inline; margin: 0; }
-.befunde-kopf { display: flex; align-items: center; gap: var(--abstand-4); min-width: 0; color: inherit; text-decoration: none; }
+.kopfleiste > :not(.befunde-kopf) { flex: none; white-space: nowrap; }
+.befunde-kopf { display: flex; align-items: center; gap: var(--abstand-4); min-width: 0; overflow: hidden; color: inherit; text-decoration: none; }
 .befunde-kopf .wichtigster { margin-left: var(--abstand-3); opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .befunde-kopf .keine { color: inherit; opacity: 0.5; }
 .mein-elster { margin-left: auto; display: flex; align-items: center; color: inherit; text-decoration: none; }
@@ -170,9 +172,72 @@ table.felder tr.zwischenkopf th { padding-top: var(--abstand-5); color: var(--te
 /* Tabelle der Reisekosten: Begründung gedämpft unter dem Posten */
 .reisekosten .begruendung { display: block; color: var(--text-gedaempft); }
 
-nav.seiten { display: flex; flex-wrap: wrap; gap: var(--abstand-2) var(--abstand-5); margin: var(--abstand-3) 0; }
-nav.seiten a[aria-current="page"] { font-weight: bold; text-decoration: none; }
 
 /* Icon-Aktionen, die ein Formular aufklappen (summary) */
 .formular-eintrag > summary.ib { display: inline-block; list-style: none; }
 .formular-eintrag > summary.ib::-webkit-details-marker { display: none; }
+
+/* Formulare einer Seite: Felder füllen die Spalte (Breite der Spalte steht in seiten.css) */
+.formular-seite input:not([type=checkbox]), .formular-seite textarea, .formular-seite select { display: block; box-sizing: border-box; width: 100%; max-width: 100%; margin-top: var(--abstand-1); }
+.formular-seite div { margin-top: var(--abstand-3); }
+table.stapel td, table.einzelposten td { overflow-wrap: anywhere; }
+
+/* Vorschlag eines ausgelesenen Dokuments: je Feld eine Zeile */
+.vorschlag { list-style: none; margin: 0; padding: 0; }
+.vorschlag li { display: flex; flex-wrap: wrap; gap: 0 var(--abstand-4); align-items: baseline; padding: var(--abstand-1) 0; border-bottom: var(--linienstaerke) solid var(--linie); }
+.vorschlag .feld { font-weight: 600; }
+.vorschlag .stelle, .vorschlag .stand { color: var(--text-gedaempft); font-size: var(--fs-s); }
+.vorschlag form { margin-left: auto; }
+
+/* Werte einer Spalte: eine Zelle je Wert, darf umbrechen; Bearbeiten-Zeile einer Anschaffung hängt an ihrer Zeile */
+table.werte td:first-child { width: auto; white-space: normal; }
+table.arbeitsmittel tr:has(+ tr.bearbeiten) td, table.arbeitsmittel tr.bearbeiten td { border-bottom: 0; }
+table.arbeitsmittel tr:has(+ tr.bearbeiten) td { padding-bottom: 0; }
+table.arbeitsmittel tr.bearbeiten td { padding-top: 0; border-bottom: var(--linienstaerke) solid var(--linie); }
+
+/* Tabelle der Dienstreisen: Zustand der Eingaben */
+.reisen input.ungueltig { outline: var(--rahmen-dick) solid var(--fehler-rand); }
+.reisen tr.mit-fehler td { background: var(--fehler-grund); }
+.reisen td.unsicher { background: var(--warnung-grund); }
+.reisen tfoot td { font-weight: bold; }
+
+/* Aussteller-Feld: Suche mit Trefferliste, die unter dem Feld aufklappt, ohne den Seitenaufbau zu verschieben */
+.aussteller-feld { border: 0; padding: 0; margin: 0; position: relative; }
+.aussteller-feld legend { padding: 0; }
+.aussteller-feld .zeile { display: flex; gap: var(--abstand-5); align-items: center; }
+.aussteller-feld .suche { flex: 1; }
+.aussteller-feld .privat { display: none; white-space: nowrap; }
+.aussteller-feld:has(.suche:not(:placeholder-shown)):not(:has(.gewaehlt input)) .privat { display: inline; }
+.aussteller-feld .treffer { list-style: none; margin: var(--abstand-1) 0 0; padding: 0; position: absolute; left: 0; right: 0; z-index: 10; background: var(--flaeche); border: var(--linienstaerke) solid var(--linie-stark); border-radius: var(--radius-gross); box-shadow: 0 var(--abstand-2) var(--abstand-4) var(--schatten); }
+.aussteller-feld .treffer:empty { display: none; }
+.aussteller-feld .treffer button { font: inherit; color: inherit; display: block; width: 100%; text-align: left; border: 0; background: none; padding: var(--abstand-2) var(--abstand-3); cursor: pointer; }
+.aussteller-feld .treffer button:hover, .aussteller-feld .treffer button:focus-visible { background: var(--hover); }
+.aussteller-feld .treffer small { color: var(--text-gedaempft); }
+
+/* Dienstreisen: Karte von Deutschland (Farben aus dem Seitenschema, kein Inline-Style wegen der CSP) */
+.deutschlandkarte { width: 100%; height: auto; }
+.deutschlandkarte .land { fill: var(--flaeche-2); stroke: var(--linie-stark); stroke-width: 1.2; }
+.deutschlandkarte .grenzen { fill: none; stroke: var(--linie-stark); stroke-width: 0.6; }
+.marke.ziel { fill: color-mix(in srgb, var(--akzent) 25%, var(--flaeche)); stroke: var(--akzent); stroke-width: 2; }
+.marke.start { fill: color-mix(in srgb, var(--warnung) 30%, var(--flaeche)); stroke: var(--warnung); stroke-width: 2.4; stroke-linejoin: round; }
+.haus { fill: none; stroke: var(--text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.deutschlandkarte .pt .innen { text-anchor: middle; font-size: var(--karte-schrift-innen); font-weight: 700; fill: currentColor; }
+.deutschlandkarte .pt .name { font-size: var(--karte-schrift); fill: currentColor; paint-order: stroke; stroke: var(--flaeche); stroke-width: var(--karte-halo); }
+.karte .legende { margin-left: var(--abstand-5); }
+.karte .legende svg { width: var(--icon-knopf); height: var(--icon-knopf); vertical-align: middle; }
+.karte .orte { list-style: none; padding-left: 0; }
+.karte .treffer { margin: var(--abstand-2) 0 var(--abstand-3) var(--abstand-5); }
+
+/* Steuerjahr: Liste der Anlagen mit ihren Seiten (Breite und Scrollen in seiten.css) */
+.anlagen-baum { padding: var(--abstand-3); border-right: var(--linienstaerke) solid var(--linie); }
+.anlagen-baum a { display: block; padding: var(--abstand-1) var(--abstand-3); border-radius: var(--radius); color: inherit; text-decoration: none; }
+.anlagen-baum a:hover, .anlagen-baum a[aria-current] { background: var(--hover); }
+.anlagen-baum a[aria-current], .anlagen-baum a.aktuell { font-weight: 600; }
+.anlagen-baum .uebersicht { margin-bottom: var(--abstand-2); }
+.anlagen-baum summary { display: flex; align-items: baseline; gap: var(--abstand-3); cursor: pointer; padding-left: var(--abstand-1); }
+.anlagen-baum summary::marker { content: none; }
+.anlagen-baum summary::before { content: "›"; width: var(--abstand-4); flex: none; transition: transform var(--dauer); }
+.anlagen-baum details[open] > summary::before { transform: rotate(90deg); }
+.anlagen-baum summary a { flex: 1; font-weight: 600; }
+.anlagen-baum summary small { opacity: 0.6; }
+.anlagen-baum ul { list-style: none; margin: 0 0 var(--abstand-2) var(--abstand-5); padding: 0; font-size: var(--fs-s); }

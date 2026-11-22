@@ -10,7 +10,7 @@
 <ul class="fehler"><li>Duplikat zu: <a href="/aussteller/{{ holder.id }}">{{ holder.name }}</a></li></ul>
 {% endif %}
 {% call abschnitt("aussteller-angaben", "Angaben zum Aussteller", none) %}
-<form class="aussteller-formular" method="post" action="/aussteller/{{ issuer.id }}">
+<form class="formular-seite" method="post" action="/aussteller/{{ issuer.id }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   {% if from_details %}
   <p>Name: {{ issuer.name }} (Privatperson). Das kommt aus <a href="/person">Angaben zur Person</a>.</p>
@@ -50,7 +50,7 @@
 
 {% if others %}
 {% call abschnitt("aussteller-zusammenfuehren", "Zusammenführen", none, "Ein anderer Name desselben Ausstellers gehört normalerweise als weiterer Name dazu (siehe oben). Zusammenführen ist die Ausnahme, wenn derselbe Aussteller zweimal angelegt wurde.") %}
-<form class="aussteller-formular" method="get" action="/aussteller/{{ issuer.id }}/zusammenfuehren">
+<form class="formular-seite" method="get" action="/aussteller/{{ issuer.id }}/zusammenfuehren">
   <label>Zusammenführen mit
     <select name="into" required>
       {% for other in others %}<option value="{{ other.id }}">{{ other.name }}</option>{% endfor %}

@@ -1,3 +1,4 @@
+{% from "_ui.html" import abschnitt %}
 {% include "work/_errors.html" %}
 {% set religion_labels = {
   "keine": "keine oder keine mit Kirchensteuer",
@@ -5,7 +6,7 @@
   "roemisch-katholisch": "römisch-katholisch",
   "altkatholisch": "altkatholisch"
 } %}
-<form method="post" action="/person">
+<form class="formular-seite" method="post" action="/person">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   <label>Vorname
     <input name="first_name" value="{{ values.get('first_name', '') }}" required>
@@ -42,9 +43,7 @@
   <label>Kontoinhaber
     <input name="account_holder" value="{{ values.get('account_holder', '') }}">
   </label>
-  <fieldset>
-    <legend>Religionszugehörigkeit</legend>
-    <p>Ab welchem Datum welche Gemeinschaft gilt; bei einem Ein- oder Austritt eine neue Angabe mit dem Datum. Datum und Gemeinschaft leeren, um eine Angabe zu entfernen.</p>
+  {% call abschnitt("person-religion", "Religionszugehörigkeit", none, "Ab welchem Datum welche Gemeinschaft gilt; bei einem Ein- oder Austritt eine neue Angabe mit dem Datum. Datum und Gemeinschaft leeren, um eine Angabe zu entfernen.") %}
     {% for from_date, religion in religion_rows %}
     <div>
       <label>Ab
@@ -58,7 +57,7 @@
       </label>
     </div>
     {% endfor %}
-  </fieldset>
+  {% endcall %}
   {% endif %}
-  <button type="submit">{{ button }}</button>
+  <div><button type="submit">{{ button }}</button></div>
 </form>

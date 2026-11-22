@@ -1,13 +1,13 @@
 {# Detailspalte eines Dokuments: Felder, Vorschlag bestätigen, Auslesen, Einträge, Aktionen. `d` kommt von
    `document_detail` (site_pages.py). Eingebunden rechts auf der Belege-Seite. #}
+{% from "_ui.html" import abschnitt %}
 {% from "_document_form.html" import document_form, document_entries, document_actions with context %}
 {% macro document_detail(d) %}
 {% set document = d.document %}
 {{ document_form(document, d.kinds, d.bound, d.default_year, d.issuer_text, d.year) }}
 
 {% if d.proposal %}
-<h2>Vorschlag bestätigen</h2>
-<p>Claude hat diese Felder ausgelesen. Erst was Sie bestätigen, gilt; eine Korrektur ersetzt den ausgelesenen Inhalt, der daneben stehen bleibt.</p>
+{% call abschnitt("dokument-vorschlag", "Vorschlag bestätigen", none, "Claude hat diese Felder ausgelesen. Erst was Sie bestätigen, gilt; eine Korrektur ersetzt den ausgelesenen Inhalt, der daneben stehen bleibt.") %}
 <ul class="vorschlag">
   {% for key, field in d.proposal.fields.items() %}
   {% set spec = d.template.field(key) if d.template else none %}
@@ -36,17 +36,18 @@
 {% else %}
 <p>Alle Felder sind bestätigt.</p>
 {% endif %}
-<h2>Neu auslesen</h2>
-<p>Liest das Dokument noch einmal aus. Der neue Vorschlag gilt dann; bestätigt werden muss er neu, der alte bleibt gespeichert.</p>
+{% endcall %}
+{% call abschnitt("dokument-neu-auslesen", "Neu auslesen", none, "Liest das Dokument noch einmal aus. Der neue Vorschlag gilt dann; bestätigt werden muss er neu, der alte bleibt gespeichert.") %}
 <form method="post" action="{{ keep_filter('/dokumente/' ~ document.id ~ '/auslesen') }}">
   <button type="submit">Neu auslesen</button>
 </form>
+{% endcall %}
 {% elif d.template %}
-<h2>Auslesen</h2>
-<p>Claude liest dieses Dokument nach der Auslese-Vorlage der Dokumentart aus. Das Ergebnis ist ein Vorschlag, den Sie danach je Feld bestätigen oder korrigieren.</p>
+{% call abschnitt("dokument-auslesen", "Auslesen", none, "Claude liest dieses Dokument nach der Auslese-Vorlage der Dokumentart aus. Das Ergebnis ist ein Vorschlag, den Sie danach je Feld bestätigen oder korrigieren.") %}
 <form method="post" action="{{ keep_filter('/dokumente/' ~ document.id ~ '/auslesen') }}">
   <button type="submit">Auslesen</button>
 </form>
+{% endcall %}
 {% else %}
 <p>Diese Dokumentart wird nicht ausgelesen.</p>
 {% endif %}

@@ -1,5 +1,6 @@
-/* Seitenaufbau: Raster, Spaltenbreiten und was nur eine Seite braucht. Abstände, Schrift, Radius und Farben nur über var(--…),
-   feste Längen nur als Breite (Spalten, Felder). Eingebunden nach tokens.css und bausteine.css. */
+/* Seitenaufbau: nur Raster, Spaltenbreiten und Fenstergrößen (Umbrüche). Alles andere (Aussehen, Bausteine) steht in bausteine.css.
+   Abstände, Schrift, Radius und Farben nur über var(--…), feste Längen nur als Breite (Spalten, Felder).
+   Eingebunden nach tokens.css und bausteine.css. */
 
 /* Rahmen: Seitenleiste | Kopfleiste über Inhalt */
 body { display: grid; grid-template-columns: var(--seitenleiste, 13rem) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
@@ -36,14 +37,9 @@ main:has(.baum) { display: flex; flex-direction: column; overflow: hidden; }
 /* Rechts: der Kopf ist so hoch wie sein Inhalt, höchstens 45 % und scrollt darüber in sich; darunter scrollt die Vorschau in sich */
 .rechts { display: flex; flex-direction: column; gap: var(--abstand-3); min-height: 0; }
 .formular { flex: 0 1 auto; max-height: 45%; overflow: auto; }
-.formular h2 { font-size: var(--fs-l); margin: var(--abstand-4) 0 var(--abstand-2); }
 .aussteller-feld { max-width: 32rem; }
-/* Vorschlag: je Feld eine Zeile */
-.vorschlag { list-style: none; margin: 0; padding: 0; }
-.vorschlag li { display: flex; flex-wrap: wrap; gap: 0 var(--abstand-4); align-items: baseline; padding: var(--abstand-1) 0; border-bottom: var(--linienstaerke) solid var(--linie); }
 .vorschlag .feld { min-width: 10rem; }
 .vorschlag .wert { min-width: 6rem; }
-.vorschlag form { margin-left: auto; }
 .formular form { display: flex; flex-wrap: wrap; gap: 0 var(--abstand-4); align-items: baseline; }
 .formular .dateiname { margin: 0 0 var(--abstand-2); }
 .vorschau { flex: 1; min-height: 0; overflow: auto; }
@@ -61,11 +57,6 @@ main:has(.arbeit-seite) { display: flex; flex-direction: column; overflow: hidde
 .arbeit-seite .spalte > section + section { margin-top: var(--abstand-6); }
 .arbeit-seite .hinweis { color: var(--text-gedaempft); font-size: var(--fs-s); margin: var(--abstand-2) 0; }
 .formular-eintrag label input { width: 9rem; }
-/* Werte einer Spalte: eine Zelle je Wert, darf umbrechen; Bearbeiten-Zeile einer Anschaffung hängt an ihrer Zeile */
-table.werte td:first-child { width: auto; white-space: normal; }
-table.arbeitsmittel tr:has(+ tr.bearbeiten) td, table.arbeitsmittel tr.bearbeiten td { border-bottom: 0; }
-table.arbeitsmittel tr:has(+ tr.bearbeiten) td { padding-bottom: 0; }
-table.arbeitsmittel tr.bearbeiten td { padding-top: 0; border-bottom: var(--linienstaerke) solid var(--linie); }
 .spalte.dienstreisen { display: flex; flex-direction: column; overflow: hidden; }
 .dienstreisen > * { flex: none; }
 .dienstreisen .stand { margin: var(--abstand-3) 0; }
@@ -79,10 +70,6 @@ table.arbeitsmittel tr.bearbeiten td { padding-top: 0; border-bottom: var(--lini
 .dienstreisen .reisen input[data-col="4"] { width: 9rem; }
 .dienstreisen .knoepfe { display: flex; gap: var(--abstand-3); }
 .dienstreisen .tabelle tfoot td { bottom: 0; }
-.reisen input.ungueltig { outline: var(--rahmen-dick) solid var(--fehler-rand); }
-.reisen tr.mit-fehler td { background: var(--fehler-grund); }
-.reisen td.unsicher { background: var(--warnung-grund); }
-.reisen tfoot td { font-weight: bold; }
 
 /* Arbeit, schmales Fenster: die Seite scrollt normal, die Spalten stehen untereinander, die Tabelle der Dienstreisen scrollt nur seitwärts */
 @media (max-width: 60rem) {
@@ -96,25 +83,9 @@ table.arbeitsmittel tr.bearbeiten td { padding-top: 0; border-bottom: var(--lini
   .dienstreisen .tabelle thead th, .dienstreisen .tabelle tfoot td { position: static; }
 }
 
-/* Aussteller-Feld */
-.aussteller-feld { border: 0; padding: 0; margin: 0; position: relative; }
-.aussteller-feld legend { padding: 0; }
-.aussteller-feld .zeile { display: flex; gap: var(--abstand-5); align-items: center; }
-.aussteller-feld .suche { flex: 1; }
-.aussteller-feld .privat { display: none; white-space: nowrap; }
-.aussteller-feld:has(.suche:not(:placeholder-shown)):not(:has(.gewaehlt input)) .privat { display: inline; }
-/* Trefferliste klappt unter dem Feld auf, ohne den Seitenaufbau zu verschieben */
-.aussteller-feld .treffer { list-style: none; margin: var(--abstand-1) 0 0; padding: 0; position: absolute; left: 0; right: 0; z-index: 10; background: var(--flaeche); border: var(--linienstaerke) solid var(--linie-stark); border-radius: var(--radius-gross); box-shadow: 0 var(--abstand-2) var(--abstand-4) var(--schatten); }
-.aussteller-feld .treffer:empty { display: none; }
-.aussteller-feld .treffer button { font: inherit; color: inherit; display: block; width: 100%; text-align: left; border: 0; background: none; padding: var(--abstand-2) var(--abstand-3); cursor: pointer; }
-.aussteller-feld .treffer button:hover, .aussteller-feld .treffer button:focus-visible { background: var(--hover); }
-.aussteller-feld .treffer small { color: var(--text-gedaempft); }
-
-/* Aussteller-Seiten: Formulare in einer Spalte; schmales Fenster stapelt die Zeilen der Listen-Tabelle (Kopf entfällt, Zelle trägt ihre Spalte als data-label) */
-.aussteller-formular { max-width: 32rem; min-width: 0; }
-.aussteller-formular input:not([type=checkbox]), .aussteller-formular textarea, .aussteller-formular select { display: block; box-sizing: border-box; width: 100%; max-width: 100%; margin-top: var(--abstand-1); }
-.aussteller-formular div { margin-top: var(--abstand-3); }
-table.stapel td { overflow-wrap: anywhere; }
+/* Aussteller-Seiten, Person, Erwarteter Beleg: Formulare in einer Spalte; schmales Fenster stapelt die Zeilen der Listen-Tabelle
+   (Kopf entfällt, Zelle trägt ihre Spalte als data-label) */
+.formular-seite { max-width: 32rem; min-width: 0; }
 @media (max-width: 40rem) {
   table.stapel, table.stapel tbody, table.stapel tr, table.stapel td { display: block; }
   table.stapel thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
@@ -123,38 +94,13 @@ table.stapel td { overflow-wrap: anywhere; }
   table.stapel td::before { content: attr(data-label); color: var(--text-gedaempft); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--buchstabenabstand); }
   table.stapel td:first-child::before, table.stapel td:empty { display: none; }
 }
-
-/* Dienstreisen: Karte von Deutschland (Farben aus dem Seitenschema, kein Inline-Style wegen der CSP) */
-.deutschlandkarte { width: 100%; height: auto; }
-.deutschlandkarte .land { fill: var(--flaeche-2); stroke: var(--linie-stark); stroke-width: 1.2; }
-.deutschlandkarte .grenzen { fill: none; stroke: var(--linie-stark); stroke-width: 0.6; }
-.marke.ziel { fill: color-mix(in srgb, var(--akzent) 25%, var(--flaeche)); stroke: var(--akzent); stroke-width: 2; }
-.marke.start { fill: color-mix(in srgb, var(--warnung) 30%, var(--flaeche)); stroke: var(--warnung); stroke-width: 2.4; stroke-linejoin: round; }
-.haus { fill: none; stroke: var(--text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.deutschlandkarte .pt .innen { text-anchor: middle; font-size: var(--karte-schrift-innen); font-weight: 700; fill: currentColor; }
-.deutschlandkarte .pt .name { font-size: var(--karte-schrift); fill: currentColor; paint-order: stroke; stroke: var(--flaeche); stroke-width: var(--karte-halo); }
-.karte .legende { margin-left: var(--abstand-5); }
-.karte .legende svg { width: var(--icon-knopf); height: var(--icon-knopf); vertical-align: middle; }
-.karte .orte { list-style: none; padding-left: 0; }
-.karte .treffer { margin: var(--abstand-2) 0 var(--abstand-3) var(--abstand-5); }
+table.befunde-tabelle th:first-child { width: 9rem; }
 
 /* Steuerjahr: links die Anlagen mit ihren Seiten (wie die Formularliste in Mein ELSTER), rechts die Seite; jede Spalte scrollt in sich */
 main:has(.steuerjahr) { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
 .steuerjahr { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(14rem, 22rem) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 .steuerjahr-inhalt { min-height: 0; overflow: auto; padding: var(--abstand-5) var(--abstand-6); }
-.anlagen-baum { min-height: 0; overflow: auto; padding: var(--abstand-3) var(--abstand-3); border-right: var(--linienstaerke) solid var(--linie); }
-.anlagen-baum a { display: block; padding: var(--abstand-1) var(--abstand-3); border-radius: var(--radius); color: inherit; text-decoration: none; }
-.anlagen-baum a:hover, .anlagen-baum a[aria-current] { background: var(--hover); }
-.anlagen-baum a[aria-current], .anlagen-baum a.aktuell { font-weight: 600; }
-.anlagen-baum .uebersicht { margin-bottom: var(--abstand-2); }
-.anlagen-baum summary { display: flex; align-items: baseline; gap: var(--abstand-3); cursor: pointer; padding-left: var(--abstand-1); }
-.anlagen-baum summary::marker { content: none; }
-.anlagen-baum summary::before { content: "›"; width: 0.8rem; flex: none; transition: transform var(--dauer); }
-.anlagen-baum details[open] > summary::before { transform: rotate(90deg); }
-.anlagen-baum summary a { flex: 1; font-weight: 600; }
-.anlagen-baum summary small { opacity: 0.6; }
-.anlagen-baum ul { list-style: none; margin: 0 0 var(--abstand-2) var(--abstand-5); padding: 0; font-size: var(--fs-s); }
-
+.anlagen-baum { min-height: 0; overflow: auto; }
 .notiz-kasten { float: right; width: 20rem; }
 @media (max-width: 70rem) { .notiz-kasten { float: none; width: auto; margin: var(--abstand-3) 0; } }
 .gegenproben { --seite-breite: 7.5rem; }

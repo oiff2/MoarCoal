@@ -34,7 +34,7 @@
 {% endcall %}
 
 {% call abschnitt("zusammenfuehren-bestaetigen", "Bestätigen", none) %}
-<form class="aussteller-formular" method="post" action="/aussteller/{{ source.id }}/zusammenfuehren">
+<form class="formular-seite" method="post" action="/aussteller/{{ source.id }}/zusammenfuehren">
   <input type="hidden" name="into" value="{{ target.id }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   <input type="hidden" name="target_checksum" value="{{ target_checksum }}">

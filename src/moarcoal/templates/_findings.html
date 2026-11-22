@@ -1,8 +1,10 @@
-{#- Gemeinsame Anzeige von Befunden: je Schweregrad eine Überschrift (Fehler zuerst), darunter Text und Link zur Stelle.
+{#- Gemeinsame Anzeige von Befunden. `finding_list` (Belege-Seite, Hinweise in der Zeile eines Dokuments): je Schweregrad eine Überschrift
+    (Fehler zuerst), darunter Text und Link zur Stelle. `finding_table` und `hidden_table` (Befunde-Seite): je Schweregrad ein Abschnitt
+    mit einer Feldtabelle, der Statusstreifen links trägt die Stufe.
     Mit `year` bekommt jeder Befund ein Formular „Ausblenden“; `earlier` nennt frühere Ausblendungen,
     `error` den Befund (Art, Ziel) mit fehlender Notiz und `note` die eingegebene Notiz. `back` ist eine Adresse der Belege-Seite, auf die das Ausblenden zurückführt (statt auf die Befundliste); `scope` macht die
     Formular-Kennungen eindeutig, wenn mehrere Listen auf einer Seite stehen. -#}
-{% from "_ui.html" import ib, severity %}
+{% from "_ui.html" import ib, severity, abschnitt, streifen %}
 {% set severity_order = ["ERROR", "WARNING", "NOTE"] %}
 
 {% macro by_severity(items, attribute) %}
@@ -16,6 +18,22 @@
 {% endfor %}
 {% endmacro %}
 
+{#- Formular „Ausblenden“ eines Befunds: ein Popover, bei fehlender Notiz (failed) offen. -#}
+{% macro ausblenden_form(finding, dialog_id, year, back, failed, note) %}
+<form id="{{ dialog_id }}" class="ausblenden" {% if not failed %}popover{% endif %} method="post" action="/befunde/ausblenden">
+  <p>{{ finding.message }}</p>
+  <input type="hidden" name="year" value="{{ year }}">
+  {% if back %}<input type="hidden" name="zurueck" value="{{ back }}">{% endif %}
+  <input type="hidden" name="kind" value="{{ finding.kind }}">
+  <input type="hidden" name="target" value="{{ finding.identity[1] }}">
+  <input type="hidden" name="fingerprint" value="{{ finding.fingerprint }}">
+  <label>Notiz <input type="text" name="note" value="{{ note if failed else '' }}" autofocus></label>
+  {% if failed %}<p class="fehler">Zum Ausblenden gehört eine Notiz.</p>{% endif %}
+  <button type="submit">Ausblenden</button>
+  {% if not failed %}<button type="button" popovertarget="{{ dialog_id }}" popovertargetaction="hide">Abbrechen</button>{% endif %}
+</form>
+{% endmacro %}
+
 {% macro finding_list(findings, year=none, earlier={}, error=none, note="", scope="", back="") %}
 {% call(group) by_severity(findings, "severity") %}
 <ul class="befunde">
@@ -26,18 +44,7 @@
     {% set failed = error == finding.identity %}
     {% set dialog_id = "ausblenden-" ~ scope ~ loop.index ~ "-" ~ finding.fingerprint %}
     {{ ib("auge-aus", "Ausblenden", popover=dialog_id) }}
-    <form id="{{ dialog_id }}" class="ausblenden" {% if not failed %}popover{% endif %} method="post" action="/befunde/ausblenden">
-      <p>{{ finding.message }}</p>
-      <input type="hidden" name="year" value="{{ year }}">
-      {% if back %}<input type="hidden" name="zurueck" value="{{ back }}">{% endif %}
-      <input type="hidden" name="kind" value="{{ finding.kind }}">
-      <input type="hidden" name="target" value="{{ finding.identity[1] }}">
-      <input type="hidden" name="fingerprint" value="{{ finding.fingerprint }}">
-      <label>Notiz <input type="text" name="note" value="{{ note if failed else '' }}" autofocus></label>
-      {% if failed %}<p class="fehler">Zum Ausblenden gehört eine Notiz.</p>{% endif %}
-      <button type="submit">Ausblenden</button>
-      {% if not failed %}<button type="button" popovertarget="{{ dialog_id }}" popovertargetaction="hide">Abbrechen</button>{% endif %}
-    </form>
+    {{ ausblenden_form(finding, dialog_id, year, back, failed, note) }}
     {% endif %}
     {% set before = earlier.get(finding.identity) %}
     {% if before %}<em>war ausgeblendet: {{ before.note }} ({{ before.noted_on.strftime("%d.%m.%Y") }})</em>{% endif %}
@@ -47,19 +54,63 @@
 {% endcall %}
 {% endmacro %}
 
-{% macro hidden_list(hidden, year) %}
-{% call(group) by_severity(hidden, "finding.severity") %}
-<ul class="befunde">
+{% macro finding_table(findings, year, earlier={}, error=none, note="") %}
+{% for name in severity_order %}
+{% set group = findings | selectattr("severity.name", "equalto", name) | list %}
+{% if group %}
+{% set level = (group | first).severity %}
+{% call abschnitt("befunde-" ~ name | lower, level.value, group | length) %}
+<table class="liste felder stapel befunde-tabelle">
+  <thead><tr><th>Stufe</th><th>Befund</th><th class="aktionen"><span class="nur-vorlesen">Aktionen</span></th></tr></thead>
+  <tbody>
+  {% for finding in group %}
+  {% set failed = error == finding.identity %}
+  {% set dialog_id = "ausblenden-" ~ name | lower ~ loop.index ~ "-" ~ finding.fingerprint %}
+  {% set before = earlier.get(finding.identity) %}
+  <tr class="{{ streifen(name | lower) }}">
+    <td data-label="Stufe">{{ severity(finding.severity) }}</td>
+    <td data-label="Befund">
+      {% if finding.href %}<a href="{{ finding.href }}">{{ finding.message }}</a>{% else %}{{ finding.message }}{% endif %}
+      {% if before %}<small class="pfad">war ausgeblendet: {{ before.note }} ({{ before.noted_on.strftime("%d.%m.%Y") }})</small>{% endif %}
+      {{ ausblenden_form(finding, dialog_id, year, "", failed, note) }}
+    </td>
+    <td class="aktionen" data-label="Aktionen">{{ ib("auge-aus", "Ausblenden", popover=dialog_id) }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endcall %}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro hidden_table(hidden, year) %}
+{% for name in severity_order %}
+{% set group = hidden | selectattr("finding.severity.name", "equalto", name) | list %}
+{% if group %}
+{% set level = (group | first).finding.severity %}
+{% call abschnitt("befunde-ausgeblendet-" ~ name | lower, level.value, group | length) %}
+<table class="liste felder stapel befunde-tabelle">
+  <thead><tr><th>Stufe</th><th>Befund</th><th class="aktionen"><span class="nur-vorlesen">Aktionen</span></th></tr></thead>
+  <tbody>
   {% for item in group %}
-  <li>
-    {% if item.finding.href %}<a href="{{ item.finding.href }}">{{ item.finding.message }}</a>{% else %}{{ item.finding.message }}{% endif %}
-    <br><em>ausgeblendet: {{ item.dismissal.note }} ({{ item.dismissal.noted_on.strftime("%d.%m.%Y") }})</em>
-    {% call ib("auge", "Einblenden", action="/befunde/einblenden") %}
+  <tr class="{{ streifen(name | lower) }}">
+    <td data-label="Stufe">{{ severity(item.finding.severity) }}</td>
+    <td data-label="Befund">
+      {% if item.finding.href %}<a href="{{ item.finding.href }}">{{ item.finding.message }}</a>{% else %}{{ item.finding.message }}{% endif %}
+      <small class="pfad">ausgeblendet: {{ item.dismissal.note }} ({{ item.dismissal.noted_on.strftime("%d.%m.%Y") }})</small>
+    </td>
+    <td class="aktionen" data-label="Aktionen">
+      {% call ib("auge", "Einblenden", action="/befunde/einblenden") %}
       <input type="hidden" name="year" value="{{ year }}">
       <input type="hidden" name="id" value="{{ item.dismissal.id }}">
-    {% endcall %}
-  </li>
+      {% endcall %}
+    </td>
+  </tr>
   {% endfor %}
-</ul>
+  </tbody>
+</table>
 {% endcall %}
+{% endif %}
+{% endfor %}
 {% endmacro %}

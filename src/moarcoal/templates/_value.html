@@ -11,12 +11,12 @@
     </summary>
     <h4>Einzelposten</h4>
     {% if result.items %}
-    <table class="einzelposten">
-      <tr><th>Bezeichnung</th><th>Betrag</th><th>Fundstelle</th><th>Belegstand</th></tr>
+    <table class="liste einzelposten">
+      <thead><tr><th>Bezeichnung</th><th class="zahl">Betrag</th><th>Fundstelle</th><th>Belegstand</th></tr></thead><tbody>
       {% for item in result.items %}
       <tr>
         <td>{{ item.label }}</td>
-        <td>{{ item.amount | amount }}</td>
+        <td class="zahl">{{ item.amount | amount }}</td>
         <td>
           {% set url = entry_url(item.locator.entry_address) if item.locator.entry_address else none %}
           {% if url %}<a href="{{ url }}">{{ item.locator.label }}</a>{% else %}{{ item.locator.label }}{% endif %}
@@ -25,7 +25,7 @@
         <td>{{ belegstand(item.backing) }}</td>
       </tr>
       {% endfor %}
-    </table>
+    </tbody></table>
     {% else %}
     <p>Keine Einzelposten.</p>
     {% endif %}

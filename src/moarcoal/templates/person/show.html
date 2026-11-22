@@ -1,6 +1,9 @@
 {% extends "base.html" %}
+{% from "_ui.html" import abschnitt %}
 {% block title %}Angaben zur Person – MoarCoal{% endblock %}
 {% block main %}
 <h1>Angaben zur Person</h1>
+{% call abschnitt("person-angaben", "Angaben", none) %}
 {% with button = "Speichern", extended = true %}{% include "person/_form.html" %}{% endwith %}
+{% endcall %}
 {% endblock %}
