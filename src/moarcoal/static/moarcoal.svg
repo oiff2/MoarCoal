@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MoarCoal">
+  <!-- App-Icon, Entwurf 1 "Haufen" (gewählt, #207): mehrere Kohlestücke auf Bernstein -->
+  <rect x="2" y="2" width="60" height="60" rx="13" fill="#f0a531"/>
+  <polygon points="8,53 11,41 22,35 33,41 35,53" fill="#1c1c22"/>
+  <polygon points="11,41 22,35 24,46 15,47" fill="#5a5a66"/>
+  <polygon points="29,53 33,39 46,33 57,40 56,53" fill="#26262d"/>
+  <polygon points="33,39 46,33 44,45 36,46" fill="#5a5a66"/>
+  <polygon points="46,33 57,40 44,45" fill="#3b3b45"/>
+  <polygon points="18,35 23,21 36,14 47,22 45,36 32,41" fill="#1c1c22"/>
+  <polygon points="23,21 36,14 38,28 27,32" fill="#5a5a66"/>
+  <polygon points="36,14 47,22 38,28" fill="#3b3b45"/>
+</svg>
