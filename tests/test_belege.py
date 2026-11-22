@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from test_belege_year import section
 
 from moarcoal.documents import DocumentKind, IntakeRejected, take_in
-from moarcoal.incoming import all_site_files, hide_file, incoming_files
+from moarcoal.incoming import Incoming, all_site_files, hide_file
 from moarcoal.modules.tax_year import REGISTRATION
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.registration import ModuleRegistration
@@ -124,7 +124,7 @@ def test_list_site_files_keeps_links_inside_the_site(root: Path, site: Path) -> 
 def test_same_content_twice_is_one_file_in_the_incoming_list(root: Path, site: Path) -> None:
     (site / "kopie.html").write_bytes(FIXTURE.read_bytes())
     store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    waiting = incoming_files(all_site_files(store), store.state(), "anna")
+    waiting = Incoming(all_site_files(store), store.state(), "anna").open_files()
     assert [f.path for f in waiting] == ["2025/protokoll.html"]
 
 
@@ -523,7 +523,7 @@ def test_hiding_a_folder_takes_its_content_with_it_also_later_files(root: Path, 
     assert (entry["owner"], entry["site"], entry["path"]) == ("common", "Belege", "2024")
     (site / "2024" / "neu.txt").write_text("neu", encoding="utf-8")
     store = open_store(root, REGISTRATION.kinds, {"Belege": site})
-    waiting_files = incoming_files(all_site_files(store), store.state(), "anna")
+    waiting_files = Incoming(all_site_files(store), store.state(), "anna").open_files()
     assert sorted(f.path for f in waiting_files) == ["2025/protokoll.html", "lose.txt"]
     page = main_of(client, "/belege")
     assert "auszug.txt" not in page and "neu.txt" not in page

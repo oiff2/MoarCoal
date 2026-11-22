@@ -87,7 +87,7 @@
     {% else %}<p class="hinweis">Kein Jahresordner für {{ year }}.</p>{% endif %}
     {% if new.files() %}
     <form class="alle-aufnehmen" method="post" action="{{ keep_filter('/belege/alle-aufnehmen') }}">
-      {% for row in new.files() %}<input type="hidden" name="sha256" value="{{ row.file.sha256 }}">{% endfor %}
+      {% for row in new.files() %}<input type="hidden" name="site" value="{{ row.file.site }}"><input type="hidden" name="path" value="{{ row.file.path }}"><input type="hidden" name="sha256" value="{{ row.file.sha256 }}">{% endfor %}
       <button type="submit">alle neuen aufnehmen ({{ new.files() | length }})</button>
       <small>Die Art wird danach je Beleg gesetzt. Es folgen keine Claude-Aufrufe.</small>
     </form>

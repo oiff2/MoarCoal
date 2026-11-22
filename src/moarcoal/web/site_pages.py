@@ -1,19 +1,26 @@
 """Seite „Belege <Jahr>“: neue Dateien, Erwartete Belege und aufgenommene Belege des gewählten
 Jahrs, dazu Aufnehmen und Ausblenden der Dateien (Abschnitt Neu)."""
 
+from itertools import zip_longest
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import year_of
-from moarcoal.documents import IntakeRejected, read_document_choice, take_in, take_in_all
+from moarcoal.documents import (
+    CHANGED_SINCE_SHOWN,
+    IntakeRejected,
+    read_document_choice,
+    take_in,
+    take_in_all,
+)
 from moarcoal.incoming import (
+    Unavailable,
     all_site_files,
     folder_path_error,
     hide_file,
     hide_folder,
-    incoming_files,
     unhide,
 )
 from moarcoal.prefill import Prefill, prefill_from_name
@@ -34,6 +41,7 @@ from moarcoal.web.helpers import (
     form_fields,
     form_lists,
     global_year,
+    incoming_of,
     rejection_text,
     render,
     search_of,
@@ -68,6 +76,13 @@ type Fields = dict[str, str]
 GONE = "Die Datei ist nicht mehr in der Ablage."
 """Meldung, wenn die gewählte Datei nicht mehr offen ist (aufgenommen, ausgeblendet, fort)."""
 
+UNAVAILABLE = {
+    Unavailable.MISSING: GONE,
+    Unavailable.CHANGED: CHANGED_SINCE_SHOWN,
+    Unavailable.NOT_OPEN: "Die Datei ist nicht mehr im Eingang.",
+}
+"""Warum eine beim „Alle aufnehmen“ angezeigte Datei übersprungen wird."""
+
 
 def document_detail(
     request: Request, document: Document, issuer_text: str = "", year: str = ""
@@ -98,9 +113,7 @@ def document_detail(
 
 def _open_file(request: Request, sha256: str) -> SiteFile | None:
     """Die Datei mit diesem SHA-256 im Eingang des Nutzers (aller Ablageorte)."""
-    store = store_of(request)
-    files = incoming_files(all_site_files(store), store.state(), user_of(request))
-    return next((f for f in files if f.sha256 == sha256), None)
+    return next((f for f in incoming_of(request).open_files() if f.sha256 == sha256), None)
 
 
 def belege_page(
@@ -133,9 +146,9 @@ def belege_page(
     linked = linked or Prefill()
     search = search_of(request)
     year = linked.year or global_year(request)
-    files = all_site_files(store)
-    open_files = incoming_files(files, state, user)
-    whole_new = new_section(files, store.sites, state, user, year)
+    incoming = incoming_of(request)
+    open_files = incoming.open_files()
+    whole_new = new_section(incoming, store.sites, state, user, year)
     new = filter_new(whole_new, search)
     kinds = document_kinds(request)
     chosen = next((f for f in open_files if f.sha256 == selected), None)
@@ -215,7 +228,7 @@ def _after(request: Request, sha256: str) -> RedirectResponse | None:
     """Weiter zur nächsten Datei des Abschnitts Neu nach `sha256`; ohne weitere `None`."""
     store = store_of(request)
     new = new_section(
-        all_site_files(store), store.sites, store.state(), user_of(request), global_year(request)
+        incoming_of(request), store.sites, store.state(), user_of(request), global_year(request)
     )
     following = next_open([f.file.sha256 for f in new.files()], sha256)
     if following is None:
@@ -320,20 +333,30 @@ def take_in_all_files(
     wird übersprungen und gemeldet."""
     store = store_of(request)
     user = user_of(request)
-    open_files = {f.sha256: f for f in incoming_files(all_site_files(store), store.state(), user)}
-    shas = list(dict.fromkeys(lists.get("sha256", [])))
-    wanted = [(f.site, f.path, f.sha256) for sha in shas if (f := open_files.get(sha))]
-    gone = len(shas) - len(wanted)
+    incoming = incoming_of(request)
+    shown = dict.fromkeys(
+        zip_longest(
+            lists.get("site", []), lists.get("path", []), lists.get("sha256", []), fillvalue=""
+        )
+    )
+    wanted: list[SiteFile] = []
+    skipped: list[str] = []
+    for site, path, sha256 in shown:
+        found = incoming.resolve(site, path, sha256)
+        if isinstance(found, Unavailable):
+            skipped.append(f"{path}: {UNAVAILABLE[found]}")
+        else:
+            wanted.append(found)
+    if not wanted:
+        return belege_page(request, 409, " ".join(skipped) or GONE)
     result = take_in_all(store, user, wanted)
     if isinstance(result, IntakeRejected):
-        return belege_page(request, 409, " ".join(result.reasons) if wanted else GONE)
-    skipped = [f"{path}: {reason}" for path, reason in result.skipped]
-    if not skipped and not gone:
+        return belege_page(request, 409, " ".join([*skipped, *result.reasons]))
+    skipped += [f"{file.path}: {reason}" for file, reason in result.skipped]
+    if not skipped:
         return _back(request)
     count = len(result.taken)
     notice = f"{count} Beleg aufgenommen." if count == 1 else f"{count} Belege aufgenommen."
-    if gone:
-        notice += f" {gone} nicht mehr in der Ablage, übersprungen."
     if skipped:
         notice += " Übersprungen: " + "; ".join(skipped)
     return belege_page(request, 200, notice)
