@@ -1,6 +1,6 @@
 # MoarCoal
 
-Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is done; the Durchstich (#27), Abschnitt 2 (#46), the content map (#61, incl. Abschnitt 3 / Anlage N) and the UI/tidy-up map (#129) are built. New content gets its own Wayfinder map. Docs and app text in German; code and identifiers in English.
+Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is done; the Durchstich (#27), Abschnitt 2 (#46), the content map (#61, incl. Abschnitt 3 / Anlage N) the UI/tidy-up map (#129) and the architecture map (#215) are built. New content gets its own Wayfinder map. Docs and app text in German; code and identifiers in English.
 
 ## Where things are
 
@@ -8,7 +8,7 @@ Personal finance app (taxes/ELSTER, receipts, real estate). Scaffold spec is don
 - `PRINCIPLES.md`: architecture principles. Every change keeps them; read them before you build, and ask instead of breaking one.
 - `docs/adr/`: architecture decisions. Read the ones that touch your area before you change anything.
 - `docs/grundgeruest.md`: architecture spec of the scaffold (Datenebene, Module, contract, storage), merged from the map. Start here before building.
-- [Wayfinder-Karte: Architektur vertiefen #215](https://github.com/oiff2/MoarCoal/issues/215) (open): deep modules for year membership of documents, Eingang classification, field row and field table of an Anlage. Read it before changing `documents.py`, `incoming.py`, `web/site_view.py`, the field/page code in `modules/tax_year/` or `work/wage_tax/values.py`. Code-review leftovers #222–#230 wait until it is done.
+- [Wayfinder-Karte: Architektur vertiefen #215](https://github.com/oiff2/MoarCoal/issues/215) (closed): deep modules for year membership of documents (`belongs_to_year`), Eingang classification (`Incoming`), field kind and field row of an Anlage (`FieldMeaning`, `anlage_view`) and the lines of the Lohnsteuerbescheinigung (`CERTIFICATE_LINES`). Its Decisions list is the index to why `documents.py`, `incoming.py`, the field/page code in `modules/tax_year/` and `work/wage_tax/values.py` are shaped this way. Its code-review leftovers (#222–#230) are triaged.
 - [Wayfinder-Karte: Oberfläche bauen und Module aufräumen #129](https://github.com/oiff2/MoarCoal/issues/129): UI frame (header, sidebar, light/dark, status language), module cut (a module is what a user switches off as a whole; one page per module, Steuerjahr mirrors Mein ELSTER), write-path rules in `apply`, duplicate logic removed. Its Decisions list is the index to why the code is shaped this way.
 - [Wayfinder-Karte: Inhalte nach dem Durchstich #61](https://github.com/oiff2/MoarCoal/issues/61) (closed): global UI prototype, Belege page, Aussteller, Steuerjahr Anlage N with Abschnitt 3. Abschnitt 2 ([#46](https://github.com/oiff2/MoarCoal/issues/46)) and the Durchstich ([#27](https://github.com/oiff2/MoarCoal/issues/27)) are done.
 - [Wayfinder-Karte: Grundgerüst MoarCoal](https://github.com/oiff2/MoarCoal/issues/1) (closed): decisions behind the spec, one sub-issue per design question.
