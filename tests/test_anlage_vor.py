@@ -61,9 +61,11 @@ def test_no_vor_field_laut_lohnsteuerbescheinigung_is_left_open() -> None:
     open_fields = {
         f.elster_id for f in FIELDS if not f.computed and "Lohnsteuerbescheinigung" in f.label
     }
-    assert open_fields == set()
+    # Zeile 5 (berufsständische Versorgung) nennt Nr. 22 b nur als Abzug; der Beitrag selbst
+    # kommt aus dem Modul Vorsorge.
+    assert open_fields == {"E2000501"}
 
 
 def test_pages_follow_mein_elster() -> None:
     pages = form_pages(STRUCTURE, FIELDS)
-    assert [p.slug for p in pages] == ["1", "2", "3", "5", "7"]
+    assert [p.slug for p in pages] == ["1", "2", "3", "5", "7", "8"]
