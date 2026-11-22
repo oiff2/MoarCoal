@@ -33,13 +33,20 @@ def site_url(
     query: str = "",
     types: Iterable[str] = (),
     file: str | None = None,
+    document: str | None = None,
 ) -> str:
     """Die Belege-Seite; mit `document_kind` (Schlüssel einer angemeldeten Dokumentart) und `year`
     ist das Aufnehmen-Formular so vorbelegt, und die Seite zeigt dieses Jahr. `query` (Suche) und
-    `types` (Werte der Dateitypen) sind Suche und Filter der Seite."""
+    `types` (Werte der Dateitypen) sind Suche und Filter der Seite; `file` (SHA-256) wählt eine
+    Datei, `document` (Kennung) ein Dokument."""
     pairs = [
         (name, value)
-        for name, value in (("dokumentart", document_kind), ("jahr", year), ("datei", file))
+        for name, value in (
+            ("dokument", document),
+            ("datei", file),
+            ("dokumentart", document_kind),
+            ("jahr", year),
+        )
         if value is not None
     ]
     pairs.extend(_filter_pairs(query, types))
@@ -64,7 +71,7 @@ def site_file_url(sha256: str) -> str:
 
 def document_url(document_id: str) -> str:
     """Die Adresse eines Dokuments: die Belege-Seite, das Dokument gewählt."""
-    return f"/belege?dokument={document_id}"
+    return site_url(document=document_id)
 
 
 def document_file_url(document_id: str) -> str:
@@ -76,6 +83,11 @@ def expected_documents_url(expected_id: str | None = None) -> str:
     """Der Abschnitt Erwartete Belege der Belege-Seite; mit `expected_id` die Seite, auf der man
     den Erwarteten Beleg ändert."""
     return "/belege#erwartet" if expected_id is None else f"/belege/erwartet/{expected_id}"
+
+
+def findings_url(year: int, *, hidden: bool = False) -> str:
+    """Die Befunde-Seite eines Jahrs; mit `hidden` zeigt sie auch die ausgeblendeten Befunde."""
+    return f"/befunde?{urlencode([('year', year), *([('ausgeblendet', 1)] if hidden else [])])}"
 
 
 def issuers_url() -> str:

@@ -34,7 +34,7 @@
     </form>
     {% set summary = findings_summary() %}
     {% set plural = {"Fehler": "Fehler", "Warnung": "Warnungen", "Hinweis": "Hinweise"} %}
-    <a class="befunde-kopf" href="/befunde?year={{ summary.year }}" title="Befunde {{ summary.year }}{% if summary.top %}: {{ summary.top.message }}{% endif %}">
+    <a class="befunde-kopf" href="{{ findings_url(summary.year) }}" title="Befunde {{ summary.year }}{% if summary.top %}: {{ summary.top.message }}{% endif %}">
       {% for severity, n in summary.counts.items() if n %}{{ status_severity(severity, n ~ " " ~ (severity.value if n == 1 else plural[severity.value])) }}{% else %}<span class="keine">Keine Befunde</span>{% endfor %}
       {% if summary.top %}<span class="wichtigster">{{ summary.top.message }}</span>{% endif %}
     </a>

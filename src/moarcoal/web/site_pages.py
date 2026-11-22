@@ -195,7 +195,6 @@ def belege_page(
         selected=chosen,
         linked=linked,
         linked_kind=kinds[linked.kind] if linked.kind else None,
-        carry=_carry(linked),
         selected_document=document,
         detail=document_detail(request, document, issuer_text, year_text) if document else None,
         selected_hidden=hidden_chosen,
@@ -242,12 +241,6 @@ def _linked(request: Request, dokumentart: str, jahr: str) -> Prefill:
     nicht."""
     kind = dokumentart if dokumentart in document_kinds(request) else None
     return Prefill(year=year_of(jahr, in_range=True), kind=kind)
-
-
-def _carry(linked: Prefill) -> str:
-    """Die Vorbelegung als Anhang der Adresse einer Datei, damit sie beim Wählen bleibt."""
-    query = site_url(document_kind=linked.kind, year=linked.year).partition("?")[2]
-    return f"&{query}" if query else ""
 
 
 @router.get("", response_class=HTMLResponse)

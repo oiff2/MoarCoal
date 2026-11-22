@@ -9,9 +9,9 @@
 {% set file = row.file %}
 <div class="datei" title="{{ file.site }}/{{ file.path }}">
   {{ dateityp(file.path) }}
-  <a class="name" href="{{ keep_filter('/belege?datei=' ~ file.sha256 ~ carry) }}"{% if selected and selected.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
+  <a class="name" href="{{ keep_filter(site_url(file=file.sha256, document_kind=linked.kind, year=linked.year)) }}"{% if selected and selected.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>
   <span class="ordner-name">{{ row.folder }}{% if row.folder %} {{ hide_button(keep_filter('/belege/ausblenden-direkt'), site=site, path=row.folder) }}{% endif %}</span>
-  <a class="aktion" href="{{ keep_filter('/belege?datei=' ~ file.sha256 ~ carry) }}">aufnehmen</a>
+  <a class="aktion" href="{{ keep_filter(site_url(file=file.sha256, document_kind=linked.kind, year=linked.year)) }}">aufnehmen</a>
   <a class="aktion" href="{{ row.preview_url }}" target="_blank" rel="noopener">öffnen</a>
   {{ hide_button(keep_filter('/belege/ausblenden-direkt'), sha256=file.sha256) }}
 </div>
@@ -113,7 +113,7 @@
       {% for row in new.hidden_files %}{% set entry, file = row.entry, row.file %}
       <div class="datei" title="{{ entry.site }}/{{ entry.path }}">
         {{ dateityp(entry.path) }}
-        <a class="name" href="{{ keep_filter('/belege?datei=' ~ entry.sha256) }}"{% if selected_hidden and selected_hidden.entry.sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a>
+        <a class="name" href="{{ keep_filter(site_url(file=entry.sha256)) }}"{% if selected_hidden and selected_hidden.entry.sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a>
         <span class="stand">ausgeblendet</span>
       </div>
       {% endfor %}
@@ -158,7 +158,7 @@
       <span class="art">{{ row.kind }}</span>
       <a title="Einträge mit diesem Beleg" class="eintraege" href="{{ keep_filter(entry_url(doc.address)) }}">{{ row.entries }}</a>
       <span class="stand">{{ row.state }}</span>
-      {% if row.findings %}<div class="hinweise">{{ finding_list(row.findings, year=year, scope=doc.id ~ "-", back=keep_filter("/belege?dokument=" ~ doc.id ~ "&jahr=" ~ year)) }}</div>{% endif %}
+      {% if row.findings %}<div class="hinweise">{{ finding_list(row.findings, year=year, scope=doc.id ~ "-", back=keep_filter(site_url(document=doc.id, year=year))) }}</div>{% endif %}
     </div>
     {% else %}
     <p>Für {{ year }} ist noch kein Beleg aufgenommen.</p>

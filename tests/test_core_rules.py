@@ -329,3 +329,31 @@ def test_every_kind_that_points_at_a_document_has_a_label(tmp_path: Path) -> Non
     kinds = [k for k in all_kinds() if not k.__subclasses__()]  # ohne Basen wie `ReadInEntry`
     pointing = [k.__name__ for k in kinds if "document" in k.model_fields]
     assert pointing and [name for name in pointing if name not in labels] == []
+
+
+HAND_BUILT_ADDRESS = re.compile(r"""["'](?:f["'])?/(?:belege|befunde)\?""")
+
+
+def hand_built_addresses(root: Path = SRC) -> list[str]:
+    """Dateien (Python und Vorlagen), die eine Adresse auf `/belege` oder `/befunde` mit Abfrage
+    selbst bauen; die baut allein `web/links.py`."""
+    files = [*root.rglob("*.py"), *root.rglob("*.html")]
+    return sorted(
+        p.relative_to(root).as_posix()
+        for p in files
+        if p.relative_to(root).as_posix() != "web/links.py"
+        and HAND_BUILT_ADDRESS.search(p.read_text("utf-8"))
+    )
+
+
+def test_every_belege_and_befunde_address_comes_from_links() -> None:
+    assert hand_built_addresses() == []
+
+
+def test_the_address_check_fails_on_a_hand_built_address(tmp_path: Path) -> None:
+    (tmp_path / "web").mkdir()
+    (tmp_path / "web" / "links.py").write_text('url = "/belege?datei=x"\n', "utf-8")
+    (tmp_path / "page.py").write_text('url = f"/befunde?year={y}"\n', "utf-8")
+    (tmp_path / "page.html").write_text("""{{ keep_filter('/belege?datei=' ~ x) }}""", "utf-8")
+    (tmp_path / "fine.html").write_text('<a href="/belege">Belege</a>', "utf-8")
+    assert hand_built_addresses(tmp_path) == ["page.html", "page.py"]

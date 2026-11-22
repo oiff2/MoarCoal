@@ -14,7 +14,7 @@
 <h2>Ausgeblendet</h2>
 <p>
   {{ found.hidden | length }} Befund(e) ausgeblendet{% if found.hidden_errors %}, darunter {{ found.hidden_errors }} Fehler{% endif %}.
-  {% if show_hidden %}<a href="/befunde?year={{ year }}">Verbergen</a>{% else %}<a href="/befunde?year={{ year }}&amp;ausgeblendet=1">Anzeigen</a>{% endif %}
+  {% if show_hidden %}<a href="{{ findings_url(year) }}">Verbergen</a>{% else %}<a href="{{ findings_url(year, hidden=True) }}">Anzeigen</a>{% endif %}
 </p>
 {% if show_hidden %}{{ hidden_list(found.hidden, year) }}{% endif %}
 {% endif %}
