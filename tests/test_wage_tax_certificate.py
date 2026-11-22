@@ -42,6 +42,7 @@ from moarcoal.modules.work.wage_tax.reading import READER_VERSION, read_in_wage_
 from moarcoal.modules.work.wage_tax.values import (
     BENEFITS_FLAT_TAXED,
     BENEFITS_TAX_FREE,
+    CERTIFICATE_LINES,
     EMPLOYEE_CARE,
     EMPLOYEE_HEALTH,
     SUBSIDY_PUBLIC_HEALTH,
@@ -610,3 +611,25 @@ def test_vor_nr_24_a_25_26_without_certificate_are_not_yet_computable(store: Sto
     values = evaluate(MODULES, entries(store))
     for key in FIELDS_VOR_NOT_CERTIFIED:
         assert isinstance(values.get(key, USER, YEAR), NotYetComputable)
+
+
+def test_every_certificate_line_has_a_catalog_value_and_an_overview_row(
+    tmp_path: Path, site: Path
+) -> None:
+    """Eine Zeile der Bescheinigung steht einmal in `CERTIFICATE_LINES`; Wertekatalog und Übersicht
+    folgen daraus."""
+    catalog_keys = {d.entry.key for r in MODULES if r.key == "work" for d in r.values}
+    assert len({line.key for line in CERTIFICATE_LINES}) == len(CERTIFICATE_LINES)
+    assert {line.key for line in CERTIFICATE_LINES} <= catalog_keys
+
+    root = tmp_path / "app"
+    sites = root / "common" / "sites.json"
+    sites.parent.mkdir(parents=True)
+    sites.write_text(
+        json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
+    )
+    app = make_app(4711, root, user=USER)
+    page = page_client(app).get("/arbeit?jahr=2025").text
+    section = page.split("<h2>Lohnsteuerbescheinigung</h2>", 1)[1].split("</section>", 1)[0]
+    for line in CERTIFICATE_LINES:
+        assert f"{line.overview_label}:" in section

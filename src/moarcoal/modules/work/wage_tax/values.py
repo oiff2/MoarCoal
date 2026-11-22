@@ -1,6 +1,6 @@
 """Ausgewiesene Werte der Lohnsteuerbescheinigung: genau wie eingelesen, nie geraten."""
 
-from collections.abc import Callable
+from dataclasses import dataclass
 
 from moarcoal.modules.work.wage_tax.entries import WageTaxCertificate
 from moarcoal.modules.work.wage_tax.reading import READER_VERSION
@@ -87,9 +87,6 @@ def _certified(
     return calculation.step(f"{label} laut Lohnsteuerbescheinigung", amount)
 
 
-_NO_EMPLOYER_BENEFIT = "der Arbeitgeber hat dafür nichts geleistet"  # Nr. 17 und 18
-
-
 def _not_certified(
     calculation: Calculation, number: str, key: str, label: str, reason: str
 ) -> Amount:
@@ -106,228 +103,185 @@ def _not_certified(
     return calculation.step(f"{label} laut Lohnsteuerbescheinigung", zero)
 
 
-def compute_benefits_tax_free(calculation: Calculation) -> Amount:
-    return _not_certified(
-        calculation,
-        "17",
-        "employer_benefits_tax_free",
-        "Arbeitgeberleistungen, steuerfrei",
-        _NO_EMPLOYER_BENEFIT,
-    )
+_NO_EMPLOYER_BENEFIT = "der Arbeitgeber hat dafür nichts geleistet"  # Nr. 17 und 18
 
 
-def compute_benefits_flat_taxed(calculation: Calculation) -> Amount:
-    return _not_certified(
-        calculation,
-        "18",
-        "employer_benefits_flat_taxed",
-        "Arbeitgeberleistungen, pauschal besteuert",
-        _NO_EMPLOYER_BENEFIT,
-    )
+@dataclass(frozen=True)
+class CertificateLine:
+    """Eine Zeile der Lohnsteuerbescheinigung, genau einmal beschrieben (Code: `CertificateLine`).
 
+    `field` ist die Angabe im Eintrag (`WageTaxCertificate`) und bei einer nicht bescheinigten
+    Zeile der Feldschlüssel der Fundstelle. Mit `reason` ist die Zeile eine, die in keiner
+    Bescheinigung vorkam (Nr. 17, 18, 24 a, 25, 26): ohne unbekannte Pfade 0 € mit dieser
+    Begründung; ohne `reason` wird die Angabe gelesen. `since` ist die Fassung der Einlese-Regel,
+    ab der sie gelesen wird; `open_b`: Nr. xx b könnte einen eigenen, unbekannten Pfad haben.
+    Beschreibung, Kurzname und Zeile der Übersicht ergeben sich aus Bezeichnung und Nr., wenn sie
+    nicht ausdrücklich stehen.
+    """
 
-def compute_subsidy_public_health(calculation: Calculation) -> Amount:
-    return _not_certified(
-        calculation,
-        "24 a",
-        "subsidy_public_health",
-        "Zuschuss zur gesetzlichen Krankenversicherung",
-        "kein Zuschuss zur gesetzlichen Krankenversicherung",
-    )
+    key: ValueKey
+    field: str
+    label: str
+    number: str = ""
+    unit: Unit = Unit.EUR
+    reason: str = ""
+    since: int = 1
+    open_b: bool = False
+    description: str = ""
+    short_label: str = ""
+    overview: str = ""
 
-
-def compute_employee_health(calculation: Calculation) -> Amount:
-    return _not_certified(
-        calculation,
-        "25",
-        "employee_health_insurance",
-        "Beiträge zur gesetzlichen Krankenversicherung",
-        "keine Beiträge zur gesetzlichen Krankenversicherung",
-    )
-
-
-def compute_employee_care(calculation: Calculation) -> Amount:
-    return _not_certified(
-        calculation,
-        "26",
-        "employee_care_insurance",
-        "Beiträge zur sozialen Pflegeversicherung",
-        "keine Beiträge zur sozialen Pflegeversicherung",
-    )
-
-
-def compute_tax_class(calculation: Calculation) -> Amount:
-    return _certified(calculation, "tax_class", "Steuerklasse", Unit.TAX_CLASS)
-
-
-def compute_gross_wages(calculation: Calculation) -> Amount:
-    return _certified(calculation, "gross_wages_cents", "Bruttoarbeitslohn", Unit.EUR)
-
-
-def compute_income_tax(calculation: Calculation) -> Amount:
-    return _certified(calculation, "income_tax_cents", "Lohnsteuer", Unit.EUR)
-
-
-def compute_soli(calculation: Calculation) -> Amount:
-    return _certified(calculation, "soli_cents", "Solidaritätszuschlag", Unit.EUR)
-
-
-def _vorsorge(
-    key: str, label: str, number: str, *, open_b: bool
-) -> Callable[[Calculation], Amount]:
-    """Der Betrag laut Nr. `number`; `open_b`: Nr. xx b könnte einen eigenen, unbekannten Pfad
-    haben (22 und 23 nennen a und b zusammen)."""
-
-    def compute(calculation: Calculation) -> Amount:
-        return _certified(
-            calculation,
-            key,
-            label,
-            Unit.EUR,
-            since=VORSORGE_SINCE,
-            open_number=number if open_b else "",
+    @property
+    def description_text(self) -> str:
+        return (
+            self.description or f"{self.label} laut Nr. {self.number} der Lohnsteuerbescheinigung"
         )
 
-    return compute
+    @property
+    def short_text(self) -> str:
+        return self.short_label or f"{self.label} (Nr. {self.number})"
+
+    @property
+    def overview_label(self) -> str:
+        return self.overview or self.short_text
+
+    def compute(self, calculation: Calculation) -> Amount:
+        if self.reason:
+            return _not_certified(calculation, self.number, self.field, self.label, self.reason)
+        return _certified(
+            calculation,
+            self.field,
+            self.label,
+            self.unit,
+            since=self.since,
+            open_number=self.number if self.open_b else "",
+        )
 
 
-# Schlüssel, Angabe im Eintrag, Bezeichnung, Nr.; ob die Nr. einen b-Teil mit unbekanntem Pfad hat
-VORSORGE_VALUES: tuple[tuple[ValueKey, str, str, str, bool], ...] = (
-    (
+# Reihenfolge wie im Wertekatalog und in der Übersicht der Seite Arbeit
+CERTIFICATE_LINES: tuple[CertificateLine, ...] = (
+    CertificateLine(
+        TAX_CLASS,
+        "tax_class",
+        "Steuerklasse",
+        unit=Unit.TAX_CLASS,
+        description="Steuerklasse laut Lohnsteuerbescheinigung",
+        short_label="Steuerklasse",
+    ),
+    CertificateLine(
+        GROSS_WAGES,
+        "gross_wages_cents",
+        "Bruttoarbeitslohn",
+        description="Bruttoarbeitslohn laut Lohnsteuerbescheinigung",
+        short_label="Bruttoarbeitslohn",
+    ),
+    CertificateLine(
+        INCOME_TAX_WITHHELD,
+        "income_tax_cents",
+        "Lohnsteuer",
+        description="Einbehaltene Lohnsteuer laut Lohnsteuerbescheinigung",
+        short_label="Einbehaltene Lohnsteuer",
+        overview="Lohnsteuer",
+    ),
+    CertificateLine(
+        SOLI_WITHHELD,
+        "soli_cents",
+        "Solidaritätszuschlag",
+        description="Einbehaltener Solidaritätszuschlag laut Lohnsteuerbescheinigung",
+        short_label="Einbehaltener Solidaritätszuschlag",
+        overview="Solidaritätszuschlag",
+    ),
+    CertificateLine(
+        BENEFITS_TAX_FREE,
+        "employer_benefits_tax_free",
+        "Arbeitgeberleistungen, steuerfrei",
+        "17",
+        reason=_NO_EMPLOYER_BENEFIT,
+        description=(
+            "Arbeitgeberleistungen laut Nr. 17 der Lohnsteuerbescheinigung (steuerfrei ersetzt)"
+        ),
+        short_label="Arbeitgeberleistungen, steuerfrei ersetzt (Nr. 17)",
+        overview="Arbeitgeberleistungen steuerfrei (Nr. 17)",
+    ),
+    CertificateLine(
+        BENEFITS_FLAT_TAXED,
+        "employer_benefits_flat_taxed",
+        "Arbeitgeberleistungen, pauschal besteuert",
+        "18",
+        reason=_NO_EMPLOYER_BENEFIT,
+        description=(
+            "Arbeitgeberleistungen laut Nr. 18 der Lohnsteuerbescheinigung (pauschal besteuert)"
+        ),
+        overview="Arbeitgeberleistungen pauschal besteuert (Nr. 18)",
+    ),
+    CertificateLine(
+        SUBSIDY_PUBLIC_HEALTH,
+        "subsidy_public_health",
+        "Zuschuss zur gesetzlichen Krankenversicherung",
+        "24 a",
+        reason="kein Zuschuss zur gesetzlichen Krankenversicherung",
+        short_label="Zuschuss gesetzliche Krankenversicherung (Nr. 24 a)",
+    ),
+    CertificateLine(
+        EMPLOYEE_HEALTH,
+        "employee_health_insurance",
+        "Beiträge zur gesetzlichen Krankenversicherung",
+        "25",
+        reason="keine Beiträge zur gesetzlichen Krankenversicherung",
+        short_label="Beiträge gesetzliche Krankenversicherung (Nr. 25)",
+    ),
+    CertificateLine(
+        EMPLOYEE_CARE,
+        "employee_care_insurance",
+        "Beiträge zur sozialen Pflegeversicherung",
+        "26",
+        reason="keine Beiträge zur sozialen Pflegeversicherung",
+        short_label="Beiträge soziale Pflegeversicherung (Nr. 26)",
+    ),
+    CertificateLine(
         EMPLOYER_PENSION,
         "employer_pension_cents",
         "Arbeitgeberanteil Rentenversicherung",
         "22 a/b",
-        True,
+        since=VORSORGE_SINCE,
+        open_b=True,
     ),
-    (
+    CertificateLine(
         EMPLOYEE_PENSION,
         "employee_pension_cents",
         "Arbeitnehmeranteil Rentenversicherung",
         "23 a/b",
-        True,
+        since=VORSORGE_SINCE,
+        open_b=True,
     ),
-    (
+    CertificateLine(
         SUBSIDY_PRIVATE_HEALTH,
         "subsidy_private_health_cents",
         "Zuschuss private Krankenversicherung",
         "24 b",
-        False,
+        since=VORSORGE_SINCE,
     ),
-    (SUBSIDY_CARE, "subsidy_care_cents", "Zuschuss gesetzliche Pflegeversicherung", "24 c", False),
-    (
+    CertificateLine(
+        SUBSIDY_CARE,
+        "subsidy_care_cents",
+        "Zuschuss gesetzliche Pflegeversicherung",
+        "24 c",
+        since=VORSORGE_SINCE,
+    ),
+    CertificateLine(
         UNEMPLOYMENT,
         "unemployment_cents",
         "Arbeitnehmerbeitrag Arbeitslosenversicherung",
         "27",
-        False,
+        since=VORSORGE_SINCE,
     ),
 )
 
 
-VALUES: tuple[ValueDefinition, ...] = (
+VALUES: tuple[ValueDefinition, ...] = tuple(
     ValueDefinition(
-        CatalogEntry(
-            TAX_CLASS,
-            "Steuerklasse laut Lohnsteuerbescheinigung",
-            "Steuerklasse",
-            Unit.TAX_CLASS,
-            TimeKind.PERIOD,
-        ),
-        compute_tax_class,
-    ),
-    ValueDefinition(
-        CatalogEntry(
-            GROSS_WAGES,
-            "Bruttoarbeitslohn laut Lohnsteuerbescheinigung",
-            "Bruttoarbeitslohn",
-            Unit.EUR,
-            TimeKind.PERIOD,
-        ),
-        compute_gross_wages,
-    ),
-    ValueDefinition(
-        CatalogEntry(
-            INCOME_TAX_WITHHELD,
-            "Einbehaltene Lohnsteuer laut Lohnsteuerbescheinigung",
-            "Einbehaltene Lohnsteuer",
-            Unit.EUR,
-            TimeKind.PERIOD,
-        ),
-        compute_income_tax,
-    ),
-    ValueDefinition(
-        CatalogEntry(
-            SOLI_WITHHELD,
-            "Einbehaltener Solidaritätszuschlag laut Lohnsteuerbescheinigung",
-            "Einbehaltener Solidaritätszuschlag",
-            Unit.EUR,
-            TimeKind.PERIOD,
-        ),
-        compute_soli,
-    ),
-    ValueDefinition(
-        CatalogEntry(
-            BENEFITS_TAX_FREE,
-            "Arbeitgeberleistungen laut Nr. 17 der Lohnsteuerbescheinigung (steuerfrei ersetzt)",
-            "Arbeitgeberleistungen, steuerfrei ersetzt (Nr. 17)",
-            Unit.EUR,
-            TimeKind.PERIOD,
-        ),
-        compute_benefits_tax_free,
-    ),
-    ValueDefinition(
-        CatalogEntry(
-            BENEFITS_FLAT_TAXED,
-            "Arbeitgeberleistungen laut Nr. 18 der Lohnsteuerbescheinigung (pauschal besteuert)",
-            "Arbeitgeberleistungen, pauschal besteuert (Nr. 18)",
-            Unit.EUR,
-            TimeKind.PERIOD,
-        ),
-        compute_benefits_flat_taxed,
-    ),
-    ValueDefinition(
-        CatalogEntry(
-            SUBSIDY_PUBLIC_HEALTH,
-            "Zuschuss zur gesetzlichen Krankenversicherung laut Nr. 24 a der "
-            "Lohnsteuerbescheinigung",
-            "Zuschuss gesetzliche Krankenversicherung (Nr. 24 a)",
-            Unit.EUR,
-            TimeKind.PERIOD,
-        ),
-        compute_subsidy_public_health,
-    ),
-    ValueDefinition(
-        CatalogEntry(
-            EMPLOYEE_HEALTH,
-            "Beiträge zur gesetzlichen Krankenversicherung laut Nr. 25 der Lohnsteuerbescheinigung",
-            "Beiträge gesetzliche Krankenversicherung (Nr. 25)",
-            Unit.EUR,
-            TimeKind.PERIOD,
-        ),
-        compute_employee_health,
-    ),
-    ValueDefinition(
-        CatalogEntry(
-            EMPLOYEE_CARE,
-            "Beiträge zur sozialen Pflegeversicherung laut Nr. 26 der Lohnsteuerbescheinigung",
-            "Beiträge soziale Pflegeversicherung (Nr. 26)",
-            Unit.EUR,
-            TimeKind.PERIOD,
-        ),
-        compute_employee_care,
-    ),
-    *(
-        ValueDefinition(
-            CatalogEntry(
-                key,
-                f"{label} laut Nr. {number} der Lohnsteuerbescheinigung",
-                f"{label} (Nr. {number})",
-                Unit.EUR,
-                TimeKind.PERIOD,
-            ),
-            _vorsorge(field, label, number, open_b=open_b),
-        )
-        for key, field, label, number, open_b in VORSORGE_VALUES
-    ),
+        CatalogEntry(line.key, line.description_text, line.short_text, line.unit, TimeKind.PERIOD),
+        line.compute,
+    )
+    for line in CERTIFICATE_LINES
 )
