@@ -167,7 +167,7 @@ table.felder tr.zwischenkopf th { padding-top: var(--abstand-5); color: var(--te
 .gegenproben .seite { opacity: 0.7; }
 .gegenproben .text { flex-basis: 100%; opacity: 0.85; }
 /* Persönliche Bearbeitungsnotiz: kein Feld des Vordrucks, darum abgesetzt */
-.notiz-kasten { margin: var(--abstand-3) 0 var(--abstand-3) var(--abstand-5); padding: var(--abstand-3) var(--abstand-4); border: var(--linienstaerke) dashed var(--akzent); border-left: var(--balken) solid var(--akzent); border-radius: var(--radius-gross); background: var(--akzent-weich); }
+.notiz-kasten { margin: var(--abstand-2) 0; padding: var(--abstand-3) var(--abstand-4); border: var(--linienstaerke) dashed var(--akzent); border-left: var(--balken) solid var(--akzent); border-radius: var(--radius-gross); background: var(--akzent-weich); }
 .notiz { white-space: pre-wrap; }
 
 /* Tabelle der Reisekosten: Begründung gedämpft unter dem Posten */

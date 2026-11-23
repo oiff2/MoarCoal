@@ -135,7 +135,7 @@ def test_form_without_a_stored_structure_gets_one_from_the_protocol(tmp_path: Pa
     assert "aus dem Übertragungsprotokoll 2025 abgeleitet" in page
     assert "Feld KAP" in page and "Z. 7</span>" in page and 'title="E0900005"' in page
     assert "Laut Protokoll" in page and "5,00" in page
-    assert "wird noch nicht berechnet" in page
+    assert "wird noch nicht berechnet" not in page  # die Einleitung sagt es für die ganze Anlage
     assert 'href="/steuerjahr/anlage-kap/2025/angaben"' in page
 
 
@@ -325,4 +325,6 @@ def test_anlage_v_has_the_stored_structure_and_shows_the_protocol(tmp_path: Path
 
     assert "1 - Allgemeine Angaben" in page
     assert "aus dem Übertragungsprotokoll 2025 abgeleitet" not in page
-    assert "Laut Protokoll" in page and "wird noch nicht berechnet" in page
+    assert "Laut Protokoll" in page
+    assert "wird noch nicht berechnet" not in page  # nicht katalogisiert: die Einleitung sagt es
+    assert "MoarCoal berechnet für diese Felder noch nichts" in page

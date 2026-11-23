@@ -101,8 +101,6 @@ main:has(.steuerjahr) { display: flex; flex-direction: column; overflow: hidden;
 .steuerjahr { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(14rem, 22rem) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 .steuerjahr-inhalt { min-height: 0; overflow: auto; padding: var(--abstand-5) var(--abstand-6); }
 .anlagen-baum { min-height: 0; overflow: auto; }
-.notiz-kasten { float: right; width: 20rem; }
-@media (max-width: 70rem) { .notiz-kasten { float: none; width: auto; margin: var(--abstand-3) 0; } }
 .gegenproben { --seite-breite: 7.5rem; }
 .gegenproben .seite { min-width: var(--seite-breite); }
 .gegenproben .text { padding-left: calc(var(--seite-breite) + var(--abstand-3)); }

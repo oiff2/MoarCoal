@@ -504,6 +504,8 @@ def test_the_note_of_est1a_sits_on_top_of_the_first_page_only(tmp_path: Path) ->
 
     assert "Beispielnotiz" in first and "wird nicht übermittelt" in first
     assert first.index("Beispielnotiz") < first.index('id="feld-')
+    # eine Zeile der Feldtabelle: der Kopf steht bündig mit der Spalte Bezeichnung
+    assert first.index('<table class="liste felder">') < first.index("Beispielnotiz")
     assert "Beispielnotiz" not in other and "Bearbeitungsnotiz" not in other
 
 

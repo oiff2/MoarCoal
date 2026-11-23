@@ -21,6 +21,8 @@
 {%- endmacro %}
 
 {% block inhalt %}
+{#- Ist die ganze Anlage vorläufig oder nicht katalogisiert, sagt es die Einleitung schon für alle Felder; dann steht der Hinweis nicht in jeder Zeile. -#}
+{% set offen = "" if (anlage.provisional or not anlage.catalogued) else '<span class="offen">wird noch nicht berechnet</span>' | safe %}
 <h1>{{ anlage.name }} {{ year }}</h1>
 {% if anlage.provisional %}
 <p>Die Felder und ihre Seiten sind aus dem Übertragungsprotokoll {{ year }} abgeleitet, nicht aus gespeicherten Seiten von Mein ELSTER; MoarCoal berechnet für diese Felder noch nichts.</p>
@@ -34,13 +36,13 @@
 {% endif %}
 
 <h2>{{ page.title }}</h2>
-{% for part, data in view.parts if part.place == "top" %}
-{% include part.template %}
-{% endfor %}
 
 <table class="liste felder">
   <thead><tr><th>Z.</th><th>Bezeichnung</th><th>Angabe</th><th>Gegenproben</th></tr></thead>
   <tbody>
+{% for part, data in view.parts if part.place == "top" %}
+{% include part.template %}
+{% endfor %}
 {% for row in view.rows %}
 {% set field = row.field %}{% set content = row.content %}
 {% for heading in row.headings %}
@@ -49,7 +51,7 @@
   <tr class="{{ streifen(stufe(row) | trim) }}" id="feld-{{ field.elster_id }}">
     <td class="feld-nr"><span title="Nummer im Vordruck">Z. {{ field.form_line or "–" }}</span>{% if field.elster_id %}<span class="e-kennung" role="img" title="{{ field.elster_id }}" aria-label="E-Kennung {{ field.elster_id }}">E</span>{% endif %}</td>
     <td class="feld-kopf">{{ field.label }}{% if row.unit %} <span class="einheit">{{ row.unit }}</span>{% endif %}</td>
-    <td class="feld-wert">{% if content.shape == "input" %}{{ input_cell(anlage.slug, year, field, content.typed, content.saved, none) }}{% elif content.shape == "text" %}{% if content.text %}<span class="inhalt">{{ content.text }}</span>{% elif content.reason %}{{ status_not_yet(content.reason, "wird noch nicht berechnet") }}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}{% elif content.shape == "value" %}{{ value_view("Angabe", content.result, whole=content.whole_euros) }}{% for label, url in content.links %} <a href="{{ url }}">{{ label }}</a>{% endfor %}{% else %}<span class="offen">wird noch nicht berechnet</span>{% endif %}</td>
+    <td class="feld-wert">{% if content.shape == "input" %}{{ input_cell(anlage.slug, year, field, content.typed, content.saved, none) }}{% elif content.shape == "text" %}{% if content.text %}<span class="inhalt">{{ content.text }}</span>{% elif content.reason %}{{ status_not_yet(content.reason, "wird noch nicht berechnet") }}{% else %}{{ offen }}{% endif %}{% elif content.shape == "value" %}{{ value_view("Angabe", content.result, whole=content.whole_euros) }}{% for label, url in content.links %} <a href="{{ url }}">{{ label }}</a>{% endfor %}{% else %}{{ offen }}{% endif %}</td>
     <td>{% if row.checks %}
       <ul class="gegenproben">
         {% for check in row.checks %}
