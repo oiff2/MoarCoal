@@ -543,6 +543,9 @@ def test_columns_have_grips_driven_by_data_attributes(tmp_path: Path) -> None:
     assert "style=" not in page.split("<main>")[1]
     css = stylesheet()
     assert "var(--arbeit-teile, 1fr)" in css and "var(--arbeit-karte, 0.9fr)" in css
+    # the middle column must be able to shrink to 0: with a 20rem minimum the three columns
+    # overflow the main area (overflow: hidden) in windows under about 1300px and the map is cut off
+    assert re.search(r"var\(--arbeit-teile, 1fr\)\) minmax\(0, 2\.6fr\)", css)
     assert ".spalten > .griff { display: none; }" in css  # schmales Fenster: gestapelt, ohne Griffe
     rahmen = Path("src/moarcoal/static/rahmen.js").read_text(encoding="utf-8")
     assert "griffAndere" in rahmen and "griffRichtung" in rahmen

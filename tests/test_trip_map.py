@@ -337,6 +337,12 @@ def test_the_map_offers_zoom_buttons_that_rahmen_js_drives(setup: Setup) -> None
     for label in ("Hineinzoomen", "Herauszoomen", "Ganz Deutschland"):
         assert f'title="{label}" aria-label="{label}"' in html
     assert 'viewBox="0 0 ' in html  # without JavaScript the fixed whole-country map stays
+    # the buttons carry their own <svg> icons before the map: initKarte must pick the map by class,
+    # or it zooms an icon and the map never moves
+    box = html.split("data-karte>")[1]
+    assert box.index("<svg") < box.index('<svg class="deutschlandkarte"')
+    rahmen = Path("src/moarcoal/static/rahmen.js").read_text(encoding="utf-8")
+    assert 'box.querySelector("svg.deutschlandkarte")' in rahmen
 
 
 def test_a_network_error_and_no_hit_and_empty_text_show_a_message_and_store_nothing(

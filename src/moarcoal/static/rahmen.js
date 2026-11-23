@@ -186,7 +186,7 @@
   // Zeigerpositionen werden bei jedem Ereignis aus dem aktuellen Rechteck der Karte umgerechnet).
   var MAX_ZOOM = 40;
   function initKarte(box) {
-    var svg = box.querySelector("svg");
+    var svg = box.querySelector("svg.deutschlandkarte");
     if (!svg || !svg.viewBox || !svg.viewBox.baseVal) return;
     var full = { x: 0, y: 0, w: svg.viewBox.baseVal.width, h: svg.viewBox.baseVal.height };
     if (!(full.w > 0 && full.h > 0)) return;
