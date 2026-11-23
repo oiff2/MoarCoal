@@ -549,3 +549,11 @@ def test_columns_have_grips_driven_by_data_attributes(tmp_path: Path) -> None:
     assert ".spalten > .griff { display: none; }" in css  # schmales Fenster: gestapelt, ohne Griffe
     rahmen = Path("src/moarcoal/static/rahmen.js").read_text(encoding="utf-8")
     assert "griffAndere" in rahmen and "griffRichtung" in rahmen
+
+
+def test_not_yet_on_arbeit_is_yellow_text_and_yellow_stripe_never_red(tmp_path: Path) -> None:
+    page = make_client(tmp_path).get("/arbeit").text
+    assert '<strong class="warnung">noch nicht berechenbar</strong>' in page
+    assert "streifen-warnung" in page
+    assert 'class="fehler">noch nicht berechenbar' not in page
+    assert "streifen-fehler" not in page

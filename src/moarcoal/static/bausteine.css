@@ -11,6 +11,7 @@ label { display: block; margin: var(--abstand-2) 0; }
 label.inline { display: inline; }
 form.inline { display: inline; }
 .fehler { color: var(--fehler); }
+.warnung { color: var(--warnung); }
 .icon { width: var(--icon); height: var(--icon); flex: none; }
 .nur-vorlesen { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .nur-js { display: none; }

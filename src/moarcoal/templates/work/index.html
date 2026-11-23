@@ -23,12 +23,12 @@
   <td class="zahl">{{ afa(share) }}</td>
 </tr>
 {%- endmacro %}
-{#- Ausgewiesene Werte als Feldtabelle: Statusstreifen aus dem Ergebnis (Belegstand, bei „noch nicht berechenbar“ Fehler), nie Farbe allein, das Wort steht in der Zelle. -#}
+{#- Ausgewiesene Werte als Feldtabelle: Statusstreifen aus dem Ergebnis (Belegstand, bei „noch nicht berechenbar“ offen, gelb wie in der Stufe der Anlagen), nie Farbe allein, das Wort steht in der Zelle. -#}
 {% macro werte(rows) -%}
 <table class="liste felder werte">
   <tbody>
     {% for label, result in rows %}
-    <tr class="{{ streifen('error' if result.outcome == 'not_yet' else (result.backing.name | lower if result.outcome == 'amount' else '')) }}">
+    <tr class="{{ streifen('warning' if result.outcome == 'not_yet' else (result.backing.name | lower if result.outcome == 'amount' else '')) }}">
       <td>{{ value_view(label, result) }}</td>
     </tr>
     {% endfor %}

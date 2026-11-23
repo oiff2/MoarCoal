@@ -734,7 +734,7 @@ def test_travel_costs_show_the_reason_instead_of_an_amount(tmp_path: Path) -> No
     client = make_client(tmp_path)
     table = costs_table(client.get("/arbeit?jahr=2025").text)
 
-    assert table.count('<strong class="fehler">noch nicht berechenbar') == 4
+    assert table.count('<strong class="warnung">noch nicht berechenbar') == 4
     assert "vollständig bestätigt" in table
 
 
