@@ -120,3 +120,13 @@ form.ausblenden:not([popover]) { max-width: 32rem; }
   .anlagen-baum { overflow: visible; border-right: 0; border-bottom: var(--linienstaerke) solid var(--linie); }
   .steuerjahr-inhalt { overflow-x: auto; padding: var(--abstand-5) var(--abstand-4); }
 }
+
+/* Aussteller-Liste mit Jahresmatrix: je Steuerjahr eine schmale Spalte; im schmalen Fenster scrollt die Tabelle, statt zu stapeln */
+.matrix-rahmen { max-width: 100%; overflow-x: auto; }
+table.matrix .jahr { text-align: center; padding-left: var(--abstand-2); padding-right: var(--abstand-2); }
+table.matrix .weitere-namen { display: block; }
+p.erklaerung { margin: 0 0 var(--abstand-3); color: var(--text-gedaempft); font-size: var(--fs-s); }
+.status-none { color: var(--text-gedaempft); font-weight: 400; }
+.legende { display: flex; flex-wrap: wrap; gap: var(--abstand-2) var(--abstand-5); margin: var(--abstand-3) 0; padding: 0; list-style: none; color: var(--text-gedaempft); font-size: var(--fs-s); }
+.suche-liste input[type=search] { flex: 0 1 28rem; }
+table.matrix { max-width: 72rem; }

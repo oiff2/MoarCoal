@@ -4,17 +4,24 @@ Gelöscht wird nur ohne Verweise; sonst zeigt die Seite die Verweise des Nutzers
 läuft über eine Folgenseite und eine ausdrückliche Bestätigung; die App schlägt es nie vor.
 """
 
+import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
-from moarcoal.personal_details import (
-    details_for_issuer,
-    details_of,
-    own_issuer,
-    own_issuer_first,
+from moarcoal.issuer_years import (
+    IssuerFilter,
+    Mark,
+    apply_filter,
+    counts,
+    issuer_rows,
+    own_first,
+    parse_filter,
+    search,
+    years_shown,
 )
+from moarcoal.personal_details import details_for_issuer, details_of, own_issuer
 from moarcoal.storage import (
     Applied,
     Delete,
@@ -68,11 +75,6 @@ def _references(
         (e for e in found if isinstance(e, ExpectedDocument)), key=lambda e: (e.start_year, e.id)
     )
     return documents, expected
-
-
-def _matches(issuer: Issuer, query: str) -> bool:
-    needle = name_key(query)
-    return any(needle in name_key(name) for name in (issuer.name, *issuer.aliases))
 
 
 def _build(fields: Fields, issuer: Issuer, locked: bool = False) -> tuple[Issuer | None, list[str]]:
@@ -138,22 +140,40 @@ def _detail(
 
 
 @router.get("", response_class=HTMLResponse)
-def index(request: Request, q: str = "") -> HTMLResponse:
+def index(request: Request, q: str = "", filter: str = "") -> HTMLResponse:
     query = q.strip()
     state = store_of(request).state()
-    user = user_of(request)
-    details = details_of(state, user)
+    details = details_of(state, user_of(request))
     own = None if details is None else own_issuer(state, details)
-    found = [
-        i
-        for i in sorted(state.of_kind(Issuer), key=lambda i: (name_key(i.name), i.id))
-        if _matches(i, query)
-    ]
-    rows = [
-        (issuer, *(len(refs) for refs in _references(state, issuer, user)))
-        for issuer in own_issuer_first(found, own)
-    ]
-    return render(request, "issuers/index.html", rows=rows, query=query, own=own)
+    this_year = datetime.date.today().year
+    searched = search(
+        issuer_rows(state, user_of(request), store_of(request).sites, this_year), query
+    )
+    chosen = parse_filter(filter)
+    found = counts(searched)
+    return render(
+        request,
+        "issuers/index.html",
+        rows=own_first(apply_filter(searched, chosen), own),
+        years=years_shown(this_year),
+        chips=[
+            (label, n, issuers_url(query, "" if f is IssuerFilter.ALL else f.value), f is chosen)
+            for label, n, f in (
+                ("alle", found.all, IssuerFilter.ALL),
+                (
+                    f"ohne Belege seit {this_year - 1}",
+                    found.no_documents,
+                    IssuerFilter.NO_DOCUMENTS,
+                ),
+                ("mit Portal", found.portal, IssuerFilter.PORTAL),
+            )
+        ],
+        chosen=chosen.value,
+        reset_href=issuers_url("", "" if chosen is IssuerFilter.ALL else chosen.value),
+        marks=list(Mark),
+        query=query,
+        own=own,
+    )
 
 
 @router.get("/{issuer_id}", response_class=Response)

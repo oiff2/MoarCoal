@@ -91,8 +91,10 @@ def findings_url(year: int, *, hidden: bool = False) -> str:
     return f"/befunde?{urlencode([('year', year), *([('ausgeblendet', 1)] if hidden else [])])}"
 
 
-def issuers_url() -> str:
-    return "/aussteller"
+def issuers_url(query: str = "", filter: str = "") -> str:
+    """Die Aussteller-Liste; Suche und Filter stehen in der Adresse (nur gesetzte)."""
+    params = [(k, v) for k, v in (("q", query), ("filter", filter)) if v]
+    return f"/aussteller?{urlencode(params)}" if params else "/aussteller"
 
 
 def issuer_url(issuer_id: str) -> str:

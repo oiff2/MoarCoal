@@ -71,6 +71,12 @@ streifen-{{ {"error": "fehler", "warning": "warnung", "proven": "gut", "fits": "
 <span class="status status-{{ art }}" title="{{ text }}"><span class="symbol" aria-hidden="true">{{ status_symbols[art] }}</span><span class="nur-vorlesen">{{ text }}</span></span>
 {%- endmacro %}
 
+{#- Zeichen einer Zelle der Jahresmatrix (Aussteller): ● Belege da, ◐ erwartet und teils da, ○ erwartet und fehlt (rot), · keine Belege;
+    mark ist ein `Mark`. Das Symbol trägt nie allein, das Wort steht als Kurzinfo und für Screenreader. -#}
+{% macro jahresmarke(mark) -%}
+<span class="status status-{{ mark.value }}" title="{{ mark.label }}"><span class="symbol" aria-hidden="true">{{ mark.symbol }}</span><span class="nur-vorlesen">{{ mark.label }}</span></span>
+{%- endmacro %}
+
 {% macro severity(value, text=none) -%}
 {{ status(value.name | lower, text if text is not none else value.value, "Schweregrad") }}
 {%- endmacro %}
