@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.defaults import year_of
-from moarcoal.modules.tax_year.anlage_view import anlage_view
-from moarcoal.modules.tax_year.anlagen import Anlage, year_anlagen
+from moarcoal.modules.tax_year.anlage_view import AnlageGrading, anlage_view, grade_anlage
+from moarcoal.modules.tax_year.anlagen import Anlage, YearAnlage, year_anlagen
 from moarcoal.modules.tax_year.church_tax import ChurchTaxPayment
 from moarcoal.modules.tax_year.church_tax_pages import add_routes
 from moarcoal.modules.tax_year.church_tax_view import PaymentForm
@@ -50,6 +50,15 @@ def _own_state(request: Request) -> ModuleState:
     return module_state(request, MODULE_KEY)
 
 
+def _tree(request: Request, year: int, listed: Sequence[YearAnlage]) -> dict[str, AnlageGrading]:
+    """Die Stufe je Anlage für die Punkte im Baum, nach Adressteil der Anlage."""
+    found = finding_list_of(request, year)
+    findings = [*found.visible, *(h.finding for h in found.hidden)]
+    return {
+        a.slug: grade_anlage(_own_state(request), values_of(request), findings, a) for a in listed
+    }
+
+
 def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
     """Die Seiten des Steuerjahrs über den angemeldeten `anlagen`; jede Anlage hat dieselben
     Seiten, ihr Katalog und ihre Struktur machen den Unterschied."""
@@ -74,6 +83,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             "in_return": (saved and saved.in_this_return) or "",
             "note": (saved and saved.note) or "",
         }
+        listed = year_anlagen(anlagen, year, latest_reading(state, year))
         documents = {d.address: d for d in state.documents(TRANSFER_PROTOCOL_KEY)}
         readings = [
             (reading, documents.get(reading.document))
@@ -84,7 +94,8 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             "tax_year/index.html",
             status,
             year=year,
-            anlagen=year_anlagen(anlagen, year, latest_reading(state, year)),
+            anlagen=listed,
+            tree=_tree(request, year, listed),
             anlage=None,
             readings=readings,
             person=person,
@@ -170,6 +181,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
             page=view.page,
             view=view,
             anlagen=listed,
+            tree=_tree(request, year, listed),
         )
 
     def sa_page(request: Request, year: int, status: int, sent: PaymentForm | None) -> HTMLResponse:

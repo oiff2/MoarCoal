@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "tax_year/_stufe.html" import punkt %}
 {# Steuerjahr: links die Anlagen des Jahrs mit ihren Seiten wie die Formularliste in Mein ELSTER, rechts die gewählte Seite. #}
 {% block main %}
 <div class="steuerjahr">
@@ -7,10 +8,10 @@
     {% for a in anlagen %}
     {% set current = anlage and a.slug == anlage.slug %}
     <details{% if current %} open{% endif %}>
-      <summary><a href="/steuerjahr/anlage-{{ a.slug }}/{{ year }}"{% if current %} class="aktuell"{% endif %}>{{ a.name }}</a>{% if a.provisional %} <small title="Seiten abgeleitet aus dem Übertragungsprotokoll {{ year }}">aus dem Protokoll</small>{% endif %}</summary>
+      <summary><a href="/steuerjahr/anlage-{{ a.slug }}/{{ year }}"{% if current %} class="aktuell"{% endif %}>{{ a.name }}</a>{% if a.provisional %} <small title="Seiten abgeleitet aus dem Übertragungsprotokoll {{ year }}">aus dem Protokoll</small>{% endif %}{% if tree %}{{ punkt(tree[a.slug].whole) }}{% endif %}</summary>
       <ul>
         {% for p in a.pages %}
-        <li><a href="/steuerjahr/anlage-{{ a.slug }}/{{ year }}/{{ p.slug }}"{% if current and p.slug == page.slug %} aria-current="page"{% endif %}>{{ p.title }}</a></li>
+        <li><a href="/steuerjahr/anlage-{{ a.slug }}/{{ year }}/{{ p.slug }}"{% if current and p.slug == page.slug %} aria-current="page"{% endif %}>{{ p.title }}{% if tree and p.slug in tree[a.slug].pages %}{{ punkt(tree[a.slug].pages[p.slug]) }}{% endif %}</a></li>
         {% endfor %}
       </ul>
     </details>

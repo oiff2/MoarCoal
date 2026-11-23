@@ -1,24 +1,9 @@
 {% extends "tax_year/_rahmen.html" %}
 {% from "_value.html" import value_view %}
 {% from "tax_year/_eingabe.html" import input_cell %}
-{% from "_ui.html" import severity as status_severity, fits as status_fits, not_yet as status_not_yet, streifen %}
+{% from "_ui.html" import severity as status_severity, fits as status_fits, not_yet as status_not_yet %}
+{% from "tax_year/_stufe.html" import zeilenstreifen %}
 {% block title %}{{ anlage.name }} {{ year }} – MoarCoal{% endblock %}
-
-{#- Stufe des Statusstreifens einer Zeile, nur aus dem, was anlage_view liefert (Inhalt und Gegenproben): noch nicht berechenbar oder Fehlerbefund = error,
-    Warnbefund = warning, sonst bei einem Betrag sein Belegstand (belegt = proven, die anderen still), sonst eine passende Gegenprobe = fits, sonst still.
-    Nie Farbe allein: Wort und Symbol stehen in der Zelle. -#}
-{% macro stufe(row) -%}
-{%- set s = namespace(art="", fits=false) -%}
-{%- if row.content.shape == "value" and row.content.result.outcome == "not_yet" %}{% set s.art = "error" %}{% endif -%}
-{%- for check in row.checks %}
-  {%- if check.deviation and check.severity %}
-    {%- if check.severity.name == "ERROR" %}{% set s.art = "error" %}{% elif check.severity.name == "WARNING" and s.art != "error" %}{% set s.art = "warning" %}{% endif %}
-  {%- elif check.fits %}{% set s.fits = true %}{% endif -%}
-{%- endfor -%}
-{%- if not s.art and row.content.shape == "value" and row.content.result.outcome == "amount" %}{% set s.art = row.content.result.backing.name | lower %}{% endif -%}
-{%- if not s.art and s.fits %}{% set s.art = "fits" %}{% endif -%}
-{{ s.art }}
-{%- endmacro %}
 
 {% block inhalt %}
 {#- Ist die ganze Anlage vorläufig oder nicht katalogisiert, sagt es die Einleitung schon für alle Felder; dann steht der Hinweis nicht in jeder Zeile. -#}
@@ -48,7 +33,7 @@
 {% for heading in row.headings %}
   <tr class="zwischenkopf"><th colspan="4" scope="colgroup">{{ heading }}</th></tr>
 {% endfor %}
-  <tr class="{{ streifen(stufe(row) | trim) }}" id="feld-{{ field.elster_id }}">
+  <tr class="{{ zeilenstreifen(row.grading) }}" id="feld-{{ field.elster_id }}">
     <td class="feld-nr"><span title="Nummer im Vordruck">Z. {{ field.form_line or "–" }}</span>{% if field.elster_id %}<span class="e-kennung" role="img" title="{{ field.elster_id }}" aria-label="E-Kennung {{ field.elster_id }}">E</span>{% endif %}</td>
     <td class="feld-kopf">{{ field.label }}{% if row.unit %} <span class="einheit">{{ row.unit }}</span>{% endif %}</td>
     <td class="feld-wert">{% if content.shape == "input" %}{{ input_cell(anlage.slug, year, field, content.typed, content.saved, none) }}{% elif content.shape == "text" %}{% if content.text %}<span class="inhalt">{{ content.text }}</span>{% elif content.reason %}{{ status_not_yet(content.reason, "wird noch nicht berechnet") }}{% else %}{{ offen }}{% endif %}{% elif content.shape == "value" %}{{ value_view("Angabe", content.result, whole=content.whole_euros) }}{% for label, url in content.links %} <a href="{{ url }}">{{ label }}</a>{% endfor %}{% else %}{{ offen }}{% endif %}</td>

@@ -1,0 +1,16 @@
+{#- Stufe einer Zeile oder eines Stands (Grading aus modules/tax_year/stage.py) in der Statussprache von _ui.html: Streifen der Zeile, Punkt im Baum.
+    Die Regeln stehen im Code, hier wird nur gezeigt; nie Farbe allein: Symbol, Wort für Screenreader, Grund als Kurzinfo. -#}
+{% from "_ui.html" import streifen, punkt as ui_punkt %}
+{% set arten = {"ERROR": "error", "OPEN": "warning", "GOOD": "proven"} %}
+{% set woerter = {"ERROR": "Fehler", "OPEN": "offen", "GOOD": "in Ordnung"} %}
+
+{% macro zeilenstreifen(grading) -%}
+{{ streifen(arten.get(grading.stage.name, "")) }}
+{%- endmacro %}
+
+{% macro punkt(grading) -%}
+{%- set name = grading.stage.name -%}
+{%- if name in arten -%}
+{{ ui_punkt(arten[name], woerter[name] ~ (": " ~ grading.title if grading.title else "")) }}
+{%- endif -%}
+{%- endmacro %}

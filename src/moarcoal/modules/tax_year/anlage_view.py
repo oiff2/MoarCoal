@@ -26,6 +26,7 @@ from moarcoal.modules.tax_year.person_input import field_reasons, field_texts
 from moarcoal.modules.tax_year.protocol_check import latest_reading
 from moarcoal.modules.tax_year.snapshot_check import describe_frozen, latest_snapshot
 from moarcoal.modules.tax_year.special_parts import PageParams, Place, SpecialPart
+from moarcoal.modules.tax_year.stage import Grading, combine, grade_row
 from moarcoal.modules.tax_year.structure import FormPage
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Snapshot
@@ -88,6 +89,7 @@ class FieldRow:
     unit: str
     content: RowContent
     checks: tuple[FieldCheck, ...]
+    grading: Grading
 
 
 @dataclass(frozen=True)
@@ -100,6 +102,11 @@ class AnlageView:
     rows: tuple[FieldRow, ...]
     parts: tuple[tuple[SpecialPart, object], ...]
     snapshot: Snapshot | None
+
+    @property
+    def grading(self) -> Grading:
+        """Die Stufe der Seite: die schlechteste Stufe ihrer Zeilen (dieselbe wie im Baum)."""
+        return combine(row.grading for row in self.rows)
 
 
 def anlage_view(
@@ -162,7 +169,9 @@ def anlage_view(
             findings=findings,
             content=text,
         )
-        rows.append(FieldRow(field, row.headings, row.structure.unit, content, checks))
+        result = content.result if isinstance(content, ValueContent) else None
+        grading = grade_row(result, checks)
+        rows.append(FieldRow(field, row.headings, row.structure.unit, content, checks, grading))
     first = page == year_anlage.pages[0]
     parts = tuple(
         (part, part.data(state, year, params))
@@ -170,3 +179,33 @@ def anlage_view(
         if first or part.place is not Place.TOP
     )
     return AnlageView(year_anlage, page, tuple(rows), parts, snapshot)
+
+
+@dataclass(frozen=True)
+class AnlageGrading:
+    """Die Stufe einer Anlage im Baum der Übersicht: je Seite (nach Adressteil) und über alle."""
+
+    whole: Grading
+    pages: dict[str, Grading]
+
+
+def grade_anlage(
+    state: ModuleState,
+    values: ValueSource,
+    findings: Sequence[Finding],
+    year_anlage: YearAnlage,
+) -> AnlageGrading:
+    """Die Stufe der Seiten der Anlage und der Anlage, aus denselben Zeilen wie die Seiten selbst
+    (`anlage_view`), also dieselbe Stufe wie der Statusstreifen."""
+    pages: dict[str, Grading] = {}
+    for page in year_anlage.pages:
+        shown = anlage_view(
+            state, values, findings, _no_links, year_anlage, page.slug, PageParams("", None)
+        )
+        if shown is not None:
+            pages[page.slug] = shown.grading
+    return AnlageGrading(combine(pages.values()), pages)
+
+
+def _no_links(refs: Iterable[ValueRef]) -> list[tuple[str, str]]:
+    return []

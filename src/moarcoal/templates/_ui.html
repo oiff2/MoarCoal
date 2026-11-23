@@ -66,6 +66,11 @@
 streifen-{{ {"error": "fehler", "warning": "warnung", "proven": "gut", "fits": "gut"}.get(art, "still") }}
 {%- endmacro %}
 
+{#- Kompakter Punkt der Statussprache (Baum der Anlagen): nur das Symbol sichtbar, das Wort für Screenreader, der Grund als Kurzinfo. -#}
+{% macro punkt(art, text) -%}
+<span class="status status-{{ art }}" title="{{ text }}"><span class="symbol" aria-hidden="true">{{ status_symbols[art] }}</span><span class="nur-vorlesen">{{ text }}</span></span>
+{%- endmacro %}
+
 {% macro severity(value, text=none) -%}
 {{ status(value.name | lower, text if text is not none else value.value, "Schweregrad") }}
 {%- endmacro %}
