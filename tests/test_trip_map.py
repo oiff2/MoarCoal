@@ -331,6 +331,14 @@ def test_the_map_marks_startort_and_reiseziele_not_by_colour_alone(setup: Setup)
     assert "Startort (S)" not in html and "</svg> Startort\n" in html
 
 
+def test_the_map_offers_zoom_buttons_that_rahmen_js_drives(setup: Setup) -> None:
+    html = setup.page()
+    assert html.count("data-karte-zoom=") == 3 and "data-karte>" in html
+    for label in ("Hineinzoomen", "Herauszoomen", "Ganz Deutschland"):
+        assert f'title="{label}" aria-label="{label}"' in html
+    assert 'viewBox="0 0 ' in html  # without JavaScript the fixed whole-country map stays
+
+
 def test_a_network_error_and_no_hit_and_empty_text_show_a_message_and_store_nothing(
     tmp_path: Path,
 ) -> None:

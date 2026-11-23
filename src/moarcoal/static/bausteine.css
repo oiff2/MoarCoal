@@ -216,9 +216,18 @@ table.arbeitsmittel tr.bearbeiten td { padding-top: 0; border-bottom: var(--lini
 .aussteller-feld .treffer small { color: var(--text-gedaempft); }
 
 /* Dienstreisen: Karte von Deutschland (Farben aus dem Seitenschema, kein Inline-Style wegen der CSP) */
-.deutschlandkarte { width: 100%; height: auto; }
-.deutschlandkarte .land { fill: var(--flaeche-2); stroke: var(--linie-stark); stroke-width: 1.2; }
-.deutschlandkarte .grenzen { fill: none; stroke: var(--linie-stark); stroke-width: 0.6; }
+.karte-flaeche { position: relative; }
+.deutschlandkarte { display: block; width: 100%; height: auto; }
+html.js .deutschlandkarte { touch-action: none; cursor: grab; user-select: none; }
+html.js .deutschlandkarte.zieht { cursor: grabbing; }
+.karte-werkzeug { display: none; position: absolute; top: var(--abstand-3); right: var(--abstand-3); flex-direction: column; gap: var(--abstand-1); }
+html.js .karte-werkzeug { display: flex; }
+.karte-knopf { padding: var(--abstand-2); background: var(--flaeche); color: var(--text); border: var(--linienstaerke) solid var(--linie-stark); border-radius: var(--radius-gross); cursor: pointer; }
+.karte-knopf:hover, .karte-knopf:focus-visible { background: var(--hover); }
+/* --karte-zoom (rahmen.js) hält die Linien beim Zoomen gleich dünn; ohne JavaScript gilt 1. */
+.deutschlandkarte { --karte-zoom: 1; }
+.deutschlandkarte .land { fill: var(--flaeche-2); stroke: var(--linie-stark); stroke-width: calc(1.2 / var(--karte-zoom)); }
+.deutschlandkarte .grenzen { fill: none; stroke: var(--linie-stark); stroke-width: calc(0.6 / var(--karte-zoom)); }
 .marke.ziel { fill: color-mix(in srgb, var(--akzent) 25%, var(--flaeche)); stroke: var(--akzent); stroke-width: 2; }
 .marke.start { fill: color-mix(in srgb, var(--warnung) 30%, var(--flaeche)); stroke: var(--warnung); stroke-width: 2.4; stroke-linejoin: round; }
 .haus { fill: none; stroke: var(--text); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

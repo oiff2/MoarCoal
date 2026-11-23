@@ -6,6 +6,8 @@
 //   data-umschalten="schluessel"  Schalter, im Browser gemerkt; mit data-umschalten-ziel (Selektor) und -klasse schaltet er eine Klasse,
 //                          mit data-text-an/-aus wechselt sein Text; ohne Ziel (Chip) schaltet er aria-pressed
 //   data-pfeile            Liste: Pfeil hoch/runter wechselt die Datei (a.name), Enter springt zu data-pfeile-enter (Selektor)
+//   data-karte             Karte der Orte (Arbeit): Mausrad/Pinch zoomt zum Zeiger, Ziehen schwenkt, Knöpfe mit data-karte-zoom (Faktor oder „alles“);
+//                          nur die viewBox ändert sich, die Orte (g.pt) behalten per Gegenskalierung ihre Bildschirmgröße
 // Aller Zugriff auf localStorage läuft über lies/schreib/loesche: nur Bequemlichkeit, ohne Speicher geht jede Seite weiter.
 (function () {
   "use strict";
@@ -180,7 +182,105 @@
     });
   }
 
+  // Karte: Ausschnitt = viewBox (gleiches Seitenverhältnis wie das ganze Land, daher keine Neuberechnung beim Ändern der Spaltenbreite;
+  // Zeigerpositionen werden bei jedem Ereignis aus dem aktuellen Rechteck der Karte umgerechnet).
+  var MAX_ZOOM = 40;
+  function initKarte(box) {
+    var svg = box.querySelector("svg");
+    if (!svg || !svg.viewBox || !svg.viewBox.baseVal) return;
+    var full = { x: 0, y: 0, w: svg.viewBox.baseVal.width, h: svg.viewBox.baseVal.height };
+    if (!(full.w > 0 && full.h > 0)) return;
+    var view = { x: full.x, y: full.y, w: full.w, h: full.h };
+    var points = Array.prototype.map.call(svg.querySelectorAll("g.pt"), function (g) {
+      var m = /translate\(\s*(-?[\d.]+)[ ,]+(-?[\d.]+)\s*\)/.exec(g.getAttribute("transform") || "");
+      return m ? { g: g, x: m[1], y: m[2] } : null;
+    }).filter(Boolean);
+    function show() {
+      svg.setAttribute("viewBox", [view.x, view.y, view.w, view.h].join(" "));
+      var k = full.w / view.w;
+      svg.style.setProperty("--karte-zoom", String(k));
+      points.forEach(function (p) { p.g.setAttribute("transform", "translate(" + p.x + " " + p.y + ") scale(" + 1 / k + ")"); });
+    }
+    function clamp() {
+      view.w = Math.max(full.w / MAX_ZOOM, Math.min(full.w, view.w));
+      view.h = view.w * full.h / full.w;
+      view.x = Math.max(full.x, Math.min(full.x + full.w - view.w, view.x));
+      view.y = Math.max(full.y, Math.min(full.y + full.h - view.h, view.y));
+    }
+    // Zoomt um den Bildschirmpunkt (cx, cy) so, dass der Kartenpunkt darunter liegen bleibt.
+    function zoom(factor, cx, cy) {
+      var r = svg.getBoundingClientRect();
+      var fx = r.width ? (cx - r.left) / r.width : 0.5, fy = r.height ? (cy - r.top) / r.height : 0.5;
+      var px = view.x + fx * view.w, py = view.y + fy * view.h;
+      view.w /= factor;
+      clamp();
+      view.x = px - fx * view.w;
+      view.y = py - fy * view.h;
+      clamp();
+      show();
+    }
+    function pan(dx, dy) {
+      var r = svg.getBoundingClientRect();
+      if (!r.width) return;
+      view.x -= dx * view.w / r.width;
+      view.y -= dy * view.h / r.height;
+      clamp();
+      show();
+    }
+    svg.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      // Pinch auf dem Trackpad kommt als Rad mit ctrlKey und feinen Schritten.
+      zoom(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), e.clientX, e.clientY);
+    }, { passive: false });
+    var pointers = new Map(), last = null;
+    function spread() {
+      var a = Array.from(pointers.values());
+      return { d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y), x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 };
+    }
+    svg.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try { svg.setPointerCapture(e.pointerId); } catch (err) { /* ohne Capture: Ziehen endet am Rand */ }
+      svg.classList.add("zieht");
+      last = pointers.size === 2 ? spread() : null;
+    });
+    svg.addEventListener("pointermove", function (e) {
+      var p = pointers.get(e.pointerId);
+      if (!p) return;
+      var dx = e.clientX - p.x, dy = e.clientY - p.y;
+      p.x = e.clientX;
+      p.y = e.clientY;
+      if (pointers.size === 1) pan(dx, dy);
+      else if (pointers.size === 2) {
+        var now = spread();
+        if (last && last.d > 0) zoom(now.d / last.d, now.x, now.y);
+        if (last) pan(now.x - last.x, now.y - last.y);
+        last = now;
+      }
+    });
+    function release(e) {
+      pointers.delete(e.pointerId);
+      last = pointers.size === 2 ? spread() : null;
+      if (!pointers.size) svg.classList.remove("zieht");
+    }
+    svg.addEventListener("pointerup", release);
+    svg.addEventListener("pointercancel", release);
+    Array.prototype.forEach.call(box.querySelectorAll("[data-karte-zoom]"), function (button) {
+      button.addEventListener("click", function () {
+        var value = button.dataset.karteZoom;
+        if (value === "alles") {
+          view.x = full.x; view.y = full.y; view.w = full.w; view.h = full.h;
+          show();
+        } else {
+          var r = svg.getBoundingClientRect();
+          zoom(parseFloat(value), r.left + r.width / 2, r.top + r.height / 2);
+        }
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-karte]"), initKarte);
     Array.prototype.forEach.call(document.querySelectorAll(".griff"), initGrip);
     Array.prototype.forEach.call(document.querySelectorAll("details[data-merken]"), initMerken);
     Array.prototype.forEach.call(document.querySelectorAll("[data-umschalten]"), initUmschalten);

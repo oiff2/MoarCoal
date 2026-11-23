@@ -1,5 +1,6 @@
-{% from "_ui.html" import abschnitt, bt %}
+{% from "_ui.html" import abschnitt, bt, ib %}
 {#- Karte der Dienstreisen: Startorte als Raute mit Haus-Symbol, Reiseziele als Kreis mit der Zahl der Fahrten; der Name steht neben dem Punkt und im Tooltip. Die Lage eines Orts sucht nur der Klick auf „Suchen“ (ADR 0008). -#}
+{#- Mit JavaScript lässt sich die Karte zoomen und schwenken (rahmen.js, data-karte); ohne bleibt sie fest. -#}
 {#- Haus aus Lucide „house“ (ISC-Lizenz), 24er Raster, hier auf Rautengröße verkleinert und mittig gesetzt. -#}
 {% macro house() -%}
 <g class="haus" transform="translate(-7.2 -7.2) scale(0.6)"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></g>
@@ -16,6 +17,12 @@
     <span class="legende"><svg viewBox="-11 -11 22 22" aria-hidden="true"><path class="marke start" d="M0 -10L10 0L0 10L-10 0Z"/><g transform="scale(0.7)">{{ house() }}</g></svg> Startort
     <svg viewBox="-11 -11 22 22" aria-hidden="true"><circle class="marke ziel" r="9"/></svg> Reiseziel, Zahl = Fahrten</span>
   </p>
+  <div class="karte-flaeche" data-karte>
+  <div class="karte-werkzeug" role="group" aria-label="Kartenausschnitt">
+    {{ ib("vergroessern", "Hineinzoomen", cls="karte-knopf", attr='data-karte-zoom="1.5"') }}
+    {{ ib("verkleinern", "Herauszoomen", cls="karte-knopf", attr='data-karte-zoom="0.6667"') }}
+    {{ ib("ganz-deutschland", "Ganz Deutschland", cls="karte-knopf", attr='data-karte-zoom="alles"') }}
+  </div>
   <svg class="deutschlandkarte" viewBox="0 0 {{ germany.width }} {{ germany.height }}" role="img" aria-label="Karte von Deutschland mit den Orten der Dienstreisen {{ year }}">
     <path class="land" d="{{ germany.outline }}"/>
     <path class="grenzen" d="{{ germany.borders }}"/>
@@ -28,6 +35,7 @@
     </g>
     {% endfor %}
   </svg>
+  </div>
 
   {% if map_places.unplaced %}
   <h4 id="ohne-lage">Ohne Lage ({{ map_places.unplaced | length }})</h4>
