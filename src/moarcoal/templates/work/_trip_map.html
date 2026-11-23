@@ -23,7 +23,7 @@
     {{ ib("verkleinern", "Herauszoomen", cls="karte-knopf", attr='data-karte-zoom="0.6667"') }}
     {{ ib("ganz-deutschland", "Ganz Deutschland", cls="karte-knopf", attr='data-karte-zoom="alles"') }}
   </div>
-  <svg class="deutschlandkarte" viewBox="0 0 {{ germany.width }} {{ germany.height }}" role="img" aria-label="Karte von Deutschland mit den Orten der Dienstreisen {{ year }}">
+  <svg class="deutschlandkarte" width="{{ germany.width }}" height="{{ germany.height }}" viewBox="0 0 {{ germany.width }} {{ germany.height }}" role="img" aria-label="Karte von Deutschland mit den Orten der Dienstreisen {{ year }}">
     <path class="land" d="{{ germany.outline }}"/>
     <path class="grenzen" d="{{ germany.borders }}"/>
     {% for point in map_places.points %}

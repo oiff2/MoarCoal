@@ -199,8 +199,12 @@
       svg.setAttribute("viewBox", [view.x, view.y, view.w, view.h].join(" "));
       var k = full.w / view.w;
       svg.style.setProperty("--karte-zoom", String(k));
-      points.forEach(function (p) { p.g.setAttribute("transform", "translate(" + p.x + " " + p.y + ") scale(" + 1 / k + ")"); });
+      // Marken haben eine feste Bildschirmgröße: die Einheiten des SVG sind hier Bildschirmpixel, also gegen die gezeichnete Größe rechnen.
+      var drawn = svg.getBoundingClientRect().width;
+      var fixed = drawn > 0 ? full.w / drawn : 1;
+      points.forEach(function (p) { p.g.setAttribute("transform", "translate(" + p.x + " " + p.y + ") scale(" + fixed / k + ")"); });
     }
+    if (typeof ResizeObserver === "function") new ResizeObserver(show).observe(svg);
     function clamp() {
       view.w = Math.max(full.w / MAX_ZOOM, Math.min(full.w, view.w));
       view.h = view.w * full.h / full.w;

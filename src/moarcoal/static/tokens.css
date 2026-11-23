@@ -62,6 +62,7 @@
   --icon-knopf: 1rem;
   --symbol-breite: 1.1em;
   --dauer: 0.1s;
+  --karte-kopf: 9rem; /* Platz über der Karte (Überschrift, Zeile mit Legende) in der Kartenspalte */
   /* Karte von Deutschland: Einheiten des SVG, nicht der Seite */
   --karte-schrift: 13px;
   --karte-schrift-innen: 11px;

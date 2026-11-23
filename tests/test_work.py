@@ -542,7 +542,7 @@ def test_columns_have_grips_driven_by_data_attributes(tmp_path: Path) -> None:
     assert "data-griff-richtung" not in grips[0]
     assert "style=" not in page.split("<main>")[1]
     css = stylesheet()
-    assert "var(--arbeit-teile, 1fr)" in css and "var(--arbeit-karte, 0.9fr)" in css
+    assert "var(--arbeit-teile, 1fr)" in css and "var(--arbeit-karte, 0.7fr)" in css
     # the middle column must be able to shrink to 0: with a 20rem minimum the three columns
     # overflow the main area (overflow: hidden) in windows under about 1300px and the map is cut off
     assert re.search(r"var\(--arbeit-teile, 1fr\)\) minmax\(0, 2\.6fr\)", css)

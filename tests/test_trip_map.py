@@ -6,6 +6,7 @@ nur in `tmp_path`.
 
 import datetime
 import json
+import re
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -343,6 +344,24 @@ def test_the_map_offers_zoom_buttons_that_rahmen_js_drives(setup: Setup) -> None
     assert box.index("<svg") < box.index('<svg class="deutschlandkarte"')
     rahmen = Path("src/moarcoal/static/rahmen.js").read_text(encoding="utf-8")
     assert 'box.querySelector("svg.deutschlandkarte")' in rahmen
+
+
+def test_the_map_fits_the_column_and_its_marks_keep_a_fixed_screen_size(setup: Setup) -> None:
+    # #256: the map's intrinsic size comes from width/height (so it can shrink to its height limit
+    # and keep its ratio); the column is a size container and caps the map's height; the marks are
+    # scaled against the drawn width, redone when the map is resized
+    html = setup.page()
+    assert re.search(r'<svg class="deutschlandkarte" width="[\d.]+" height="[\d.]+" viewBox=', html)
+    static = Path("src/moarcoal/static")
+    pages = (static / "seiten.css").read_text(encoding="utf-8")
+    assert re.search(
+        r"\.ortskarte \{[^}]*container-type: size;[^}]*--karte-max-hoehe: calc\(100cqh", pages
+    )
+    assert re.search(r"\.ortskarte \{ container-type: normal; --karte-max-hoehe: none;", pages)
+    blocks = (static / "bausteine.css").read_text(encoding="utf-8")
+    assert "max-height: var(--karte-max-hoehe, none)" in blocks
+    rahmen = (static / "rahmen.js").read_text(encoding="utf-8")
+    assert "full.w / drawn" in rahmen and "new ResizeObserver(show)" in rahmen
 
 
 def test_a_network_error_and_no_hit_and_empty_text_show_a_message_and_store_nothing(

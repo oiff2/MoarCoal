@@ -220,8 +220,9 @@ table.arbeitsmittel tr.bearbeiten td { padding-top: 0; border-bottom: var(--lini
 .aussteller-feld .treffer small { color: var(--text-gedaempft); }
 
 /* Dienstreisen: Karte von Deutschland (Farben aus dem Seitenschema, kein Inline-Style wegen der CSP) */
-.karte-flaeche { position: relative; }
-.deutschlandkarte { display: block; width: 100%; height: auto; }
+.karte-flaeche { position: relative; width: fit-content; max-width: 100%; margin-inline: auto; }
+/* Die Karte füllt die Spalte, ist aber nie höher als --karte-max-hoehe (seiten.css) und behält ihr Seitenverhältnis. */
+.deutschlandkarte { display: block; width: auto; height: auto; max-width: 100%; max-height: var(--karte-max-hoehe, none); }
 html.js .deutschlandkarte { touch-action: none; cursor: grab; user-select: none; }
 html.js .deutschlandkarte.zieht { cursor: grabbing; }
 .karte-werkzeug { display: none; position: absolute; top: var(--abstand-3); right: var(--abstand-3); flex-direction: column; gap: var(--abstand-1); }
