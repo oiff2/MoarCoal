@@ -103,13 +103,13 @@
           <input type="hidden" name="id-{{ n }}" value="{{ row.entry_id }}"><input type="hidden" name="pruefsumme-{{ n }}" value="{{ row.checksum }}"></td>
         <td>{{ cell(row, n, "start", 0, row.start, 10, ' type="date" min="%s" max="%s"' % (min_date, max_date) ~ (' autofocus' if is_new and not row.errors else '')) }}</td>
         <td>{{ cell(row, n, "ende", 1, row.end, 10, ' type="date" min="%s" max="%s" aria-label="Ende (ohne Angabe = Start)"' % (min_date, max_date)) }}</td>
-        <td>{{ cell(row, n, "orte", 2, row.places, 40, ' placeholder="A → B → A"') }}</td>
+        <td><div class="orte-feld"><span class="orte-mass" aria-hidden="true">{{ row.places or "A → B → A" }}</span>{{ cell(row, n, "orte", 2, row.places, 20, ' placeholder="A → B → A"') }}</div></td>
         <td class="zahl">{{ cell(row, n, "km", 3, row.km, 5, ' inputmode="numeric"') }}</td>
         <td class="zahl">{% if row.amount %}{{ row.amount | amount }}{% endif %}</td>
         <td>{{ cell(row, n, "notiz", 4, row.note, 24) }}</td>
         <td class="aktionen">{% if row.entry_id %}
           {{ ib("kopieren", "Reise kopieren: Orte, km und Notiz in die neue Reise", cls="reise-kopieren", attr="hidden") }}
-          <label class="bt-label" title="Reise beim Speichern löschen"><input type="checkbox" name="loeschen-{{ n }}" value="ja" data-col="5"{% if row.delete %} checked{% endif %}>{{ icon("loeschen") }} löschen</label>
+          <label class="bt-label" title="Reise beim Speichern löschen"><input type="checkbox" name="loeschen-{{ n }}" value="ja" data-col="5"{% if row.delete %} checked{% endif %} aria-label="Reise löschen">{{ icon("loeschen") }}</label>
         {% endif %}</td>
       </tr>
       {% if row.errors %}<tr class="fehler-zeile"><td></td><td colspan="7" class="fehler">{{ row.errors.values() | join(" ") }}</td></tr>{% endif %}

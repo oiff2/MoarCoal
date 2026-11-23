@@ -808,3 +808,30 @@ def test_the_item_of_a_trip_under_nr_66_links_to_its_row(
     page = anlage_n_text(client)
 
     assert f'href="/arbeit/dienstreisen/reise/{saved["id"]}"' in page
+
+
+def test_trip_table_delete_is_icon_only_with_an_accessible_name(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    client.post("/arbeit/dienstreisen/2024", data=post_data(2024), headers=ORIGIN)
+    page = client.get("/arbeit?jahr=2024").text
+    label = re.search(r'<label class="bt-label"[^>]*>.*?</label>', page, re.S)
+    assert label is not None
+    assert 'aria-label="Reise löschen"' in label.group(
+        0
+    ) and 'title="Reise beim Speichern löschen"' in label.group(0)
+    assert "</svg>" in label.group(0) and not re.search(r">\s*löschen\s*<", label.group(0))
+    assert label.group(0).rstrip().endswith("</svg></label>")
+
+
+def test_trip_table_places_column_is_measured_by_a_hidden_copy_of_each_entry(
+    tmp_path: Path,
+) -> None:
+    client = make_client(tmp_path)
+    client.post("/arbeit/dienstreisen/2024", data=post_data(2024), headers=ORIGIN)
+    page = client.get("/arbeit?jahr=2024").text
+    assert re.search(
+        r'<span class="orte-mass" aria-hidden="true">[^<]*\S[^<]*</span>\s*<input name="orte-0"',
+        page,
+    )
+    empty = client.get("/arbeit?jahr=2022").text  # leeres Jahr: das Maß ist der Platzhalter
+    assert '<span class="orte-mass" aria-hidden="true">A → B → A</span>' in empty

@@ -77,6 +77,11 @@ main:has(.arbeit-seite) { display: flex; flex-direction: column; overflow: hidde
 .dienstreisen .reisen td { white-space: nowrap; }
 .dienstreisen .reisen td label { display: inline; margin-left: var(--abstand-3); }
 .dienstreisen .reisen input[data-col="4"] { width: 9rem; }
+/* Orte: die Spalte ist so breit wie der längste Eintrag: jede Zeile trägt ihren Text unsichtbar als Maß, die breiteste bestimmt die Spalte, mindestens 14 Zeichen. Schrift wie die übrigen Eingaben (Standard etwa 13 px), damit Maß und Eingabe gleich messen */
+.dienstreisen .orte-feld { display: grid; grid-template-columns: minmax(max-content, 1fr); }
+.dienstreisen .orte-feld > * { grid-area: 1 / 1; font: inherit; font-size: small; box-sizing: border-box; }
+.dienstreisen .orte-feld > input { min-width: 0; }
+.dienstreisen .orte-mass { visibility: hidden; white-space: pre; min-width: 14ch; padding-inline: var(--abstand-4); pointer-events: none; }
 .dienstreisen .knoepfe { display: flex; gap: var(--abstand-3); }
 .dienstreisen .tabelle tfoot td { bottom: 0; }
 
