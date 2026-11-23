@@ -50,7 +50,14 @@ form:has(option[data-ohne-zeitraum]:checked) .jahr { display: none; }
 
 /* Arbeit: eine Seite, drei Spalten (Teile, Dienstreisen, Karte); jede scrollt in sich, die Seite nie */
 main:has(.arbeit-seite) { display: flex; flex-direction: column; overflow: hidden; }
-.arbeit-seite { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(20rem, 1fr) minmax(0, 2.6fr) minmax(20rem, 0.9fr); grid-template-rows: minmax(0, 1fr); gap: var(--abstand-6); }
+.arbeit-seite { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(20rem, var(--arbeit-teile, 1fr)) minmax(20rem, 2.6fr) minmax(20rem, var(--arbeit-karte, 0.9fr)); grid-template-rows: minmax(0, 1fr); gap: var(--abstand-6); --spaltenabstand: var(--abstand-6); }
+/* Spalten mit verstellbarer Breite (_ui.html spaltengriff): Spalten und Griffe sind ausdrücklich platziert, der Griff sitzt auf der Grenze zur Nachbarspalte */
+.spalten > .spalte, .spalten > .griff { grid-row: 1; }
+.spalten > .griff-ende { grid-column: 1; justify-self: end; z-index: 1; margin-right: calc(-0.5 * var(--spaltenabstand) - 0.5 * var(--griff-breite)); }
+.spalten > .griff-anfang { grid-column: -2; justify-self: start; z-index: 1; margin-left: calc(-0.5 * var(--spaltenabstand) - 0.5 * var(--griff-breite)); }
+.arbeit-seite > .teile { grid-column: 1; }
+.arbeit-seite > .dienstreisen { grid-column: 2; }
+.arbeit-seite > .ortskarte { grid-column: 3; }
 .arbeit-seite .spalte { min-height: 0; overflow: auto; }
 .arbeit-seite h2 { font-size: var(--fs-xl); margin: 0 0 var(--abstand-3); }
 .arbeit-seite h3 { font-size: var(--fs-l); margin: var(--abstand-3) 0 var(--abstand-1); }
@@ -75,6 +82,7 @@ main:has(.arbeit-seite) { display: flex; flex-direction: column; overflow: hidde
 @media (max-width: 60rem) {
   main:has(.arbeit-seite) { display: block; overflow: auto; }
   .arbeit-seite { display: block; }
+  .spalten > .griff { display: none; }
   .arbeit-seite .spalte { overflow: visible; margin-bottom: var(--abstand-6); }
   .spalte.dienstreisen { display: block; }
   .dienstreisen > .abschnitt { max-height: none; overflow: visible; }

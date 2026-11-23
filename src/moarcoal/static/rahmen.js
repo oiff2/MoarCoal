@@ -1,5 +1,5 @@
 // Gemeinsames Verhalten der Oberfläche, ein Modul, angesteuert nur über data-Attribute der Vorlagen (kein Inline-Skript, CSP):
-//   data-griff-*           ziehbare Grenze (Seitenleiste, Belege): -var, -key, -min, -max, -ziel, -rest, -schmal; „[“ klappt die Seitenleiste um
+//   data-griff-*           ziehbare Grenze (Seitenleiste, Belege): -var, -key, -min, -max, -ziel, -rest, -andere, -richtung, -schmal; „[“ klappt die Seitenleiste um
 //   data-darstellung-umschalten   Hell/Dunkel (leer folgt dem System), im Browser gemerkt
 //   data-absenden          Auswahlliste schickt ihr Formular bei Wahl selbst ab (das Jahr der Kopfleiste)
 //   data-merken="schluessel"      <details> merkt offen/zu; der Abschnitt mit der Auswahl (aria-current) bleibt offen
@@ -26,18 +26,29 @@
   // Ein Griff für jede ziehbare Grenze (Seitenleiste, Belege). Der Griff trägt seine Einstellung:
   // data-griff-var (CSS-Variable), -key (Speicherschlüssel), -min/-max (px),
   // -ziel (Selektor des Elements, dessen Breite er setzt; sonst sein Elternelement), -rest (px, die dem Rest bleiben, Rahmen = Elternelement),
+  // -andere (Selektor der Griffe der übrigen festen Spalten: ihre Breite, ohne Wert ihr Minimum, zählt zum Rest),
+  // -richtung („zurueck“: Spalte rechts vom Griff, Ziehen nach rechts macht sie schmaler),
   // -schmal (Seitenleiste: unter dieser Breite trägt <html> die Klasse „schmal“).
   var STEP = 16, BIG = 64;
   function config(grip) {
     var d = grip.dataset;
     return {
       name: d.griffVar, key: d.griffKey, min: parseInt(d.griffMin, 10), max: parseInt(d.griffMax, 10),
-      rest: parseInt(d.griffRest || "0", 10), narrow: parseInt(d.griffSchmal || "0", 10), target: d.griffZiel
+      rest: parseInt(d.griffRest || "0", 10), others: d.griffAndere, back: d.griffRichtung === "zurueck", narrow: parseInt(d.griffSchmal || "0", 10), target: d.griffZiel
     };
   }
   function apply(cfg, grip, px, remember) {
     var max = cfg.max;
-    if (cfg.rest && grip && grip.parentElement) max = Math.min(max, grip.parentElement.getBoundingClientRect().width - cfg.rest);
+    if (cfg.rest && grip && grip.parentElement) {
+      var taken = cfg.rest;
+      if (cfg.others) {
+        Array.prototype.forEach.call(document.querySelectorAll(cfg.others), function (other) {
+          var o = config(other);
+          taken += parseFloat(root.style.getPropertyValue(o.name)) || o.min;
+        });
+      }
+      max = Math.min(max, grip.parentElement.getBoundingClientRect().width - taken);
+    }
     px = Math.max(cfg.min, Math.min(Math.max(cfg.min, max), Math.round(px)));
     root.style.setProperty(cfg.name, px + "px");
     if (cfg.narrow) root.classList.toggle("schmal", px < cfg.narrow);
@@ -76,7 +87,7 @@
     grip.addEventListener("mousedown", function (down) {
       down.preventDefault();
       var x0 = down.clientX, w0 = width();
-      function move(e) { api.set(w0 + e.clientX - x0, true); }
+      function move(e) { api.set(w0 + (cfg.back ? x0 - e.clientX : e.clientX - x0), true); }
       function up() {
         document.removeEventListener("mousemove", move);
         document.removeEventListener("mouseup", up);
@@ -88,8 +99,9 @@
     grip.addEventListener("keydown", function (e) {
       if (e.altKey || e.ctrlKey || e.metaKey) return;
       var step = e.shiftKey ? BIG : STEP, w = width(), next;
-      if (e.key === "ArrowLeft") next = w - step;
-      else if (e.key === "ArrowRight") next = w + step;
+      var grow = cfg.back ? "ArrowLeft" : "ArrowRight", shrink = cfg.back ? "ArrowRight" : "ArrowLeft";
+      if (e.key === shrink) next = w - step;
+      else if (e.key === grow) next = w + step;
       else if (e.key === "Home") next = cfg.min;
       else if (e.key === "End") next = cfg.max;
       else if (e.key === "Enter") { e.preventDefault(); api.reset(); return; }

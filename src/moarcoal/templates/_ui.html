@@ -29,6 +29,14 @@
 {%- endcall %}
 {%- endmacro %}
 
+{#- Griff zwischen zwei Spalten eines Rasters (`.spalten`, seiten.css), mit der Maus ziehbar und mit den Pfeiltasten verstellbar, Doppelklick oder Enter setzt zurück;
+    die Breite merkt der Browser (rahmen.js, data-griff-*). Er setzt die Breite einer festen Spalte (ziel, Selektor) über die CSS-Variable var; die übrigen
+    Spalten des Rasters nehmen den Rest. seite „ende“: Spalte ist die erste, der Griff sitzt an ihrem rechten Rand; „anfang“: Spalte ist die letzte, er sitzt
+    an ihrem linken Rand. rest: px, die den übrigen Spalten und Lücken bleiben; andere: Selektor der Griffe der übrigen festen Spalten. -#}
+{% macro spaltengriff(label, ziel, var, key, min, max, rest, seite="ende", andere="") -%}
+<div class="griff nur-js griff-{{ seite }}" role="separator" aria-orientation="vertical" aria-label="{{ label }}" tabindex="0" title="Breite ziehen, Doppelklick setzt zurück" data-griff-var="{{ var }}" data-griff-key="{{ key }}" data-griff-min="{{ min }}" data-griff-max="{{ max }}" data-griff-rest="{{ rest }}" data-griff-ziel="{{ ziel }}"{% if andere %} data-griff-andere="{{ andere }}"{% endif %}{% if seite == "anfang" %} data-griff-richtung="zurueck"{% endif %}></div>
+{%- endmacro %}
+
 {#- Abschnitt: einklappbar, mit Überschrift, Anzahl in Klammern (anzahl=none: ohne) und optionaler Erklärzeile; der Inhalt kommt aus dem Aufrufblock.
     id ist zugleich der Schlüssel, unter dem der Browser merkt, ob er zu ist (data-merken, rahmen.js). -#}
 {% macro abschnitt(id, titel, anzahl, erklaerung="", offen=true) -%}

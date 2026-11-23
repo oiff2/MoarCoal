@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_value.html" import value_view %}
-{% from "_ui.html" import abschnitt, not_yet, streifen %}
+{% from "_ui.html" import abschnitt, not_yet, spaltengriff, streifen %}
 {% from "work/_entry_form.html" import entry_form %}
 {% block title %}Arbeit {{ year }} – MoarCoal{% endblock %}
 {#- Was eine Anschaffung im Jahr zählt: Betrag mit Monaten der AfA, oder warum es noch nicht feststeht. -#}
@@ -37,7 +37,7 @@
 {%- endmacro %}
 {% block main %}
 {#- Eine Seite für das ganze Modul (docs/grundgeruest.md §6): drei Spalten, jede scrollt in sich, die Seite nie; schmal scrollt die Seite. -#}
-<div class="arbeit-seite">
+<div class="arbeit-seite spalten">
   <div class="spalte teile">
     {% call abschnitt("arbeit-taetigkeitsstaette", "Erste Tätigkeitsstätte", workplaces | length) %}
       {% for entry, form, workdays, distance in workplaces %}
@@ -85,12 +85,14 @@
       {% if not wage_tax.documents %}<p>Die Bescheinigung nehmen Sie auf der Belege-Seite auf (Dokumentart „Lohnsteuerbescheinigung“, Jahr {{ year }}).</p>{% endif %}
     {% endcall %}
   </div>
+  {{ spaltengriff("Breite der Spalte Teile", ".teile", "--arbeit-teile", "arbeit-teile", 320, 1200, 368, "ende", ".griff[data-griff-var=--arbeit-karte]") }}
 
   <div class="spalte dienstreisen">
     {% include "work/_trips.html" %}
   </div>
 
-  <div class="spalte">
+  {{ spaltengriff("Breite der Spalte Karte", ".ortskarte", "--arbeit-karte", "arbeit-karte", 320, 1200, 368, "anfang", ".griff[data-griff-var=--arbeit-teile]") }}
+  <div class="spalte ortskarte">
     {% include "work/_trip_map.html" %}
   </div>
 </div>

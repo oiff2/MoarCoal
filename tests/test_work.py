@@ -8,7 +8,7 @@ from pathlib import Path
 
 import httpx
 import pytest
-from app_helper import make_app
+from app_helper import make_app, stylesheet
 from fastapi.testclient import TestClient
 
 from moarcoal.modules import MODULES, ModuleState
@@ -518,3 +518,31 @@ def test_empty_homeoffice_days_are_not_yet_computable_never_zero() -> None:
 
     assert isinstance(result, NotYetComputable)
     assert "Homeoffice-Tage" in result.reason
+
+
+def test_columns_have_grips_driven_by_data_attributes(tmp_path: Path) -> None:
+    page = make_client(tmp_path).get("/arbeit").text
+    grips = re.findall(r'<div class="griff nur-js griff-[^>]*>', page)
+    assert len(grips) == 2
+    for grip, var in zip(grips, ("--arbeit-teile", "--arbeit-karte"), strict=True):
+        for needle in (
+            'role="separator"',
+            'aria-orientation="vertical"',
+            'tabindex="0"',
+            f'data-griff-var="{var}"',
+            "data-griff-key=",
+            "data-griff-min=",
+            "data-griff-max=",
+            "data-griff-rest=",
+            "data-griff-ziel=",
+            "data-griff-andere=",
+        ):
+            assert needle in grip
+    assert 'data-griff-richtung="zurueck"' in grips[1]
+    assert "data-griff-richtung" not in grips[0]
+    assert "style=" not in page.split("<main>")[1]
+    css = stylesheet()
+    assert "var(--arbeit-teile, 1fr)" in css and "var(--arbeit-karte, 0.9fr)" in css
+    assert ".spalten > .griff { display: none; }" in css  # schmales Fenster: gestapelt, ohne Griffe
+    rahmen = Path("src/moarcoal/static/rahmen.js").read_text(encoding="utf-8")
+    assert "griffAndere" in rahmen and "griffRichtung" in rahmen
