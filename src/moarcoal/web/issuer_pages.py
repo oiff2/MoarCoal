@@ -10,11 +10,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
+from moarcoal.expected_documents import expected_name
 from moarcoal.issuer_years import (
     IssuerFilter,
     Mark,
     apply_filter,
     counts,
+    issuer_detail,
     issuer_rows,
     own_first,
     parse_filter,
@@ -38,6 +40,7 @@ from moarcoal.storage import (
 from moarcoal.storage.entries import referenced_addresses
 from moarcoal.storage.issuers import issuer_with_name
 from moarcoal.web.helpers import (
+    document_kinds,
     entry_of,
     form_fields,
     rejection_reasons,
@@ -98,65 +101,46 @@ def _build(fields: Fields, issuer: Issuer, locked: bool = False) -> tuple[Issuer
     )
 
 
+def _kept(fields: Fields) -> tuple[str, str]:
+    """Suche und Filter der Liste, die ein Formular der Seite mitschickt."""
+    return fields.get("q", ""), fields.get("filter", "")
+
+
 def _issuer(request: Request, issuer_id: str) -> Issuer:
     return entry_of(store_of(request).state(), Issuer, issuer_id)
 
 
-def _detail(
+def _page(
     request: Request,
-    issuer: Issuer,
+    selected: Issuer | None = None,
     fields: Fields | None = None,
     errors: list[str] | None = None,
     status_code: int = 200,
     holder: Issuer | None = None,
+    q: str = "",
+    filter: str = "",
 ) -> HTMLResponse:
-    state = store_of(request).state()
-    documents, expected = _references(state, issuer, user_of(request))
-    return render(
-        request,
-        "issuers/show.html",
-        status_code,
-        issuer=issuer,
-        others=sorted(
-            (i for i in state.of_kind(Issuer) if i.id != issuer.id),
-            key=lambda i: (name_key(i.name), i.id),
-        ),
-        checksum=entry_checksum(issuer),
-        values=fields
-        or {
-            "name": issuer.name,
-            "aliases": "\n".join(issuer.aliases),
-            "private_person": "on" if issuer.private_person else "",
-            "portal": issuer.portal or "",
-            "note": issuer.note or "",
-        },
-        portal_href=portal_link(issuer.portal),
-        documents=documents,
-        expected=expected,
-        errors=errors or [],
-        holder=holder,
-        from_details=details_for_issuer(state, issuer) is not None,
-    )
-
-
-@router.get("", response_class=HTMLResponse)
-def index(request: Request, q: str = "", filter: str = "") -> HTMLResponse:
+    """Die eine Seite: links die Liste (Suche und Filter aus der Adresse), rechts das Detail des
+    gewählten Ausstellers; ohne Auswahl zeigt die rechte Seite nur einen Hinweis."""
     query = q.strip()
     state = store_of(request).state()
-    details = details_of(state, user_of(request))
+    user = user_of(request)
+    details = details_of(state, user)
     own = None if details is None else own_issuer(state, details)
     this_year = datetime.date.today().year
-    searched = search(
-        issuer_rows(state, user_of(request), store_of(request).sites, this_year), query
-    )
+    sites = store_of(request).sites
+    searched = search(issuer_rows(state, user, sites, this_year), query)
     chosen = parse_filter(filter)
     found = counts(searched)
-    return render(
-        request,
-        "issuers/index.html",
-        rows=own_first(apply_filter(searched, chosen), own),
-        years=years_shown(this_year),
-        chips=[
+    filter_value = "" if chosen is IssuerFilter.ALL else chosen.value
+
+    def row_url(issuer_id: str) -> str:
+        return issuer_url(issuer_id, query, filter_value)
+
+    context: dict[str, object] = {
+        "rows": own_first(apply_filter(searched, chosen), own),
+        "years": years_shown(this_year),
+        "chips": [
             (label, n, issuers_url(query, "" if f is IssuerFilter.ALL else f.value), f is chosen)
             for label, n, f in (
                 ("alle", found.all, IssuerFilter.ALL),
@@ -168,24 +152,65 @@ def index(request: Request, q: str = "", filter: str = "") -> HTMLResponse:
                 ("mit Portal", found.portal, IssuerFilter.PORTAL),
             )
         ],
-        chosen=chosen.value,
-        reset_href=issuers_url("", "" if chosen is IssuerFilter.ALL else chosen.value),
-        marks=list(Mark),
-        query=query,
-        own=own,
-    )
+        "chosen": chosen.value,
+        "reset_href": issuers_url("", filter_value),
+        "marks": list(Mark),
+        "query": query,
+        "own": own,
+        "filter_value": filter_value,
+        "row_url": row_url,
+        "selected": selected,
+        "search_action": "/aussteller" if selected is None else issuer_url(selected.id),
+    }
+    if selected is not None:
+        documents, expected = _references(state, selected, user)
+        kinds = document_kinds(request)
+
+        def expected_label(expected: ExpectedDocument) -> str:
+            return expected_name(expected, kinds)
+
+        context |= {
+            "issuer": selected,
+            "belege": issuer_detail(state, user, sites, selected, this_year),
+            "expected_label": expected_label,
+            "others": sorted(
+                (i for i in state.of_kind(Issuer) if i.id != selected.id),
+                key=lambda i: (name_key(i.name), i.id),
+            ),
+            "checksum": entry_checksum(selected),
+            "values": fields
+            or {
+                "name": selected.name,
+                "aliases": "\n".join(selected.aliases),
+                "private_person": "on" if selected.private_person else "",
+                "portal": selected.portal or "",
+                "note": selected.note or "",
+            },
+            "portal_href": portal_link(selected.portal),
+            "documents": documents,
+            "expected": expected,
+            "errors": errors or [],
+            "holder": holder,
+            "from_details": details_for_issuer(state, selected) is not None,
+        }
+    return render(request, "issuers/index.html", status_code, **context)
+
+
+@router.get("", response_class=HTMLResponse)
+def index(request: Request, q: str = "", filter: str = "") -> HTMLResponse:
+    return _page(request, q=q, filter=filter)
 
 
 @router.get("/{issuer_id}", response_class=Response)
-def show(request: Request, issuer_id: str) -> Response:
+def show(request: Request, issuer_id: str, q: str = "", filter: str = "") -> Response:
     try:
         address = EntryAddress(kind=Issuer.__name__, id=issuer_id)
     except ValueError as error:
         raise HTTPException(404) from error
     found = store_of(request).state().resolve(address)
     if isinstance(found, Issuer) and found.id != issuer_id:  # zusammengeführt: alte Adresse
-        return RedirectResponse(issuer_url(found.id), status_code=308)
-    return _detail(request, _issuer(request, issuer_id))
+        return RedirectResponse(issuer_url(found.id, q.strip(), filter), status_code=308)
+    return _page(request, _issuer(request, issuer_id), q=q, filter=filter)
 
 
 def _merge_page(
@@ -263,8 +288,9 @@ def update(
     issuer = _issuer(request, issuer_id)
     locked = details_for_issuer(store_of(request).state(), issuer) is not None
     changed, errors = _build(fields, issuer, locked)
+    q, filter = _kept(fields)
     if changed is None:
-        return _detail(request, issuer, fields, errors, 422)
+        return _page(request, issuer, fields, errors, 422, q=q, filter=filter)
     result = store_of(request).apply([Put(changed, expected=fields.get("checksum", ""))])
     if not isinstance(result, Applied):
         others = [i for i in store_of(request).state().of_kind(Issuer) if i.id != issuer.id]
@@ -273,8 +299,8 @@ def update(
             None,
         )
         reasons = [] if holder else rejection_reasons(result)
-        return _detail(request, issuer, fields, reasons, 409, holder)
-    return RedirectResponse(issuer_url(issuer.id), status_code=303)
+        return _page(request, issuer, fields, reasons, 409, holder, q, filter)
+    return RedirectResponse(issuer_url(issuer.id, q.strip(), filter), status_code=303)
 
 
 @router.post("/{issuer_id}/loeschen")
@@ -282,9 +308,12 @@ def delete(
     request: Request, issuer_id: str, fields: Annotated[Fields, Depends(form_fields)]
 ) -> Response:
     issuer = _issuer(request, issuer_id)
+    q, filter = _kept(fields)
     if details_for_issuer(store_of(request).state(), issuer) is not None:
-        return _detail(request, issuer, errors=[FROM_DETAILS], status_code=409)
+        return _page(request, issuer, errors=[FROM_DETAILS], status_code=409, q=q, filter=filter)
     result = store_of(request).apply([Delete(issuer.address, expected=fields.get("checksum", ""))])
     if not isinstance(result, Applied):
-        return _detail(request, issuer, errors=rejection_reasons(result), status_code=409)
-    return RedirectResponse(issuers_url(), status_code=303)
+        return _page(
+            request, issuer, errors=rejection_reasons(result), status_code=409, q=q, filter=filter
+        )
+    return RedirectResponse(issuers_url(q.strip(), filter), status_code=303)

@@ -73,7 +73,7 @@ def test_detail_shows_documents_and_change_keeps_the_address(tmp_path: Path) -> 
     client = make_client(tmp_path)
 
     page = client.get(f"/aussteller/{bank.id}").text
-    assert "bbbb.pdf</a>" in page and "Keine Erwarteten Belege" in page
+    assert "bbbb.pdf</a>" in page and "Erwartete Belege" not in page
 
     form = {
         "name": "Beispielbank Gruppe",

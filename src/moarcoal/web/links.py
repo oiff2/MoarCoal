@@ -97,8 +97,11 @@ def issuers_url(query: str = "", filter: str = "") -> str:
     return f"/aussteller?{urlencode(params)}" if params else "/aussteller"
 
 
-def issuer_url(issuer_id: str) -> str:
-    return f"/aussteller/{issuer_id}"
+def issuer_url(issuer_id: str, query: str = "", filter: str = "") -> str:
+    """Die Aussteller-Seite mit diesem Aussteller gewählt; Suche und Filter der Liste bleiben
+    (nur gesetzte)."""
+    params = [(k, v) for k, v in (("q", query), ("filter", filter)) if v]
+    return f"/aussteller/{issuer_id}" + (f"?{urlencode(params)}" if params else "")
 
 
 def mein_elster_url() -> str:

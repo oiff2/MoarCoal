@@ -261,3 +261,6 @@ html.js .karte-werkzeug { display: flex; }
 .bt, label.bt-label { display: inline-flex; align-items: center; gap: var(--abstand-2); }
 .bt .icon, label.bt-label .icon, .formular-eintrag > summary .icon { width: var(--icon-knopf); height: var(--icon-knopf); flex: none; }
 .formular-eintrag > summary .icon { display: inline-block; vertical-align: text-bottom; }
+
+/* Auswahl im Popover (Aussteller: Zusammenführen mit …) */
+form.dialog[popover] { padding: var(--abstand-4); border: var(--linienstaerke) solid var(--linie-stark); border-radius: var(--radius-gross); background: var(--flaeche); color: var(--text); }

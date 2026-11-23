@@ -15,6 +15,7 @@ from moarcoal.issuer_years import (
     Mark,
     apply_filter,
     counts,
+    issuer_detail,
     issuer_rows,
     own_first,
     parse_filter,
@@ -174,3 +175,78 @@ def test_own_issuer_stands_first_in_search_and_filter(tmp_path: Path) -> None:
     assert [r.issuer.name for r in own_first(only_big, own)] == ["Beispielkasse AG"]
     filtered = apply_filter(rows, IssuerFilter.NO_DOCUMENTS)  # nur der eigene besteht
     assert [r.issuer.name for r in own_first(filtered, own)] == ["Max Zeta"]
+
+
+def test_detail_lists_years_descending_with_missing_expected_documents(tmp_path: Path) -> None:
+    b = bank()
+    store = open_store(tmp_path, [])
+    store.apply(
+        [
+            Put(e)
+            for e in (
+                b,
+                paper(b, THIS - 2, "bescheinigung"),
+                paper(b, THIS - 2, "freistellung"),
+                paper(b, THIS - 4, "bescheinigung"),
+                expect("bescheinigung", THIS - 4),
+                expect("freistellung", THIS - 2),
+            )
+        ]
+    )
+    detail = issuer_detail(store.state(), "anna", store.sites, b, THIS)
+    assert detail.documents == 3 and detail.years_with_documents == 2
+    years = [y.year for y in detail.years]
+    assert years == sorted(years, reverse=True)
+    by_year = {y.year: y for y in detail.years}
+    assert len(by_year[THIS - 2].documents) == 2 and not by_year[THIS - 2].missing
+    assert [e.document_kind for e in by_year[THIS - 1].missing] == ["bescheinigung", "freistellung"]
+    assert not by_year[THIS - 1].documents
+    assert THIS - 3 in by_year  # Bescheinigung des Vorjahrs erwartet, fehlt
+    assert detail.without_year == ()
+
+
+def test_detail_puts_documents_without_a_year_aside(tmp_path: Path) -> None:
+    b = bank()
+    loose = Document(
+        owner="anna", site="Ablage", path="lose.pdf", sha256="d" * 64, issuer=b.address
+    )
+    store = open_store(tmp_path, [])
+    store.apply([Put(b), Put(loose)])
+    detail = issuer_detail(store.state(), "anna", store.sites, b, THIS)
+    assert detail.documents == 1 and detail.years == () and detail.without_year == (loose,)
+
+
+def test_page_selects_the_issuer_keeps_search_and_shows_the_years(tmp_path: Path) -> None:
+    b, other = bank(portal="https://portal.example.org"), bank("Beispielkasse AG")
+    open_store(tmp_path, []).apply(
+        [Put(e) for e in (b, other, paper(b, THIS - 2), expect("bescheinigung", THIS - 2))]
+    )
+    client = make_client(tmp_path)
+
+    plain = client.get("/aussteller").text
+    assert "Einen Aussteller in der Liste wählen" in plain and not re.search(
+        r'href="/aussteller/[^"]*" aria-current', plain
+    )
+
+    page = client.get(f"/aussteller/{b.id}?q=bank&filter=portal").text
+    assert re.search(
+        rf'href="/aussteller/{b.id}\?q=bank&amp;filter=portal"[^>]*aria-current="page"', page
+    )
+    assert "1 Beleg in 1 Jahr" in page
+    assert 'href="https://portal.example.org"' in page and 'title="Portal öffnen"' in page
+    assert f"<h3>{THIS - 2}</h3>" in page and f"bescheinigung-{THIS - 2}-0.pdf</a>" in page
+    assert "bescheinigung · erwartet, fehlt" in page
+    assert page.count('name="q" value="bank"') >= 2  # Suche und Speichern-Formular
+
+    saved = client.post(
+        f"/aussteller/{b.id}",
+        data={
+            "name": b.name,
+            "q": "bank",
+            "filter": "portal",
+            "checksum": re.search(r'name="checksum" value="([0-9a-f]+)"', page).group(1),  # pyright: ignore[reportOptionalMemberAccess]
+        },
+        headers={"Origin": f"http://127.0.0.1:{PORT}"},
+    )
+    assert saved.status_code == 303
+    assert saved.headers["location"] == f"/aussteller/{b.id}?q=bank&filter=portal"

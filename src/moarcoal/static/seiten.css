@@ -130,3 +130,25 @@ p.erklaerung { margin: 0 0 var(--abstand-3); color: var(--text-gedaempft); font-
 .legende { display: flex; flex-wrap: wrap; gap: var(--abstand-2) var(--abstand-5); margin: var(--abstand-3) 0; padding: 0; list-style: none; color: var(--text-gedaempft); font-size: var(--fs-s); }
 .suche-liste input[type=search] { flex: 0 1 28rem; }
 table.matrix { max-width: 72rem; }
+
+/* Aussteller: links die Liste, rechts das Detail; jede Spalte scrollt in sich, die Grenze ist verstellbar (spaltengriff) */
+main:has(.aussteller-seite) { display: flex; flex-direction: column; overflow: hidden; }
+.aussteller-seite { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(20rem, var(--aussteller-liste, 1.3fr)) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: var(--abstand-6); --spaltenabstand: var(--abstand-6); }
+.aussteller-seite > .aussteller-liste { grid-column: 1; }
+.aussteller-seite > .aussteller-detail { grid-column: 2; }
+.aussteller-seite .spalte { min-height: 0; min-width: 0; overflow: auto; }
+.aussteller-seite h1 { margin-top: 0; }
+.detail-kopf h2 { margin: 0; font-size: var(--fs-xl); }
+.detail-kopf p { margin: var(--abstand-1) 0 var(--abstand-3); }
+.icon-leiste { display: flex; align-items: center; gap: var(--abstand-3); margin-bottom: var(--abstand-3); }
+form.dialog[popover] { max-width: 28rem; }
+.belege-liste { list-style: none; margin: 0 0 var(--abstand-4); padding: 0; }
+.belege-liste li { padding: var(--abstand-1) 0; }
+.belege-liste .status { white-space: normal; }
+.beleg-jahr h3 { font-size: var(--fs-l); margin: var(--abstand-3) 0 var(--abstand-1); }
+/* Schmales Fenster: die Seite scrollt normal, das Detail steht unter der Liste */
+@media (max-width: 60rem) {
+  main:has(.aussteller-seite) { display: block; overflow: auto; }
+  .aussteller-seite { display: block; }
+  .aussteller-seite .spalte { overflow: visible; margin-bottom: var(--abstand-6); }
+}
