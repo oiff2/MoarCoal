@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Iterable, Mapping
 from typing import Self
+from urllib.parse import urlsplit
 
 from pydantic import Field, field_validator, model_validator
 
@@ -17,8 +18,24 @@ def name_key(text: str) -> str:
     return text.strip().casefold()
 
 
+def portal_problem(text: str) -> str | None:
+    """Warum `text` kein Portal sein kann (nur eine Adresse mit http oder https und Rechnername,
+    ohne Leerraum), sonst `None`."""
+    if text != text.strip() or any(c.isspace() for c in text):
+        return "Portal enthält Leerraum"
+    try:
+        parts = urlsplit(text)
+        host = parts.hostname
+    except ValueError:
+        return "Portal ist keine gültige Adresse"
+    if parts.scheme not in ("http", "https") or not host:
+        return "Portal muss eine Adresse mit http oder https sein"
+    return None
+
+
 class Issuer(Entry):
-    """Ein Aussteller im gemeinsamen Katalog: Name, weitere Namen (Aliasse), Privatperson.
+    """Ein Aussteller im gemeinsamen Katalog: Name, weitere Namen (Aliasse), Privatperson, dazu
+    optional Portal und Notiz.
 
     Nur bei einer Privatperson sind Name und Aliasse sensibel. Der Eigentümer ist immer
     `COMMON_OWNER`.
@@ -27,6 +44,8 @@ class Issuer(Entry):
     name: str = Field(min_length=1)
     aliases: tuple[str, ...] = ()
     private_person: bool = False
+    portal: str | None = None  # Adresse des Kundenportals, nur http(s)
+    note: str | None = None  # freier Text, für alle Nutzer gleich
     merged_ids: tuple[str, ...] = ()  # Kennungen zusammengeführter Aussteller, lösen auf diesen auf
 
     @field_validator("name")
@@ -41,6 +60,20 @@ class Issuer(Entry):
     def _aliases_are_text(cls, value: tuple[str, ...]) -> tuple[str, ...]:
         if any(not alias.strip() for alias in value):
             raise ValueError("Alias ist leer")
+        return value
+
+    @field_validator("portal")
+    @classmethod
+    def _portal_is_a_web_address(cls, value: str | None) -> str | None:
+        if value is not None and (reason := portal_problem(value)):
+            raise ValueError(reason)
+        return value
+
+    @field_validator("note")
+    @classmethod
+    def _note_is_text(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("Notiz ist leer")
         return value
 
     @model_validator(mode="after")
@@ -93,14 +126,21 @@ def denylist_lines(issuers: list[Issuer]) -> list[str]:
 
 
 def check_issuer(issuer: Issuer, entries: Mapping[EntryAddress, Entry]) -> str | None:
-    """Prüfung im Schreibweg: Name und Aliasse kommen nach dem Vorgang nur einmal vor."""
+    """Prüfung im Schreibweg: Portal nur http(s), Name und Aliasse kommen nach dem Vorgang nur
+    einmal vor."""
+    if issuer.portal is not None and (reason := portal_problem(issuer.portal)):
+        return reason
     clashing = name_clashes(e for e in entries.values() if isinstance(e, Issuer))
     return "Name gibt es schon." if issuer.id in clashing else None
 
 
 def merge_issuers(source: Issuer, target: Issuer) -> Issuer:
     """Das Ziel nach dem Zusammenführen: Name und Aliasse der Quelle werden Aliasse (ohne
-    Dubletten), ihre Kennung löst auf das Ziel auf, Privatperson, wenn eine von beiden es war."""
+    Dubletten), ihre Kennung löst auf das Ziel auf, Privatperson, wenn eine von beiden es war.
+    Portal und Notiz des Ziels bleiben; fehlt dem Ziel das Portal, gilt das der Quelle, und eine
+    andere Notiz der Quelle wird unter die des Ziels gesetzt."""
+    notes = [n for n in (target.note, source.note) if n]
+    note = "\n\n".join(dict.fromkeys(notes)) or None
     known = {name_key(n) for n in (target.name, *target.aliases)}
     added = [n for n in (source.name, *source.aliases) if name_key(n) not in known]
     return target.model_copy(
@@ -108,6 +148,8 @@ def merge_issuers(source: Issuer, target: Issuer) -> Issuer:
             "aliases": (*target.aliases, *dict.fromkeys(added)),
             "merged_ids": (*target.merged_ids, source.id, *source.merged_ids),
             "private_person": target.private_person or source.private_person,
+            "portal": target.portal or source.portal,
+            "note": note,
         }
     )
 

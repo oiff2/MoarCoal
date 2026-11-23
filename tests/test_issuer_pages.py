@@ -204,3 +204,50 @@ def test_own_issuer_comes_first_with_and_without_search(tmp_path: Path) -> None:
     assert hit.index("Max Zeta") < hit.index("Aaa Finanzamt")
     miss = client.get("/aussteller?q=finanzamt").text
     assert "Angaben zur Person</a>)" not in miss and "Aaa Finanzamt" in miss
+
+
+def test_portal_and_note_are_changed_and_shown_as_link(tmp_path: Path) -> None:
+    bank = issuer()
+    put(tmp_path, bank)
+    client = make_client(tmp_path)
+    page = client.get(f"/aussteller/{bank.id}").text
+    assert "Portal öffnen" not in page
+
+    form = {
+        "name": bank.name,
+        "portal": " https://portal.example.org/login ",
+        "note": " Kundennummer steht im Briefkopf ",
+        "checksum": checksum_of(page),
+    }
+    assert client.post(f"/aussteller/{bank.id}", data=form, headers=ORIGIN).status_code == 303
+
+    (changed,) = stored(tmp_path)
+    assert changed.portal == "https://portal.example.org/login"
+    assert changed.note == "Kundennummer steht im Briefkopf"
+    page = client.get(f"/aussteller/{bank.id}").text
+    assert (
+        'href="https://portal.example.org/login" target="_blank" rel="noopener noreferrer"' in page
+    )
+
+    form = {"name": bank.name, "portal": "", "note": "", "checksum": checksum_of(page)}
+    assert client.post(f"/aussteller/{bank.id}", data=form, headers=ORIGIN).status_code == 303
+    assert stored(tmp_path)[0].portal is None and stored(tmp_path)[0].note is None
+
+
+def test_portal_other_than_http_is_rejected_with_a_hint(tmp_path: Path) -> None:
+    bank = issuer()
+    put(tmp_path, bank)
+    client = make_client(tmp_path)
+    page = client.get(f"/aussteller/{bank.id}").text
+
+    response = client.post(
+        f"/aussteller/{bank.id}",
+        data={"name": bank.name, "portal": "javascript:alert(1)", "checksum": checksum_of(page)},
+        headers=ORIGIN,
+    )
+
+    assert (
+        response.status_code == 422 and "Portal: eine Adresse mit http oder https" in response.text
+    )
+    assert 'href="javascript' not in response.text
+    assert stored(tmp_path) == [bank]

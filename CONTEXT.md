@@ -218,8 +218,12 @@ Vorname und Name eines Nutzers samt Verweis auf seinen eigenen Aussteller, dazu 
 _Avoid_: Profil, Konto, Stammdaten
 
 **Aussteller**:
-Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Name und weiteren Namen (Aliasse), auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ob Unternehmen oder Behörde, spielt keine Rolle; nur wer als **Privatperson** gekennzeichnet ist (z. B. privater Vermieter), hat sensiblen Namen und sensible Anschrift. Auch der Nutzer selbst ist Aussteller, für Unterlagen, die er selbst erzeugt (Screenshot, eigene Aufstellung, Notiz); dieser Aussteller kommt aus seinen Angaben zur Person. Ein anderer Name desselben Ausstellers wird als Alias hinzugefügt; Zusammenführen zweier Aussteller ist die bewusste Ausnahme (Code: `Issuer`).
+Wer ein Dokument ausgestellt hat (Bank, Versicherung, Finanzamt, Handwerker); geführt in einem eigenen Katalog mit Name und weiteren Namen (Aliasse), auf den Dokumente, Verträge (als Vertragspartner) und Erwartete Belege verweisen. Ob Unternehmen oder Behörde, spielt keine Rolle; nur wer als **Privatperson** gekennzeichnet ist (z. B. privater Vermieter), hat sensiblen Namen und sensible Anschrift. Auch der Nutzer selbst ist Aussteller, für Unterlagen, die er selbst erzeugt (Screenshot, eigene Aufstellung, Notiz); dieser Aussteller kommt aus seinen Angaben zur Person. Ein anderer Name desselben Ausstellers wird als Alias hinzugefügt; Zusammenführen zweier Aussteller ist die bewusste Ausnahme. Dazu hat er optional ein **Portal** und eine **Notiz** (freier Text, für alle Nutzer gleich, ohne Datum, anders als die Notiz an einem Eintrag) (Code: `Issuer`).
 _Avoid_: Absender, Firma (im HGB der Handelsname), Gegenpartei
+
+**Portal**:
+Die Adresse des Kundenportals eines Ausstellers (z. B. `https://portal.example.org`), optional und nur http oder https; ein Feld des Ausstellers, kein eigener Eintrag. MoarCoal zeigt sie als Link nach außen, den nur ein Klick des Nutzers öffnet; beim Seitenaufruf wird nichts von dort geladen (PRINCIPLES.md 8). Das Portal prüft der Vorgang (Code: `Issuer.portal`).
+_Avoid_: Webseite, Homepage, Login-Link
 
 **Eintrag**:
 Etwas Gespeichertes in MoarCoal mit eigener Adresse, z. B. Dokument, Aussteller, Vertrag, Immobilie, Darlehen, Dienstreise. Ausgewiesene Werte und ihre Einzelposten sind berechnet und keine Einträge. Was an einem anderen Eintrag hängt, ist trotzdem ein Eintrag mit eigener Adresse und verweist auf ihn, z. B. ein Vorschlag auf sein Dokument oder eine Ausblendung auf das Ziel ihres Befunds; es hat nur keine eigene Seite. Offen ist das noch für die Ausnahmen eines Erwarteten Belegs.

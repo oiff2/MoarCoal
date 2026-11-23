@@ -208,3 +208,58 @@ def test_names_may_move_between_issuers_in_one_operation(tmp_path: Path) -> None
     )
     assert isinstance(result, Applied)
     assert store.state().get(bank.address) == moved
+
+
+def test_portal_and_note_are_optional_and_survive_reopening(tmp_path: Path) -> None:
+    bank = issuer(portal="https://portal.example.org/login", note="Zugang über Kundennummer")
+    plain = issuer("Musterfinanzamt")
+    open_empty(tmp_path).apply([Put(bank), Put(plain)])
+
+    store = open_empty(tmp_path)
+
+    assert store.state().get(bank.address) == bank
+    loaded = store.state().get(plain.address)
+    assert isinstance(loaded, Issuer) and loaded.portal is None and loaded.note is None
+
+
+def test_old_issuer_without_portal_and_note_loads_unchanged(tmp_path: Path) -> None:
+    old = issuer()
+    fields = old.model_dump(mode="json", exclude={"portal", "note"})
+    path = tmp_path / "common" / "issuers.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"schema": "datenebene/1", "entries": {str(old.address): fields}}))
+    before = path.read_bytes()
+
+    loaded = open_empty(tmp_path).state().get(old.address)
+
+    assert isinstance(loaded, Issuer) and loaded.portal is None and loaded.note is None
+    assert path.read_bytes() == before
+
+
+PORTALS = [
+    "javascript:alert(1)",
+    "ftp://portal.example.org",
+    "file:///etc/passwd",
+    "portal.example.org",
+    "https://",
+    "https://portal.example.org/a b",
+    " https://portal.example.org",
+    "",
+]
+
+
+@pytest.mark.parametrize("portal", PORTALS)
+def test_portal_must_be_an_http_address(portal: str, tmp_path: Path) -> None:
+    with pytest.raises(ValidationError):
+        issuer(portal=portal)
+    # model_copy prüft nicht: der Schreibweg muss es selbst abweisen
+    bank = issuer()
+    store = open_empty(tmp_path)
+    store.apply([Put(bank)])
+    bad = bank.model_copy(update={"portal": portal})
+    assert isinstance(store.apply([Put(bad, entry_checksum(bank))]), Rejected)
+
+
+def test_empty_note_is_rejected() -> None:
+    with pytest.raises(ValidationError):
+        issuer(note="  ")

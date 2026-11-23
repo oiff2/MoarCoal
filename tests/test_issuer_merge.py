@@ -21,6 +21,7 @@ from moarcoal.storage import (
     entry_checksum,
     open_store,
 )
+from moarcoal.storage.issuers import merge_issuers
 
 PORT = 4711
 ORIGIN = {"Origin": f"http://127.0.0.1:{PORT}"}
@@ -186,3 +187,14 @@ def test_merge_with_stale_checksum_is_rejected(tmp_path: Path) -> None:
 
     assert response.status_code == 409
     assert len(stored(tmp_path)) == 2
+
+
+def test_merge_keeps_portal_and_note_of_the_target_and_fills_gaps_from_the_source() -> None:
+    source = issuer("Alt", portal="https://alt.example.org", note="Alt-Notiz")
+    target = issuer("Neu", note="Neu-Notiz")
+
+    merged = merge_issuers(source, target)
+
+    assert merged.portal == "https://alt.example.org"
+    assert merged.note == "Neu-Notiz\n\nAlt-Notiz"
+    assert merge_issuers(issuer("A"), issuer("B")).note is None

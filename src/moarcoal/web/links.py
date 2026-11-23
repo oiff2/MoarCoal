@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from urllib.parse import urlencode, urlsplit
 
 from moarcoal.document_filter import SearchFilter
+from moarcoal.storage.issuers import portal_problem
 
 
 def _filter_pairs(query: str, types: Iterable[str]) -> list[tuple[str, str]]:
@@ -102,6 +103,12 @@ def mein_elster_url() -> str:
     """Die Anmeldung bei Mein ELSTER: der einzige Link nach außen, nur ein Klick öffnet ihn
     (PRINCIPLES.md 8)."""
     return "https://www.elster.de/eportal/login/softpse"
+
+
+def portal_link(portal: str | None) -> str | None:
+    """Das Portal eines Ausstellers als Link nach außen, nur wenn es eine http(s)-Adresse ist; nur
+    ein Klick öffnet ihn (PRINCIPLES.md 8)."""
+    return portal if portal and portal_problem(portal) is None else None
 
 
 def agreements_url() -> str:

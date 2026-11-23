@@ -22,6 +22,15 @@
   <label>Weitere Namen (einer pro Absatz, mit Enter getrennt)
     <textarea name="aliases" rows="3">{{ values.get('aliases', '') }}</textarea>
   </label>
+  <label>Portal (Adresse des Kundenportals, http oder https)
+    <input type="url" name="portal" value="{{ values.get('portal', '') }}">
+  </label>
+  {% if portal_href %}
+  <p><a href="{{ portal_href }}" target="_blank" rel="noopener noreferrer">Portal öffnen</a></p>
+  {% endif %}
+  <label>Notiz
+    <textarea name="note" rows="4">{{ values.get('note', '') }}</textarea>
+  </label>
   {% if not from_details %}
   <label>
     <input type="checkbox" name="private_person"{% if values.get('private_person') %} checked{% endif %}>

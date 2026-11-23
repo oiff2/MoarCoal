@@ -39,7 +39,7 @@ from moarcoal.web.helpers import (
     user_of,
     validated,
 )
-from moarcoal.web.links import issuer_url, issuers_url
+from moarcoal.web.links import issuer_url, issuers_url, portal_link
 
 router = APIRouter(prefix="/aussteller")
 
@@ -50,6 +50,7 @@ FROM_DETAILS = "Der Aussteller kommt aus den Angaben zur Person."
 HINTS = {
     "name": "Name: darf nicht leer sein",
     "aliases": "Weitere Namen: einer pro Absatz, keiner leer",
+    "portal": "Portal: eine Adresse mit http oder https",
 }
 
 
@@ -87,6 +88,8 @@ def _build(fields: Fields, issuer: Issuer, locked: bool = False) -> tuple[Issuer
             "private_person": issuer.private_person
             if locked
             else fields.get("private_person") == "on",
+            "portal": fields.get("portal", "").strip() or None,
+            "note": fields.get("note", "").strip() or None,
         },
         HINTS,
         unknown="",
@@ -122,7 +125,10 @@ def _detail(
             "name": issuer.name,
             "aliases": "\n".join(issuer.aliases),
             "private_person": "on" if issuer.private_person else "",
+            "portal": issuer.portal or "",
+            "note": issuer.note or "",
         },
+        portal_href=portal_link(issuer.portal),
         documents=documents,
         expected=expected,
         errors=errors or [],
