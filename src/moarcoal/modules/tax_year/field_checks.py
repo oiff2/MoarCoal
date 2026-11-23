@@ -6,7 +6,7 @@ Gegenprobe (`protocol_check`, `snapshot_check`, `assessment_check`), die Zeile o
 nur ihrem Feld zu. Ohne Befund passt ein berechnetes Feld, sobald die Gegenseite etwas zeigt.
 """
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -39,6 +39,7 @@ class FieldCheck:
     fits: bool = False
     deviation: str = ""
     severity: Severity | None = None  # Schweregrad des Befunds bei einer Abweichung
+    hidden: bool = False  # der Befund ist ausgeblendet: die Abweichung zeigt sich, zählt aber nicht
 
 
 def field_checks(
@@ -49,6 +50,7 @@ def field_checks(
     printed: Mapping[ValueKey, Decimal],
     findings: Iterable[Finding],
     content: str | None = None,
+    hidden: Collection[Finding] = (),
 ) -> tuple[FieldCheck, ...]:
     """Die Gegenproben der Zeile von `field`; eine Gegenseite, die es im Jahr nicht gibt
     (`None` bzw. leer), entfällt, der Schnappschuss auch bei Feldern, die MoarCoal nicht
@@ -66,7 +68,13 @@ def field_checks(
         found = next((f for f in mine if f.kind in _KINDS[side]), None)
         if found is not None:
             checks.append(
-                FieldCheck(side, shown or "–", deviation=found.message, severity=found.severity)
+                FieldCheck(
+                    side,
+                    shown or "–",
+                    deviation=found.message,
+                    severity=found.severity,
+                    hidden=found in hidden,
+                )
             )
         else:
             checks.append(

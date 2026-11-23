@@ -53,9 +53,11 @@ def _own_state(request: Request) -> ModuleState:
 def _tree(request: Request, year: int, listed: Sequence[YearAnlage]) -> dict[str, AnlageGrading]:
     """Die Stufe je Anlage für die Punkte im Baum, nach Adressteil der Anlage."""
     found = finding_list_of(request, year)
-    findings = found.visible
+    findings = [*found.visible, *(h.finding for h in found.hidden)]
+    hidden = [h.finding for h in found.hidden]
     return {
-        a.slug: grade_anlage(_own_state(request), values_of(request), findings, a) for a in listed
+        a.slug: grade_anlage(_own_state(request), values_of(request), findings, a, hidden)
+        for a in listed
     }
 
 
@@ -164,11 +166,12 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
         view = anlage_view(
             _own_state(request),
             values_of(request),
-            found.visible,
+            [*found.visible, *(h.finding for h in found.hidden)],
             captures,
             anlage,
             slug,
             PageParams(request.query_params.get("eintrag", ""), sent),
+            [h.finding for h in found.hidden],
         )
         if view is None:
             raise HTTPException(404)

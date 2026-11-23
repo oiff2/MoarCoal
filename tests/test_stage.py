@@ -84,6 +84,15 @@ def test_the_stage_of_a_row(
     assert grade_row(result, checks).stage is stage
 
 
+def test_a_hidden_deviation_counts_for_nothing() -> None:
+    hidden = FieldCheck(
+        "Laut Protokoll", "9,00 €", deviation="weicht ab", severity=Severity.ERROR, hidden=True
+    )
+    assert grade_row(None, (hidden,)).stage is Stage.NONE
+    assert grade_row(PROVEN, (hidden,)).stage is Stage.GOOD
+    assert grade_row(EXPECTED, (hidden,)).stage is Stage.OPEN
+
+
 def test_a_filled_input_or_text_without_a_fitting_check_is_open() -> None:
     assert grade_row(None, (), filled=True).stage is Stage.OPEN
     assert grade_row(None, (), filled=True).title == "1 Angabe nicht belegt"
@@ -199,4 +208,7 @@ def test_a_hidden_finding_counts_neither_in_the_strip_nor_in_the_tree(tmp_path: 
     page = http.get("/steuerjahr/anlage-kap/2025").text
     assert "Warnung" not in tree_dot(page, "/steuerjahr/anlage-kap/2025")
     again = re.search(money, page)
-    assert again is not None and again.group(1) == "streifen-gut"  # ohne Befund passt es
+    assert (
+        again is not None and again.group(1) == "streifen-gut"
+    )  # belegter Betrag; die ausgeblendete Abweichung färbt nicht
+    assert "weicht ab" in page  # die Gegenprobe zeigt die Abweichung weiter

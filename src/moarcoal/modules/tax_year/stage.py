@@ -105,6 +105,8 @@ def grade_row(
                 stage = Stage.OPEN
                 reasons.append(Reason.UNPROVEN)
     for check in checks:
+        if check.hidden:
+            continue  # ausgeblendet: weder gelb noch rot, aber auch kein „passt“
         if check.deviation:
             reason = _SEVERITY_REASON.get(check.severity or Severity.NOTE, Reason.NOTE)
             stage = max(stage, Stage.ERROR if reason is Reason.ERROR else Stage.OPEN)

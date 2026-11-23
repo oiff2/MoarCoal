@@ -6,7 +6,7 @@ Route liest, ruft sie auf und gibt das Ergebnis an die Vorlage (Prinzip 4). Die 
 nur nach der Form des Inhalts einer Zeile (`shape`).
 """
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Collection, Iterable, Sequence
 from dataclasses import dataclass
 from typing import ClassVar
 
@@ -117,6 +117,7 @@ def anlage_view(
     year_anlage: YearAnlage,
     slug: str | None,
     params: PageParams,
+    hidden: Collection[Finding] = (),
 ) -> AnlageView | None:
     """Die Seite `slug` der Anlage (ohne: ihre erste); `None`, wenn sie sie nicht hat.
 
@@ -167,6 +168,7 @@ def anlage_view(
             frozen=frozen,
             printed=printed,
             findings=findings,
+            hidden=hidden,
             content=text,
         )
         result = content.result if isinstance(content, ValueContent) else None
@@ -201,13 +203,14 @@ def grade_anlage(
     values: ValueSource,
     findings: Sequence[Finding],
     year_anlage: YearAnlage,
+    hidden: Collection[Finding] = (),
 ) -> AnlageGrading:
     """Die Stufe der Seiten der Anlage und der Anlage, aus denselben Zeilen wie die Seiten selbst
     (`anlage_view`), also dieselbe Stufe wie der Statusstreifen."""
     pages: dict[str, Grading] = {}
     for page in year_anlage.pages:
         shown = anlage_view(
-            state, values, findings, _no_links, year_anlage, page.slug, PageParams("", None)
+            state, values, findings, _no_links, year_anlage, page.slug, PageParams("", None), hidden
         )
         if shown is not None:
             pages[page.slug] = shown.grading
