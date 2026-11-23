@@ -53,7 +53,7 @@ def _own_state(request: Request) -> ModuleState:
 def _tree(request: Request, year: int, listed: Sequence[YearAnlage]) -> dict[str, AnlageGrading]:
     """Die Stufe je Anlage für die Punkte im Baum, nach Adressteil der Anlage."""
     found = finding_list_of(request, year)
-    findings = [*found.visible, *(h.finding for h in found.hidden)]
+    findings = found.visible
     return {
         a.slug: grade_anlage(_own_state(request), values_of(request), findings, a) for a in listed
     }
@@ -164,7 +164,7 @@ def router_for(anlagen: Sequence[Anlage]) -> APIRouter:
         view = anlage_view(
             _own_state(request),
             values_of(request),
-            [*found.visible, *(h.finding for h in found.hidden)],
+            found.visible,
             captures,
             anlage,
             slug,

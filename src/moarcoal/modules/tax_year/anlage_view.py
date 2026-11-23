@@ -170,7 +170,14 @@ def anlage_view(
             content=text,
         )
         result = content.result if isinstance(content, ValueContent) else None
-        grading = grade_row(result, checks)
+        filled = bool(
+            content.saved
+            if isinstance(content, InputContent)
+            else content.text
+            if isinstance(content, TextContent)
+            else None
+        )
+        grading = grade_row(result, checks, filled)
         rows.append(FieldRow(field, row.headings, row.structure.unit, content, checks, grading))
     first = page == year_anlage.pages[0]
     parts = tuple(

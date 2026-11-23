@@ -7,7 +7,8 @@ zusammengefasst, den Punkten im Baum der Übersicht (Seite, Anlage); es gibt die
 
 - rot (`ERROR`): ein Befund oder eine abweichende Gegenprobe mit Schweregrad Fehler.
 - gelb (`OPEN`): alles andere, was einen Eintrag hat oder offen ist: Hinweis, Warnung, ein
-  erwarteter Beleg, ein nicht belegter Betrag, ein Wert, der noch nicht berechenbar ist.
+  erwarteter Beleg, ein nicht belegter Betrag, eine Angabe ohne passende Gegenprobe, ein Wert,
+  der noch nicht berechenbar ist.
 - grün (`GOOD`): ein belegter Betrag oder eine passende Gegenprobe, nichts offen.
 - kein Punkt (`NONE`): nichts davon.
 
@@ -42,6 +43,7 @@ class Reason(Enum):
     NOTE = auto()
     EXPECTED = auto()
     UNPROVEN = auto()
+    ENTERED = auto()
     NOT_YET = auto()
 
 
@@ -51,6 +53,7 @@ _WORDS = {
     Reason.NOTE: ("Hinweis", "Hinweise"),
     Reason.EXPECTED: ("Beleg erwartet", "Belege erwartet"),
     Reason.UNPROVEN: ("Betrag nicht belegt", "Beträge nicht belegt"),
+    Reason.ENTERED: ("Angabe nicht belegt", "Angaben nicht belegt"),
     Reason.NOT_YET: ("Feld noch nicht berechenbar", "Felder noch nicht berechenbar"),
 }
 _SEVERITY_REASON = {
@@ -80,9 +83,12 @@ def _status(stage: Stage, reasons: Iterable[Reason]) -> Grading:
     return Grading(stage, tuple((r, counted[r]) for r in Reason if counted[r]))
 
 
-def grade_row(result: ValueResult | None, checks: Sequence[FieldCheck]) -> Grading:
+def grade_row(
+    result: ValueResult | None, checks: Sequence[FieldCheck], filled: bool = False
+) -> Grading:
     """Die Stufe der Zeile eines Felds aus dem Ergebnis des Werts (`None`: das Feld hat keins) und
-    seinen Gegenproben."""
+    seinen Gegenproben. `filled`: das Eintipp- oder Textfeld hat einen Inhalt; ohne passende
+    Gegenprobe ist er nicht belegt (gelb)."""
     stage = Stage.NONE
     reasons: list[Reason] = []
     if isinstance(result, NotYetComputable):
@@ -105,6 +111,9 @@ def grade_row(result: ValueResult | None, checks: Sequence[FieldCheck]) -> Gradi
             reasons.append(reason)
         elif check.fits:
             stage = max(stage, Stage.GOOD)
+    if filled and not any(c.fits for c in checks):
+        stage = max(stage, Stage.OPEN)
+        reasons.append(Reason.ENTERED)
     return _status(stage, reasons)
 
 

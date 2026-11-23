@@ -8,13 +8,20 @@ import re
 from decimal import Decimal
 from pathlib import Path
 
+import httpx
 import pytest
-from test_anlage_view import USER, YEAR
+from app_helper import make_app
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from test_anlage_view import KAP, ORIGIN, PORT, USER, YEAR, line, protocol
 from test_anlage_view import client as kap_client
 
+from moarcoal.modules import MODULES
+from moarcoal.modules.tax_year import registration
 from moarcoal.modules.tax_year.field_checks import FieldCheck
+from moarcoal.modules.tax_year.protocol_check import DEVIATION
 from moarcoal.modules.tax_year.stage import Grading, Reason, Stage, combine, grade_row
-from moarcoal.storage import EntryAddress
+from moarcoal.storage import EntryAddress, Put
 from moarcoal.values.findings import Severity
 from moarcoal.values.model import (
     Amount,
@@ -75,6 +82,15 @@ def test_the_stage_of_a_row(
     result: ValueResult | None, checks: tuple[FieldCheck, ...], stage: Stage
 ) -> None:
     assert grade_row(result, checks).stage is stage
+
+
+def test_a_filled_input_or_text_without_a_fitting_check_is_open() -> None:
+    assert grade_row(None, (), filled=True).stage is Stage.OPEN
+    assert grade_row(None, (), filled=True).title == "1 Angabe nicht belegt"
+    assert grade_row(None, (FieldCheck("Laut Protokoll", "–"),), filled=True).stage is Stage.OPEN
+    assert grade_row(None, (FITS,), filled=True).stage is Stage.GOOD  # passende Gegenprobe
+    assert grade_row(None, (), filled=False).stage is Stage.NONE  # leer, nichts offen
+    assert grade_row(None, (deviates(Severity.ERROR),), filled=True).stage is Stage.ERROR
 
 
 def test_the_reasons_are_counted_and_named_for_the_tooltip() -> None:
@@ -143,3 +159,44 @@ def test_the_dot_is_never_colour_alone(tmp_path: Path) -> None:
 
     assert re.search(r'<span class="nur-vorlesen">offen: 1 Feld noch nicht berechenbar<', page)
     assert 'aria-hidden="true">▲<' in page
+
+
+def test_a_filled_input_is_yellow_in_the_strip_and_in_the_tree(tmp_path: Path) -> None:
+    http = kap_client(tmp_path)
+    http.post("/steuerjahr/person/2025", data={"occupation": "Gärtner"}, headers=ORIGIN)
+
+    page = http.get("/steuerjahr/anlage-kap/2025").text
+
+    row = re.search(r'<tr class="(streifen-\w+)" id="feld-E0900002"', page)
+    assert row is not None and row.group(1) == "streifen-warnung"
+    assert "1 Angabe nicht belegt" in tree_dot(page, "/steuerjahr/anlage-kap/2025/10")
+    empty = re.search(r'<tr class="(streifen-\w+)" id="feld-E0900001"', page)
+    assert empty is not None and empty.group(1) == "streifen-still"
+
+
+def web(app: FastAPI) -> httpx.Client:
+    return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
+
+
+def test_a_hidden_finding_counts_neither_in_the_strip_nor_in_the_tree(tmp_path: Path) -> None:
+    modules = [registration((KAP,)) if m.key == "tax_year" else m for m in MODULES]
+    app = make_app(PORT, tmp_path, modules, user=USER)
+    for entry in protocol(line("E0900005", "9,00")):
+        app.state.store.apply([Put(entry)])
+    http = web(app)
+    money = r'<tr class="(streifen-\w+)" id="feld-E0900005"'
+    page = http.get("/steuerjahr/anlage-kap/2025").text
+    assert re.search(money, page).group(1) == "streifen-warnung"  # type: ignore[union-attr]
+    assert "1 Warnung" in tree_dot(page, "/steuerjahr/anlage-kap/2025")
+
+    forms = re.findall(
+        r'<form id="ausblenden[^>]*>(.*?)</form>', http.get("/befunde?jahr=2025").text, re.S
+    )
+    fields = [dict(re.findall(r'name="(\w+)" value="([^"]*)"', f)) for f in forms]
+    (mine,) = [f for f in fields if f["kind"] == DEVIATION]
+    http.post("/befunde/ausblenden", data={**mine, "note": "Geklärt."}, headers=ORIGIN)
+
+    page = http.get("/steuerjahr/anlage-kap/2025").text
+    assert "Warnung" not in tree_dot(page, "/steuerjahr/anlage-kap/2025")
+    again = re.search(money, page)
+    assert again is not None and again.group(1) == "streifen-gut"  # ohne Befund passt es
