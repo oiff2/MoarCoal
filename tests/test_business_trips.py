@@ -712,6 +712,24 @@ def test_arbeit_shows_the_travel_costs_as_a_small_table_without_expanding(tmp_pa
     assert "2,70" in table
 
 
+def test_travel_costs_read_as_a_sum_with_plus_signs_that_are_presentation_only(
+    tmp_path: Path,
+) -> None:
+    client = make_client(tmp_path)
+    post_trip(client, 2025)
+    table = costs_table(client.get("/arbeit?jahr=2025").text)
+
+    rows = re.findall(r"<tr([^>]*)>(.*?)</tr>", table, re.S)[1:]
+    assert [attrs.strip() for attrs, _ in rows] == [
+        "",
+        'class="addend"',
+        'class="addend"',
+        'class="sum"',
+    ]
+    assert table.count('<span class="plus" aria-hidden="true">+ </span>') == 2
+    assert "+" not in rows[0][1] and "+" not in rows[3][1]
+
+
 def test_travel_costs_show_the_reason_instead_of_an_amount(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     table = costs_table(client.get("/arbeit?jahr=2025").text)

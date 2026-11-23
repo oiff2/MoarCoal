@@ -9,11 +9,11 @@
   <thead><tr><th>Posten</th><th class="zahl">Betrag</th><th>Belegstand</th></tr></thead>
   <tbody>
     {% for cost in costs %}
-    <tr>
+    <tr{% if cost.role %} class="{{ cost.role }}"{% endif %}>
       <td>{% if cost.href %}<a href="{{ cost.href }}">{{ cost.label }}</a>{% else %}{{ cost.label }}{% endif %}
         {% if cost.reason %}<small class="begruendung">{{ cost.reason }}</small>{% endif %}</td>
       {% if cost.result.outcome == "amount" %}
-      <td class="zahl"><strong class="betrag">{{ cost.result.amount | amount }}</strong></td>
+      <td class="zahl"><strong class="betrag">{% if cost.role == "addend" %}<span class="plus" aria-hidden="true">+ </span>{% endif %}{{ cost.result.amount | amount }}</strong></td>
       <td>{{ belegstand(cost.result.backing) }}</td>
       {% else %}
       <td colspan="2">{% if cost.result.outcome == "not_yet" %}{{ not_yet(cost.result.reason) }}{% else %}{{ not_yet(cost.result.reason, "entfällt", "") }}{% endif %}</td>

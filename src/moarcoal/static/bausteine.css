@@ -172,6 +172,9 @@ table.felder tr.zwischenkopf th { padding-top: var(--abstand-5); color: var(--te
 
 /* Tabelle der Reisekosten: Begründung gedämpft unter dem Posten */
 .reisekosten .begruendung { display: block; color: var(--text-gedaempft); }
+.reisekosten tr.sum td { border-top: var(--rahmen-dick) solid var(--linie-stark); background: var(--akzent-weich); }
+.reisekosten tr.sum .betrag { font-weight: 700; }
+.reisekosten .plus { color: var(--text-gedaempft); }
 
 
 /* Icon-Aktionen, die ein Formular aufklappen (summary) */

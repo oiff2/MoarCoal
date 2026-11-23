@@ -90,6 +90,7 @@ class CostRow:
     result: ValueResult
     reason: str = ""
     href: str = ""
+    role: str = ""  # "addend" (Posten mit "+" davor), "sum" (Summenzeile) oder leer
 
 
 def _decision(result: ValueResult) -> str:
@@ -102,15 +103,15 @@ def _decision(result: ValueResult) -> str:
 def _cost_rows(values: ValueSource, user: str, period: Period) -> list[CostRow]:
     """Reisekosten der Dienstreisen (Nr. 66 bis 69 der Anlage N) als Zeilen der kleinen Tabelle."""
     rows: list[CostRow] = []
-    for label, key in (
-        ("Fahrtkosten", TRAVEL_FARE),
-        ("Übernachtungskosten", TRAVEL_LODGING),
-        ("Reisenebenkosten", TRAVEL_INCIDENTALS),
-        ("Summe der Reisekosten", TRAVEL_TOTAL),
+    for label, key, role in (
+        ("Fahrtkosten", TRAVEL_FARE, ""),
+        ("Übernachtungskosten", TRAVEL_LODGING, "addend"),
+        ("Reisenebenkosten", TRAVEL_INCIDENTALS, "addend"),
+        ("Summe der Reisekosten", TRAVEL_TOTAL, "sum"),
     ):
         result = values.get(key, user, period)
         href = f"#{TRIPS_ANCHOR}" if key == TRAVEL_FARE else ""
-        rows.append(CostRow(label, result, _decision(result), href))
+        rows.append(CostRow(label, result, _decision(result), href, role))
     return rows
 
 
