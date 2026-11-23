@@ -7,6 +7,10 @@
 {% macro kept() -%}
 {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}{% if filter_value %}<input type="hidden" name="filter" value="{{ filter_value }}">{% endif %}
 {%- endmacro %}
+{#- Kurzinfo der Zelle: Jahr, Anzahl, bei ◐ und ○ die fehlenden erwarteten Belege -#}
+{% macro zellentitel(cell) -%}
+{{ cell.year }}: {{ zahl(cell.documents, "Beleg", "Belege") }}{% if cell.missing %} ({{ cell.mark.label }}; fehlt: {% for e in cell.missing %}{{ expected_label(e) }}{% if not loop.last %}, {% endif %}{% endfor %}){% endif %}
+{%- endmacro %}
 {% block main %}
 <div class="spalten aussteller-seite">
 <div class="spalte aussteller-liste">
@@ -20,7 +24,7 @@
 <div class="chips" role="group" aria-label="Filter">
   {% for label, n, href, pressed in chips %}{{ chip(label, n, href=href, gedrueckt=pressed) }}{% endfor %}
 </div>
-<p class="erklaerung">Die Angaben zum Aussteller gelten für alle Steuerjahre. Je Jahr: ob Belege da sind, gemessen an den erwarteten Belegen.</p>
+<p class="erklaerung">Die Angaben zum Aussteller gelten für alle Steuerjahre. Je Jahr: die Zahl der Belege im Kreis, gemessen an den erwarteten Belegen. Rechts zählt jedes Dokument der gezeigten zehn Jahre einmal.</p>
 {% if rows %}
 <div class="matrix-rahmen">
 <table class="liste matrix">
@@ -29,7 +33,7 @@
   {% for row in rows %}
   <tr>
     <td><a href="{{ row_url(row.issuer.id) }}"{% if selected and row.issuer.id == selected.id %} aria-current="page"{% endif %}>{{ row.issuer.name }}</a>{% if own and row.issuer.id == own.id %} <small class="pfad">(<a href="/person">Angaben zur Person</a>)</small>{% elif row.issuer.private_person %} <small class="pfad">(Privatperson)</small>{% endif %}{% if row.issuer.aliases %}<small class="pfad weitere-namen">{{ row.issuer.aliases | join(", ") }}</small>{% endif %}</td>
-    {% for year, mark in row.marks %}<td class="jahr">{{ jahresmarke(mark) }}</td>{% endfor %}
+    {% for cell in row.marks %}<td class="jahr">{{ jahresmarke(cell.mark, cell.documents, zellentitel(cell)) }}</td>{% endfor %}
     <td class="zahl">{{ row.documents }}</td>
   </tr>
   {% endfor %}

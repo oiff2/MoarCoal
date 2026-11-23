@@ -73,8 +73,14 @@ streifen-{{ {"error": "fehler", "warning": "warnung", "proven": "gut", "fits": "
 
 {#- Zeichen einer Zelle der Jahresmatrix (Aussteller): ● Belege da, ◐ erwartet und teils da, ○ erwartet und fehlt (rot), · keine Belege;
     mark ist ein `Mark`. Das Symbol trägt nie allein, das Wort steht als Kurzinfo und für Screenreader. -#}
-{% macro jahresmarke(mark) -%}
-<span class="status status-{{ mark.value }}" title="{{ mark.label }}"><span class="symbol" aria-hidden="true">{{ mark.symbol }}</span><span class="nur-vorlesen">{{ mark.label }}</span></span>
+{#- Zelle der Jahresmatrix: Kreis in der Stufe der Statussprache. ● (proven) gefüllt mit der Zahl, ◐ (assumed) gestrichelter Ring mit der Zahl,
+    ○ (error) leerer Ring, · (none) Punkt; die Form trägt die Stufe, nicht nur die Farbe. Ohne zahl (Legende) bleibt der Kreis leer.
+    Ab zweistelligen Zahlen wird der Kreis zur Pille. titel ist die Kurzinfo, sonst die Bezeichnung der Stufe. -#}
+{% macro jahresmarke(mark, zahl=none, titel=none) -%}
+<span class="status status-{{ mark.value }}" title="{{ titel if titel is not none else mark.label }}">
+{%- if mark.value == "none" %}<span class="symbol" aria-hidden="true">{{ mark.symbol }}</span>
+{%- else %}<span class="kreis" aria-hidden="true">{% if zahl is not none and mark.value != "error" %}{{ zahl }}{% endif %}</span>{% endif -%}
+<span class="nur-vorlesen">{{ titel if titel is not none else mark.label }}</span></span>
 {%- endmacro %}
 
 {% macro severity(value, text=none) -%}

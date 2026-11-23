@@ -10,6 +10,7 @@ from app_helper import make_app
 from fastapi.testclient import TestClient
 
 from moarcoal.issuer_years import (
+    YEARS_SHOWN,
     IssuerFilter,
     IssuerRow,
     Mark,
@@ -67,7 +68,11 @@ def rows_of(tmp_path: Path, *entries: Entry) -> list[IssuerRow]:
 
 
 def marks(row: IssuerRow) -> dict[int, Mark]:
-    return dict(row.marks)
+    return {m.year: m.mark for m in row.marks}
+
+
+def counted(row: IssuerRow) -> dict[int, int]:
+    return {m.year: m.documents for m in row.marks}
 
 
 def test_years_end_with_the_current_year() -> None:
@@ -250,3 +255,59 @@ def test_page_selects_the_issuer_keeps_search_and_shows_the_years(tmp_path: Path
     )
     assert saved.status_code == 303
     assert saved.headers["location"] == f"/aussteller/{b.id}?q=bank&filter=portal"
+
+
+def test_a_cell_counts_the_documents_of_the_year_and_lists_the_missing_ones(
+    tmp_path: Path,
+) -> None:
+    b = bank()
+    entries = [
+        b,
+        paper(b, THIS - 3, "bescheinigung"),
+        paper(b, THIS - 3, "freistellung"),
+        paper(b, THIS - 2, "bescheinigung"),
+        expect("bescheinigung", THIS - 3),
+        expect("freistellung", THIS - 3),
+    ]
+    (row,) = rows_of(tmp_path, *entries)
+    got = {m.year: m for m in row.marks}
+    assert counted(row)[THIS - 3] == 2 and counted(row)[THIS - 2] == 1
+    assert counted(row)[THIS - 1] == 0 and counted(row)[THIS - 4] == 0
+    assert got[THIS - 3].missing == ()
+    assert [e.document_kind for e in got[THIS - 2].missing] == ["freistellung"]
+    assert [e.document_kind for e in got[THIS - 1].missing] == ["bescheinigung"]
+
+
+def test_a_multi_year_document_counts_in_each_cell_but_once_in_the_total(tmp_path: Path) -> None:
+    b = bank()
+    long = Document(
+        owner="anna",
+        site="Ablage",
+        path="mehrjahr.pdf",
+        sha256=hashlib.sha256(b"mehrjahr").hexdigest(),
+        issuer=b.address,
+        document_kind="bescheinigung",
+        period_start=datetime.date(THIS - 2, 1, 1),
+        period_end=datetime.date(THIS - 1, 12, 31),
+    )
+    (row,) = rows_of(tmp_path, b, long, paper(b, THIS - 1))
+    assert counted(row)[THIS - 2] == 1 and counted(row)[THIS - 1] == 2
+    assert row.documents == 2  # nicht 3: das Mehrjahres-Dokument zählt einmal
+
+
+def test_documents_outside_the_shown_years_do_not_count_in_the_total(tmp_path: Path) -> None:
+    b = bank()
+    before = THIS - YEARS_SHOWN
+    straddling = Document(
+        owner="anna",
+        site="Ablage",
+        path="grenze.pdf",
+        sha256=hashlib.sha256(b"grenze").hexdigest(),
+        issuer=b.address,
+        document_kind="bescheinigung",
+        period_start=datetime.date(before, 1, 1),
+        period_end=datetime.date(before + 1, 12, 31),
+    )
+    (row,) = rows_of(tmp_path, b, paper(b, before), paper(b, THIS), straddling)
+    assert row.documents == 2  # THIS und das Dokument, das ins erste gezeigte Jahr reicht
+    assert sum(counted(row).values()) == 2

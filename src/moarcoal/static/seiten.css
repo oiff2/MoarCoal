@@ -129,6 +129,13 @@ form.ausblenden:not([popover]) { max-width: 32rem; }
 table.matrix .jahr { text-align: center; padding-left: var(--abstand-2); padding-right: var(--abstand-2); }
 table.matrix .weitere-namen { display: block; }
 p.erklaerung { margin: 0 0 var(--abstand-3); color: var(--text-gedaempft); font-size: var(--fs-s); }
+/* Jahresmarke: Kreis mit der Zahl der Belege; ab zweistelligen Zahlen wird er zur Pille (die Spalte bleibt gleich breit, die Zelle hat Luft).
+   Die Stufe trägt die Form: ● gefüllt, ◐ gestrichelter Ring, ○ leerer Ring */
+.status .kreis { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 1.6em; height: 1.6em; padding: 0 var(--abstand-3); border: var(--rahmen-dick) solid currentColor; border-radius: 50vmax; font-size: var(--fs-s); font-variant-numeric: tabular-nums; line-height: 1; vertical-align: middle; }
+.status-proven .kreis { background: var(--gut); border-color: var(--gut); color: var(--auf-akzent); }
+.status-assumed { opacity: 1; }
+.status-assumed .kreis { border-style: dashed; border-color: var(--text); background: var(--flaeche-2); color: var(--text); }
+.status-error .kreis { border-color: var(--fehler); }
 .status-none { color: var(--text-gedaempft); font-weight: 400; }
 .legende { display: flex; flex-wrap: wrap; gap: var(--abstand-2) var(--abstand-5); margin: var(--abstand-3) 0; padding: 0; list-style: none; color: var(--text-gedaempft); font-size: var(--fs-s); }
 .suche-liste input[type=search] { flex: 0 1 28rem; }

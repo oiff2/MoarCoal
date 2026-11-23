@@ -1,5 +1,6 @@
 """Seite „Aussteller“: Katalog, Suche, Detail, Ändern, Löschen (nur tmp_path)."""
 
+import datetime
 import re
 from pathlib import Path
 
@@ -27,7 +28,10 @@ def issuer(name: str = "Beispielbank AG", **fields: object) -> Issuer:
 
 
 def document(at: Issuer | None, owner: str = "anna", sha: str = SHA) -> Document:
+    year = datetime.date.today().year
     return Document(
+        period_start=datetime.date(year, 1, 1),
+        period_end=datetime.date(year, 12, 31),
         owner=owner,
         site="Ablage",
         path=f"{sha[:4]}.pdf",

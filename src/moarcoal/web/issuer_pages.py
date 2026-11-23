@@ -137,7 +137,13 @@ def _page(
     def row_url(issuer_id: str) -> str:
         return issuer_url(issuer_id, query, filter_value)
 
+    kinds = document_kinds(request)
+
+    def expected_label(expected: ExpectedDocument) -> str:
+        return expected_name(expected, kinds)
+
     context: dict[str, object] = {
+        "expected_label": expected_label,
         "rows": own_first(apply_filter(searched, chosen), own),
         "years": years_shown(this_year),
         "chips": [
@@ -164,15 +170,9 @@ def _page(
     }
     if selected is not None:
         documents, expected = _references(state, selected, user)
-        kinds = document_kinds(request)
-
-        def expected_label(expected: ExpectedDocument) -> str:
-            return expected_name(expected, kinds)
-
         context |= {
             "issuer": selected,
             "belege": issuer_detail(state, user, sites, selected, this_year),
-            "expected_label": expected_label,
             "others": sorted(
                 (i for i in state.of_kind(Issuer) if i.id != selected.id),
                 key=lambda i: (name_key(i.name), i.id),

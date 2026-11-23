@@ -49,10 +49,21 @@ class IssuerFilter(Enum):
 
 
 @dataclass(frozen=True)
+class YearMark:
+    """Eine Zelle der Jahresmatrix: das Zeichen, die Anzahl der Belege des Ausstellers im Jahr
+    (nach `belongs_to_year`) und die im Jahr fehlenden erwarteten Belege."""
+
+    year: int
+    mark: Mark
+    documents: int
+    missing: tuple[ExpectedDocument, ...]
+
+
+@dataclass(frozen=True)
 class IssuerRow:
     issuer: Issuer
-    documents: int  # alle Dokumente des Nutzers mit diesem Aussteller
-    marks: tuple[tuple[int, Mark], ...]  # je gezeigtem Jahr
+    documents: int  # verschiedene Dokumente, die zu mindestens einem gezeigten Jahr gehören
+    marks: tuple[YearMark, ...]  # je gezeigtem Jahr
     recent_years_with_documents: bool  # Belege im Vorjahr oder in diesem Jahr
 
 
@@ -88,26 +99,28 @@ def _due(
     ]
 
 
-def _mark(
+def _year_mark(
     issuer: Issuer,
     year: int,
     own: list[Document],
     all_documents: list[Document],
     expected: list[ExpectedDocument],
     in_year: list[Document],
-) -> Mark:
+) -> YearMark:
     due = _due(issuer, year, own, all_documents, expected)
+    missing = tuple(e for e, done in due if not done)
     if not due:
-        return Mark.PRESENT if in_year else Mark.NONE
-    met = sum(1 for _, done in due if done)
-    if met == len(due):
-        return Mark.PRESENT
-    return Mark.PARTIAL if met else Mark.MISSING
+        mark = Mark.PRESENT if in_year else Mark.NONE
+    elif not missing:
+        mark = Mark.PRESENT
+    else:
+        mark = Mark.PARTIAL if len(missing) < len(due) else Mark.MISSING
+    return YearMark(year, mark, len(in_year), missing)
 
 
 def issuer_rows(state: State, user: str, sites: Sites, this_year: int) -> list[IssuerRow]:
-    """Alle Aussteller mit ihren Zeichen je Jahr, nach Anzahl der Dokumente absteigend, dann
-    nach Name."""
+    """Alle Aussteller mit ihren Zeichen je Jahr, nach Anzahl der Belege der gezeigten Jahre
+    absteigend, dann nach Name."""
     all_documents = [d for d in state.of_kind(Document) if d.owner == user]
     expected = [e for e in state.of_kind(ExpectedDocument) if e.owner == user]
     years = years_shown(this_year)
@@ -116,10 +129,11 @@ def issuer_rows(state: State, user: str, sites: Sites, this_year: int) -> list[I
         own = [d for d in all_documents if d.issuer == issuer.address]
         by_year = {y: [d for d in own if belongs_to_year(d, y, state, sites)] for y in years}
         marks = tuple(
-            (y, _mark(issuer, y, own, all_documents, expected, by_year[y])) for y in years
+            _year_mark(issuer, y, own, all_documents, expected, by_year[y]) for y in years
         )
+        shown = {d.address for in_year in by_year.values() for d in in_year}
         recent = bool(by_year[this_year] or by_year[this_year - 1])
-        rows.append(IssuerRow(issuer, len(own), marks, recent))
+        rows.append(IssuerRow(issuer, len(shown), marks, recent))
     return sorted(rows, key=lambda r: (-r.documents, name_key(r.issuer.name), r.issuer.id))
 
 
