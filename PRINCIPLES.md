@@ -60,11 +60,11 @@ Jede Änderung, die gemergt wird, hält diese Prinzipien. Wer eines nur durch ei
 
 ## 8. Nichts geht nach außen, GET ändert nie
 
-**Regel:** Kein CDN und kein automatischer Netzzugriff. Claude läuft nur über den einen Aufrufbaustein mit fester Argumentliste. GET-Anfragen ändern nie etwas. Erlaubt ist ein Link nach außen, den nur ein Klick des Nutzers öffnet; seine Adresse steht in `web/links.py`, und beim Seitenaufruf wird nichts von dort geladen.
+**Regel:** Kein CDN und kein automatischer Netzzugriff. Claude läuft nur über den einen Aufrufbaustein mit fester Argumentliste. GET-Anfragen ändern nie etwas. Erlaubt ist ein Link nach außen, den nur ein Klick des Nutzers öffnet; seine Adresse steht in `web/links.py`, eine vom Nutzer eingegebene Adresse (z. B. Portal) wird nur über eine Funktion in `web/links.py` zum Link, und beim Seitenaufruf wird nichts von dort geladen.
 
 **Warum:** Persönliche Finanzdaten bleiben lokal, und die Absicherung gegen fremde Webseiten und eingeschleuste Anweisungen hängt daran ([ADR 0002](docs/adr/0002-technikstack.md), [ADR 0007](docs/adr/0007-absicherung-server-und-claude-aufruf.md)).
 
-**Verstoß im Diff:** Eine externe URL, die beim Seitenaufruf oder ohne Klick angefragt wird (Skript, Stil, Bild, Schrift, Abruf im Code), ein externer Link außerhalb von `web/links.py`, ein schreibender GET-Handler oder ein zweiter `claude`-Aufruf.
+**Verstoß im Diff:** Eine externe URL, die beim Seitenaufruf oder ohne Klick angefragt wird (Skript, Stil, Bild, Schrift, Abruf im Code), ein externer Link, der nicht aus `web/links.py` kommt, ein schreibender GET-Handler oder ein zweiter `claude`-Aufruf.
 
 ## 9. Runden nur zentral
 
