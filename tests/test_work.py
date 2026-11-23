@@ -557,3 +557,15 @@ def test_not_yet_on_arbeit_is_yellow_text_and_yellow_stripe_never_red(tmp_path: 
     assert "streifen-warnung" in page
     assert 'class="fehler">noch nicht berechenbar' not in page
     assert "streifen-fehler" not in page
+
+
+def test_static_files_are_revalidated_so_a_stale_stylesheet_never_meets_new_markup(
+    tmp_path: Path,
+) -> None:
+    # Firefox reused an old seiten.css (no Cache-Control, only Last-Modified) for the new Arbeit
+    # page: columns and grips were placed automatically, trips on the right, map in a second row.
+    client = make_client(tmp_path)
+    first = client.get("/static/seiten.css")
+    assert first.headers["cache-control"] == "no-cache"
+    again = client.get("/static/seiten.css", headers={"If-None-Match": first.headers["etag"]})
+    assert again.status_code == 304

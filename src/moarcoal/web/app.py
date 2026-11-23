@@ -47,6 +47,19 @@ from moarcoal.web.site_pages import router as belege_router
 PACKAGE_DIR = Path(__file__).parent.parent
 TEMPLATES_DIR = PACKAGE_DIR / "templates"
 STATIC_DIR = PACKAGE_DIR / "static"
+
+
+class RevalidatedStaticFiles(StaticFiles):
+    """Statische Dateien mit `Cache-Control: no-cache`: der Browser fragt bei jedem Laden per ETag
+    nach (304, wenn unverändert). Ohne die Angabe nimmt Firefox eine ältere Kopie nach eigenem
+    Ermessen weiter; eine alte seiten.css zur neuen Seite zerlegt das Gitter der Arbeit-Seite."""
+
+    def file_response(self, *args: Any, **kwargs: Any) -> Response:
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 log = logging.getLogger(__name__)
 
 
@@ -63,7 +76,7 @@ def create_app(
         docs_url=None, redoc_url=None, openapi_url=None, dependencies=[Depends(require_user)]
     )
     app.add_middleware(SecurityMiddleware, port=port)
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    app.mount("/static", RevalidatedStaticFiles(directory=STATIC_DIR), name="static")
     environment = Environment(loader=FileSystemLoader([TEMPLATES_DIR, STATIC_DIR]), autoescape=True)
     environment.filters["eur"] = format_eur
     environment.filters["amount"] = format_amount
