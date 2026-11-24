@@ -12,12 +12,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from moarcoal.defaults import year_of
 from moarcoal.modules.work.common import MODULE_KEY, work_url
 from moarcoal.modules.work.overview import submitted, work_page
-from moarcoal.modules.work.trips.view import chosen_year
 from moarcoal.modules.work.workplace.entries import FirstWorkplace, WorkEquipment
 from moarcoal.modules.work.workplace.forms import KINDS, EntryForm, Fields, prefill_from
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Applied, Change, Delete, Entry, Put, new_id
 from moarcoal.web.helpers import (
+    chosen_year,
     entry_of,
     form_fields,
     module_state,

@@ -7,7 +7,6 @@ from typing import Any
 
 from fastapi import Request
 
-from moarcoal.defaults import year_of
 from moarcoal.modules.work.common import MODULE_KEY, TRIPS_ANCHOR, trip_anchor
 from moarcoal.modules.work.trips.entries import BusinessTrip, trips_fingerprint
 from moarcoal.modules.work.trips.germany_map import germany_map
@@ -32,7 +31,6 @@ from moarcoal.storage import entry_checksum
 from moarcoal.values.calculation import ValueSource
 from moarcoal.values.model import ExposedValue, Period, ValueResult
 from moarcoal.web.helpers import (
-    global_year,
     module_state,
     user_of,
     values_of,
@@ -56,12 +54,6 @@ def trips_of(request: Request, year: int) -> list[BusinessTrip]:
 
 def places_of(request: Request) -> list[Place]:
     return module_state(request, MODULE_KEY).all(Place)
-
-
-def chosen_year(request: Request) -> int:
-    """Das Jahr aus `?jahr=`, sonst das globale Jahr; Unbrauchbares zählt als nicht gewählt."""
-    year = year_of(request.query_params.get("jahr", ""), in_range=True)
-    return global_year(request) if year is None else year
 
 
 def _statements(request: Request, year: int, trips: Sequence[BusinessTrip]) -> list[dict[str, Any]]:
