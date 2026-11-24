@@ -107,6 +107,17 @@ def test_expected_missing_partial_and_met(tmp_path: Path) -> None:
     assert got[THIS - 4] is Mark.NONE  # vor Beginn nichts erwartet
 
 
+def test_an_open_document_without_a_year_satisfies_no_year(tmp_path: Path) -> None:
+    b = bank()
+    loose = Document(
+        owner="anna", site="Ablage", path="lose.pdf", sha256="e" * 64, issuer=b.address
+    )
+    (row,) = rows_of(tmp_path, b, loose, paper(b, THIS - 2), expect("bescheinigung", THIS - 2))
+    got = marks(row)
+    assert got[THIS - 1] is Mark.MISSING  # der offene Beleg erfüllt nichts
+    assert [m.documents for m in row.marks if m.year != THIS - 2] == [0] * (YEARS_SHOWN - 1)
+
+
 def test_an_expectation_of_another_issuer_does_not_count(tmp_path: Path) -> None:
     a, b = bank("Musterbank eG"), bank("Beispielkasse AG")
     rows = rows_of(tmp_path, a, b, paper(a, THIS - 1), expect("bescheinigung", THIS - 1))
@@ -213,21 +224,15 @@ def test_detail_lists_years_descending_with_missing_expected_documents(tmp_path:
     assert detail.without_year == ()
 
 
-def test_detail_shows_an_open_document_without_a_year_in_every_year(tmp_path: Path) -> None:
+def test_detail_puts_documents_without_a_year_aside(tmp_path: Path) -> None:
     b = bank()
     loose = Document(
-        owner="anna",
-        site="Ablage",
-        path="lose.pdf",
-        sha256="d" * 64,
-        issuer=b.address,
+        owner="anna", site="Ablage", path="lose.pdf", sha256="d" * 64, issuer=b.address
     )
     store = open_store(tmp_path, [])
     store.apply([Put(b), Put(loose)])
     detail = issuer_detail(store.state(), "anna", store.sites, b, THIS)
-    assert detail.documents == 1 and detail.without_year == ()
-    assert [y.year for y in detail.years] == sorted(years_shown(THIS), reverse=True)
-    assert all(y.documents == (loose,) for y in detail.years)
+    assert detail.documents == 1 and detail.years == () and detail.without_year == (loose,)
 
 
 def test_page_selects_the_issuer_keeps_search_and_shows_the_years(tmp_path: Path) -> None:

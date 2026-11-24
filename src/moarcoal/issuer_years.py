@@ -9,7 +9,7 @@ ihn im Jahr oder im Vorjahr erfüllt hat (dieselbe Regel wie der Vorschlag `prev
 from dataclasses import dataclass
 from enum import Enum
 
-from moarcoal.documents import DocumentYears, years_of_document
+from moarcoal.documents import years_of_document
 from moarcoal.expected_documents import matching_documents, previous_year_issuer
 from moarcoal.storage import (
     Document,
@@ -95,7 +95,7 @@ class _Holdings:
 
     documents: list[Document]
     expected: list[ExpectedDocument]
-    years: dict[EntryAddress, DocumentYears]
+    years: dict[EntryAddress, frozenset[int]]
 
     @classmethod
     def of(cls, state: State, user: str, sites: Sites) -> "_Holdings":
@@ -103,7 +103,7 @@ class _Holdings:
         return cls(
             documents,
             [e for e in state.of_kind(ExpectedDocument) if e.owner == user],
-            {d.address: years_of_document(d, state, sites) for d in documents},
+            {d.address: years_of_document(d, state, sites).years for d in documents},
         )
 
     def own(self, issuer: Issuer) -> list[Document]:
@@ -223,7 +223,7 @@ def issuer_detail(
 ) -> IssuerDetail:
     holdings = _Holdings.of(state, user, sites)
     own = holdings.own(issuer)
-    candidates = set(years_shown(this_year)).union(*(holdings.years[d.address].years for d in own))
+    candidates = set(years_shown(this_year)).union(*(holdings.years[d.address] for d in own))
     years: list[YearDocuments] = []
     for year in sorted(candidates, reverse=True):
         in_year = tuple(holdings.in_year(own, year))
