@@ -8,7 +8,8 @@ Anlage N Nr. 17/18: Kennt die Einlese-Regel jeden Pfad der Bescheinigung, ist di
 bescheinigt und das Feld 0 € (Begründung im Rechenweg, Arbeit); sonst noch nicht berechenbar. Alle
 übrigen Felder kommen mit dem Modul Vorsorge; bisher Z. 23 bis 25 (private Kranken- und
 Pflege-Pflichtversicherung, laut den Beitragsbescheinigungen: Beiträge und Erstattungen, Werte
-`provision.*`). Ein Feld ohne Berechnung hat keinen Wert („wird noch
+`provision.*`) und Z. 27 (über die Basisabsicherung hinausgehende Beiträge abzüglich erstatteter,
+laut den Jahresbeiträgen). Ein Feld ohne Berechnung hat keinen Wert („wird noch
 nicht berechnet“), nie 0. Die Werte sind gerundet, wie das Feld es verlangt: Arbeitgeberanteile,
 Zuschüsse und Erstattungen mindern den Abzug und runden wie Einnahmen ab, Beiträge wie Ausgaben auf.
 """
@@ -43,11 +44,13 @@ WORK_KEYS = (  # die Werte von Arbeit, aus denen VOR rechnet
 PROVISION_HEALTH_BASIC = ValueKey("provision.private_health_basic")
 PROVISION_CARE = ValueKey("provision.private_care")
 PROVISION_REFUNDS = ValueKey("provision.private_refunds")
+PROVISION_HEALTH_EXTRA = ValueKey("provision.private_health_extra")
 
 PROVISION_KEYS = (  # die Werte von Vorsorge, aus denen VOR rechnet
     PROVISION_HEALTH_BASIC,
     PROVISION_CARE,
     PROVISION_REFUNDS,
+    PROVISION_HEALTH_EXTRA,
 )
 
 VOR_EMPLOYEE_PENSION = ValueKey("tax_year.vor_employee_pension")  # Nr. 23 a/b, Zeile 4
@@ -61,6 +64,7 @@ VOR_EMPLOYEE_CARE = ValueKey("tax_year.vor_employee_care")  # Nr. 26, Zeile 13
 VOR_PRIVATE_HEALTH = ValueKey("tax_year.vor_private_health")  # Zeile 23
 VOR_PRIVATE_CARE = ValueKey("tax_year.vor_private_care")  # Zeile 24
 VOR_PRIVATE_REFUNDS = ValueKey("tax_year.vor_private_refunds")  # Zeile 25
+VOR_PRIVATE_EXTRA = ValueKey("tax_year.vor_private_extra")  # Zeile 27
 
 
 def _computed(
@@ -123,6 +127,13 @@ CATALOG_2025 = (
         INCOME,
         PROVISION_REFUNDS,
         "Erstattungen laut Beitragsbescheinigungen",
+    ),
+    _computed(
+        "E2003502",
+        VOR_PRIVATE_EXTRA,
+        EXPENSE,
+        PROVISION_HEALTH_EXTRA,
+        "Jahresbeiträge abzüglich Erstattungen",
     ),
     _computed(
         "E2003705",

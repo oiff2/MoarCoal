@@ -206,6 +206,7 @@ class Source(StrEnum):
 
     DOCUMENT_EXTRACTION = "Dokumentauslesung"
     READ_IN = "Einlesung"
+    PROOF = "Beleg zur Eingabe"
 
 
 @dataclass(frozen=True)

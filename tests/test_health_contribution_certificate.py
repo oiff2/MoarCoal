@@ -546,5 +546,10 @@ def test_the_page_shows_the_certificates_assigned_to_the_agreement_of_the_issuer
 
 def test_the_registration_lists_the_new_kind_and_values() -> None:
     assert HEALTH_CONTRIBUTION_CERTIFICATE in REGISTRATION.document_kinds
-    assert {d.entry.key for d in REGISTRATION.values} == {HEALTH_BASIC, CARE, REFUNDS}
+    assert {d.entry.key for d in REGISTRATION.values} == {
+        HEALTH_BASIC,
+        CARE,
+        REFUNDS,
+        "provision.private_health_extra",
+    }
     assert HEALTH_CONTRIBUTION_CERTIFICATE.unique_per_issuer

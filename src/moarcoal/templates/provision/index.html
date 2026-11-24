@@ -37,6 +37,57 @@
 <p>Für {{ year }} laufen keine Verträge. Verträge legen Sie unter <a href="{{ agreements_url() }}">Verträge</a> an.</p>
 {% endif %}
 {% endcall %}
+{% call abschnitt("vorsorge-jahresbeitraege", "Jahresbeiträge", contributions | length, "Was Sie " ~ year ~ " auf einen Vertrag mit Steuerlicher Bedeutung gezahlt und erstattet bekommen haben, soweit es in keiner Bescheinigung steht (z. B. Wahlleistungen, Haftpflicht). Für Kranken- und Pflegeversicherung privat ergibt es Zeile 27 der Anlage Vorsorgeaufwand; ein Jahresbeitrag von 0 € ist ein Wert, ein fehlender nicht.") %}
+{% if contributions %}
+<table class="liste stapel">
+  <thead><tr><th>Vertrag</th><th>Steuerliche Bedeutung</th><th class="zahl">Betrag</th><th class="zahl">Erstattung</th><th>Beleg</th></tr></thead>
+  <tbody>
+  {% for row in contributions %}
+  {% set c = row.contribution %}
+  <tr>
+    <td data-label="Vertrag"><a href="{{ entry_url(row.agreement.address) }}">{{ row.agreement.name }}</a></td>
+    <td data-label="Steuerliche Bedeutung">{{ row.meaning.label }}</td>
+    <td data-label="Betrag" class="zahl">{% if c %}{{ c.amount_cents | eur }}{% else %}noch nicht erfasst{% endif %}</td>
+    <td data-label="Erstattung" class="zahl">{% if c and c.refund_cents is not none %}{{ c.refund_cents | eur }}{% else %}–{% endif %}</td>
+    <td data-label="Beleg">{% if c and c.document %}<a href="{{ entry_url(c.document) }}">Beleg ansehen</a>{% else %}–{% endif %}</td>
+  </tr>
+  <tr class="bearbeiten"><td colspan="5">
+    <details class="formular-eintrag"{% if row.open %} open{% endif %} id="jahresbeitrag-{{ row.agreement.id }}">
+      <summary>{% if c %}Ändern{% else %}Jahresbeitrag erfassen{% endif %}</summary>
+      {% if row.errors %}<ul class="fehler">{% for message in row.errors %}<li>{{ message }}</li>{% endfor %}</ul>{% endif %}
+      <form method="post" action="{{ contribution_url(row.agreement.id) }}">
+        <input type="hidden" name="year" value="{{ year }}">
+        <input type="hidden" name="checksum" value="{{ row.checksum }}">
+        <label>Betrag in EUR
+          <input name="amount" inputmode="decimal" value="{{ row.values.get('amount', '') }}" required>
+        </label>
+        <label>Erstattung in EUR (optional)
+          <input name="refund" inputmode="decimal" value="{{ row.values.get('refund', '') }}">
+        </label>
+        <label>Beleg (optional)
+          <select name="document">
+            <option value="">kein Dokument</option>
+            {% for choice in documents %}<option value="{{ choice.id }}"{% if choice.id == row.values.get('document', '') %} selected{% endif %}>{{ choice.label }}</option>{% endfor %}
+          </select>
+        </label>
+        {{ bt("speichern", "Speichern") }}
+      </form>
+      {% if c %}
+      <form method="post" action="{{ contribution_delete_url(row.agreement.id) }}" class="inline">
+        <input type="hidden" name="year" value="{{ year }}">
+        <input type="hidden" name="checksum" value="{{ row.checksum }}">
+        {{ bt("loeschen", "Löschen") }}
+      </form>
+      {% endif %}
+    </details>
+  </td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Für {{ year }} gibt es keinen Vertrag mit Steuerlicher Bedeutung. Wählen Sie oben eine Bedeutung, dann können Sie hier den Jahresbeitrag erfassen.</p>
+{% endif %}
+{% endcall %}
 {% call abschnitt("vorsorge-bescheinigungen", "Beitragsbescheinigungen", certificates | length, "Eingelesene Beitragsbescheinigungen Kranken-/Pflegeversicherung mit Zahlung oder Erstattung im Jahr " ~ year ~ ". Sie gehören zu den Verträgen ihres Ausstellers.") %}
 {% if certificates %}
 <table class="liste stapel">
