@@ -29,6 +29,13 @@
 {%- endcall %}
 {%- endmacro %}
 
+{#- „Ordner öffnen“ einer Datei der Belege-Seite: ein Icon-Formular mit dem Ordner; der Server öffnet den Datei-Explorer (POST, nur die Kennung der Datei). -#}
+{% macro open_folder_button(action, sha256) -%}
+{% call ib("ordner-offen", "Ordner öffnen", action=action, form_cls="direkt") -%}
+<input type="hidden" name="sha256" value="{{ sha256 }}">
+{%- endcall %}
+{%- endmacro %}
+
 {#- Griff zwischen zwei Spalten eines Rasters (`.spalten`, seiten.css), mit der Maus ziehbar und mit den Pfeiltasten verstellbar, Doppelklick oder Enter setzt zurück;
     die Breite merkt der Browser (rahmen.js, data-griff-*). Er setzt die Breite einer festen Spalte (ziel, Selektor) über die CSS-Variable var; die übrigen
     Spalten des Rasters nehmen den Rest. seite „ende“: Spalte ist die erste, der Griff sitzt an ihrem rechten Rand; „anfang“: Spalte ist die letzte, er sitzt

@@ -74,6 +74,12 @@ def site_file_url(sha256: str) -> str:
     return f"/belege/datei/{sha256}"
 
 
+def open_folder_url() -> str:
+    """Den Ordner einer Datei der Ablage im Datei-Explorer öffnen (POST, `sha256`; GET löst nichts
+    aus)."""
+    return "/belege/ordner-oeffnen"
+
+
 def document_url(document_id: str) -> str:
     """Die Adresse eines Dokuments: die Belege-Seite, das Dokument gewählt."""
     return site_url(document=document_id)

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_issuer_field.html" import issuer_field %}
-{% from "_ui.html" import abschnitt, chip, dateityp, hide_button, ib, status, zahl, bt, icon %}
+{% from "_ui.html" import abschnitt, chip, dateityp, hide_button, ib, open_folder_button, status, zahl, bt, icon %}
 {% from "_belege.html" import preview, rejection %}
 {% from "_findings.html" import finding_list %}
 {% from "documents/_detail.html" import document_detail with context %}
@@ -9,7 +9,7 @@
 {% set file = row.file %}
 {% set pick = keep_filter(site_url(file=file.sha256, document_kind=linked.kind, year=linked.year)) %}
 <tr title="{{ file.site }}/{{ file.path }}">
-  <td><div class="datei-zelle">{{ dateityp(file.path) }}<span class="zelle-text"><a class="name" href="{{ pick }}"{% if selected and selected.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>{% if row.folder %}<small class="pfad">{{ row.folder }} {{ hide_button(keep_filter('/belege/ausblenden-direkt'), site=site, path=row.folder) }}</small>{% endif %}</span></div></td>
+  <td><div class="datei-zelle">{{ dateityp(file.path) }}<span class="zelle-text"><a class="name" href="{{ pick }}"{% if selected and selected.sha256 == file.sha256 %} aria-current="true"{% endif %}>{{ row.name }}</a>{% if row.folder %}<small class="pfad">{{ row.folder }} {{ open_folder_button(keep_filter(open_folder_url()), file.sha256) }}{{ hide_button(keep_filter('/belege/ausblenden-direkt'), site=site, path=row.folder) }}</small>{% endif %}</span></div></td>
   <td class="aktionen"><a class="aktion" href="{{ pick }}">aufnehmen</a>
     {{ ib("extern", "Öffnen in neuem Tab", href=row.preview_url, attr='target="_blank" rel="noopener"') }}
     {{ hide_button(keep_filter('/belege/ausblenden-direkt'), sha256=file.sha256) }}</td>

@@ -34,6 +34,7 @@ from moarcoal.storage import (
     HiddenFolder,
     Issuer,
     SiteFile,
+    SiteFileError,
     entry_checksum,
 )
 from moarcoal.web.helpers import (
@@ -279,6 +280,25 @@ def file(request: Request, sha256: str) -> Response:
     if found is None:
         raise HTTPException(404)
     return file_response(store_of(request), found.site, found.path, found.sha256)
+
+
+@router.post("/ordner-oeffnen")  # open_folder_url() in links.py
+def open_folder(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> Response:
+    """Den Ordner der Datei (`sha256`, eine Datei eines Ablageorts) im Datei-Explorer öffnen; der
+    Pfad kommt aus dem Stand des Servers, nie aus der Anfrage. Unbekannter SHA-256: 404."""
+    store = store_of(request)
+    found = next((f for f in all_site_files(store) if f.sha256 == fields.get("sha256", "")), None)
+    if found is None:
+        raise HTTPException(404)
+    try:
+        failure = request.app.state.folder_opener.reveal(
+            store.sites.local_path(found.site, found.path)
+        )
+    except SiteFileError as error:
+        failure = str(error)
+    if failure:
+        return belege_page(request, 409, failure)
+    return _back(request)
 
 
 @router.post("/aufnehmen")

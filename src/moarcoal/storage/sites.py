@@ -76,14 +76,21 @@ class Sites:
         target = (folder / path).resolve()
         return target.is_relative_to(folder.resolve()) and target.is_file()
 
-    def read(self, site: str, path: str) -> bytes:
-        """Inhalt einer Datei an einem Ablageort."""
+    def local_path(self, site: str, path: str) -> Path:
+        """Der Pfad der Datei im Dateisystem (nur Auskunft, nichts wird gelesen); ein unbekannter
+        Ablageort, ein ungültiger Pfad oder einer, der aus dem Ablageort hinausführt, ist ein
+        `SiteFileError`."""
         folder = self._folder(site)
         if (error := path_error(path)) is not None:
             raise SiteFileError(error)
         target = (folder / path).resolve()
         if not target.is_relative_to(folder.resolve()):
             raise SiteFileError("Der Pfad führt aus dem Ablageort hinaus.")
+        return target
+
+    def read(self, site: str, path: str) -> bytes:
+        """Inhalt einer Datei an einem Ablageort."""
+        target = self.local_path(site, path)
         try:
             if target.stat().st_size > MAX_SITE_FILE_BYTES:
                 raise SiteFileError("Die Datei ist zu groß.")

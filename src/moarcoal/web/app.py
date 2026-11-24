@@ -22,6 +22,7 @@ from moarcoal.values.model import format_amount, format_eur
 from moarcoal.web.agreement_pages import router as agreement_router
 from moarcoal.web.document_pages import router as document_router
 from moarcoal.web.expected_documents_pages import router as expected_documents_router
+from moarcoal.web.explorer import ExplorerOpener, FolderOpener
 from moarcoal.web.findings_pages import router as findings_router
 from moarcoal.web.helpers import (
     YEAR_COOKIE,
@@ -36,6 +37,7 @@ from moarcoal.web.links import (
     agreements_url,
     findings_url,
     mein_elster_url,
+    open_folder_url,
     person_url,
     site_url,
 )
@@ -71,6 +73,7 @@ def create_app(
     user: str = DEFAULT_USER,
     extractor: Extractor | None = None,
     place_search: PlaceSearch | None = None,
+    folder_opener: FolderOpener | None = None,
 ) -> FastAPI:
     """`data_dir` wird immer übergeben; `default_data_dir()` gilt nur beim Start der App."""
     app = FastAPI(
@@ -87,6 +90,7 @@ def create_app(
     globals_["entry_url"] = lambda address: entry_url(app.state.modules, address)  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
     globals_["mein_elster_url"] = mein_elster_url
     globals_["site_url"] = site_url
+    globals_["open_folder_url"] = open_folder_url
     globals_["findings_url"] = findings_url
     globals_["agreements_url"] = agreements_url
     globals_["agreement_url"] = agreement_url
@@ -98,6 +102,8 @@ def create_app(
     app.state.extractor = extractor if extractor is not None else ClaudeExtractor()
     # Ebenso die Ortssuche: der echte Baustein fragt nur nach Klick auf „Suchen“ (ADR 0008).
     app.state.place_search = place_search if place_search is not None else NominatimSearch()
+    # Ebenso der Explorer-Aufruf: der echte Baustein startet nur nach Klick (Belege-Seite).
+    app.state.folder_opener = folder_opener if folder_opener is not None else ExplorerOpener()
     app.state.store = open_module_store(data_dir, modules)
     document_kinds = {k.key: k for module in modules for k in module.document_kinds}
     for line in relocate_documents(app.state.store):  # verschobene Dateien (ADR 0003)
