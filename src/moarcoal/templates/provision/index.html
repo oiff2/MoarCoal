@@ -3,7 +3,8 @@
 {#- Zelle „Vertrag“ einer Bescheinigung: die zugeordneten Verträge, sonst „ohne Vertrag“ mit dem Anlegen aus der Bescheinigung (nur, wenn das Dokument einen Aussteller hat). -#}
 {% macro vertrag_zelle(row, jahr, bedeutung) -%}
 {% if row.agreements %}{% for a in row.agreements %}<a href="{{ entry_url(a.address) }}">{{ a.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}ohne Vertrag
-{% if row.document.issuer %}
+{% if row.has_private_block is defined and not row.has_private_block %}
+{% elif row.document.issuer %}
 <form method="post" action="{{ certificate_agreement_url(row.certificate.id) }}" class="inline">
   <input type="hidden" name="year" value="{{ jahr }}">
   {{ bt("plus", "Vertrag anlegen (" ~ bedeutung ~ ")") }}

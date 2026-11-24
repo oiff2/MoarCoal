@@ -5,7 +5,10 @@ Zeilen raus."""
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from moarcoal.modules.provision.health_certificate.entries import HealthContributionCertificate
+from moarcoal.modules.provision.health_certificate.entries import (
+    Characteristic,
+    HealthContributionCertificate,
+)
 from moarcoal.modules.provision.health_certificate.reading import HEALTH_CONTRIBUTION_CERTIFICATE
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Agreement, Document
@@ -19,6 +22,12 @@ class CertificateRow:
     certificate: HealthContributionCertificate
     document: Document
     agreements: tuple[Agreement, ...]
+
+    @property
+    def has_private_block(self) -> bool:
+        """Ob mindestens ein Block das Merkmal „privat“ hat; nur dann braucht die Bescheinigung
+        einen Vertrag mit der Bedeutung Kranken- und Pflegeversicherung privat."""
+        return any(line.characteristic is Characteristic.PRIVATE for line in self.certificate.lines)
 
 
 def certificate_rows(

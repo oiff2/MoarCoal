@@ -38,7 +38,9 @@ def provision_findings(state: ModuleState, values: ValueSource, year: int) -> li
     pensions = pension_rows(state, year, state.agreements())
     found: list[Finding] = []
     for row in health:
-        if not any(has_meaning(state, a, TaxMeaning.PRIVATE_HEALTH_CARE) for a in row.agreements):
+        if row.has_private_block and not any(
+            has_meaning(state, a, TaxMeaning.PRIVATE_HEALTH_CARE) for a in row.agreements
+        ):
             found.append(
                 _without_agreement(
                     row.certificate.address,

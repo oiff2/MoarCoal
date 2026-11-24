@@ -61,7 +61,10 @@ def add_issuer(store: Store, name: str = "Beispiel Kranken AG") -> Issuer:
 
 
 def add_health_certificate(
-    store: Store, issuer: Issuer | None, year: int = 2025
+    store: Store,
+    issuer: Issuer | None,
+    year: int = 2025,
+    characteristics: tuple[Characteristic, ...] = (Characteristic.PRIVATE,),
 ) -> HealthContributionCertificate:
     document = Document(
         owner=USER,
@@ -73,16 +76,19 @@ def add_health_certificate(
         period_start=datetime.date(year, 1, 1),
         period_end=datetime.date(year, 12, 31),
     )
-    line = ContributionLine(
-        art="Beiträge zur Krankenversicherung (Basisleistungen)",
-        kind=ContributionKind.HEALTH_BASIC,
-        merkmal="privat",
-        characteristic=Characteristic.PRIVATE,
-        cents=120_000,
-        place="id-VaSt_KRV-Betrag",
+    lines = tuple(
+        ContributionLine(
+            art="Beiträge zur Krankenversicherung (Basisleistungen)",
+            kind=ContributionKind.HEALTH_BASIC,
+            merkmal=c.value,
+            characteristic=c,
+            cents=120_000,
+            place=f"id-VaSt_KRV-Betrag-{n}",
+        )
+        for n, c in enumerate(characteristics)
     )
     certificate = HealthContributionCertificate(
-        owner=USER, document=document.address, reader_version=1000, year=year, lines=(line,)
+        owner=USER, document=document.address, reader_version=1000, year=year, lines=lines
     )
     assert isinstance(store.apply([Put(document), Put(certificate)]), Applied)
     return certificate
@@ -381,3 +387,27 @@ def test_an_unknown_certificate_is_not_found(tmp_path: Path) -> None:
     assert post_create(client, "gibtsnicht").status_code == 404
     assert client.get("/vorsorge/vertrag-aus-bescheinigung/x").status_code == 405
     assert store.state().of_kind(Agreement) == []
+
+
+def test_a_statutory_only_certificate_gives_no_finding_and_no_offer(tmp_path: Path) -> None:
+    client, store, app = make_client(tmp_path)
+    certificate = add_health_certificate(
+        store, add_issuer(store), characteristics=(Characteristic.STATUTORY,)
+    )
+    assert of_kind(app, CERTIFICATE_WITHOUT_AGREEMENT) == []
+    assert f"/vorsorge/vertrag-aus-bescheinigung/{certificate.id}" not in (
+        client.get("/vorsorge?jahr=2025").text
+    )
+
+
+def test_a_mixed_certificate_gives_the_finding_and_the_offer(tmp_path: Path) -> None:
+    client, store, app = make_client(tmp_path)
+    certificate = add_health_certificate(
+        store,
+        add_issuer(store),
+        characteristics=(Characteristic.STATUTORY, Characteristic.PRIVATE),
+    )
+    assert len(of_kind(app, CERTIFICATE_WITHOUT_AGREEMENT)) == 1
+    assert f"/vorsorge/vertrag-aus-bescheinigung/{certificate.id}" in (
+        client.get("/vorsorge?jahr=2025").text
+    )
