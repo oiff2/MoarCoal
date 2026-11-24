@@ -721,7 +721,7 @@ def test_travel_costs_read_as_a_sum_with_plus_signs_that_are_presentation_only(
 
     rows = re.findall(r"<tr([^>]*)>(.*?)</tr>", table, re.S)[1:]
     assert [attrs.strip() for attrs, _ in rows] == [
-        "",
+        'class="first"',
         'class="addend"',
         'class="addend"',
         'class="sum"',

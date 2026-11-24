@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
 
 from fastapi import Request
@@ -82,15 +83,24 @@ def _statements(request: Request, year: int, trips: Sequence[BusinessTrip]) -> l
     return found
 
 
+class CostLine(Enum):
+    """Wie eine Zeile der Tabelle der Reisekosten in der Summe steht; der Wert ist die Klasse der
+    Zeile in der Vorlage."""
+
+    FIRST = "first"  # erster Posten
+    ADDEND = "addend"  # weiterer Posten, mit „+“ davor
+    TOTAL = "sum"  # die Summe
+
+
 @dataclass(frozen=True)
 class CostRow:
     """Eine Zeile der Tabelle der Reisekosten: Posten, Wert, bei 0 € die Begründung, Verweis."""
 
     label: str
     result: ValueResult
+    line: CostLine
     reason: str = ""
     href: str = ""
-    role: str = ""  # "addend" (Posten mit "+" davor), "sum" (Summenzeile) oder leer
 
 
 def _decision(result: ValueResult) -> str:
@@ -103,15 +113,15 @@ def _decision(result: ValueResult) -> str:
 def _cost_rows(values: ValueSource, user: str, period: Period) -> list[CostRow]:
     """Reisekosten der Dienstreisen (Nr. 66 bis 69 der Anlage N) als Zeilen der kleinen Tabelle."""
     rows: list[CostRow] = []
-    for label, key, role in (
-        ("Fahrtkosten", TRAVEL_FARE, ""),
-        ("Übernachtungskosten", TRAVEL_LODGING, "addend"),
-        ("Reisenebenkosten", TRAVEL_INCIDENTALS, "addend"),
-        ("Summe der Reisekosten", TRAVEL_TOTAL, "sum"),
+    for label, key, line in (
+        ("Fahrtkosten", TRAVEL_FARE, CostLine.FIRST),
+        ("Übernachtungskosten", TRAVEL_LODGING, CostLine.ADDEND),
+        ("Reisenebenkosten", TRAVEL_INCIDENTALS, CostLine.ADDEND),
+        ("Summe der Reisekosten", TRAVEL_TOTAL, CostLine.TOTAL),
     ):
         result = values.get(key, user, period)
         href = f"#{TRIPS_ANCHOR}" if key == TRAVEL_FARE else ""
-        rows.append(CostRow(label, result, _decision(result), href, role))
+        rows.append(CostRow(label, result, line, _decision(result), href))
     return rows
 
 
