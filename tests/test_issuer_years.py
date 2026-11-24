@@ -213,15 +213,21 @@ def test_detail_lists_years_descending_with_missing_expected_documents(tmp_path:
     assert detail.without_year == ()
 
 
-def test_detail_puts_documents_without_a_year_aside(tmp_path: Path) -> None:
+def test_detail_shows_an_open_document_without_a_year_in_every_year(tmp_path: Path) -> None:
     b = bank()
     loose = Document(
-        owner="anna", site="Ablage", path="lose.pdf", sha256="d" * 64, issuer=b.address
+        owner="anna",
+        site="Ablage",
+        path="lose.pdf",
+        sha256="d" * 64,
+        issuer=b.address,
     )
     store = open_store(tmp_path, [])
     store.apply([Put(b), Put(loose)])
     detail = issuer_detail(store.state(), "anna", store.sites, b, THIS)
-    assert detail.documents == 1 and detail.years == () and detail.without_year == (loose,)
+    assert detail.documents == 1 and detail.without_year == ()
+    assert [y.year for y in detail.years] == sorted(years_shown(THIS), reverse=True)
+    assert all(y.documents == (loose,) for y in detail.years)
 
 
 def test_page_selects_the_issuer_keeps_search_and_shows_the_years(tmp_path: Path) -> None:

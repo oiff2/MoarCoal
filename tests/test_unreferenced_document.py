@@ -77,10 +77,10 @@ def test_document_with_a_reading_kind_gives_no_finding(store: Store) -> None:
 
 def test_other_year_other_user_and_site_without_year_are_not_reported(store: Store) -> None:
     take(store, "a.txt")
-    take(store, "c.txt", site="Frei")  # kein Jahr, kein Eintrag verweist darauf
-    assert found(store, 2024) == []
+    open_task = take(store, "c.txt", site="Frei")  # kein Jahr, kein Eintrag: gehört zu jedem Jahr
+    assert [f.target for f in found(store, 2024)] == [open_task.address]
     assert found(store, user="berta") == []
-    assert len(found(store)) == 1
+    assert len(found(store)) == 2
 
 
 def test_it_goes_away_when_an_entry_refers_to_the_document(store: Store) -> None:

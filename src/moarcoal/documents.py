@@ -272,24 +272,43 @@ def unreferenced_document_findings(
     return found
 
 
-def years_of_document(document: Document, state: State, sites: Sites) -> frozenset[int]:
+@dataclass(frozen=True)
+class DocumentYears:
+    """Die Jahre eines Dokuments: `years` sind die bestimmten; `every` heißt „jedes Jahr“ (offene
+    Aufgabe, siehe `years_of_document`)."""
+
+    years: frozenset[int] = frozenset()
+    every: bool = False
+
+    def __contains__(self, year: object) -> bool:
+        return self.every or year in self.years
+
+    def __bool__(self) -> bool:
+        return self.every or bool(self.years)
+
+
+def years_of_document(document: Document, state: State, sites: Sites) -> DocumentYears:
     """Die Jahre, zu denen das Dokument gehört (CONTEXT.md, Dokument): die sein Bezugszeitraum
     berührt; ohne Bezugszeitraum das Jahr seines Jahresordners; an einem Ablageort ohne Jahr die
-    Jahre der Einträge mit Zeitbezug (Feld `year`), die auf es verweisen. Die Regel gibt es nur
-    hier; `belongs_to_year` fragt sie für ein Jahr ab."""
+    Jahre der Einträge mit Zeitbezug (Feld `year`), die auf es verweisen, und solange kein solcher
+    Eintrag auf es verweist, jedes Jahr (offene Aufgabe). Die Regel gibt es nur hier;
+    `belongs_to_year` fragt sie für ein Jahr ab."""
     if document.period_start is not None:
         if document.period_end is None:
-            return frozenset()
-        return frozenset(range(document.period_start.year, document.period_end.year + 1))
+            return DocumentYears()
+        return DocumentYears(
+            frozenset(range(document.period_start.year, document.period_end.year + 1))
+        )
     site_year = sites.year_of(document.site)
     if site_year is not None:
-        return frozenset({site_year})
-    return frozenset(
+        return DocumentYears(frozenset({site_year}))
+    referring = frozenset(
         year
         for entry in state.entries.values()
         if isinstance(year := getattr(entry, "year", None), int)
         and document.address in referenced_addresses(entry)
     )
+    return DocumentYears(referring, every=not referring)
 
 
 def belongs_to_year(document: Document, year: int, state: State, sites: Sites) -> bool:

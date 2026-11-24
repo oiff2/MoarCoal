@@ -1,5 +1,6 @@
 """Tests: Belege-Seite je Jahr mit drei Abschnitten statt Reitern (#184; nur tmp_path)."""
 
+import datetime
 import hashlib
 import json
 import re
@@ -12,6 +13,7 @@ from fastapi.testclient import TestClient
 
 from moarcoal.modules import MODULES
 from moarcoal.modules.tax_year import TRANSFER_PROTOCOL
+from moarcoal.modules.tax_year.church_tax import ChurchTaxPayment
 from moarcoal.storage import Document, ExpectedDocument, Put, Store, entry_checksum
 from moarcoal.web.links import document_url, expected_documents_url, site_url
 
@@ -251,13 +253,28 @@ def test_taken_in_lists_the_documents_of_the_year_with_name_path_kind_and_state(
     assert "brief25" not in section(main_of(client), "aufgenommen")
 
 
-def test_a_document_without_period_at_a_site_without_year_belongs_to_no_year(
+def test_a_fresh_document_without_period_at_a_site_without_year_is_an_open_task_in_every_year(
     client: httpx.Client,
 ) -> None:
     take(client, "scan")
-    assert "scan.txt" not in section(main_of(client), "aufgenommen")
     (document,) = documents(client)
-    assert "scan.txt" in main_of(client, document_url(document.id))  # die Seite zeigt es trotzdem
+    for year in ("2025", "2024"):
+        client.cookies.set("jahr", year)
+        assert "scan.txt" in section(main_of(client), "aufgenommen")
+        assert "Auf diesen Beleg verweist kein Eintrag" in main_of(client, f"/befunde?year={year}")
+    payment = ChurchTaxPayment(
+        owner="anna",
+        date=datetime.date(2025, 3, 1),
+        amount_cents=100,
+        benefit_type="Beispiel",
+        document=document.address,
+    )
+    store_of(client).apply([Put(payment)])
+    client.cookies.set("jahr", "2025")
+    assert "scan.txt" in section(main_of(client), "aufgenommen")
+    assert "Auf diesen Beleg verweist kein Eintrag" not in main_of(client, "/befunde?year=2025")
+    client.cookies.set("jahr", "2024")
+    assert "scan.txt" not in section(main_of(client), "aufgenommen")
 
 
 def test_a_document_with_a_period_belongs_to_the_years_it_touches(client: httpx.Client) -> None:

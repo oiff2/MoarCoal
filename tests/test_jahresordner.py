@@ -141,10 +141,13 @@ def test_without_period_the_year_folder_decides(sites_root: Path) -> None:
     assert not belongs_to_year(doc, 2024, store.state(), store.sites)
 
 
-def test_at_a_site_without_year_referencing_entries_decide(sites_root: Path) -> None:
+def test_at_a_site_without_year_every_year_until_referencing_entries_decide(
+    sites_root: Path,
+) -> None:
     store = open_store(sites_root, [NOTE_KIND])
     doc = document("Scans")
-    assert not belongs_to_year(doc, 2025, store.state(), store.sites)
+    assert belongs_to_year(doc, 2025, store.state(), store.sites)  # offene Aufgabe: jedes Jahr
+    assert belongs_to_year(doc, 2024, store.state(), store.sites)
 
     store.apply([Put(doc), Put(YearNote(owner="anna", year=2025, document=doc.address))])
 

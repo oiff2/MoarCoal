@@ -157,14 +157,14 @@ def test_state_is_to_confirm_while_a_proposal_has_open_fields(two: httpx.Client)
     assert page.count('<td class="stand">fertig') == 2
 
 
-def test_document_without_kind_has_no_period_and_so_belongs_to_no_year_here(
+def test_document_without_kind_has_no_period_and_belongs_to_every_year_while_unreferenced(
     two: httpx.Client,
 ) -> None:
     bescheid = doc(two, "bescheid.txt")
     assert change(two, bescheid, kind="", issuer_choice="").status_code == 303
     after = doc(two, "bescheid.txt")
     assert after.document_kind is None and after.period_start is None
-    assert "bescheid.txt" not in taken_in(two)  # ohne Zeitraum an einem Ablageort ohne Jahr
+    assert "bescheid.txt" in taken_in(two)  # ohne Zeitraum, Ablageort ohne Jahr: offene Aufgabe
     assert "bescheid.txt" in main_of(two, document_url(after.id))  # die Seite zeigt es trotzdem
 
 
