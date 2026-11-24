@@ -4,11 +4,13 @@ Der Katalog einer Anlage (`anlage_n.py`, `anlage_vor.py`, …) legt je Feld fest
 woher sein Betrag kommt (`Computed.compute`); die Schritte dazwischen stehen hier einmal.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from decimal import Decimal
 
 from moarcoal.modules.tax_year.fields import FormField
 from moarcoal.values.calculation import Calculation
-from moarcoal.values.model import Amount, ValueKey
+from moarcoal.values.model import Amount, Unit, ValueKey
 
 
 def rounded(calculation: Calculation, field: FormField, amount: Amount) -> Amount:
@@ -37,3 +39,28 @@ class FromValue:
             calculation.not_applicable(f"{self.label} entfällt")
         amount = calculation.step(f"{self.label} übernommen", item.amount)
         return rounded(calculation, field, amount)
+
+
+type CollectItems = Callable[[Calculation, FormField], None]
+"""Legt die Einzelposten eines Felds mit Einzelangaben an (`Calculation.use`, `Calculation.item`):
+jeder Einzelposten ist eine Einzelangabe, seine Bezeichnung ihre Bezeichnung."""
+
+
+@dataclass(frozen=True)
+class SumOfRounded:
+    """Die fertige Rechnung der Summe eines Felds mit Einzelangaben (`Itemized.total`): jede
+    Einzelangabe wird nach der Regel des Felds gerundet, die Summe ist die Summe der gerundeten
+    Beträge. Ohne Einzelposten ist das Feld noch nicht berechenbar, nie 0."""
+
+    collect: CollectItems
+
+    def __call__(self, calculation: Calculation, field: FormField) -> Amount:
+        first = len(calculation.items)
+        self.collect(calculation, field)
+        items = calculation.items[first:]
+        if not items:
+            calculation.not_yet("Es gibt noch keine Einzelposten")
+        total = Decimal(0)
+        for item in items:
+            total += rounded(calculation, field, item.amount).value
+        return calculation.step(f"Summe der {len(items)} Einzelangaben", Amount(total, Unit.EUR))

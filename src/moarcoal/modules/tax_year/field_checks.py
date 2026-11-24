@@ -12,7 +12,7 @@ from decimal import Decimal
 
 from moarcoal.modules.tax_year.assessment_check import ASSESSMENT_DEVIATION
 from moarcoal.modules.tax_year.fields import FormField
-from moarcoal.modules.tax_year.protocol_check import AMBIGUOUS, DEVIATION, MISSING
+from moarcoal.modules.tax_year.protocol_check import AMBIGUOUS, DEVIATION, EXTRA_ITEM, MISSING
 from moarcoal.modules.tax_year.snapshot_check import SNAPSHOT_DEVIATION
 from moarcoal.values.findings import Finding, Severity
 from moarcoal.values.model import ValueKey, ValueRef
@@ -22,7 +22,7 @@ SNAPSHOT = "Bei Abgabe"
 ASSESSMENT = "Laut EStB"
 
 _KINDS = {
-    PROTOCOL: (DEVIATION, MISSING, AMBIGUOUS),
+    PROTOCOL: (DEVIATION, MISSING, AMBIGUOUS, EXTRA_ITEM),
     SNAPSHOT: (SNAPSHOT_DEVIATION,),
     ASSESSMENT: (ASSESSMENT_DEVIATION,),
 }

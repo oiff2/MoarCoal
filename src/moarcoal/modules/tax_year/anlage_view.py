@@ -18,6 +18,8 @@ from moarcoal.modules.tax_year.field_checks import FieldCheck, field_checks
 from moarcoal.modules.tax_year.fields import (
     Computed,
     FormField,
+    Itemized,
+    ItemizedAmount,
     NotComputed,
     TextSource,
     TypedInput,
@@ -33,7 +35,7 @@ from moarcoal.registration import ModuleState
 from moarcoal.storage import Snapshot
 from moarcoal.values.calculation import ValueSource
 from moarcoal.values.findings import Finding
-from moarcoal.values.model import Period, ValueKey, ValueRef, ValueResult
+from moarcoal.values.model import ExposedValue, Period, ValueKey, ValueRef, ValueResult
 
 type Captures = Callable[[Iterable[ValueRef]], list[tuple[str, str]]]
 """Die Links zum Erfassen zu den fremden Werten eines Ergebnisses (Beschriftung, Adresse); die
@@ -43,12 +45,14 @@ Route bindet sie an die Module."""
 @dataclass(frozen=True)
 class ValueContent:
     """Inhalt der Zeile eines berechneten Felds: das Ergebnis (Betrag, entfällt, noch nicht
-    berechenbar) und die Links zum Erfassen dessen, woraus es rechnet."""
+    berechenbar) und die Links zum Erfassen dessen, woraus es rechnet. Hat das Feld Einzelangaben,
+    stehen sie in `itemized` (das Ergebnis ist ihre Summe); sonst ist es leer."""
 
     shape: ClassVar[str] = "value"
     result: ValueResult
     whole_euros: bool
     links: tuple[tuple[str, str], ...]
+    itemized: tuple[ItemizedAmount, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -164,10 +168,14 @@ def _rows(
         text = sources.texts.get(field.elster_id)
         content: RowContent
         match field.kind:
-            case Computed():
-                content = ValueContent(
-                    values.get(field.key, state.user, period), field.whole_euros, ()
+            case Computed() | Itemized():
+                result = values.get(field.key, state.user, period)
+                itemized = (
+                    field.kind.amounts(result.items)
+                    if isinstance(field.kind, Itemized) and isinstance(result, ExposedValue)
+                    else ()
                 )
+                content = ValueContent(result, field.whole_euros, (), itemized)
             case TypedInput() as typed:
                 entry = current_input(state, year, field)
                 content = InputContent(typed, entry.content if entry else None)

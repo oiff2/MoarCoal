@@ -7,10 +7,23 @@ bei Tagen und km sind sie mehrdeutig.
 """
 
 from collections.abc import Iterator, Sequence
+from dataclasses import dataclass
+from decimal import Decimal
 
 from moarcoal.modules.tax_year.anlagen import Anlage
-from moarcoal.modules.tax_year.entries import TRANSFER_PROTOCOL_KEY, ProtocolReading, taken_order
-from moarcoal.modules.tax_year.fields import AmbiguousLines, FormField, NotANumber
+from moarcoal.modules.tax_year.entries import (
+    TRANSFER_PROTOCOL_KEY,
+    ProtocolLine,
+    ProtocolReading,
+    taken_order,
+)
+from moarcoal.modules.tax_year.fields import (
+    AmbiguousLines,
+    FormField,
+    Itemized,
+    ItemizedAmount,
+    NotANumber,
+)
 from moarcoal.modules.tax_year.form_names import form_name
 from moarcoal.modules.tax_year.links import protocol_url
 from moarcoal.modules.tax_year.person_input import field_texts
@@ -26,6 +39,7 @@ MISSING = "tax_year.protocol_missing"
 AMBIGUOUS = "tax_year.protocol_ambiguous"
 UNKNOWN_ELSTER_ID = "tax_year.protocol_unknown_elster_id"
 LINE_MISMATCH = "tax_year.protocol_line_mismatch"
+EXTRA_ITEM = "tax_year.protocol_extra_item"
 
 FINDING_KINDS = (
     FindingKind(DEVIATION, "Übertragungsprotokoll weicht vom Wert ab"),
@@ -33,6 +47,7 @@ FINDING_KINDS = (
     FindingKind(AMBIGUOUS, "Feld kommt im Übertragungsprotokoll mehrfach vor"),
     FindingKind(UNKNOWN_ELSTER_ID, "E-Kennung unbekannt, nicht abgleichbar"),
     FindingKind(LINE_MISMATCH, "Nr. im Vordruck weicht von der Struktur ab"),
+    FindingKind(EXTRA_ITEM, "Einzelangabe im Übertragungsprotokoll ohne Gegenstück"),
 )
 
 
@@ -96,6 +111,107 @@ def _field_findings(
         href=first,
         fingerprint=fingerprint(field.elster_id, expected, *contents),
     )
+
+
+@dataclass(frozen=True)
+class _ProtocolItem:
+    """Eine Einzelangabe im Protokoll: Bezeichnung und Betrag mit demselben Index; eines von
+    beiden kann fehlen (ELSTER überträgt leere Felder nicht)."""
+
+    label: ProtocolLine | None
+    amount: ProtocolLine | None
+
+    @property
+    def shown(self) -> str:
+        return self.label.content if self.label else ""
+
+    @property
+    def key(self) -> str:
+        return ItemizedAmount(self.shown, Decimal(0)).key
+
+    @property
+    def first(self) -> ProtocolLine:
+        line = self.label or self.amount
+        assert line is not None
+        return line
+
+
+def _protocol_items(itemized: Itemized, reading: ProtocolReading) -> list[_ProtocolItem]:
+    """Die Einzelangaben des Protokolls in dessen Reihenfolge; Bezeichnung und Betrag gehören
+    zusammen, wenn ihr Index gleich ist."""
+    labels = {r.index: r for r in reading.lines if r.elster_id == itemized.label_id}
+    amounts = {r.index: r for r in reading.lines if r.elster_id == itemized.amount_id}
+    return [
+        _ProtocolItem(labels.get(i), amounts.get(i)) for i in dict.fromkeys([*labels, *amounts])
+    ]
+
+
+def _item_findings(
+    field: FormField,
+    itemized: Itemized,
+    ref: ValueRef,
+    amounts: Sequence[ItemizedAmount],
+    reading: ProtocolReading,
+) -> Iterator[Finding]:
+    """Gegenprobe der Einzelangaben: die Protokollzeilen werden über die Bezeichnung zugeordnet
+    (nicht über die Reihenfolge), dann wird der Betrag verglichen. Eine Einzelangabe ohne Partner
+    in einer der beiden Richtungen und ein abweichender Betrag sind Befunde."""
+    name = f"{field.name} ({field.elster_id})"
+    open_items = _protocol_items(itemized, reading)
+    for expected in amounts:
+        partner = next((p for p in open_items if p.key == expected.key), None)
+        if partner is None:
+            yield Finding(
+                MISSING,
+                Severity.WARNING,
+                ref,
+                f"{name}: Die Einzelangabe „{expected.label}“ fehlt im Übertragungsprotokoll.",
+                href=protocol_url(reading.id),
+                fingerprint=fingerprint(field.elster_id, expected.key, expected.amount),
+            )
+            continue
+        open_items.remove(partner)
+        if partner.amount is None:
+            transferred: Decimal | AmbiguousLines | NotANumber = Decimal(0)
+        else:
+            transferred = field.read_protocol([partner.amount.content])
+        href = protocol_url(reading.id, partner.first.data_name)
+        shown = f"Einzelangabe „{expected.label}“"
+        match transferred:
+            case NotANumber(content=content):
+                text = (
+                    f"{shown}: Betrag {field.show(expected.amount)}, "
+                    f"Protokoll „{content}“ ist keine Zahl."
+                )
+            case Decimal() if transferred != expected.amount:
+                text = f"{shown}: {field.explain_deviation(expected.amount, transferred)}"
+            case _:
+                continue
+        yield Finding(
+            DEVIATION,
+            Severity.WARNING,
+            ref,
+            f"{name}: {text}",
+            href=href,
+            fingerprint=fingerprint(
+                field.elster_id,
+                expected.key,
+                expected.amount,
+                partner.amount and partner.amount.content,
+            ),
+        )
+    for extra in open_items:
+        yield Finding(
+            EXTRA_ITEM,
+            Severity.WARNING,
+            ref,
+            f"{name}: Die Einzelangabe „{extra.shown}“ steht im Übertragungsprotokoll, "
+            "aber nicht in MoarCoal.",
+            href=protocol_url(reading.id, extra.first.data_name),
+            fingerprint=fingerprint(
+                field.elster_id, extra.key, extra.amount and extra.amount.content
+            ),
+        )
 
 
 def _text_findings(
@@ -198,6 +314,9 @@ def _anlage_findings(
         ref = ValueRef(field.key, state.user, period, None)
         if isinstance(result, ExposedValue):  # sonst gibt es nichts zu vergleichen
             yield from _field_findings(field, ref, result, reading)
+            if (itemized := field.itemized) is not None:
+                amounts = itemized.amounts(result.items)
+                yield from _item_findings(field, itemized, ref, amounts, reading)
 
 
 def protocol_findings(

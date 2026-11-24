@@ -63,7 +63,7 @@ Eine Zahl mit eigener Einheit, die in die Berechnung eines Ausgewiesenen Werts e
 _Avoid_: Position, Zeile, Buchung
 
 **Einzelangabe**:
-Eine Zeile eines Felds, das in Mein ELSTER „Einzelne Einträge“ hat (z. B. Anlage Vorsorgeaufwand Zeile 46): Bezeichnung und Betrag unter einem Paar von E-Kennungen, darunter die Summe. Das Steuerjahr füllt sie aus den Einzelposten des Ausgewiesenen Werts; der Abgleich mit dem Protokoll ordnet die Einzelangaben über ihre Bezeichnung zu (ohne Groß-/Kleinschreibung und Leerraum), nicht über ihre Reihenfolge, und vergleicht dann den Betrag. Sie ist kein Eintrag (nichts Gespeichertes) und keine Zeile im Vordruck.
+Eine Zeile eines Felds, das in Mein ELSTER „Einzelne Einträge“ hat (z. B. Anlage Vorsorgeaufwand Zeile 46): Bezeichnung und Betrag unter einem Paar von E-Kennungen, darunter die Summe. Das Steuerjahr füllt sie aus den Einzelposten des Ausgewiesenen Werts; der Abgleich mit dem Protokoll ordnet die Einzelangaben über ihre Bezeichnung zu (ohne Groß-/Kleinschreibung und Leerraum), nicht über ihre Reihenfolge, und vergleicht dann den Betrag. Sie ist kein Eintrag (nichts Gespeichertes) und keine Zeile im Vordruck (Code: `ItemizedAmount`; die Art des Felds mit Einzelangaben heißt `Itemized`).
 _Avoid_: Listenposten
 
 **Rechenweg**:

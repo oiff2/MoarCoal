@@ -1,0 +1,12 @@
+{
+ "schema": 1,
+ "form": "KAP",
+ "year": 2025,
+ "provisional": false,
+ "fields": [
+  {"e_kennung": "E0900010", "page": "10 - Erträge", "headings": ["Abschnitt"], "line": "3", "label": "Anderes Feld", "unit": "€"},
+  {"e_kennung": "E0900011", "page": "10 - Erträge", "headings": ["Abschnitt", "Einzelne Einträge"], "line": "", "label": "Bezeichnung"},
+  {"e_kennung": "E0900012", "page": "10 - Erträge", "headings": ["Abschnitt", "Einzelne Einträge"], "line": "", "label": "Betrag (Euro)", "unit": "€"},
+  {"e_kennung": "E0900013", "page": "10 - Erträge", "headings": ["Abschnitt"], "line": "4", "label": "Summe (Euro)", "unit": "€"}
+ ]
+}

@@ -7,7 +7,7 @@ das Feld aus derselben Angabe ab: bei Euro die Richtung, km zählen wie eine Aus
 
 import dataclasses
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
@@ -17,7 +17,14 @@ from moarcoal.modules.tax_year.entries import ElsterId, YearPersonInput
 from moarcoal.modules.tax_year.form_names import form_name
 from moarcoal.storage import PersonalDetails
 from moarcoal.values.calculation import Calculation
-from moarcoal.values.model import Amount, Unit, ValueKey, format_amount, parse_german_number
+from moarcoal.values.model import (
+    Amount,
+    LineItem,
+    Unit,
+    ValueKey,
+    format_amount,
+    parse_german_number,
+)
 
 
 class Direction(StrEnum):
@@ -229,17 +236,65 @@ class NotComputed:
     die Struktur, die Richtung kommt mit der Rechnung."""
 
 
-type FieldKind = Computed | TypedInput | TextSource | NotComputed
+@dataclass(frozen=True)
+class ItemizedAmount:
+    """Eine Einzelangabe eines Felds mit Einzelangaben: Bezeichnung und der nach der Regel des
+    Felds gerundete Betrag (nicht der ungerundete Einzelposten)."""
+
+    label: str
+    amount: Decimal
+
+    @property
+    def key(self) -> str:
+        """Woran der Abgleich mit dem Protokoll sie erkennt: die Bezeichnung ohne
+        Groß-/Kleinschreibung und ohne Leerraum."""
+        return "".join(self.label.split()).casefold()
+
+
+@dataclass(frozen=True)
+class Itemized:
+    """Ein Feld mit Einzelangaben („Einzelne Einträge“ in Mein ELSTER): unter `label_id`
+    (Bezeichnung) und `amount_id` (Betrag) steht je Einzelangabe eine Zeile, die E-Kennung des
+    Felds selbst gehört der Summe. `total` ist Einheit, Rundung, Richtung und Rechnung dieser
+    Summe; seine Rechnung legt die Einzelposten an, jeder Einzelposten ist eine Einzelangabe."""
+
+    label_id: ElsterId
+    amount_id: ElsterId
+    total: Computed
+
+    def __post_init__(self) -> None:
+        if self.total.unit is not Unit.EUR:
+            raise ValueError("Einzelangaben haben Beträge in Euro")
+
+    def amounts(self, items: Iterable[LineItem]) -> tuple[ItemizedAmount, ...]:
+        """Die Einzelangaben zu den Einzelposten des Werts, je nach der Regel des Felds gerundet."""
+        return tuple(
+            ItemizedAmount(item.label, self.total.round(item.amount.value)[0]) for item in items
+        )
+
+
+type FieldKind = Computed | Itemized | TypedInput | TextSource | NotComputed
 """Die Art eines Felds; alles Übrige am Feld folgt aus ihr. Geschlossen: eine neue Art ist selten
 und soll sichtbar sein (Pyright meldet jede Verzweigung, die sie nicht behandelt)."""
+
+
+def amount_rule(kind: FieldKind) -> Computed | None:
+    """Die Regel des Betrags eines Felds, das einen hat: bei `Itemized` die seiner Summe."""
+    match kind:
+        case Computed():
+            return kind
+        case Itemized():
+            return kind.total
+        case TypedInput() | TextSource() | NotComputed():
+            return None
 
 
 @dataclass(frozen=True)
 class FieldMeaning:
     """Die Bedeutung eines Felds, eine Zeile im Katalog einer Anlage.
 
-    `key` ist der Schlüssel des Ausgewiesenen Werts und steht ausdrücklich nur bei berechneten
-    Feldern; sonst leitet ihn `FormField.key` aus der E-Kennung ab.
+    `key` ist der Schlüssel des Ausgewiesenen Werts und steht ausdrücklich nur bei Feldern mit
+    Betrag (`Computed`, `Itemized`); sonst leitet ihn `FormField.key` aus der E-Kennung ab.
 
     `previous` ordnet das Feld dem Vorjahr zu, wo seine E-Kennung sich ändert: die E-Kennung des
     Vorjahrs oder `NEW_FIELD` (gibt es im Vorjahr nicht). Leer heißt: dieselbe E-Kennung wie im
@@ -252,7 +307,7 @@ class FieldMeaning:
     previous: str | None = None
 
     def __post_init__(self) -> None:
-        if isinstance(self.kind, Computed) != (self.key is not None):
+        if (amount_rule(self.kind) is not None) != (self.key is not None):
             raise ValueError(
                 f"{self.elster_id}: einen Schlüssel haben genau die berechneten Felder"
             )
@@ -290,7 +345,12 @@ class FormField:
     @property
     def computed(self) -> bool:
         """Ob MoarCoal das Feld berechnet (es hat dann einen Wert und einen Schnappschuss)."""
-        return isinstance(self.kind, Computed)
+        return amount_rule(self.kind) is not None
+
+    @property
+    def itemized(self) -> Itemized | None:
+        """Die Art `Itemized`, wenn das Feld Einzelangaben hat."""
+        return self.kind if isinstance(self.kind, Itemized) else None
 
     @property
     def name(self) -> str:
@@ -299,14 +359,16 @@ class FormField:
 
     @property
     def _computed(self) -> Computed:
-        if not isinstance(self.kind, Computed):
+        rule = amount_rule(self.kind)
+        if rule is None:
             raise ValueError(f"{self.label}: ein Feld, das nicht berechnet wird, hat keinen Betrag")
-        return self.kind
+        return rule
 
     @property
     def whole_euros(self) -> bool:
         """Ob das Feld ganze Euro nimmt (angezeigt ohne Cent)."""
-        return isinstance(self.kind, Computed) and self.kind.whole_euros
+        rule = amount_rule(self.kind)
+        return rule is not None and rule.whole_euros
 
     def round(self, value: Decimal) -> tuple[Decimal, str | None]:
         """Der einzutragende Wert und der Grund der Rundung (Regel der Art `Computed`)."""

@@ -12,7 +12,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from moarcoal.modules.tax_year.entries import ProtocolReading
-from moarcoal.modules.tax_year.fields import Computed, FieldMeaning, FormField, NotComputed
+from moarcoal.modules.tax_year.fields import (
+    Computed,
+    FieldMeaning,
+    FormField,
+    Itemized,
+    NotComputed,
+    amount_rule,
+)
 from moarcoal.modules.tax_year.form_names import FORM_ORDER, form_name, form_rank
 from moarcoal.modules.tax_year.special_parts import SpecialPart
 from moarcoal.modules.tax_year.structure import (
@@ -41,8 +48,14 @@ def derive_fields(
     Struktur nicht kennt, ist ein Fehler (`UnknownElsterId`)."""
     named = {m.elster_id: m for m in meanings}
     wanted = [structure.get(elster_id) for elster_id in named]
+    absorbed = {  # Bezeichnung und Betrag der Einzelangaben: das Feld ist die Summe
+        structure.get(elster_id).e_kennung
+        for m in named.values()
+        if isinstance(m.kind, Itemized)
+        for elster_id in (m.kind.label_id, m.kind.amount_id)
+    }
     if all_structure_fields:
-        wanted = list(structure.fields)
+        wanted = [f for f in structure.fields if f.e_kennung not in absorbed]
     return tuple(
         FormField(
             named.get(described.e_kennung) or FieldMeaning(described.e_kennung, NotComputed()),
@@ -111,16 +124,17 @@ class Anlage:
         latest: dict[ValueKey, tuple[FormField, Computed]] = {}
         for year in sorted(self.fields):
             for each in self.fields[year]:
-                if isinstance(each.kind, Computed):
-                    latest[each.key] = (each, each.kind)
+                if (rule := amount_rule(each.kind)) is not None:
+                    latest[each.key] = (each, rule)
 
         def definition(key: ValueKey, described: FormField, kind: Computed) -> ValueDefinition:
             def calculate(calculation: Calculation) -> Amount:
                 year = calculation.year
                 mine = next((f for f in self.fields.get(year, ()) if f.key == key), None)
-                if mine is None or not isinstance(mine.kind, Computed):
+                rule = None if mine is None else amount_rule(mine.kind)
+                if mine is None or rule is None:
                     calculation.not_yet(f"{self.name} {year} deckt MoarCoal noch nicht ab")
-                return mine.kind.compute(calculation, mine)
+                return rule.compute(calculation, mine)
 
             return ValueDefinition(
                 CatalogEntry(

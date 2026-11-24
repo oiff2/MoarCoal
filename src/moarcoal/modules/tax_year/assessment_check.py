@@ -11,7 +11,7 @@ from decimal import Decimal
 from moarcoal.modules.tax_year.anlagen import Anlage, field_catalog
 from moarcoal.modules.tax_year.assessment import ASSESSMENT_KEY
 from moarcoal.modules.tax_year.entries import taken_order
-from moarcoal.modules.tax_year.fields import Computed, FormField
+from moarcoal.modules.tax_year.fields import FormField, amount_rule
 from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.snapshot_check import latest_snapshot
 from moarcoal.registration import ModuleState
@@ -43,12 +43,12 @@ def assessment_amounts(
     confirmed = state.confirmed_fields(document)
     amounts: dict[ValueKey, Decimal] = {}
     for field in fields:
-        kind = field.kind
-        if not isinstance(kind, Computed) or not kind.assessment:
+        rule = amount_rule(field.kind)
+        if rule is None or not rule.assessment:
             continue
-        if not all(key in confirmed for key in kind.assessment):
+        if not all(key in confirmed for key in rule.assessment):
             continue
-        contents = [confirmed[key][0] for key in kind.assessment]
+        contents = [confirmed[key][0] for key in rule.assessment]
         numbers = [c for c in contents if isinstance(c, Decimal)]
         if len(numbers) + contents.count(None) == len(contents):
             amounts[field.key] = sum((abs(n) for n in numbers), start=Decimal(0))
