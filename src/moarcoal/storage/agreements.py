@@ -75,8 +75,10 @@ def denylist_lines(agreements: list[Agreement]) -> list[str]:
     return sorted(found)
 
 
-def _number_key(number: str) -> str:
-    return number.strip().casefold()
+def number_key(number: str) -> str:
+    """Die Vertragsnummer zum Vergleichen: ohne Groß-/Kleinschreibung und ohne Leerraum (auch in
+    der Mitte); leer bleibt leer."""
+    return "".join(number.split()).casefold()
 
 
 def check_agreement(agreement: Agreement, entries: Mapping[EntryAddress, Entry]) -> str | None:
@@ -96,8 +98,8 @@ def check_agreement(agreement: Agreement, entries: Mapping[EntryAddress, Entry])
     ]
     if any(name_key(e.name) == name_key(agreement.name) for e in others):
         return "Diesen Vertrag gibt es schon."
-    number = _number_key(agreement.number)
-    if number and any(_number_key(e.number) == number for e in others):
+    number = number_key(agreement.number)
+    if number and any(number_key(e.number) == number for e in others):
         return "Diese Vertragsnummer gibt es bei diesem Vertragspartner schon."
     return None
 

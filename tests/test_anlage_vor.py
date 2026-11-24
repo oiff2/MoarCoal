@@ -5,6 +5,7 @@ from moarcoal.modules.tax_year.anlage_vor import (
     ANLAGE_VOR,
     VOR_ACCIDENT_LIABILITY_RISK,
     VOR_DISABILITY,
+    VOR_BASIC_PENSION,
     VOR_EMPLOYEE_CARE,
     VOR_EMPLOYEE_HEALTH,
     VOR_EMPLOYEE_PENSION,
@@ -59,6 +60,7 @@ COMPUTED = {
 }
 # Felder aus Beitragsbescheinigungen und Jahresbeiträgen des Moduls Vorsorge (Werte `provision.*`)
 FROM_PROVISION = {
+    "E2000701": (VOR_BASIC_PENSION, "8", Direction.EXPENSE, "provision.basic_pension"),
     "E2003104": (VOR_PRIVATE_HEALTH, "23", Direction.EXPENSE, "provision.private_health_basic"),
     "E2003202": (VOR_PRIVATE_CARE, "24", Direction.EXPENSE, "provision.private_care"),
     "E2003302": (VOR_PRIVATE_REFUNDS, "25", Direction.INCOME, "provision.private_refunds"),

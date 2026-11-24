@@ -6,8 +6,9 @@ Berechnet werden die Felder „laut Nr. … der Lohnsteuerbescheinigung“, dere
 der Arbeit kennt: Nr. 22 a/b, 23 a/b, 24 b, 24 c und 27. Nr. 24 a, 25 und 26 rechnet sie wie
 Anlage N Nr. 17/18: Kennt die Einlese-Regel jeden Pfad der Bescheinigung, ist die Nr. nicht
 bescheinigt und das Feld 0 € (Begründung im Rechenweg, Arbeit); sonst noch nicht berechenbar. Alle
-übrigen Felder kommen mit dem Modul Vorsorge; bisher Z. 23 bis 25 (private Kranken- und
-Pflege-Pflichtversicherung, laut den Beitragsbescheinigungen: Beiträge und Erstattungen, Werte
+übrigen Felder kommen mit dem Modul Vorsorge; bisher Z. 8 (Beiträge zu Basisrentenverträgen,
+laut den Anbieterbescheinigungen, Wert `provision.basic_pension`), Z. 23 bis 25 (private Kranken-
+und Pflege-Pflichtversicherung, laut den Beitragsbescheinigungen: Beiträge und Erstattungen, Werte
 `provision.*`) und Z. 27 (über die Basisabsicherung hinausgehende Beiträge abzüglich erstatteter,
 laut den Jahresbeiträgen), Z. 44 bis 46 (Weitere sonstige Vorsorgeaufwendungen: Jahresbeiträge
 je Steuerlicher Bedeutung als Einzelangaben je Vertrag, je Einzelangabe aufgerundet) sowie Z. 14
@@ -63,6 +64,7 @@ PROVISION_HEALTH_EXTRA = ValueKey("provision.private_health_extra")
 PROVISION_UNEMPLOYMENT = ValueKey("provision.unemployment_contributions")
 PROVISION_DISABILITY = ValueKey("provision.disability_contributions")
 PROVISION_ACCIDENT_LIABILITY_RISK = ValueKey("provision.accident_liability_risk_contributions")
+PROVISION_BASIC_PENSION = ValueKey("provision.basic_pension")
 
 PROVISION_STATUTORY_REFUNDS = ValueKey("provision.statutory_refunds")
 PROVISION_STATUTORY_REFUNDS_NO_SICK_PAY = ValueKey("provision.statutory_refunds_no_sick_pay")
@@ -77,6 +79,7 @@ PROVISION_KEYS = (  # die Werte von Vorsorge, aus denen VOR rechnet
     PROVISION_ACCIDENT_LIABILITY_RISK,
     PROVISION_STATUTORY_REFUNDS,
     PROVISION_STATUTORY_REFUNDS_NO_SICK_PAY,
+    PROVISION_BASIC_PENSION,
 )
 
 VOR_EMPLOYEE_PENSION = ValueKey("tax_year.vor_employee_pension")  # Nr. 23 a/b, Zeile 4
@@ -90,6 +93,7 @@ VOR_EMPLOYEE_CARE = ValueKey("tax_year.vor_employee_care")  # Nr. 26, Zeile 13
 VOR_NO_SICK_PAY = ValueKey("tax_year.vor_no_sick_pay")  # Zeile 12
 VOR_STATUTORY_REFUNDS = ValueKey("tax_year.vor_statutory_refunds")  # Zeile 14
 VOR_STATUTORY_REFUNDS_NO_SICK_PAY = ValueKey("tax_year.vor_statutory_refunds_no_sick_pay")  # Z. 15
+VOR_BASIC_PENSION = ValueKey("tax_year.vor_basic_pension")  # Zeile 8
 VOR_PRIVATE_HEALTH = ValueKey("tax_year.vor_private_health")  # Zeile 23
 VOR_PRIVATE_CARE = ValueKey("tax_year.vor_private_care")  # Zeile 24
 VOR_PRIVATE_REFUNDS = ValueKey("tax_year.vor_private_refunds")  # Zeile 25
@@ -141,6 +145,13 @@ CATALOG_2025 = (
         EXPENSE,
         WORK_EMPLOYEE_PENSION,
         "Arbeitnehmeranteil laut Nr. 23 a/b",
+    ),
+    _computed(
+        "E2000701",
+        VOR_BASIC_PENSION,
+        EXPENSE,
+        PROVISION_BASIC_PENSION,
+        "Beiträge laut Anbieterbescheinigungen",
     ),
     _computed(
         "E2000801",

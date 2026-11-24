@@ -23,9 +23,13 @@ from pydantic import ValidationError
 
 from moarcoal.documents import DocumentKind, ReadInError
 from moarcoal.modules.elster_html import (
+    HEADER_PATHS,
     HtmlField,
+    blocks_of,
     parse_elster_document,
     read_cents,
+    require_euro,
+    require_fields,
     unrecognized_paths,
 )
 from moarcoal.modules.provision.health_certificate.entries import (
@@ -34,7 +38,7 @@ from moarcoal.modules.provision.health_certificate.entries import (
     ContributionLine,
     HealthContributionCertificate,
 )
-from moarcoal.storage import Document, ReadInEntry
+from moarcoal.storage import Document, ReadInEntry, unique_by_issuer
 
 READER_VERSION = 1
 TITLE = "Beitragsbescheinigung Kranken-/Pflegeversicherung"  # Titel der Dokumentart
@@ -52,18 +56,7 @@ REQUIRED = {CHARACTERISTIC: "Merkmal", ART: "Art des Betrags", AMOUNT: "Betrag"}
 
 # Pfade, die die Einlese-Regel kennt (ohne `VaSt_KRV-` und Index): die Felder der Blöcke und der
 # Kopf wie in den übrigen eDaten-Belegen.
-KNOWN_PATHS = frozenset(
-    {
-        *(f"{BLOCK}-{name}" for name in BLOCK_FIELDS),
-        "Allgemein-IdNr",
-        "Allgemein-Name",
-        "Allgemein-Vorname",
-        "Dauer-Anfang",
-        "Dauer-Ende",
-        "Dauer-Jahr",
-        "Eingangsdatum",
-    }
-)
+KNOWN_PATHS = frozenset({*(f"{BLOCK}-{name}" for name in BLOCK_FIELDS), *HEADER_PATHS})
 
 # `BetragArt` (Leerraum vereinheitlicht) -> Beitragsposten; ein Eintrag gilt für genau diese
 # Schreibweise, bei `PREFIXES` für jede, die so beginnt.
@@ -110,33 +103,9 @@ def _date(field: HtmlField, name: str, year: int) -> datetime.date:
     raise ReadInError(f"{name}: „{field.text}“ ist kein Datum (TT.MM.JJJJ).")
 
 
-def _blocks(fields: list[HtmlField]) -> list[dict[str, HtmlField]]:
-    """Die Felder der Blöcke, je Block nach Name; ein Block ist, was denselben Index teilt."""
-    prefix = f"{BELEGART}-{BLOCK}-"
-    blocks: dict[str, dict[str, HtmlField]] = {}
-    for field in fields:
-        if not field.path.startswith(prefix):
-            continue
-        name = field.path.removeprefix(prefix)
-        block = blocks.setdefault(field.index, {})
-        if name in block:
-            raise ReadInError(
-                f"{name} steht mehrfach im selben Block ({field.index}); welcher Wert gilt, "
-                "ist offen."
-            )
-        block[name] = field
-    return list(blocks.values())
-
-
 def _line(block: dict[str, HtmlField], number: int, year: int) -> ContributionLine:
-    for name, text in REQUIRED.items():
-        if name not in block:
-            raise ReadInError(f"Beitragsdaten {number}: {text} ({name}) fehlt in der Datei.")
-    currency = block.get(CURRENCY)
-    if currency is not None and currency.text.strip().upper() not in {"EUR", "EURO", "€"}:
-        raise ReadInError(
-            f"Beitragsdaten {number}: Währung „{currency.text}“; es werden nur Euro gelesen."
-        )
+    require_fields(block, REQUIRED, f"Beitragsdaten {number}")
+    require_euro(block.get(CURRENCY), f"Beitragsdaten {number}")
     merkmal = block[CHARACTERISTIC].text
     art = " ".join(block[ART].text.split())
     return ContributionLine(
@@ -159,7 +128,7 @@ def read_in_health_contribution_certificate(
     """Einlese-Regel der Dokumentart Beitragsbescheinigung Kranken-/Pflegeversicherung."""
     year, parsed = parse_elster_document(document, content, BELEGART, TITLE)
     fields = list(parsed.fields)
-    blocks = _blocks(fields)
+    blocks = blocks_of(fields, BELEGART, BLOCK)
     if not blocks:
         raise ReadInError(
             "Die Datei nennt keine Beitragsdaten (Vertragsdaten-Beitragsdaten); "
@@ -188,5 +157,5 @@ HEALTH_CONTRIBUTION_CERTIFICATE = DocumentKind(
     read_in=read_in_health_contribution_certificate,
     reader_version=READER_VERSION,
     unique_per_period=True,
-    unique_per_issuer=True,
+    unique_by=unique_by_issuer,
 )

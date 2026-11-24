@@ -114,4 +114,28 @@
 <p>Für {{ year }} ist keine Beitragsbescheinigung eingelesen. Nehmen Sie sie unter <a href="{{ site_url() }}">Belege</a> als Dokumentart „Beitragsbescheinigung Kranken-/Pflegeversicherung“ auf.</p>
 {% endif %}
 {% endcall %}
+{% call abschnitt("vorsorge-basisrente", "Anbieterbescheinigungen Basisrente", pensions | length, "Eingelesene Anbieterbescheinigungen Basisrente mit Zahlung im Jahr " ~ year ~ ". Sie gehören zu dem Vertrag mit derselben Vertragsnummer; ohne Vertrag zählen ihre Beiträge trotzdem.") %}
+{% if pensions %}
+<table class="liste stapel">
+  <thead><tr><th>Bescheinigung</th><th>Vertragsnummer</th><th>Vertrag</th><th>Zahljahr</th><th class="zahl">Betrag</th></tr></thead>
+  <tbody>
+  {% for row in pensions %}
+  {% for line in row.certificate.lines %}
+  <tr>
+    {% if loop.first %}
+    <td data-label="Bescheinigung" rowspan="{{ row.certificate.lines | length }}"><a href="{{ document_url(row.document.id) }}">{{ document_name(row.document) }}</a></td>
+    <td data-label="Vertragsnummer" rowspan="{{ row.certificate.lines | length }}">{{ row.certificate.contract_number }}</td>
+    <td data-label="Vertrag" rowspan="{{ row.certificate.lines | length }}">{% if row.agreements %}{% for a in row.agreements %}<a href="{{ entry_url(a.address) }}">{{ a.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}ohne Vertrag{% endif %}</td>
+    {% endif %}
+    <td data-label="Zahljahr">{{ line.paid_year }}</td>
+    <td data-label="Betrag" class="zahl">{{ line.cents | eur }}</td>
+  </tr>
+  {% endfor %}
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Für {{ year }} ist keine Anbieterbescheinigung Basisrente eingelesen. Nehmen Sie sie unter <a href="{{ site_url() }}">Belege</a> als Dokumentart „Anbieterbescheinigung Basisrente“ auf.</p>
+{% endif %}
+{% endcall %}
 {% endblock %}

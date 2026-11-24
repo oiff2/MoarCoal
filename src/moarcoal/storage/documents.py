@@ -5,8 +5,8 @@ beim Start geändert hat.
 """
 
 import datetime
-from collections.abc import Collection, Mapping
-from typing import Self
+from collections.abc import Callable, Collection, Hashable, Mapping
+from typing import ClassVar, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -73,7 +73,13 @@ class ReadInEntry(Entry):
     `document` ist das eingelesene Dokument, `reader_version` die Fassung der Einlese-Regel.
     Daran findet die Datenebene beim Start, was neu einzulesen ist. Eingelesene Einträge
     verweisen nicht aufeinander, denn neues Einlesen vergibt ihre Kennungen nach Reihenfolge.
+
+    `sensitive_fields` nennt Felder mit sensiblen Werten (z. B. eine Vertragsnummer): die
+    Neueinlesung hält deren Werte nie fest und der Befund nennt sie nie, nur dass sich etwas
+    geändert hat.
     """
+
+    sensitive_fields: ClassVar[frozenset[str]] = frozenset()
 
     document: EntryAddress
     reader_version: int = Field(ge=1)
@@ -109,30 +115,41 @@ def document_path(entry: Document) -> str:
     return f"users/{entry.owner}/documents.json"
 
 
+type UniqueKey = Callable[[Document, Mapping[EntryAddress, Entry]], Hashable]
+"""Womit sich zwei Dokumente einer Art im selben Bezugszeitraum ausschließen: aus Dokument und
+Stand der Schlüssel; nur Dokumente mit gleichem Schlüssel kollidieren. Die Dokumentart des Moduls
+liefert ihn (sie kennt ihre eingelesenen Einträge), die Datenebene vergleicht nur."""
+
+
+def unique_by_issuer(document: Document, entries: Mapping[EntryAddress, Entry]) -> Hashable:
+    """Schlüssel „je Aussteller“: kein Aussteller zählt als ein Aussteller."""
+    return document.issuer
+
+
 def period_clash(
     entries: Mapping[EntryAddress, Entry],
     document: Document,
     once_per_period: Collection[str],
-    once_per_issuer: Collection[str] = (),
+    unique_by: Mapping[str, UniqueKey] | None = None,
 ) -> Document | None:
     """Das andere Dokument desselben Nutzers mit derselben Art und demselben Bezugszeitraum, wenn
-    die Art (Schlüssel in `once_per_period`) je Bezugszeitraum nur eines erlaubt. Steht die Art
-    auch in `once_per_issuer`, zählt nur ein Dokument desselben Ausstellers (auch: keiner)."""
+    die Art (Schlüssel in `once_per_period`) je Bezugszeitraum nur eines erlaubt. Hat die Art einen
+    Schlüssel in `unique_by`, zählt nur ein Dokument mit demselben Schlüssel."""
     if document.document_kind not in once_per_period or document.period_start is None:
         return None
-    per_issuer = document.document_kind in once_per_issuer
-    return next(
-        (
-            e
-            for e in entries.values()
-            if isinstance(e, Document)
-            and e.address != document.address
-            and (e.owner, e.document_kind, e.period_start)
-            == (document.owner, document.document_kind, document.period_start)
-            and (not per_issuer or e.issuer == document.issuer)
-        ),
-        None,
+    key = (unique_by or {}).get(document.document_kind or "")
+    same_period = (
+        e
+        for e in entries.values()
+        if isinstance(e, Document)
+        and e.address != document.address
+        and (e.owner, e.document_kind, e.period_start)
+        == (document.owner, document.document_kind, document.period_start)
     )
+    if key is None:
+        return next(same_period, None)
+    mine = key(document, entries)
+    return next((e for e in same_period if key(e, entries) == mine), None)
 
 
 def documents_of_file(
@@ -155,13 +172,14 @@ def exists_already(title: str, document: Document) -> str:
 
 
 def document_entry_kind(
-    once_per_period: Mapping[str, str] | None = None, once_per_issuer: Collection[str] = ()
+    once_per_period: Mapping[str, str] | None = None,
+    unique_by: Mapping[str, UniqueKey] | None = None,
 ) -> EntryKind:
     """Die Eintragsart Dokument; eine Datei (SHA-256) ist je Nutzer höchstens einmal Dokument.
     `once_per_period` (Schlüssel -> Name der Dokumentarten, die je
     Bezugszeitraum und Nutzer nur ein Dokument erlauben) kommt aus den Modulanmeldungen, ebenso
-    `once_per_issuer` (die Arten davon, die es je Aussteller erlauben); die Prüfung läuft im
-    Schreibweg gegen den Stand nach dem Vorgang."""
+    `unique_by` (je Art der Schlüssel, nach dem die Eindeutigkeit gilt, z. B. je Aussteller); die
+    Prüfung läuft im Schreibweg gegen den Stand nach dem Vorgang."""
     once = once_per_period or {}
 
     def check(document: Document, entries: Mapping[EntryAddress, Entry]) -> str | None:
@@ -177,7 +195,7 @@ def document_entry_kind(
             d.id != document.id for d in documents_of_file(entries, document.owner, document.sha256)
         ):
             return ALREADY_TAKEN_IN
-        other = period_clash(entries, document, once, once_per_issuer)
+        other = period_clash(entries, document, once, unique_by)
         if other is not None and document.document_kind is not None:
             return exists_already(once[document.document_kind], other)
         return None

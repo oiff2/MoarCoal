@@ -26,7 +26,7 @@ from moarcoal.defaults import MAX_YEAR, MIN_YEAR
 from moarcoal.storage.aborted_extractions import ABORTED_EXTRACTION_KIND
 from moarcoal.storage.agreements import AGREEMENT_KIND
 from moarcoal.storage.dismissals import DISMISSAL_KIND
-from moarcoal.storage.documents import REREADING_KIND, document_entry_kind
+from moarcoal.storage.documents import REREADING_KIND, UniqueKey, document_entry_kind
 from moarcoal.storage.entries import (
     Entry,
     EntryAddress,
@@ -670,7 +670,7 @@ def open_store(
     once_per_period: Mapping[str, str] | None = None,
     kinds_with_period: Collection[str] | None = None,
     site_years: Mapping[str, int] | None = None,
-    once_per_issuer: Collection[str] = (),
+    unique_by: Mapping[str, UniqueKey] | None = None,
 ) -> Store:
     """Öffnet das Datenverzeichnis `root` (injizierbar) mit den angemeldeten Eintragsarten.
 
@@ -680,13 +680,13 @@ def open_store(
     `sites` nennt die Ablageorte (Name -> Ordner), `site_years` dazu die Jahresordner (Name ->
     Jahr); ohne `sites` gilt `common/sites.json`.
     `once_per_period` (Schlüssel -> Name) nennt die Dokumentarten mit nur einem Dokument je
-    Bezugszeitraum und Nutzer; der Schreibweg weist ein zweites ab. `once_per_issuer` nennt die
-    davon, bei denen das je Aussteller gilt (nur ein Dokument desselben Ausstellers zählt als
-    zweites). `kinds_with_period` nennt
+    Bezugszeitraum und Nutzer; der Schreibweg weist ein zweites ab. `unique_by` gibt den davon,
+    bei denen die Eindeutigkeit enger gilt, den Schlüssel (nur ein Dokument mit demselben
+    Schlüssel zählt als zweites, z. B. `unique_by_issuer`). `kinds_with_period` nennt
     die Dokumentarten mit Bezugszeitraum; ein Erwarteter Beleg einer anderen wird abgewiesen.
     """
     all_kinds = (
-        document_entry_kind(once_per_period, once_per_issuer),
+        document_entry_kind(once_per_period, unique_by),
         REREADING_KIND,
         DISMISSAL_KIND,
         HIDDEN_FILE_KIND,

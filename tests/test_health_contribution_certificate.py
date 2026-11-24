@@ -63,6 +63,7 @@ from moarcoal.storage import (
     Rejected,
     Store,
     entry_checksum,
+    unique_by_issuer,
 )
 from moarcoal.values.model import Amount, ExposedValue, NotYetComputable, Period
 from moarcoal.values.testing import evaluate
@@ -563,8 +564,9 @@ def test_the_registration_lists_the_new_kind_and_values() -> None:
         "provision.accident_liability_risk_contributions",
         STATUTORY_REFUNDS,
         STATUTORY_REFUNDS_NO_SICK_PAY,
+        "provision.basic_pension",
     }
-    assert HEALTH_CONTRIBUTION_CERTIFICATE.unique_per_issuer
+    assert HEALTH_CONTRIBUTION_CERTIFICATE.unique_by is unique_by_issuer
 
 
 # --- VOR Z. 14 und 15: gesetzlich erstattete Beiträge, 0 € nur mit Begründung -------------------

@@ -15,7 +15,7 @@ Aufbau (HTML aus Mein ELSTER):
 
 import datetime
 import re
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from html.parser import HTMLParser
 
@@ -29,6 +29,19 @@ FORM_LINE = re.compile(r"\d{1,3}")
 RECEIVED = re.compile(r"Eingang auf Server:\s*(\d{2})\.(\d{2})\.(\d{4})")
 YEAR = re.compile(r"\d{4}")
 PDF_START = b"%PDF-"
+
+# Pfade des Kopfs der eDaten-Belege (ohne `<belegart>-`), die keine Dokumentart auswertet.
+HEADER_PATHS = frozenset(
+    {
+        "Allgemein-IdNr",
+        "Allgemein-Name",
+        "Allgemein-Vorname",
+        "Dauer-Anfang",
+        "Dauer-Ende",
+        "Dauer-Jahr",
+        "Eingangsdatum",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -208,3 +221,37 @@ def read_cents(field: HtmlField, name: str) -> int:
     if cents is None or cents < 0:
         raise ReadInError(f"{name}: „{field.text}“ ist kein Betrag in Euro und Cent.")
     return cents
+
+
+def blocks_of(fields: list[HtmlField], belegart: str, block: str) -> list[dict[str, HtmlField]]:
+    """Die Felder der Blöcke `block` (Pfad ohne `<belegart>-`), je Block nach Name; ein Block ist,
+    was denselben Index der Wiederholgruppe teilt, in der Reihenfolge der Datei. Ein Name, der im
+    selben Block mehrfach steht, ist nicht entschieden: `ReadInError` statt Raten."""
+    prefix = f"{belegart}-{block}-"
+    blocks: dict[str, dict[str, HtmlField]] = {}
+    for field in fields:
+        if not field.path.startswith(prefix):
+            continue
+        name = field.path.removeprefix(prefix)
+        found = blocks.setdefault(field.index, {})
+        if name in found:
+            raise ReadInError(
+                f"{name} steht mehrfach im selben Block ({field.index}); welcher Wert gilt, "
+                "ist offen."
+            )
+        found[name] = field
+    return list(blocks.values())
+
+
+def require_fields(block: Mapping[str, HtmlField], required: Mapping[str, str], where: str) -> None:
+    """Jedes Feld in `required` (Name -> Bezeichnung) steht im Block, sonst `ReadInError` mit
+    `where` (z. B. „Beitragsdaten 2“)."""
+    for name, text in required.items():
+        if name not in block:
+            raise ReadInError(f"{where}: {text} ({name}) fehlt in der Datei.")
+
+
+def require_euro(currency: HtmlField | None, where: str) -> None:
+    """Ohne Währungsfeld gilt Euro; eine andere Währung weist die Datei ab (`ReadInError`)."""
+    if currency is not None and currency.text.strip().upper() not in {"EUR", "EURO", "€"}:
+        raise ReadInError(f"{where}: Währung „{currency.text}“; es werden nur Euro gelesen.")

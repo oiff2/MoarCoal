@@ -1,9 +1,15 @@
 """Datenebene: Einträge, Adressen, Stand und Schreibweg. Nur hier werden Dateien gelesen."""
 
 from moarcoal.storage.aborted_extractions import ABORTED_EXTRACTION_KIND, AbortedExtraction
-from moarcoal.storage.agreements import Agreement
+from moarcoal.storage.agreements import Agreement, number_key
 from moarcoal.storage.dismissals import Dismissal
-from moarcoal.storage.documents import Document, ReadInDifference, ReadInEntry, Rereading
+from moarcoal.storage.documents import (
+    Document,
+    ReadInDifference,
+    ReadInEntry,
+    Rereading,
+    unique_by_issuer,
+)
 from moarcoal.storage.entries import (
     Entry,
     EntryAddress,
@@ -17,6 +23,7 @@ from moarcoal.storage.entries import (
 from moarcoal.storage.expected_documents import ExpectedDocument
 from moarcoal.storage.hidden_files import COMMON_OWNER, HiddenFile, HiddenFolder
 from moarcoal.storage.issuers import (
+    MIN_DENYLIST_LENGTH,
     Issuer,
     denylist_lines,
     issuer_with_name,
@@ -53,6 +60,7 @@ from moarcoal.storage.store import (
 __all__ = [
     "ABORTED_EXTRACTION_KIND",
     "COMMON_OWNER",
+    "MIN_DENYLIST_LENGTH",
     "PROPOSAL_KIND",
     "AbortedExtraction",
     "Agreement",
@@ -103,8 +111,10 @@ __all__ = [
     "kind_collisions",
     "name_key",
     "new_id",
+    "number_key",
     "open_store",
     "read_pid",
     "remove_pid",
+    "unique_by_issuer",
     "write_pid",
 ]

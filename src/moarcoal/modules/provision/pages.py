@@ -1,5 +1,5 @@
 """Die eine Seite des Moduls Vorsorge (`/vorsorge`): die Verträge eines Steuerjahrs mit ihrer
-Steuerlichen Bedeutung und die eingelesenen Beitragsbescheinigungen. Geschrieben wird nur über
+Steuerlichen Bedeutung und die eingelesenen Bescheinigungen. Geschrieben wird nur über
 `apply`; jede Antwort, auch eine Abweisung, zeigt diese Seite."""
 
 from dataclasses import dataclass
@@ -20,6 +20,7 @@ from moarcoal.modules.provision.annual_contribution.view import (
     contribution_rows,
     document_choices,
 )
+from moarcoal.modules.provision.basic_pension.view import pension_rows
 from moarcoal.modules.provision.common import MODULE_KEY
 from moarcoal.modules.provision.entries import TaxMeaning
 from moarcoal.modules.provision.health_certificate.view import certificate_rows
@@ -97,6 +98,7 @@ def provision_page(
         year=year,
         rows=rows,
         certificates=certificate_rows(state, year, running),
+        pensions=pension_rows(state, year, state.agreements()),
         contributions=contribution_rows(state, year, state.agreements(), sent_contribution),
         documents=document_choices(state),
         contribution_url=contribution_url,

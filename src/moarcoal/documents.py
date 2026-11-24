@@ -45,6 +45,7 @@ from moarcoal.storage import (
 from moarcoal.storage.documents import (
     ALREADY_TAKEN_IN,
     TEXT_MAX,
+    UniqueKey,
     documents_of_file,
     exists_already,
     period_clash,
@@ -59,6 +60,7 @@ DUPLICATE_DOCUMENT = "document_duplicate"
 UNREFERENCED_DOCUMENT = "document_unreferenced"  # Befundart: kein Eintrag verweist auf den Beleg
 MAX_DIFFERENCES = 50  # so viele Stellen hält eine Neueinlesung fest; gezählt werden alle
 SHOWN_DIFFERENCES = 3  # so viele nennt der Befund
+SENSITIVE_SHOWN = "(sensibler Wert, nicht festgehalten)"
 OWN_FIELDS = frozenset({"id", "owner", "document", "reader_version"})  # kein eingelesener Wert
 YEAR_NOT_A_NUMBER = "Steuerjahr: ganze Zahl, z. B. 2025"
 CHANGED_SINCE_SHOWN = "Die Datei hat sich seit der Anzeige geändert."
@@ -94,8 +96,11 @@ class DocumentKind:
     Art; der Schreibweg (`EntryKind.check` des Dokuments, `open_store(once_per_period=...)`) weist
     beim Aufnehmen und beim Ändern von Art oder Jahr ein zweites ab, vorhandene Dubletten bleiben
     und ergeben einen Hinweis.
-    `unique_per_issuer` (nur mit `unique_per_period`): die Eindeutigkeit gilt je Aussteller und
-    Jahr; Dokumente verschiedener Aussteller schließen sich nicht aus.
+    `unique_by` (nur mit `unique_per_period`): macht die Eindeutigkeit enger, sie gilt dann je
+    Schlüssel und Jahr; Dokumente mit verschiedenem Schlüssel schließen sich nicht aus. Der
+    Schlüssel kommt aus Dokument und Stand (`UniqueKey`; `unique_by_issuer` für „je Aussteller“),
+    der Schreibweg ruft ihn nach dem Vorgang auf, sodass er die eingelesenen Einträge des
+    Dokuments sieht. Die Abweisung nennt nie den Schlüssel selbst („Existiert bereits: Art Jahr“).
     """
 
     key: str
@@ -107,7 +112,7 @@ class DocumentKind:
     name_patterns: tuple[str, ...] = ()
     after_take_in: Callable[[Document, Sequence[Entry], "Values"], Sequence[Change]] | None = None
     unique_per_period: bool = False
-    unique_per_issuer: bool = False
+    unique_by: UniqueKey | None = None
 
 
 def kind_title(kinds: Mapping[str, DocumentKind], key: str | None) -> str:
@@ -185,12 +190,14 @@ def _period(
     return datetime.date(year, 1, 1), datetime.date(year, 12, 31)
 
 
-def _clash(state: State, document: Document, kind: DocumentKind | None) -> Document | None:
+def _clash(
+    entries: Mapping[EntryAddress, Entry], document: Document, kind: DocumentKind | None
+) -> Document | None:
     """Das Dokument, mit dem `document` die Eindeutigkeit seiner Dokumentart verletzt."""
     if kind is None:
         return None
-    once_per_issuer = {kind.key} if kind.unique_per_issuer else ()
-    return period_clash(state.entries, document, {kind.key}, once_per_issuer)
+    unique_by = {kind.key: kind.unique_by} if kind.unique_by else {}
+    return period_clash(entries, document, {kind.key}, unique_by)
 
 
 def _rejected(
@@ -198,10 +205,14 @@ def _rejected(
     state: State,
     kinds: Mapping[str, DocumentKind],
     document: Document,
+    attempted: Sequence[Change],
 ) -> IntakeRejected:
-    """Die Abweisung des Schreibwegs; bei „Existiert bereits“ mit dem vorhandenen Dokument."""
+    """Die Abweisung des Schreibwegs; bei „Existiert bereits“ mit dem vorhandenen Dokument. Die
+    Eindeutigkeit gilt auf dem Stand nach dem Vorgang (`attempted`), denn ihr Schlüssel kann in
+    den neu eingelesenen Einträgen des Dokuments stehen."""
     kind = kinds.get(document.document_kind or "")
-    existing = _clash(state, document, kind)
+    after = {**state.entries, **{c.entry.address: c.entry for c in attempted if isinstance(c, Put)}}
+    existing = _clash(after, document, kind)
     if (
         kind is not None
         and existing is not None
@@ -217,7 +228,7 @@ def duplicate_findings(state: State, user: str, kinds: Mapping[str, DocumentKind
     found: list[Finding] = []
     for d in sorted(state.of_kind(Document), key=lambda d: str(d.address)):
         kind = kinds.get(d.document_kind or "")
-        if d.owner == user and kind is not None and _clash(state, d, kind) is not None:
+        if d.owner == user and kind is not None and _clash(state.entries, d, kind) is not None:
             year = d.period_start.year if d.period_start else ""
             found.append(
                 Finding(
@@ -413,7 +424,7 @@ def take_in(
     document, entries, changes = prepared
     result = store.apply(changes)
     if not isinstance(result, Applied):
-        return _rejected(result.reasons, store.state(), kinds, document)
+        return _rejected(result.reasons, store.state(), kinds, document, changes)
     return TakenIn(document, entries)
 
 
@@ -516,7 +527,7 @@ def change_document(
     changes.append(Put(updated, entry_checksum(document)))
     result = store.apply(changes)
     if not isinstance(result, Applied):
-        return _rejected(result.reasons, state, kinds, updated)
+        return _rejected(result.reasons, state, kinds, updated, changes)
     return result
 
 
@@ -645,6 +656,21 @@ def _values(kind: str, entry: ReadInEntry) -> dict[str, str]:
     return dict(_flatten(dumped, kind))
 
 
+def _is_sensitive(kind: str, entry: ReadInEntry, where: str) -> bool:
+    """Ob die Stelle `where` (Art + Pfad im Eintrag) in einem sensiblen Feld des Eintrags liegt."""
+    return any(
+        where == f"{kind}.{name}" or where.startswith((f"{kind}.{name}.", f"{kind}.{name}["))
+        for name in entry.sensitive_fields
+    )
+
+
+def _shown(kind: str, entry: ReadInEntry, where: str, text: str | None) -> str | None:
+    """Der Wert, wie ihn die Neueinlesung festhält: ein sensibler nie, nur dass es ihn gibt."""
+    if text is not None and _is_sensitive(kind, entry, where):
+        return SENSITIVE_SHOWN
+    return _clip(text)
+
+
 def _clip(text: str | None) -> str | None:
     return None if text is None else text[:TEXT_MAX]
 
@@ -655,7 +681,9 @@ def _field_differences(
     old, new = _values(kind, before), _values(kind, after)
     return [
         ReadInDifference(
-            location=_clip(where) or kind, before=_clip(old.get(where)), after=_clip(new.get(where))
+            location=_clip(where) or kind,
+            before=_shown(kind, before, where, old.get(where)),
+            after=_shown(kind, after, where, new.get(where)),
         )
         for where in dict.fromkeys((*old, *new))
         if old.get(where) != new.get(where)
@@ -668,7 +696,11 @@ def _entry_differences(
     """Einträge als Ganzes: was nur vorher bzw. nur nachher vorkommt."""
 
     def text(entry: ReadInEntry) -> str:
-        return json.dumps(_values(kind, entry), ensure_ascii=False, sort_keys=True)
+        shown = {
+            where: _shown(kind, entry, where, value)
+            for where, value in _values(kind, entry).items()
+        }
+        return json.dumps(shown, ensure_ascii=False, sort_keys=True)
 
     old, new = Counter(map(text, before)), Counter(map(text, after))
     gone, added = old - new, new - old

@@ -15,6 +15,7 @@ from app_helper import make_app
 from fastapi.testclient import TestClient
 
 from moarcoal.modules import MODULES
+from moarcoal.modules.provision import REGISTRATION as PROVISION
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading, registration
 from moarcoal.modules.tax_year.anlage_est1a import ANLAGE_EST1A
 from moarcoal.modules.tax_year.anlage_sa import ANLAGE_SA
@@ -564,7 +565,7 @@ def test_vor_shows_the_short_catalog_title_in_the_locator_of_a_foreign_value() -
     module = registration((ANLAGE_VOR,))
     entries = [document, certificate]
     state = ModuleState(State({e.address: e for e in entries}), module, USER)
-    values = evaluate([WORK, module], entries)
+    values = evaluate([WORK, PROVISION, module], entries)
     anlage = next(a for a in year_anlagen((ANLAGE_VOR,), YEAR, None) if a.form == "VOR")
     page = next(p for p in anlage.pages for r in p.rows if r.field.elster_id == "E2000401")
     shown = anlage_view(state, values, (), no_links, anlage, page.slug, NO_PARAMS)
