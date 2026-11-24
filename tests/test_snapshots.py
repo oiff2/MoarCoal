@@ -36,7 +36,7 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_WORKDAYS,
 )
 from moarcoal.modules.tax_year.anlage_sa import ANLAGE_SA
-from moarcoal.modules.tax_year.anlage_vor import ANLAGE_VOR
+from moarcoal.modules.tax_year.anlage_vor import ANLAGE_VOR, VOR_PRIVATE_EXTRA
 from moarcoal.modules.tax_year.anlage_vor import PROVISION_KEYS as VOR_PROVISION_KEYS
 from moarcoal.modules.tax_year.anlage_vor import WORK_KEYS as VOR_WORK_KEYS
 from moarcoal.modules.tax_year.snapshot_check import SNAPSHOT_DEVIATION, snapshot_on_filing
@@ -300,9 +300,10 @@ def test_value_not_yet_computable_is_frozen_with_reason_and_gives_an_error(store
     errors = [f for f in finding_list(store) if f.kind == SNAPSHOT_NOT_YET]
     assert {f.severity for f in errors} == {Severity.ERROR}
     # Tage, km, die sieben Felder der Lohnsteuerbescheinigung, fünf von VOR und zwei von SA
-    # (keine Kirchensteuerzahlung, Religion offen); Arbeitsmittel 0 €
+    # (keine Kirchensteuerzahlung, Religion offen); Arbeitsmittel 0 €; Z. 27 von VOR entfällt (kein
+    # Vertrag KV/PV privat, kein Jahresbeitrag)
     assert {f.target.key for f in errors} == {  # type: ignore[union-attr]
-        k for k in (f.key for f in COMPUTED_FIELDS) if k != N_EQUIPMENT
+        k for k in (f.key for f in COMPUTED_FIELDS) if k not in (N_EQUIPMENT, VOR_PRIVATE_EXTRA)
     }
     assert all("noch nicht berechenbar" in f.message for f in errors)
 

@@ -45,6 +45,7 @@ from moarcoal.values.model import (
     Backing,
     DocumentLocator,
     ExposedValue,
+    NotApplicable,
     NotYetComputable,
     Period,
     Source,
@@ -121,10 +122,12 @@ def contributions(store: Store) -> list[AnnualContribution]:
     return own_state(store).all(AnnualContribution)
 
 
-def value(store: Store, key: str = PRIVATE_HEALTH_EXTRA) -> ExposedValue | NotYetComputable:
+def value(
+    store: Store, key: str = PRIVATE_HEALTH_EXTRA
+) -> ExposedValue | NotYetComputable | NotApplicable:
     entries = list(store.state().entries.values())
     result = evaluate(MODULES, entries).get(key, USER, Period.year(YEAR))
-    assert isinstance(result, ExposedValue | NotYetComputable), result
+    assert isinstance(result, ExposedValue | NotYetComputable | NotApplicable), result
     return result
 
 
@@ -293,7 +296,7 @@ def test_a_proof_makes_the_item_proven(tmp_path: Path) -> None:
 
 def test_without_a_contribution_the_value_is_not_yet_computable_never_zero(tmp_path: Path) -> None:
     _, store = make_client(tmp_path)
-    assert isinstance(value(store), NotYetComputable)  # kein solcher Vertrag
+    assert isinstance(value(store), NotApplicable)  # kein solcher Vertrag, kein Jahresbeitrag
     add_agreement(store, "Zusatz")
     result = value(store)
     assert isinstance(result, NotYetComputable) and "Zusatz" in result.reason
@@ -352,7 +355,7 @@ def test_removing_the_meaning_takes_the_agreement_out_of_the_sum(tmp_path: Path)
     assert isinstance(
         store.apply([Delete(meaning.address, expected=entry_checksum(meaning))]), Applied
     )
-    assert isinstance(value(store), NotYetComputable)
+    assert isinstance(value(store), NotApplicable)  # Vertrag zählt nicht mehr, nichts läuft
 
 
 def test_line_27_is_rounded_up_only_at_the_field(tmp_path: Path) -> None:
@@ -440,3 +443,36 @@ def test_a_foreign_agreement_or_missing_contribution_is_not_found(tmp_path: Path
     mine = add_agreement(store)
     assert post(client, mine, "/loeschen").status_code == 404
     assert contributions(store) == []
+
+
+def test_without_a_private_health_agreement_and_contribution_the_value_and_line_27_fall_away(
+    tmp_path: Path,
+) -> None:
+    _, store = make_client(tmp_path)
+    add_agreement(store, "Haftpflicht", meaning=TaxMeaning.ACCIDENT_LIABILITY_RISK)
+    add_agreement(store, "Beendet", end=datetime.date(2024, 5, 1))
+    result = value(store)
+    assert isinstance(result, NotApplicable) and "Kein Vertrag" in result.reason
+    assert isinstance(value(store, VOR_PRIVATE_EXTRA), NotApplicable)
+
+
+def test_a_negative_sum_is_not_yet_computable_never_clamped_to_zero(tmp_path: Path) -> None:
+    _, store = make_client(tmp_path)
+    first = add_agreement(store, "A")
+    second = add_agreement(store, "B")
+    # ein einzelner Jahresbeitrag darf mehr erstattet als gezahlt haben
+    assert isinstance(store.apply([Put(contribution(first, 10_000, 15_000))]), Applied)
+    assert isinstance(store.apply([Put(contribution(second, 30_000))]), Applied)
+    result = value(store)
+    assert isinstance(result, ExposedValue) and result.amount == Amount.eur_cents(25_000)
+    assert [i.amount.value for i in result.items] == [Decimal("-50.00"), Decimal("300.00")]
+    # die Summe wird negativ
+    current = contribution_of(own_state(store), second, YEAR)
+    assert current is not None
+    smaller = current.model_copy(update={"amount_cents": 1_000})
+    changes = contribution_changes(current, smaller, entry_checksum(current))
+    assert isinstance(store.apply(changes), Applied)
+    for key in (PRIVATE_HEALTH_EXTRA, VOR_PRIVATE_EXTRA):
+        result = value(store, key)
+        assert isinstance(result, NotYetComputable)
+        assert "übersteigen" in result.reason and "4b" in result.reason

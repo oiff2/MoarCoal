@@ -6,7 +6,10 @@ Es zählen die Jahresbeiträge des Jahrs zu Verträgen des Nutzers mit der Steue
 „Kranken- und Pflegeversicherung privat“. Jeder ist ein Einzelposten (Bezeichnung des Vertrags,
 Betrag abzüglich Erstattung): Nutzereingabe (angenommen), mit Beleg belegt. Läuft ein solcher
 Vertrag im Jahr und hat keinen Jahresbeitrag, ist der Wert noch nicht berechenbar (nie 0); eine
-0 € gilt nur, wenn der Nutzer sie als Jahresbeitrag erfasst hat.
+0 € gilt nur, wenn der Nutzer sie als Jahresbeitrag erfasst hat. Gibt es weder einen solchen Vertrag
+im Jahr noch einen Jahresbeitrag, entfällt der Wert. Ein einzelner Jahresbeitrag darf mehr
+erstattet als gezahlt haben (negativer Einzelposten); ist die Summe negativ, ist der Wert noch nicht
+berechenbar (Erstattungsüberhang, § 10 Abs. 4b EStG), nie auf 0 gekappt.
 """
 
 from moarcoal.modules.provision.annual_contribution.changes import contribution_of, net_cents
@@ -59,7 +62,7 @@ def _private_health_extra(calculation: Calculation) -> Amount:
         )
     contributions = [(a, c) for a, c in counted if c is not None]
     if not contributions:
-        calculation.not_yet(
+        calculation.not_applicable(
             f"Kein Vertrag mit der Steuerlichen Bedeutung Kranken- und Pflegeversicherung privat "
             f"läuft {year}, und es ist kein Jahresbeitrag erfasst"
         )
@@ -85,6 +88,12 @@ def _private_health_extra(calculation: Calculation) -> Amount:
         )
         calculation.item(agreement.name, Amount.eur_cents(cents), locator)
         total += cents
+    if total < 0:
+        calculation.not_yet(
+            f"Die Erstattungen {year} ({format_eur(-total)} mehr als gezahlt) übersteigen die "
+            "Jahresbeiträge; bitte prüfen. Ein Erstattungsüberhang wird nach § 10 Abs. 4b EStG "
+            "mit anderen Sonderausgaben (Nr. 3a) verrechnet, das kann MoarCoal noch nicht"
+        )
     return calculation.step(
         "Summe der Jahresbeiträge abzüglich Erstattungen", Amount.eur_cents(total)
     )
