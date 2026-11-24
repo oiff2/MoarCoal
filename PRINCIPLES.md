@@ -68,7 +68,7 @@ Jede Änderung, die gemergt wird, hält diese Prinzipien. Wer eines nur durch ei
 
 ## 9. Runden nur zentral
 
-**Regel:** Ein Feld einer Anlage wird nur über seine Rundungsregel gerundet (`FormField.round`, aufgerufen über `rounded()` in `field_catalog.py`), einmal auf den Wert des Felds. Rechenwege und Einzelposten rechnen ungerundet. Eigene Rundungen gibt es nur, wo eine Vorschrift sie für einen Zwischenwert verlangt (z. B. AfA, Kilometerbeträge), mit Verweis auf die Regel.
+**Regel:** Ein Feld einer Anlage wird nur über seine Rundungsregel gerundet (`FormField.round`, aufgerufen über `rounded()` in `field_catalog.py`), einmal auf den Wert des Felds. Rechenwege und Einzelposten rechnen ungerundet. Eigene Rundungen gibt es nur, wo eine Vorschrift sie für einen Zwischenwert verlangt (z. B. AfA, Kilometerbeträge), mit Verweis auf die Regel. Felder mit Einzelangaben runden jede Einzelangabe nach der Regel des Felds; die Summe ist die Summe der gerundeten Einzelangaben (Mein ELSTER nimmt je Einzelangabe nur volle Euro und summiert die eingetragenen Beträge).
 
 **Warum:** Die Rundung folgt festen Regeln (Richtung des Felds, ganze Euro oder Cent). Wird pro Zahlung oder in mehreren Schritten gerundet, weicht die Summe ab, und jede Anlage rundet anders.
 
