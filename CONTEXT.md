@@ -63,8 +63,8 @@ Eine Zahl mit eigener Einheit, die in die Berechnung eines Ausgewiesenen Werts e
 _Avoid_: Position, Zeile, Buchung
 
 **Einzelangabe**:
-Eine Zeile eines Felds, das in Mein ELSTER „Einzelne Einträge“ hat (z. B. Anlage Vorsorgeaufwand Zeile 46): Bezeichnung und Betrag unter einem Paar von E-Kennungen, darunter die Summe. Das Steuerjahr füllt sie aus den Einzelposten des Ausgewiesenen Werts; der Abgleich mit dem Protokoll ordnet die Einzelangaben über ihre Bezeichnung zu (ohne Groß-/Kleinschreibung und Leerraum), nicht über ihre Reihenfolge, und vergleicht dann den Betrag.
-_Avoid_: Eintrag (für diese Zeile), Zeile (das ist die Zeile im Vordruck), Listenposten
+Eine Zeile eines Felds, das in Mein ELSTER „Einzelne Einträge“ hat (z. B. Anlage Vorsorgeaufwand Zeile 46): Bezeichnung und Betrag unter einem Paar von E-Kennungen, darunter die Summe. Das Steuerjahr füllt sie aus den Einzelposten des Ausgewiesenen Werts; der Abgleich mit dem Protokoll ordnet die Einzelangaben über ihre Bezeichnung zu (ohne Groß-/Kleinschreibung und Leerraum), nicht über ihre Reihenfolge, und vergleicht dann den Betrag. Sie ist kein Eintrag (nichts Gespeichertes) und keine Zeile im Vordruck.
+_Avoid_: Listenposten
 
 **Rechenweg**:
 Die festgehaltene Folge der Schritte, mit der ein Modul einen Ausgewiesenen Wert berechnet hat: Einzelposten, Zwischenergebnisse und Entscheidungen; für alle Module gleich dargestellt und im Schnappschuss mit eingefroren (Code: `Workings`).
@@ -134,7 +134,7 @@ _Avoid_: Vertragstyp, Kategorie (die Art des Vertrags ist etwas anderes)
 
 **Jahresbeitrag**:
 Was ein Nutzer in einem Jahr auf einen Vertrag mit steuerlicher Bedeutung gezahlt hat und was ihm erstattet wurde, soweit es nicht aus einer Bescheinigung in ELSTER kommt (z. B. Wahlleistungen, Haftpflicht): Vertrag, Jahr, Betrag, auf Wunsch Erstattung und Beleg; von Hand erfasst oder aus einem bestätigten Vorschlag. Eintragsart des Moduls Vorsorge.
-_Avoid_: Prämie, Zahlung, Beitragsrechnung
+_Avoid_: Prämie, Beitragsrechnung
 
 **Beitragsbescheinigung Kranken-/Pflegeversicherung**:
 Die Bescheinigung eines Krankenversicherers über Beiträge und Erstattungen zur Basisabsicherung eines Jahres; als eDaten-HTML aus „Meine Bescheinigungen“ in Mein ELSTER (`VaSt_KRV`) Dokumentart des Moduls Vorsorge, exakt eingelesen. Je Versicherer und Jahr eine; ein zweites Dokument dazu wird beim Aufnehmen mit „Existiert bereits“ abgewiesen.
