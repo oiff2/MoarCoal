@@ -62,6 +62,10 @@ _Avoid_: leer, n/a, null, nicht vorhanden
 Eine Zahl mit eigener Einheit, die in die Berechnung eines Ausgewiesenen Werts eingeht, mit Fundstelle und Belegstand; die Quelle ergibt sich aus der Fundstelle (Code: `LineItem`).
 _Avoid_: Position, Zeile, Buchung
 
+**Einzelangabe**:
+Eine Zeile eines Felds, das in Mein ELSTER „Einzelne Einträge“ hat (z. B. Anlage Vorsorgeaufwand Zeile 46): Bezeichnung und Betrag unter einem Paar von E-Kennungen, darunter die Summe. Das Steuerjahr füllt sie aus den Einzelposten des Ausgewiesenen Werts; der Abgleich mit dem Protokoll ordnet die Einzelangaben über ihre Bezeichnung zu (ohne Groß-/Kleinschreibung und Leerraum), nicht über ihre Reihenfolge, und vergleicht dann den Betrag.
+_Avoid_: Eintrag (für diese Zeile), Zeile (das ist die Zeile im Vordruck), Listenposten
+
 **Rechenweg**:
 Die festgehaltene Folge der Schritte, mit der ein Modul einen Ausgewiesenen Wert berechnet hat: Einzelposten, Zwischenergebnisse und Entscheidungen; für alle Module gleich dargestellt und im Schnappschuss mit eingefroren (Code: `Workings`).
 _Avoid_: Formel, Herleitung, Trace
@@ -123,6 +127,21 @@ _Avoid_: Vermietung (für das Modul), Objekt (außer für die Immobilie selbst)
 **Vorsorge**:
 Das Modul für die Beiträge zu Versicherungen und Altersvorsorge, die nicht auf der Lohnsteuerbescheinigung stehen (Anlage Vorsorgeaufwand): private Kranken- und Pflegeversicherung, Basisrente, Zusatzversicherungen und Erstattungen. Die Verträge selbst sind Bausteine; das Modul gibt einem Vertrag seine steuerliche Bedeutung (z. B. Basisabsicherung, Basisrente, sonstige Vorsorge) und führt je Jahr Beiträge und Erstattungen.
 _Avoid_: Versicherungen (für das Modul), Vorsorgeaufwand (das ist die Anlage)
+
+**Steuerliche Bedeutung**:
+Was ein Vertrag für die Anlage Vorsorgeaufwand ist, genau eine je Vertrag, vom Modul Vorsorge in einem eigenen Eintrag festgehalten, der auf den Vertrag verweist: Kranken- und Pflegeversicherung privat (Basisabsicherung aus der Beitragsbescheinigung, Wahlleistungen aus dem Jahresbeitrag), Basisrente, Unfall/Haftpflicht/Risiko, Berufsunfähigkeit oder Arbeitslosigkeit. Ein Vertrag ohne steuerliche Bedeutung zählt in der Anlage nicht.
+_Avoid_: Vertragstyp, Kategorie (die Art des Vertrags ist etwas anderes)
+
+**Jahresbeitrag**:
+Was ein Nutzer in einem Jahr auf einen Vertrag mit steuerlicher Bedeutung gezahlt hat und was ihm erstattet wurde, soweit es nicht aus einer Bescheinigung in ELSTER kommt (z. B. Wahlleistungen, Haftpflicht): Vertrag, Jahr, Betrag, auf Wunsch Erstattung und Beleg; von Hand erfasst oder aus einem bestätigten Vorschlag. Eintragsart des Moduls Vorsorge.
+_Avoid_: Prämie, Zahlung, Beitragsrechnung
+
+**Beitragsbescheinigung Kranken-/Pflegeversicherung**:
+Die Bescheinigung eines Krankenversicherers über Beiträge und Erstattungen zur Basisabsicherung eines Jahres; als eDaten-HTML aus „Meine Bescheinigungen“ in Mein ELSTER (`VaSt_KRV`) Dokumentart des Moduls Vorsorge, exakt eingelesen. Je Versicherer und Jahr eine; ein zweites Dokument dazu wird beim Aufnehmen mit „Existiert bereits“ abgewiesen.
+
+**Anbieterbescheinigung Basisrente**:
+Die Bescheinigung eines Anbieters über die Beiträge zu einem zertifizierten Basisrentenvertrag eines Jahres, mit Vertragsnummer; als eDaten-HTML aus „Meine Bescheinigungen“ in Mein ELSTER (`VaSt_RUE`) Dokumentart des Moduls Vorsorge, exakt eingelesen. Je Vertragsnummer und Jahr eine; ein zweites Dokument dazu wird beim Aufnehmen mit „Existiert bereits“ abgewiesen.
+_Avoid_: Rürup-Bescheinigung
 
 **Steuerjahr**:
 Das Modul für die Steuererklärung eines Jahres: bildet die Anlagen wie Mein ELSTER ab (eine Seite je Anlage und Jahr), ordnet ihren Feldern Ausgewiesene Werte anderer Module zu, liest das Übertragungsprotokoll ein und gleicht es samt EStB mit dem Stand ab. Modulschlüssel `tax_year`.
