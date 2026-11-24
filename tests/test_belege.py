@@ -473,13 +473,42 @@ def test_hidden_files_are_flat_clickable_rows_with_a_preview_and_the_note_in_the
     page = main_of(client, "/belege")
     assert f'<a class="name" href="/belege?datei={SHA}">protokoll.html</a>' in page
     assert 'stand">ausgeblendet<' in page
-    assert "Wieder einblenden" not in page  # erst nach Auswahl
+    assert "Wieder einblenden" in page  # das Auge steht in der Zeile, ohne Auswahl
     chosen = main_of(client, f"/belege?datei={SHA}")
     assert '<details class="ausgeblendet" open>' in chosen and 'aria-current="true"' in chosen
     assert "Muster-Notiz" in chosen and "Wieder einblenden" in chosen
     assert "Aufnehmen" not in chosen and "Ausblenden</button>" not in chosen
     assert f'<iframe src="/belege/datei/{SHA}"' in chosen
     assert 'class="zaehler"' not in chosen.split("Ausgeblendet (")[1].split("</details>")[0]
+
+
+def hidden_row_form(page: str) -> tuple[str, dict[str, str]]:
+    """Aktion und Felder des Formulars „Wieder einblenden“ in der Zeile der ausgeblendeten Datei."""
+    row = page.split('<td class="aktionen">')[-1].split("</td>")[0]
+    action = row.split('action="')[1].split('"')[0]
+    fields = dict(re.findall(r'name="(\w+)" value="([^"]*)"', row))
+    return action, fields
+
+
+def test_hidden_file_row_has_a_direct_form_to_show_it_again(root: Path, site: Path) -> None:
+    client = make_client(root, site)
+    hide(client)
+    page = main_of(client, "/belege")
+    action, fields = hidden_row_form(page)
+    assert action == "/belege/einblenden" and "direkt" in page
+    assert fields == {"sha256": SHA, "checksum": checksum_in(client)}
+
+
+def test_posting_the_hidden_row_form_shows_the_file_again_and_keeps_the_filter(
+    root: Path, site: Path
+) -> None:
+    client = make_client(root, site)
+    hide(client)
+    action, fields = hidden_row_form(main_of(client, "/belege?suche=protokoll"))
+    assert action == "/belege/einblenden?suche=protokoll"
+    response = client.post(action, data=fields, headers=ORIGIN)
+    assert response.status_code == 303 and response.headers["location"] == "/belege?suche=protokoll"
+    assert "Ausgeblendet" not in client.get("/belege").text
 
 
 def test_hidden_file_missing_in_the_site_has_no_preview_but_can_be_shown(

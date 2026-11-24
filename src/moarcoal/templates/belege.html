@@ -120,12 +120,15 @@
           {% endcall %}</td>
         </tr>
         {% endfor %}
-        {% for row in new.hidden_files %}{% set entry, file = row.entry, row.file %}
+        {% for row in new.hidden_files %}{% set entry, checksum = row.entry, row.checksum %}
         <tr title="{{ entry.site }}/{{ entry.path }}">
           <td><div class="datei-zelle">{{ dateityp(entry.path) }}<a class="name" href="{{ keep_filter(site_url(file=entry.sha256)) }}"{% if selected_hidden and selected_hidden.entry.sha256 == entry.sha256 %} aria-current="true"{% endif %}>{{ entry.path.rsplit("/", 1)[-1] }}</a></div></td>
           <td class="zahl"></td>
           <td class="stand">ausgeblendet</td>
-          <td class="aktionen"></td>
+          <td class="aktionen">{% call ib("auge", "Wieder einblenden", action=keep_filter('/belege/einblenden'), form_cls="direkt") %}
+            <input type="hidden" name="sha256" value="{{ entry.sha256 }}">
+            <input type="hidden" name="checksum" value="{{ checksum }}">
+          {% endcall %}</td>
         </tr>
         {% endfor %}
         </tbody>
