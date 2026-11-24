@@ -23,12 +23,15 @@ from moarcoal.values.model import Amount, DocumentLocator, Source, Unit, ValueKe
 HEALTH_BASIC = ValueKey("provision.private_health_basic")
 CARE = ValueKey("provision.private_care")
 REFUNDS = ValueKey("provision.private_refunds")
+STATUTORY_REFUNDS = ValueKey("provision.statutory_refunds")
+STATUTORY_REFUNDS_NO_SICK_PAY = ValueKey("provision.statutory_refunds_no_sick_pay")
 
 type Located = tuple[HealthContributionCertificate, ContributionLine]
 
 
-def _private_lines(calculation: Calculation) -> list[Located]:
-    """Die privaten Blöcke aller Bescheinigungen des Jahrs; sonst noch nicht berechenbar."""
+def _lines(calculation: Calculation, wanted: Characteristic) -> list[Located]:
+    """Die Blöcke mit dem Merkmal `wanted` aller Bescheinigungen des Jahrs; sonst noch nicht
+    berechenbar."""
     year = calculation.year
     certificates = [c for c in calculation.own.all(HealthContributionCertificate) if c.year == year]
     if not certificates:
@@ -53,7 +56,7 @@ def _private_lines(calculation: Calculation) -> list[Located]:
                     f"Eine Beitragsbescheinigung {year} nennt das Merkmal „{line.merkmal}“, "
                     "das MoarCoal nicht kennt (privat oder gesetzlich)"
                 )
-            if line.characteristic is not Characteristic.PRIVATE:
+            if line.characteristic is not wanted:
                 continue
             if line.kind is None:
                 calculation.not_yet(
@@ -78,7 +81,9 @@ def _total(
     sind vollständig gelesen, so steht fest, dass keiner da ist).
     """
     year = calculation.year
-    lines = [(c, line) for c, line in _private_lines(calculation) if line.kind in kinds]
+    lines = [
+        (c, line) for c, line in _lines(calculation, Characteristic.PRIVATE) if line.kind in kinds
+    ]
     if not lines:
         if not may_be_absent:
             calculation.not_yet(f"Keine Beitragsbescheinigung {year} nennt {label}")
@@ -92,6 +97,66 @@ def _total(
         )
     total = sum(line.cents for _, line in lines)
     return calculation.step(f"{label} laut Beitragsbescheinigungen", Amount.eur_cents(total))
+
+
+STATUTORY_REFUND_KINDS = frozenset({ContributionKind.HEALTH_REFUND, ContributionKind.CARE_REFUND})
+NO_SICK_PAY = "ohne Krankengeldanspruch"  # die erstatteten KV-Beiträge, die in VOR Z. 15 zählen
+
+
+def _statutory_refunds(calculation: Calculation, label: str, *, no_sick_pay: bool) -> Amount:
+    """Die Summe der erstatteten Beiträge der Blöcke mit dem Merkmal gesetzlich (VOR Z. 14, mit
+    `no_sick_pay` Z. 15: nur Pflege und Kranken ohne Krankengeldanspruch), jeder als Einzelposten.
+
+    Ohne solchen Block: keine Bescheinigung des Jahrs, noch nicht berechenbar; sind alle Blöcke
+    aller Bescheinigungen privat, 0 € (nur privat versichert); sonst nennt keine gesetzliche
+    Erstattungen, ebenfalls 0 €. Jede 0 ist eine Entscheidung im Rechenweg.
+    """
+    year = calculation.year
+    lines = [
+        (c, line)
+        for c, line in _lines(calculation, Characteristic.STATUTORY)
+        if line.kind in STATUTORY_REFUND_KINDS
+    ]
+    if no_sick_pay:
+        # Eine Erstattung zur KV mit anderer Schreibweise der Art lässt sich Z. 15 nicht zuordnen.
+        for _, line in lines:
+            if line.kind is ContributionKind.HEALTH_REFUND and NO_SICK_PAY not in line.art:
+                calculation.not_yet(
+                    f"Eine Beitragsbescheinigung {year} nennt erstattete Beiträge zur "
+                    f"Krankenversicherung als „{line.art}“; ob sie ohne Krankengeldanspruch "
+                    "sind, ist offen"
+                )
+    if not lines:
+        certificates = calculation.own.all(HealthContributionCertificate)
+        every_line = [line for c in certificates if c.year == year for line in c.lines]
+        if all(line.characteristic is Characteristic.PRIVATE for line in every_line):
+            calculation.decide(
+                f"{label}: 0 €, denn alle Beitragsbescheinigungen {year} sind privat"
+            )
+        else:
+            calculation.decide(
+                f"Keine Beitragsbescheinigung {year} nennt {label} der gesetzlichen Versicherung: "
+                "0 €"
+            )
+        return calculation.step(f"{label} laut Beitragsbescheinigungen", Amount.eur_cents(0))
+    for certificate, line in lines:
+        calculation.item(
+            line.art,
+            Amount.eur_cents(line.cents),
+            DocumentLocator(certificate.document, Source.READ_IN, "lines", line.place),
+        )
+    total = sum(line.cents for _, line in lines)
+    return calculation.step(f"{label} laut Beitragsbescheinigungen", Amount.eur_cents(total))
+
+
+def _statutory_refunds_all(calculation: Calculation) -> Amount:
+    label = "Erstattete Beiträge zur gesetzlichen Kranken- und Pflegeversicherung"
+    return _statutory_refunds(calculation, label, no_sick_pay=False)
+
+
+def _statutory_refunds_no_sick_pay(calculation: Calculation) -> Amount:
+    label = "Erstattete Beiträge zur gesetzlichen Krankenversicherung (ohne Krankengeld) und Pflege"
+    return _statutory_refunds(calculation, label, no_sick_pay=True)
 
 
 def _health_basic(calculation: Calculation) -> Amount:
@@ -147,5 +212,28 @@ VALUES: tuple[ValueDefinition, ...] = (
             TimeKind.PERIOD,
         ),
         _refunds,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            STATUTORY_REFUNDS,
+            "Erstattete Beiträge zur gesetzlichen Kranken- und Pflegeversicherung laut den "
+            "Beitragsbescheinigungen des Jahrs",
+            "Erstattete Beiträge gesetzliche Kranken-/Pflegeversicherung",
+            Unit.EUR,
+            TimeKind.PERIOD,
+        ),
+        _statutory_refunds_all,
+    ),
+    ValueDefinition(
+        CatalogEntry(
+            STATUTORY_REFUNDS_NO_SICK_PAY,
+            "Davon erstattete Beiträge zur gesetzlichen Krankenversicherung ohne Krankengeld"
+            "anspruch und zur sozialen Pflegeversicherung laut den Beitragsbescheinigungen "
+            "des Jahrs",
+            "Erstattete Beiträge gesetzliche KV (ohne Krankengeld) und soziale PV",
+            Unit.EUR,
+            TimeKind.PERIOD,
+        ),
+        _statutory_refunds_no_sick_pay,
     ),
 )

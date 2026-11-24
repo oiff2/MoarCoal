@@ -41,6 +41,27 @@ class FromValue:
         return rounded(calculation, field, amount)
 
 
+@dataclass(frozen=True)
+class ZeroIfSourceZero:
+    """Die fertige Rechnung eines Felds, dessen Betrag MoarCoal sonst nicht kennt: 0 € mit
+    Begründung (`reason`, im Rechenweg), wenn der Ausgewiesene Wert `source` 0 € ist; ist er größer
+    als 0, ist das Feld noch nicht berechenbar (nie 0). Ist `source` noch nicht berechenbar, ist
+    es das Feld auch; entfällt er, entfällt das Feld."""
+
+    source: ValueKey
+    label: str
+    reason: str
+
+    def __call__(self, calculation: Calculation, field: FormField) -> Amount:
+        item = calculation.use(self.source, label=self.label)
+        if item is None:
+            calculation.not_applicable(f"{self.label} entfällt")
+        if item.amount.value != 0:
+            calculation.not_yet(f"{self.label} ist nicht 0 €, der Betrag des Felds ist offen")
+        calculation.decide(f"{self.label} ist 0 €: {self.reason}")
+        return rounded(calculation, field, calculation.step("Betrag des Felds", item.amount))
+
+
 type CollectItems = Callable[[Calculation, FormField], None]
 """Legt die Einzelposten eines Felds mit Einzelangaben an (`Calculation.use`, `Calculation.item`):
 jeder Einzelposten ist eine Einzelangabe, seine Bezeichnung ihre Bezeichnung."""

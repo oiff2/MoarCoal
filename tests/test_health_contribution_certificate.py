@@ -36,11 +36,18 @@ from moarcoal.modules.provision.health_certificate.reading import (
     contribution_kind,
     read_in_health_contribution_certificate,
 )
-from moarcoal.modules.provision.health_certificate.values import CARE, HEALTH_BASIC, REFUNDS
+from moarcoal.modules.provision.health_certificate.values import (
+    CARE,
+    HEALTH_BASIC,
+    REFUNDS,
+    STATUTORY_REFUNDS,
+    STATUTORY_REFUNDS_NO_SICK_PAY,
+)
 from moarcoal.modules.tax_year.anlage_vor import (
     VOR_PRIVATE_CARE,
     VOR_PRIVATE_HEALTH,
     VOR_PRIVATE_REFUNDS,
+    VOR_STATUTORY_REFUNDS,
 )
 from moarcoal.registration import open_module_store
 from moarcoal.storage import (
@@ -551,5 +558,120 @@ def test_the_registration_lists_the_new_kind_and_values() -> None:
         CARE,
         REFUNDS,
         "provision.private_health_extra",
+        STATUTORY_REFUNDS,
+        STATUTORY_REFUNDS_NO_SICK_PAY,
     }
     assert HEALTH_CONTRIBUTION_CERTIFICATE.unique_per_issuer
+
+
+# --- VOR Z. 14 und 15: gesetzlich erstattete Beiträge, 0 € nur mit Begründung -------------------
+
+CARE_REFUND_ART = "Erstattete Beiträge zur sozialen oder privaten Pflegepflichtversicherung"
+STATUTORY_KEYS = (STATUTORY_REFUNDS, STATUTORY_REFUNDS_NO_SICK_PAY, VOR_STATUTORY_REFUNDS)
+
+
+def decisions(result: ExposedValue) -> list[str]:
+    return [s.text for s in result.workings.steps if s.kind == "decision"]
+
+
+def test_statutory_refunds_sum_the_statutory_blocks_only_rounded_at_the_field(
+    store: Store, site: Path
+) -> None:
+    content = certificate(
+        block(1, REFUND, "10,90", merkmal=STATUTORY),
+        block(2, CARE_REFUND_ART, "5,20", merkmal=STATUTORY),
+        block(3, REFUND, "50,99"),  # privat zählt nicht
+        block(4, HEALTH, "700,00", merkmal=STATUTORY),  # Beitrag, keine Erstattung
+    )
+    write(site, "gesetzlich.html", content)
+    assert isinstance(take(store, "gesetzlich.html"), TakenIn)
+
+    z14, z15 = get(store, STATUTORY_REFUNDS), get(store, STATUTORY_REFUNDS_NO_SICK_PAY)
+    assert isinstance(z14, ExposedValue) and z14.amount == Amount.eur_cents(1_610)
+    assert [i.amount.value for i in z14.items] == [Decimal("10.90"), Decimal("5.20")]
+    assert isinstance(z15, ExposedValue) and z15.amount == Amount.eur_cents(1_610)
+    field = get(store, VOR_STATUTORY_REFUNDS)
+    assert isinstance(field, ExposedValue) and field.amount == Amount.eur_cents(
+        1_600
+    )  # 16,10 -> 16
+
+
+def test_line_15_leaves_a_health_refund_open_that_is_not_known_to_be_without_sick_pay(
+    store: Store, site: Path
+) -> None:
+    other = "Erstattete Beiträge zur Krankenversicherung (anders)"
+    write(site, "anders.html", certificate(block(1, other, "10,00", merkmal=STATUTORY)))
+    assert isinstance(take(store, "anders.html"), TakenIn)
+
+    assert isinstance(get(store, STATUTORY_REFUNDS), ExposedValue)  # Z. 14 nimmt jede Erstattung
+    result = get(store, STATUTORY_REFUNDS_NO_SICK_PAY)
+    assert isinstance(result, NotYetComputable) and "(anders)" in str(result)
+
+
+def test_a_statutory_block_without_a_refund_makes_lines_14_and_15_zero_with_a_decision(
+    store: Store,
+) -> None:
+    assert isinstance(take(store), TakenIn)  # standard(): ein gesetzlicher Block, aber Beitrag
+
+    for key in STATUTORY_KEYS[:2]:
+        result = get(store, key)
+        assert isinstance(result, ExposedValue) and result.amount == Amount.eur_cents(0)
+        assert result.items == ()
+        assert any("0 €" in text for text in decisions(result))
+
+
+def test_a_purely_private_year_is_zero_with_the_reason_only_private(
+    store: Store, site: Path
+) -> None:
+    write(site, "privat.html", certificate(block(1, HEALTH, "1,00"), block(2, REFUND, "2,00")))
+    assert isinstance(take(store, "privat.html"), TakenIn)
+
+    for key in STATUTORY_KEYS:
+        result = get(store, key)
+        assert isinstance(result, ExposedValue) and result.amount == Amount.eur_cents(0)
+    z14 = get(store, STATUTORY_REFUNDS)
+    assert isinstance(z14, ExposedValue)
+    assert any("alle Beitragsbescheinigungen 2025 sind privat" in t for t in decisions(z14))
+
+
+def test_statutory_blocks_without_refunds_are_zero_with_their_own_reason(
+    store: Store, site: Path
+) -> None:
+    write(site, "gesetzlich.html", certificate(block(1, HEALTH, "1,00", merkmal=STATUTORY)))
+    assert isinstance(take(store, "gesetzlich.html"), TakenIn)
+
+    z14 = get(store, STATUTORY_REFUNDS)
+    assert isinstance(z14, ExposedValue) and z14.amount == Amount.eur_cents(0)
+    assert any("gesetzlichen Versicherung: 0 €" in t for t in decisions(z14))
+
+
+def test_without_certificate_lines_14_and_15_are_not_yet_computable_and_say_it_is_missing(
+    store: Store,
+) -> None:
+    for key in STATUTORY_KEYS:
+        result = get(store, key)
+        assert isinstance(result, NotYetComputable)
+        assert "keine Beitragsbescheinigung Kranken-/Pflegeversicherung aufgenommen" in str(result)
+
+
+UNKNOWN_CASES = {
+    "art": (certificate(block(1, "Sonderbeitrag X", "2,00", merkmal=STATUTORY)), "X"),
+    "merkmal": (certificate(block(1, REFUND, "1,00", merkmal="gemischt")), "gemischt"),
+    "pfad": (
+        certificate(block(1, REFUND, "1,00", merkmal=STATUTORY), extra=UNKNOWN_ROW),
+        "Neu-Feld",
+    ),
+}
+
+
+@pytest.mark.parametrize("case", UNKNOWN_CASES)
+def test_an_unknown_art_merkmal_or_path_makes_lines_14_and_15_not_yet_computable(
+    store: Store, site: Path, case: str
+) -> None:
+    content, needle = UNKNOWN_CASES[case]
+    write(site, "neu.html", content)
+    assert isinstance(take(store, "neu.html"), TakenIn)
+
+    for key in STATUTORY_KEYS:
+        result = get(store, key)
+        assert isinstance(result, NotYetComputable) and needle in str(result)

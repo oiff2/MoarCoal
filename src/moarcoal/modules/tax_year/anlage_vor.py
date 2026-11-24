@@ -9,13 +9,15 @@ bescheinigt und das Feld 0 € (Begründung im Rechenweg, Arbeit); sonst noch ni
 übrigen Felder kommen mit dem Modul Vorsorge; bisher Z. 23 bis 25 (private Kranken- und
 Pflege-Pflichtversicherung, laut den Beitragsbescheinigungen: Beiträge und Erstattungen, Werte
 `provision.*`) und Z. 27 (über die Basisabsicherung hinausgehende Beiträge abzüglich erstatteter,
-laut den Jahresbeiträgen). Ein Feld ohne Berechnung hat keinen Wert („wird noch
+laut den Jahresbeiträgen) sowie Z. 14 und 15 (Erstattungen der gesetzlichen Versicherung, dieselben
+Bescheinigungen). Z. 12 ist 0 € mit Begründung, wo Z. 11 (Nr. 25) 0 € ist, sonst noch nicht
+berechenbar. Ein Feld ohne Berechnung hat keinen Wert („wird noch
 nicht berechnet“), nie 0. Die Werte sind gerundet, wie das Feld es verlangt: Arbeitgeberanteile,
 Zuschüsse und Erstattungen mindern den Abzug und runden wie Einnahmen ab, Beiträge wie Ausgaben auf.
 """
 
 from moarcoal.modules.tax_year.anlagen import Anlage
-from moarcoal.modules.tax_year.field_catalog import FromValue
+from moarcoal.modules.tax_year.field_catalog import FromValue, ZeroIfSourceZero
 from moarcoal.modules.tax_year.fields import Computed, Direction, FieldMeaning, Rounding
 from moarcoal.values.model import Unit, ValueKey
 
@@ -46,11 +48,16 @@ PROVISION_CARE = ValueKey("provision.private_care")
 PROVISION_REFUNDS = ValueKey("provision.private_refunds")
 PROVISION_HEALTH_EXTRA = ValueKey("provision.private_health_extra")
 
+PROVISION_STATUTORY_REFUNDS = ValueKey("provision.statutory_refunds")
+PROVISION_STATUTORY_REFUNDS_NO_SICK_PAY = ValueKey("provision.statutory_refunds_no_sick_pay")
+
 PROVISION_KEYS = (  # die Werte von Vorsorge, aus denen VOR rechnet
     PROVISION_HEALTH_BASIC,
     PROVISION_CARE,
     PROVISION_REFUNDS,
     PROVISION_HEALTH_EXTRA,
+    PROVISION_STATUTORY_REFUNDS,
+    PROVISION_STATUTORY_REFUNDS_NO_SICK_PAY,
 )
 
 VOR_EMPLOYEE_PENSION = ValueKey("tax_year.vor_employee_pension")  # Nr. 23 a/b, Zeile 4
@@ -61,10 +68,25 @@ VOR_UNEMPLOYMENT = ValueKey("tax_year.vor_unemployment")  # Nr. 27, Zeile 43
 VOR_SUBSIDY_PUBLIC_HEALTH = ValueKey("tax_year.vor_subsidy_public_health")  # Nr. 24 a, Zeile 34
 VOR_EMPLOYEE_HEALTH = ValueKey("tax_year.vor_employee_health")  # Nr. 25, Zeile 11
 VOR_EMPLOYEE_CARE = ValueKey("tax_year.vor_employee_care")  # Nr. 26, Zeile 13
+VOR_NO_SICK_PAY = ValueKey("tax_year.vor_no_sick_pay")  # Zeile 12
+VOR_STATUTORY_REFUNDS = ValueKey("tax_year.vor_statutory_refunds")  # Zeile 14
+VOR_STATUTORY_REFUNDS_NO_SICK_PAY = ValueKey("tax_year.vor_statutory_refunds_no_sick_pay")  # Z. 15
 VOR_PRIVATE_HEALTH = ValueKey("tax_year.vor_private_health")  # Zeile 23
 VOR_PRIVATE_CARE = ValueKey("tax_year.vor_private_care")  # Zeile 24
 VOR_PRIVATE_REFUNDS = ValueKey("tax_year.vor_private_refunds")  # Zeile 25
 VOR_PRIVATE_EXTRA = ValueKey("tax_year.vor_private_extra")  # Zeile 27
+
+
+def _zero_if_nr_25_is_zero() -> FieldMeaning:
+    """Z. 12 (in Z. 11 enthaltene Beiträge ohne Krankengeldanspruch): 0 €, wo Z. 11 (Nr. 25) 0 €
+    ist, denn nichts in Z. 11 gibt auch nichts darin Enthaltenes; sonst noch nicht berechenbar."""
+    compute = ZeroIfSourceZero(
+        WORK_EMPLOYEE_HEALTH,
+        "Arbeitnehmerbeitrag laut Nr. 25",
+        "in Zeile 11 steht nichts, also ist auch nichts darin enthalten",
+    )
+    kind = Computed(Unit.EUR, Rounding.WHOLE_EUROS, compute, Direction.EXPENSE)
+    return FieldMeaning("E2001405", kind, VOR_NO_SICK_PAY)
 
 
 def _computed(
@@ -99,6 +121,21 @@ CATALOG_2025 = (
         EXPENSE,
         WORK_EMPLOYEE_HEALTH,
         "Arbeitnehmerbeitrag laut Nr. 25",
+    ),
+    _zero_if_nr_25_is_zero(),
+    _computed(
+        "E2001605",
+        VOR_STATUTORY_REFUNDS,
+        INCOME,
+        PROVISION_STATUTORY_REFUNDS,
+        "Erstattungen laut Beitragsbescheinigungen",
+    ),
+    _computed(
+        "E2001705",
+        VOR_STATUTORY_REFUNDS_NO_SICK_PAY,
+        INCOME,
+        PROVISION_STATUTORY_REFUNDS_NO_SICK_PAY,
+        "Erstattungen laut Beitragsbescheinigungen",
     ),
     _computed(
         "E2001505",
