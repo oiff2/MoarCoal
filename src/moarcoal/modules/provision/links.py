@@ -16,6 +16,11 @@ def contribution_url(agreement_id: str) -> str:
     return f"/vorsorge/jahresbeitrag/{agreement_id}"
 
 
+def certificate_agreement_url(certificate_id: str) -> str:
+    """Aus einer Bescheinigung den Vertrag samt Steuerlicher Bedeutung anlegen (POST)."""
+    return f"/vorsorge/vertrag-aus-bescheinigung/{certificate_id}"
+
+
 def contribution_delete_url(agreement_id: str) -> str:
     """Den Jahresbeitrag eines Vertrags löschen (POST)."""
     return f"/vorsorge/jahresbeitrag/{agreement_id}/loeschen"

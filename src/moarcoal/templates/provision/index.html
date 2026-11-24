@@ -1,5 +1,16 @@
 {% extends "base.html" %}
 {% from "_ui.html" import abschnitt, bt %}
+{#- Zelle „Vertrag“ einer Bescheinigung: die zugeordneten Verträge, sonst „ohne Vertrag“ mit dem Anlegen aus der Bescheinigung (nur, wenn das Dokument einen Aussteller hat). -#}
+{% macro vertrag_zelle(row, jahr, bedeutung) -%}
+{% if row.agreements %}{% for a in row.agreements %}<a href="{{ entry_url(a.address) }}">{{ a.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}ohne Vertrag
+{% if row.document.issuer %}
+<form method="post" action="{{ certificate_agreement_url(row.certificate.id) }}" class="inline">
+  <input type="hidden" name="year" value="{{ jahr }}">
+  {{ bt("plus", "Vertrag anlegen (" ~ bedeutung ~ ")") }}
+</form>
+{% else %}<br><small>Das Dokument hat keinen Aussteller; ohne ihn lässt sich kein Vertrag anlegen.</small>{% endif %}
+{% endif %}
+{%- endmacro %}
 {% block title %}Vorsorge {{ year }} – MoarCoal{% endblock %}
 {% block main %}
 <h1>Vorsorge {{ year }}</h1>
@@ -98,7 +109,7 @@
   <tr>
     {% if loop.first %}
     <td data-label="Bescheinigung" rowspan="{{ row.certificate.lines | length }}"><a href="{{ document_url(row.document.id) }}">{{ document_name(row.document) }}</a></td>
-    <td data-label="Vertrag" rowspan="{{ row.certificate.lines | length }}">{% if row.agreements %}{% for a in row.agreements %}<a href="{{ entry_url(a.address) }}">{{ a.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}ohne Vertrag{% endif %}</td>
+    <td data-label="Vertrag" rowspan="{{ row.certificate.lines | length }}">{{ vertrag_zelle(row, year, "Kranken- und Pflegeversicherung privat") }}</td>
     {% endif %}
     <td data-label="Merkmal">{{ line.merkmal }}</td>
     <td data-label="Art">{{ line.art }}</td>
@@ -125,7 +136,7 @@
     {% if loop.first %}
     <td data-label="Bescheinigung" rowspan="{{ row.certificate.lines | length }}"><a href="{{ document_url(row.document.id) }}">{{ document_name(row.document) }}</a></td>
     <td data-label="Vertragsnummer" rowspan="{{ row.certificate.lines | length }}">{{ row.certificate.contract_number }}</td>
-    <td data-label="Vertrag" rowspan="{{ row.certificate.lines | length }}">{% if row.agreements %}{% for a in row.agreements %}<a href="{{ entry_url(a.address) }}">{{ a.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}ohne Vertrag{% endif %}</td>
+    <td data-label="Vertrag" rowspan="{{ row.certificate.lines | length }}">{{ vertrag_zelle(row, year, "Basisrente") }}</td>
     {% endif %}
     <td data-label="Zahljahr">{{ line.paid_year }}</td>
     <td data-label="Betrag" class="zahl">{{ line.cents | eur }}</td>

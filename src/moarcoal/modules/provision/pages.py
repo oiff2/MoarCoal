@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
+from moarcoal.agreements import AgreementInvalid
 from moarcoal.defaults import year_of
 from moarcoal.modules.provision.annual_contribution.changes import (
     Fields,
@@ -21,10 +22,15 @@ from moarcoal.modules.provision.annual_contribution.view import (
     document_choices,
 )
 from moarcoal.modules.provision.basic_pension.view import pension_rows
+from moarcoal.modules.provision.certificate_agreement import (
+    agreement_from_certificate_changes,
+    origin_of,
+)
 from moarcoal.modules.provision.common import MODULE_KEY
 from moarcoal.modules.provision.entries import TaxMeaning
 from moarcoal.modules.provision.health_certificate.view import certificate_rows
 from moarcoal.modules.provision.links import (
+    certificate_agreement_url,
     contribution_delete_url,
     contribution_url,
     meaning_url,
@@ -37,7 +43,7 @@ from moarcoal.modules.provision.meaning import (
     parse_meaning,
     running_agreements,
 )
-from moarcoal.storage import Agreement, Applied, Change, Issuer, entry_checksum
+from moarcoal.storage import Agreement, Applied, Change, Issuer, entry_checksum, new_id
 from moarcoal.web.helpers import (
     chosen_year,
     entry_of,
@@ -101,6 +107,7 @@ def provision_page(
         pensions=pension_rows(state, year, state.agreements()),
         contributions=contribution_rows(state, year, state.agreements(), sent_contribution),
         documents=document_choices(state),
+        certificate_agreement_url=certificate_agreement_url,
         contribution_url=contribution_url,
         contribution_delete_url=contribution_delete_url,
         document_url=document_url,
@@ -137,6 +144,27 @@ def set_meaning(
     if not isinstance(result, Applied):
         reasons = tuple(rejection_reasons(result))
         return provision_page(request, year, 409, errors=reasons, failed=(agreement_id, choice))
+    return RedirectResponse(provision_url(year), status_code=303)
+
+
+@router.post("/vertrag-aus-bescheinigung/{certificate_id}")
+def create_agreement_from_certificate(
+    request: Request, certificate_id: str, fields: Annotated[dict[str, str], Depends(form_fields)]
+) -> Response:
+    """Aus einer Bescheinigung ohne Vertrag den Vertrag samt Steuerlicher Bedeutung anlegen, in
+    einem Vorgang."""
+    year = year_of(fields.get("year", ""), in_range=True) or chosen_year(request)
+    state = module_state(request, MODULE_KEY)
+    origin = origin_of(state, certificate_id)
+    if origin is None:
+        raise HTTPException(status_code=404)
+    try:
+        changes = agreement_from_certificate_changes(state, origin, new_id())
+    except AgreementInvalid as error:
+        return provision_page(request, year, 422, errors=tuple(error.problems))
+    result = store_of(request).apply(changes)
+    if not isinstance(result, Applied):
+        return provision_page(request, year, 409, errors=tuple(rejection_reasons(result)))
     return RedirectResponse(provision_url(year), status_code=303)
 
 
