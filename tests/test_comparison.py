@@ -18,6 +18,7 @@ from fastapi.testclient import TestClient
 from moarcoal.documents import DUPLICATE_DOCUMENT
 from moarcoal.issuers import DOCUMENT_WITHOUT_ISSUER
 from moarcoal.modules.elster_html import parse_elster_html
+from moarcoal.modules.provision import REGISTRATION as PROVISION
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolLine, ProtocolReading
 from moarcoal.modules.tax_year.anlage_n import (
@@ -40,6 +41,7 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_WORKDAYS,
     WORK_WORKDAYS_PER_WEEK,
 )
+from moarcoal.modules.tax_year.anlage_vor import PROVISION_KEYS as VOR_PROVISION_KEYS
 from moarcoal.modules.tax_year.anlage_vor import WORK_KEYS as VOR_WORK_KEYS
 from moarcoal.modules.tax_year.protocol_check import (
     AMBIGUOUS,
@@ -125,6 +127,7 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
                 WORK_BENEFITS_FLAT_TAXED,
                 WORK_TRIP_DAYS,
                 *VOR_WORK_KEYS,
+                *VOR_PROVISION_KEYS,
             )
         },
     }
@@ -305,7 +308,7 @@ def test_no_equipment_after_previous_year_matches_a_missing_field_and_keeps_the_
     )
     items = [place, bought_2024, *protocol([line(DAYS, "220"), line(KM, "12")])]
 
-    found = evaluate([WORK, TAX_YEAR], items).finding_list("anna", 2025).visible
+    found = evaluate([WORK, PROVISION, TAX_YEAR], items).finding_list("anna", 2025).visible
 
     # Hinweise von Arbeit, kein Befund des Abgleichs
     assert kinds(found) == [EQUIPMENT_GAP, TRIPS_TO_FILL]

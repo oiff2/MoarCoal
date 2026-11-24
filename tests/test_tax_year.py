@@ -16,6 +16,7 @@ from moarcoal.documents import DocumentKind, IntakeRejected, ReadInError, TakenI
 from moarcoal.documents import take_in as take_in_with
 from moarcoal.incoming import all_site_files, folder_path_error
 from moarcoal.modules.elster_html import parse_elster_html
+from moarcoal.modules.provision import REGISTRATION as PROVISION
 from moarcoal.modules.tax_year import (
     REGISTRATION,
     TRANSFER_PROTOCOL,
@@ -65,7 +66,7 @@ def take_in(
         path,
         kind_key,
         year,
-        values_on=lambda state: Values([WORK, REGISTRATION], state, sites=store.sites),
+        values_on=lambda state: Values([WORK, PROVISION, REGISTRATION], state, sites=store.sites),
     )
 
 

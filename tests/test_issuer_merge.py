@@ -7,6 +7,7 @@ import httpx
 from app_helper import make_app
 from fastapi.testclient import TestClient
 
+from moarcoal.modules.provision import REGISTRATION as PROVISION
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.storage import (
@@ -107,7 +108,7 @@ def test_merge_rejects_itself_and_other_kinds(tmp_path: Path) -> None:
 
 
 def make_client(root: Path) -> httpx.Client:
-    app = make_app(PORT, root, modules=[WORK, TAX_YEAR], user="anna")
+    app = make_app(PORT, root, modules=[WORK, PROVISION, TAX_YEAR], user="anna")
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 

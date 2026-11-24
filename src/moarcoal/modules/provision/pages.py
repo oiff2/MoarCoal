@@ -1,6 +1,6 @@
 """Die eine Seite des Moduls Vorsorge (`/vorsorge`): die Verträge eines Steuerjahrs mit ihrer
-Steuerlichen Bedeutung. Geschrieben wird nur über `apply`; jede Antwort, auch eine Abweisung,
-zeigt diese Seite."""
+Steuerlichen Bedeutung und die eingelesenen Beitragsbescheinigungen. Geschrieben wird nur über
+`apply`; jede Antwort, auch eine Abweisung, zeigt diese Seite."""
 
 from dataclasses import dataclass
 from typing import Annotated
@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from moarcoal.defaults import year_of
 from moarcoal.modules.provision.common import MODULE_KEY
 from moarcoal.modules.provision.entries import TaxMeaning
+from moarcoal.modules.provision.health_certificate.view import certificate_rows
 from moarcoal.modules.provision.links import meaning_url, provision_url
 from moarcoal.modules.provision.meaning import (
     MeaningInvalid,
@@ -30,6 +31,7 @@ from moarcoal.web.helpers import (
     store_of,
     user_of,
 )
+from moarcoal.web.links import document_url
 
 router = APIRouter(prefix="/vorsorge")
 
@@ -58,7 +60,8 @@ def provision_page(
     state = module_state(request, MODULE_KEY)
     everything = store_of(request).state()
     rows: list[AgreementRow] = []
-    for agreement in running_agreements(state.agreements(), year):
+    running = running_agreements(state.agreements(), year)
+    for agreement in running:
         found = meaning_of(state, agreement)
         issuer = everything.get(agreement.issuer)
         rows.append(
@@ -75,6 +78,8 @@ def provision_page(
         status_code,
         year=year,
         rows=rows,
+        certificates=certificate_rows(state, year, running),
+        document_url=document_url,
         meanings=list(TaxMeaning),
         meaning_url=meaning_url,
         errors=errors,

@@ -170,4 +170,10 @@ def open_module_store(data_dir: Path, modules: Sequence[ModuleRegistration]) -> 
             if kind.unique_per_period
         },
         kinds_with_period={k.key for m in modules for k in m.document_kinds if k.has_period},
+        once_per_issuer={
+            kind.key
+            for module in modules
+            for kind in module.document_kinds
+            if kind.unique_per_issuer
+        },
     )

@@ -15,11 +15,13 @@ Aufbau (HTML aus Mein ELSTER):
 
 import datetime
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
 from html.parser import HTMLParser
 
 from moarcoal.documents import ReadInError
 from moarcoal.storage import Document
+from moarcoal.values.model import parse_cents
 
 HEADER_COMMENT = re.compile(r"^\s*(Belegart|Belegversion|Veranlagungsjahr):\s*(.*?)\s*$")
 INDEX_SUFFIX = re.compile(r"_usb([0-9][0-9_\-]*)$")
@@ -180,3 +182,29 @@ def _received(text: str) -> datetime.date | None:
         return datetime.date(year, month, day)
     except ValueError:
         return None
+
+
+def single_field(fields: list[HtmlField], belegart: str, path: str, name: str) -> HtmlField | None:
+    """Das eine Feld mit dem Pfad `path` (ohne `<belegart>-`); fehlt es: `None`. Kommt es mehrfach
+    vor (Wiederholgruppe), ist nicht entschieden, welcher Wert gilt: `ReadInError` statt Raten."""
+    found = [f for f in fields if f.path == f"{belegart}-{path}"]
+    if len(found) > 1:
+        raise ReadInError(
+            f"{name} steht {len(found)}-mal in der Datei; welcher Wert gilt, ist offen."
+        )
+    return found[0] if found else None
+
+
+def unrecognized_paths(fields: list[HtmlField], belegart: str, known: Collection[str]) -> list[str]:
+    """Die Pfade der Datei (ohne `<belegart>-`), die die Einlese-Regel nicht kennt, sortiert und
+    ohne Dopplung."""
+    prefix = f"{belegart}-"
+    return sorted({f.path.removeprefix(prefix) for f in fields} - set(known))
+
+
+def read_cents(field: HtmlField, name: str) -> int:
+    """Der Betrag des Felds in ganzen Cent, nie negativ; sonst `ReadInError` mit `name`."""
+    cents = parse_cents(field.text)
+    if cents is None or cents < 0:
+        raise ReadInError(f"{name}: „{field.text}“ ist kein Betrag in Euro und Cent.")
+    return cents

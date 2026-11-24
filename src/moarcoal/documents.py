@@ -94,6 +94,8 @@ class DocumentKind:
     Art; der Schreibweg (`EntryKind.check` des Dokuments, `open_store(once_per_period=...)`) weist
     beim Aufnehmen und beim Ändern von Art oder Jahr ein zweites ab, vorhandene Dubletten bleiben
     und ergeben einen Hinweis.
+    `unique_per_issuer` (nur mit `unique_per_period`): die Eindeutigkeit gilt je Aussteller und
+    Jahr; Dokumente verschiedener Aussteller schließen sich nicht aus.
     """
 
     key: str
@@ -105,6 +107,7 @@ class DocumentKind:
     name_patterns: tuple[str, ...] = ()
     after_take_in: Callable[[Document, Sequence[Entry], "Values"], Sequence[Change]] | None = None
     unique_per_period: bool = False
+    unique_per_issuer: bool = False
 
 
 def kind_title(kinds: Mapping[str, DocumentKind], key: str | None) -> str:
@@ -182,6 +185,14 @@ def _period(
     return datetime.date(year, 1, 1), datetime.date(year, 12, 31)
 
 
+def _clash(state: State, document: Document, kind: DocumentKind | None) -> Document | None:
+    """Das Dokument, mit dem `document` die Eindeutigkeit seiner Dokumentart verletzt."""
+    if kind is None:
+        return None
+    once_per_issuer = {kind.key} if kind.unique_per_issuer else ()
+    return period_clash(state.entries, document, {kind.key}, once_per_issuer)
+
+
 def _rejected(
     reasons: Mapping[EntryAddress, str],
     state: State,
@@ -190,7 +201,7 @@ def _rejected(
 ) -> IntakeRejected:
     """Die Abweisung des Schreibwegs; bei „Existiert bereits“ mit dem vorhandenen Dokument."""
     kind = kinds.get(document.document_kind or "")
-    existing = period_clash(state.entries, document, {kind.key} if kind else ())
+    existing = _clash(state, document, kind)
     if (
         kind is not None
         and existing is not None
@@ -206,11 +217,7 @@ def duplicate_findings(state: State, user: str, kinds: Mapping[str, DocumentKind
     found: list[Finding] = []
     for d in sorted(state.of_kind(Document), key=lambda d: str(d.address)):
         kind = kinds.get(d.document_kind or "")
-        if (
-            d.owner == user
-            and kind is not None
-            and period_clash(state.entries, d, {kind.key}) is not None
-        ):
+        if d.owner == user and kind is not None and _clash(state, d, kind) is not None:
             year = d.period_start.year if d.period_start else ""
             found.append(
                 Finding(

@@ -7,6 +7,7 @@ import pytest
 from app_helper import make_app
 from fastapi.testclient import TestClient
 
+from moarcoal.modules.provision import REGISTRATION as PROVISION
 from moarcoal.modules.tax_year import REGISTRATION
 from moarcoal.modules.tax_year.entries import YearPersonInput
 from moarcoal.modules.tax_year.person_input import (
@@ -26,7 +27,7 @@ FIELDS = {"occupation": "Beispielberuf", "phone": "+49 (0) 123 4567-89", "in_ret
 
 
 def client_for(root: Path) -> httpx.Client:
-    app = make_app(PORT, root, modules=[REGISTRATION, WORK], user=USER)
+    app = make_app(PORT, root, modules=[REGISTRATION, WORK, PROVISION], user=USER)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 

@@ -14,6 +14,7 @@ from test_belege_year import section
 
 from moarcoal.documents import DocumentKind, IntakeRejected, take_in
 from moarcoal.incoming import Incoming, all_site_files, hide_file
+from moarcoal.modules.provision import REGISTRATION as PROVISION
 from moarcoal.modules.tax_year import REGISTRATION
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.registration import ModuleRegistration
@@ -376,7 +377,7 @@ def test_year_input_is_hidden_for_kinds_without_period(root: Path, site: Path) -
     sites.write_text(
         json.dumps({"schema": "ablageorte/1", "sites": {"Belege": str(site)}}), encoding="utf-8"
     )
-    app = make_app(PORT, root, [REGISTRATION, WORK, demo], user="anna")
+    app = make_app(PORT, root, [REGISTRATION, WORK, PROVISION, demo], user="anna")
     client = TestClient(app, base_url=f"http://127.0.0.1:{PORT}")
     page = main_of(client, f"/belege?datei={SHA}")
     assert '<option value="demo.contract" data-ohne-zeitraum>' in page

@@ -16,6 +16,7 @@ import pytest
 from app_helper import make_app
 from fastapi.testclient import TestClient
 
+from moarcoal.modules.provision import REGISTRATION as PROVISION
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_n import (
     N_TRAVEL_FARE,
@@ -292,18 +293,20 @@ def test_finding_until_confirmed_then_none() -> None:
 
 
 def test_anlage_n_fields_66_to_69_take_the_work_values() -> None:
-    values = evaluate([WORK, TAX_YEAR], [trip(3, 101), trip(10, 52)])
+    values = evaluate([WORK, PROVISION, TAX_YEAR], [trip(3, 101), trip(10, 52)])
     fare = values.get(N_TRAVEL_FARE, USER, YEAR)
     total = values.get(N_TRAVEL_TOTAL, USER, YEAR)
 
     assert isinstance(fare, ExposedValue) and fare.amount.value == Decimal("46")  # 45,90 gerundet
     assert isinstance(total, ExposedValue) and total.amount.value == Decimal("46")
     assert any("→" in s.text for s in fare.workings.steps)
-    assert isinstance(evaluate([WORK, TAX_YEAR]).get(N_TRAVEL_FARE, USER, YEAR), NotYetComputable)
+    assert isinstance(
+        evaluate([WORK, PROVISION, TAX_YEAR]).get(N_TRAVEL_FARE, USER, YEAR), NotYetComputable
+    )
 
 
 def test_anlage_n_fields_67_and_68_are_zero_with_a_reason_and_sum_into_69() -> None:
-    values = evaluate([WORK, TAX_YEAR], [trip(3, 101), trip(10, 52)])
+    values = evaluate([WORK, PROVISION, TAX_YEAR], [trip(3, 101), trip(10, 52)])
 
     for key in (N_TRAVEL_LODGING, N_TRAVEL_INCIDENTALS):
         result = values.get(key, USER, YEAR)
@@ -312,7 +315,7 @@ def test_anlage_n_fields_67_and_68_are_zero_with_a_reason_and_sum_into_69() -> N
     total = values.get(N_TRAVEL_TOTAL, USER, YEAR)
     assert isinstance(total, ExposedValue) and total.amount.value == Decimal("46")
     assert isinstance(
-        evaluate([WORK, TAX_YEAR]).get(N_TRAVEL_LODGING, USER, YEAR), NotYetComputable
+        evaluate([WORK, PROVISION, TAX_YEAR]).get(N_TRAVEL_LODGING, USER, YEAR), NotYetComputable
     )
 
 

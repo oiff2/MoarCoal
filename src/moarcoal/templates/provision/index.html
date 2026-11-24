@@ -37,4 +37,30 @@
 <p>Für {{ year }} laufen keine Verträge. Verträge legen Sie unter <a href="{{ agreements_url() }}">Verträge</a> an.</p>
 {% endif %}
 {% endcall %}
+{% call abschnitt("vorsorge-bescheinigungen", "Beitragsbescheinigungen", certificates | length, "Eingelesene Beitragsbescheinigungen Kranken-/Pflegeversicherung mit Zahlung oder Erstattung im Jahr " ~ year ~ ". Sie gehören zu den Verträgen ihres Ausstellers.") %}
+{% if certificates %}
+<table class="liste stapel">
+  <thead><tr><th>Bescheinigung</th><th>Vertrag</th><th>Merkmal</th><th>Art</th><th>Betrag</th></tr></thead>
+  <tbody>
+  {% for row in certificates %}
+  {% for line in row.certificate.lines %}
+  <tr>
+    {% if loop.first %}
+    <td data-label="Bescheinigung" rowspan="{{ row.certificate.lines | length }}"><a href="{{ document_url(row.document.id) }}">{{ document_name(row.document) }}</a></td>
+    <td data-label="Vertrag" rowspan="{{ row.certificate.lines | length }}">{% if row.agreements %}{% for a in row.agreements %}<a href="{{ entry_url(a.address) }}">{{ a.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}ohne Vertrag{% endif %}</td>
+    {% endif %}
+    <td data-label="Merkmal">{{ line.merkmal }}</td>
+    <td data-label="Art">{{ line.art }}</td>
+    <td data-label="Betrag">{{ line.cents | eur }}</td>
+  </tr>
+  {% else %}
+  <tr><td data-label="Bescheinigung"><a href="{{ document_url(row.document.id) }}">{{ document_name(row.document) }}</a></td><td colspan="4">ohne Beträge</td></tr>
+  {% endfor %}
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Für {{ year }} ist keine Beitragsbescheinigung eingelesen. Nehmen Sie sie unter <a href="{{ site_url() }}">Belege</a> als Dokumentart „Beitragsbescheinigung Kranken-/Pflegeversicherung“ auf.</p>
+{% endif %}
+{% endcall %}
 {% endblock %}

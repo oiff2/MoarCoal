@@ -18,6 +18,7 @@ from moarcoal.agreements import (
     unassign,
 )
 from moarcoal.issuer_field import IssuerChoice
+from moarcoal.modules.provision import REGISTRATION as PROVISION
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.work import REGISTRATION as WORK
 from moarcoal.storage import (
@@ -259,7 +260,7 @@ def test_agreements_of_lists_only_the_users_sorted(tmp_path: Path) -> None:
 
 
 def make_client(root: Path, user: str = "anna") -> httpx.Client:
-    app = make_app(PORT, root, modules=[WORK, TAX_YEAR], user=user)
+    app = make_app(PORT, root, modules=[WORK, PROVISION, TAX_YEAR], user=user)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 

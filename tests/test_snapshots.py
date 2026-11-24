@@ -16,6 +16,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from moarcoal.documents import DocumentKind, IntakeRejected, TakenIn, change_document, take_in
+from moarcoal.modules.provision import REGISTRATION as PROVISION
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import ProtocolReading
 from moarcoal.modules.tax_year.anlage_n import (
@@ -36,6 +37,7 @@ from moarcoal.modules.tax_year.anlage_n import (
 )
 from moarcoal.modules.tax_year.anlage_sa import ANLAGE_SA
 from moarcoal.modules.tax_year.anlage_vor import ANLAGE_VOR
+from moarcoal.modules.tax_year.anlage_vor import PROVISION_KEYS as VOR_PROVISION_KEYS
 from moarcoal.modules.tax_year.anlage_vor import WORK_KEYS as VOR_WORK_KEYS
 from moarcoal.modules.tax_year.snapshot_check import SNAPSHOT_DEVIATION, snapshot_on_filing
 from moarcoal.modules.work import REGISTRATION as WORK
@@ -97,7 +99,7 @@ USER = "anna"
 COMPUTED_FIELDS = [
     f for anlage in (ANLAGE_N, ANLAGE_SA, ANLAGE_VOR) for f in anlage.fields[2025] if f.computed
 ]
-MODULES = [WORK, TAX_YEAR]
+MODULES = [WORK, PROVISION, TAX_YEAR]
 FIELD_KEYS = [N_WORKPLACE_DAYS, N_WORKPLACE_DISTANCE, N_EQUIPMENT]
 
 
@@ -398,6 +400,7 @@ def foreign(**given: ForeignResult) -> Foreign:
                 WORK_TRAVEL_INCIDENTALS,
                 WORK_TRAVEL_TOTAL,
                 *VOR_WORK_KEYS,
+                *VOR_PROVISION_KEYS,
             )
         },
     }

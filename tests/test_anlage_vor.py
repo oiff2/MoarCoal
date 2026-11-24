@@ -6,11 +6,15 @@ from moarcoal.modules.tax_year.anlage_vor import (
     VOR_EMPLOYEE_HEALTH,
     VOR_EMPLOYEE_PENSION,
     VOR_EMPLOYER_PENSION,
+    VOR_PRIVATE_CARE,
+    VOR_PRIVATE_HEALTH,
+    VOR_PRIVATE_REFUNDS,
     VOR_SUBSIDY_CARE,
     VOR_SUBSIDY_PRIVATE_HEALTH,
     VOR_SUBSIDY_PUBLIC_HEALTH,
     VOR_UNEMPLOYMENT,
 )
+from moarcoal.modules.tax_year.field_catalog import FromValue
 from moarcoal.modules.tax_year.fields import Computed, Direction, NotComputed, Rounding
 from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.structure import form_pages
@@ -29,6 +33,12 @@ COMPUTED = {
     "E2001203": (VOR_EMPLOYEE_HEALTH, "11", Direction.EXPENSE),  # Nr. 25
     "E2001505": (VOR_EMPLOYEE_CARE, "13", Direction.EXPENSE),  # Nr. 26
 }
+# Felder aus den Beitragsbescheinigungen des Moduls Vorsorge (Werte `provision.*`)
+FROM_CERTIFICATES = {
+    "E2003104": (VOR_PRIVATE_HEALTH, "23", Direction.EXPENSE, "provision.private_health_basic"),
+    "E2003202": (VOR_PRIVATE_CARE, "24", Direction.EXPENSE, "provision.private_care"),
+    "E2003302": (VOR_PRIVATE_REFUNDS, "25", Direction.INCOME, "provision.private_refunds"),
+}
 
 
 def test_vor_is_registered_with_its_stored_structure() -> None:
@@ -39,14 +49,18 @@ def test_vor_is_registered_with_its_stored_structure() -> None:
 def test_the_catalog_names_the_computed_fields_and_the_rest_of_the_structure_comes_along() -> None:
     ids = [f.elster_id for f in FIELDS]
     assert ids == [f.e_kennung for f in STRUCTURE.fields]  # alle der Struktur, einmal
-    assert len(ANLAGE_VOR.catalogs[2025]) == len(COMPUTED) < len(FIELDS)
-    assert all(isinstance(f.kind, NotComputed) for f in FIELDS if f.elster_id not in COMPUTED)
+    assert len(ANLAGE_VOR.catalogs[2025]) == len(COMPUTED) + len(FROM_CERTIFICATES) < len(FIELDS)
+    assert all(
+        isinstance(f.kind, NotComputed)
+        for f in FIELDS
+        if f.elster_id not in COMPUTED | FROM_CERTIFICATES
+    )
 
 
 def test_every_field_laut_nr_of_the_certificate_is_computed() -> None:
     computed = {f.elster_id: f for f in FIELDS if f.computed}
 
-    assert set(computed) == set(COMPUTED)
+    assert set(computed) == set(COMPUTED) | set(FROM_CERTIFICATES)
     for elster_id, (key, line, direction) in COMPUTED.items():
         field = computed[elster_id]
         kind = field.kind
@@ -54,6 +68,18 @@ def test_every_field_laut_nr_of_the_certificate_is_computed() -> None:
         assert (field.key, field.form_line, kind.direction) == (key, line, direction)
         assert (kind.unit, kind.rounding) == (Unit.EUR, Rounding.WHOLE_EUROS)
         assert "Lohnsteuerbescheinigung" in field.label
+
+
+def test_lines_23_to_25_are_computed_from_the_values_of_the_provision_module() -> None:
+    computed = {f.elster_id: f for f in FIELDS if f.computed}
+
+    for elster_id, (key, line, direction, source) in FROM_CERTIFICATES.items():
+        field = computed[elster_id]
+        kind = field.kind
+        assert isinstance(kind, Computed)
+        assert (field.key, field.form_line, kind.direction) == (key, line, direction)
+        assert (kind.unit, kind.rounding) == (Unit.EUR, Rounding.WHOLE_EUROS)
+        assert isinstance(kind.compute, FromValue) and kind.compute.source == source
 
 
 def test_no_vor_field_laut_lohnsteuerbescheinigung_is_left_open() -> None:

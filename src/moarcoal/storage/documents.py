@@ -110,12 +110,17 @@ def document_path(entry: Document) -> str:
 
 
 def period_clash(
-    entries: Mapping[EntryAddress, Entry], document: Document, once_per_period: Collection[str]
+    entries: Mapping[EntryAddress, Entry],
+    document: Document,
+    once_per_period: Collection[str],
+    once_per_issuer: Collection[str] = (),
 ) -> Document | None:
     """Das andere Dokument desselben Nutzers mit derselben Art und demselben Bezugszeitraum, wenn
-    die Art (Schlüssel in `once_per_period`) je Bezugszeitraum nur eines erlaubt."""
+    die Art (Schlüssel in `once_per_period`) je Bezugszeitraum nur eines erlaubt. Steht die Art
+    auch in `once_per_issuer`, zählt nur ein Dokument desselben Ausstellers (auch: keiner)."""
     if document.document_kind not in once_per_period or document.period_start is None:
         return None
+    per_issuer = document.document_kind in once_per_issuer
     return next(
         (
             e
@@ -124,6 +129,7 @@ def period_clash(
             and e.address != document.address
             and (e.owner, e.document_kind, e.period_start)
             == (document.owner, document.document_kind, document.period_start)
+            and (not per_issuer or e.issuer == document.issuer)
         ),
         None,
     )
@@ -148,11 +154,14 @@ def exists_already(title: str, document: Document) -> str:
     return f"Existiert bereits: {title} {year}"
 
 
-def document_entry_kind(once_per_period: Mapping[str, str] | None = None) -> EntryKind:
+def document_entry_kind(
+    once_per_period: Mapping[str, str] | None = None, once_per_issuer: Collection[str] = ()
+) -> EntryKind:
     """Die Eintragsart Dokument; eine Datei (SHA-256) ist je Nutzer höchstens einmal Dokument.
     `once_per_period` (Schlüssel -> Name der Dokumentarten, die je
-    Bezugszeitraum und Nutzer nur ein Dokument erlauben) kommt aus den Modulanmeldungen; die
-    Prüfung läuft im Schreibweg gegen den Stand nach dem Vorgang."""
+    Bezugszeitraum und Nutzer nur ein Dokument erlauben) kommt aus den Modulanmeldungen, ebenso
+    `once_per_issuer` (die Arten davon, die es je Aussteller erlauben); die Prüfung läuft im
+    Schreibweg gegen den Stand nach dem Vorgang."""
     once = once_per_period or {}
 
     def check(document: Document, entries: Mapping[EntryAddress, Entry]) -> str | None:
@@ -168,7 +177,7 @@ def document_entry_kind(once_per_period: Mapping[str, str] | None = None) -> Ent
             d.id != document.id for d in documents_of_file(entries, document.owner, document.sha256)
         ):
             return ALREADY_TAKEN_IN
-        other = period_clash(entries, document, once)
+        other = period_clash(entries, document, once, once_per_issuer)
         if other is not None and document.document_kind is not None:
             return exists_already(once[document.document_kind], other)
         return None

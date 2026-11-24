@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from moarcoal.documents import DocumentKind
 from moarcoal.expected_documents import DUPLICATE, PENDING, matching_documents, previous_year_issuer
+from moarcoal.modules.provision import REGISTRATION as PROVISION
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year import TRANSFER_PROTOCOL
 from moarcoal.modules.work import REGISTRATION as WORK
@@ -74,7 +75,7 @@ def expected(start: int = 2025, end: int | None = None, owner: str = "anna") -> 
 
 
 def findings(entries: list[object], year: int = 2025, user: str = "anna"):
-    values = evaluate([WORK, TAX_YEAR], entries)  # pyright: ignore[reportArgumentType]
+    values = evaluate([WORK, PROVISION, TAX_YEAR], entries)  # pyright: ignore[reportArgumentType]
     return [f for f in values.finding_list(user, year).visible if f.kind in (PENDING, DUPLICATE)]
 
 
@@ -202,7 +203,7 @@ def test_a_value_with_expected_document_locator_is_pending() -> None:
 
 
 def make_client(root: Path, user: str = "anna") -> httpx.Client:
-    app = make_app(PORT, root, modules=[WORK, TAX_YEAR], user=user)
+    app = make_app(PORT, root, modules=[WORK, PROVISION, TAX_YEAR], user=user)
     return TestClient(app, base_url=f"http://127.0.0.1:{PORT}", follow_redirects=False)
 
 
@@ -301,7 +302,7 @@ def test_the_write_path_rejects_a_kind_that_is_unknown_or_has_no_period(tmp_path
         key="demo", area_name="Demo", nav_label="Demo", nav_url="/demo",
         router=APIRouter(), kinds=(), document_kinds=(plain,),
     )  # fmt: skip
-    store = make_app(PORT, tmp_path, modules=[WORK, TAX_YEAR, demo]).state.store
+    store = make_app(PORT, tmp_path, modules=[WORK, PROVISION, TAX_YEAR, demo]).state.store
 
     def entry(kind: str) -> ExpectedDocument:
         return ExpectedDocument(owner="anna", document_kind=kind, start_year=2025)
@@ -326,9 +327,11 @@ def test_hiding_pending_2025_leaves_2026_a_separate_finding(tmp_path: Path) -> N
     assert client.post("/befunde/ausblenden", data=form, headers=ORIGIN).status_code == 303
 
     state = open_store(tmp_path, []).state()
-    values = evaluate([WORK, TAX_YEAR], list(state.entries.values()))
+    values = evaluate([WORK, PROVISION, TAX_YEAR], list(state.entries.values()))
     list_2025 = values.finding_list("anna", 2025)
-    list_2026 = evaluate([WORK, TAX_YEAR], list(state.entries.values())).finding_list("anna", 2026)
+    list_2026 = evaluate([WORK, PROVISION, TAX_YEAR], list(state.entries.values())).finding_list(
+        "anna", 2026
+    )
 
     assert [h.finding.kind for h in list_2025.hidden] == [PENDING]
     assert [f.kind for f in list_2025.visible if f.kind == PENDING] == []
@@ -355,7 +358,9 @@ def test_changing_the_description_brings_a_hidden_pending_finding_back(tmp_path:
     store.apply([Put(renamed, expected=store.state().checksum(entry.address))])
 
     state = open_store(tmp_path, []).state()
-    listed = evaluate([WORK, TAX_YEAR], list(state.entries.values())).finding_list("anna", 2025)
+    listed = evaluate([WORK, PROVISION, TAX_YEAR], list(state.entries.values())).finding_list(
+        "anna", 2025
+    )
     assert [f.kind for f in listed.visible if f.kind == PENDING] == [PENDING]
 
 

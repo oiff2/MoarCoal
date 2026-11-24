@@ -18,10 +18,15 @@ fest, dass die Bescheinigung Nr. 17, 18, 24 a, 25 und 26 nicht nennt.
 from pydantic import ValidationError
 
 from moarcoal.documents import DocumentKind, ReadInError
-from moarcoal.modules.elster_html import HtmlField, parse_elster_document
+from moarcoal.modules.elster_html import (
+    HtmlField,
+    parse_elster_document,
+    read_cents,
+    single_field,
+    unrecognized_paths,
+)
 from moarcoal.modules.work.wage_tax.entries import WageTaxCertificate
 from moarcoal.storage import Document, ReadInEntry
-from moarcoal.values.model import parse_cents
 
 READER_VERSION = 3  # 2: unbekannte Pfade festhalten (Nr. 17, 18); 3: Nr. 22 bis 24, 27
 TITLE = "Lohnsteuerbescheinigung"  # Titel der Dokumentart
@@ -65,25 +70,7 @@ KNOWN_PATHS = frozenset(
 
 
 def _single(fields: list[HtmlField], path: str, name: str) -> HtmlField | None:
-    found = [f for f in fields if f.path == f"{BELEGART}-{path}"]
-    if len(found) > 1:
-        raise ReadInError(
-            f"{name} steht {len(found)}-mal in der Datei; welcher Wert gilt, ist offen."
-        )
-    return found[0] if found else None
-
-
-def _unrecognized(fields: list[HtmlField]) -> list[str]:
-    """Die Pfade der Datei, die die Einlese-Regel nicht kennt, sortiert und ohne Dopplung."""
-    prefix = f"{BELEGART}-"
-    return sorted({f.path.removeprefix(prefix) for f in fields} - KNOWN_PATHS)
-
-
-def _cents(field: HtmlField, name: str) -> int:
-    cents = parse_cents(field.text)
-    if cents is None or cents < 0:
-        raise ReadInError(f"{name}: „{field.text}“ ist kein Betrag in Euro und Cent.")
-    return cents
+    return single_field(fields, BELEGART, path, name)
 
 
 def _tax_class(field: HtmlField) -> int:
@@ -104,7 +91,7 @@ VORSORGE = {
 
 def _vorsorge_cents(found: dict[str, HtmlField | None], key: str) -> int | None:
     field = found[key]
-    return None if field is None else _cents(field, VORSORGE[key][1])
+    return None if field is None else read_cents(field, VORSORGE[key][1])
 
 
 def read_in_wage_tax_certificate(document: Document, content: bytes) -> list[ReadInEntry]:
@@ -138,16 +125,16 @@ def read_in_wage_tax_certificate(document: Document, content: bytes) -> list[Rea
             year=year,
             reader_version=READER_VERSION,
             tax_class=None if tax_class is None else _tax_class(tax_class),
-            gross_wages_cents=_cents(gross, "Bruttoarbeitslohn"),
-            income_tax_cents=None if income_tax is None else _cents(income_tax, "Lohnsteuer"),
-            soli_cents=None if soli is None else _cents(soli, "Solidaritätszuschlag"),
+            gross_wages_cents=read_cents(gross, "Bruttoarbeitslohn"),
+            income_tax_cents=None if income_tax is None else read_cents(income_tax, "Lohnsteuer"),
+            soli_cents=None if soli is None else read_cents(soli, "Solidaritätszuschlag"),
             employer_pension_cents=_vorsorge_cents(vorsorge, "employer_pension"),
             employee_pension_cents=_vorsorge_cents(vorsorge, "employee_pension"),
             subsidy_private_health_cents=_vorsorge_cents(vorsorge, "subsidy_private_health"),
             subsidy_care_cents=_vorsorge_cents(vorsorge, "subsidy_care"),
             unemployment_cents=_vorsorge_cents(vorsorge, "unemployment"),
             places=places,
-            unrecognized=_unrecognized(fields),
+            unrecognized=unrecognized_paths(fields, BELEGART, KNOWN_PATHS),
         )
     except ValidationError as error:
         raise ReadInError(

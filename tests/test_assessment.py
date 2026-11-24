@@ -43,6 +43,7 @@ from moarcoal.modules.tax_year.anlage_n import (
     WORK_WORKDAYS,
     WORK_WORKDAYS_PER_WEEK,
 )
+from moarcoal.modules.tax_year.anlage_vor import PROVISION_KEYS as VOR_PROVISION_KEYS
 from moarcoal.modules.tax_year.anlage_vor import WORK_KEYS as VOR_WORK_KEYS
 from moarcoal.modules.tax_year.anlagen import Anlage
 from moarcoal.modules.tax_year.assessment import (
@@ -109,6 +110,7 @@ def work(workdays: int = 220, km: int = 12, cents: int = 0) -> Foreign:
                 WORK_BENEFITS_FLAT_TAXED,
                 WORK_TRIP_DAYS,
                 *VOR_WORK_KEYS,
+                *VOR_PROVISION_KEYS,
             )
         },
     }
