@@ -85,3 +85,17 @@ class SumOfRounded:
         for item in items:
             total += rounded(calculation, field, item.amount).value
         return calculation.step(f"Summe der {len(items)} Einzelangaben", Amount(total, Unit.EUR))
+
+
+@dataclass(frozen=True)
+class ItemsOfValue:
+    """Das Anlegen der Einzelposten (`CollectItems`) eines Felds mit Einzelangaben, dessen
+    Einzelposten die eines Ausgewiesenen Werts sind (Wert eines beliebigen Moduls, Prinzip 2);
+    `label` nennt ihn, wenn er entfällt. Entfällt der Wert, entfällt das Feld."""
+
+    source: ValueKey
+    label: str
+
+    def __call__(self, calculation: Calculation, field: FormField) -> None:
+        if calculation.use_items(self.source) is None:
+            calculation.not_applicable(f"{self.label} entfällt")

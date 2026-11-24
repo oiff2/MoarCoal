@@ -558,6 +558,9 @@ def test_the_registration_lists_the_new_kind_and_values() -> None:
         CARE,
         REFUNDS,
         "provision.private_health_extra",
+        "provision.unemployment_contributions",
+        "provision.disability_contributions",
+        "provision.accident_liability_risk_contributions",
         STATUTORY_REFUNDS,
         STATUTORY_REFUNDS_NO_SICK_PAY,
     }

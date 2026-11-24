@@ -24,8 +24,21 @@ from moarcoal.modules.provision.annual_contribution.changes import (
     delete_changes,
     net_cents,
 )
-from moarcoal.modules.provision.annual_contribution.values import PRIVATE_HEALTH_EXTRA
-from moarcoal.modules.tax_year.anlage_vor import VOR_PRIVATE_EXTRA
+from moarcoal.modules.provision.annual_contribution.values import (
+    ACCIDENT_LIABILITY_RISK,
+    DISABILITY,
+    PRIVATE_HEALTH_EXTRA,
+    RULES,
+    UNEMPLOYMENT,
+)
+from moarcoal.modules.tax_year.anlage_vor import (
+    ANLAGE_VOR,
+    VOR_ACCIDENT_LIABILITY_RISK,
+    VOR_DISABILITY,
+    VOR_PRIVATE_EXTRA,
+    VOR_UNEMPLOYMENT_CONTRIBUTIONS,
+)
+from moarcoal.modules.tax_year.fields import ItemizedAmount
 from moarcoal.registration import ModuleState
 from moarcoal.storage import (
     COMMON_OWNER,
@@ -476,3 +489,105 @@ def test_a_negative_sum_is_not_yet_computable_never_clamped_to_zero(tmp_path: Pa
         result = value(store, key)
         assert isinstance(result, NotYetComputable)
         assert "übersteigen" in result.reason and "4b" in result.reason
+
+
+# --- VOR Z. 44 bis 46: Einzelangaben je Steuerlicher Bedeutung -----------------------------------
+
+GROUPS = [
+    (TaxMeaning.UNEMPLOYMENT, UNEMPLOYMENT, VOR_UNEMPLOYMENT_CONTRIBUTIONS),
+    (TaxMeaning.DISABILITY, DISABILITY, VOR_DISABILITY),
+    (TaxMeaning.ACCIDENT_LIABILITY_RISK, ACCIDENT_LIABILITY_RISK, VOR_ACCIDENT_LIABILITY_RISK),
+]
+GROUP_IDS = [meaning.value for meaning, _, _ in GROUPS]
+
+
+def itemized_of(field_key: str, store: Store) -> tuple[ExposedValue, tuple[ItemizedAmount, ...]]:
+    (field,) = [f for f in ANLAGE_VOR.fields[2025] if f.key == field_key]
+    result = value(store, field_key)
+    assert isinstance(result, ExposedValue) and field.itemized is not None
+    return result, field.itemized.amounts(result.items)
+
+
+@pytest.mark.parametrize(("meaning", "key", "field_key"), GROUPS, ids=GROUP_IDS)
+def test_two_agreements_give_two_itemized_entries_and_their_sum(
+    tmp_path: Path, meaning: TaxMeaning, key: str, field_key: str
+) -> None:
+    _, store = make_client(tmp_path)
+    first = add_agreement(store, "Police Muster", meaning=meaning)
+    second = add_agreement(store, "Police Beispiel", meaning=meaning)
+    add_agreement(store, "Fremd", meaning=TaxMeaning.BASIC_PENSION)
+    # 100,20 € ohne Erstattung; 50,10 € abzüglich 40,00 € Erstattung = 10,10 €
+    changes = [Put(contribution(first, 10_020)), Put(contribution(second, 5_010, 4_000))]
+    assert isinstance(store.apply(changes), Applied)
+
+    raw = value(store, key)
+    assert isinstance(raw, ExposedValue) and raw.amount == Amount.eur_cents(11_030)
+    assert {i.label for i in raw.items} == {"Police Muster", "Police Beispiel"}
+    result, amounts = itemized_of(field_key, store)
+    # je Einzelangabe aufgerundet: 101 und 11, Summe 112 (die Summe der Ungerundeten, 110,30 €,
+    # würde zu 111 aufgerundet)
+    assert set(amounts) == {
+        ItemizedAmount("Police Muster", Decimal(101)),
+        ItemizedAmount("Police Beispiel", Decimal(11)),
+    }
+    assert len(amounts) == 2
+    assert result.amount == Amount.eur_cents(11_200)
+
+
+@pytest.mark.parametrize(("meaning", "key", "field_key"), GROUPS, ids=GROUP_IDS)
+def test_a_group_without_agreement_of_the_meaning_falls_away_never_zero(
+    tmp_path: Path, meaning: TaxMeaning, key: str, field_key: str
+) -> None:
+    _, store = make_client(tmp_path)
+    other = next(m for m in (g[0] for g in GROUPS) if m is not meaning)
+    add_agreement(store, "Andere", meaning=other)
+    add_agreement(store, "Beendet", meaning=meaning, end=datetime.date(2024, 5, 1))
+    assert isinstance(value(store, key), NotApplicable)
+    assert isinstance(value(store, field_key), NotApplicable)
+
+
+@pytest.mark.parametrize(("meaning", "key", "field_key"), GROUPS, ids=GROUP_IDS)
+def test_a_running_agreement_without_contribution_is_not_yet_computable_and_named(
+    tmp_path: Path, meaning: TaxMeaning, key: str, field_key: str
+) -> None:
+    _, store = make_client(tmp_path)
+    add_agreement(store, "Police Muster", meaning=meaning)
+    for each in (key, field_key):
+        result = value(store, each)
+        assert isinstance(result, NotYetComputable)
+        assert "Police Muster" in result.reason and "kein Jahresbeitrag" in result.reason
+
+
+@pytest.mark.parametrize(("meaning", "key", "field_key"), GROUPS, ids=GROUP_IDS)
+def test_an_explicit_zero_is_a_value_in_every_group(
+    tmp_path: Path, meaning: TaxMeaning, key: str, field_key: str
+) -> None:
+    _, store = make_client(tmp_path)
+    agreement = add_agreement(store, "Police Muster", meaning=meaning)
+    assert isinstance(store.apply([Put(contribution(agreement, 0))]), Applied)
+    result, amounts = itemized_of(field_key, store)
+    assert result.amount == Amount.eur_cents(0)
+    assert amounts == (ItemizedAmount("Police Muster", Decimal(0)),)
+
+
+@pytest.mark.parametrize(("meaning", "key", "field_key"), GROUPS, ids=GROUP_IDS)
+def test_a_negative_contribution_makes_the_group_not_yet_computable_never_clamped(
+    tmp_path: Path, meaning: TaxMeaning, key: str, field_key: str
+) -> None:
+    _, store = make_client(tmp_path)
+    first = add_agreement(store, "Police Muster", meaning=meaning)
+    second = add_agreement(store, "Police Beispiel", meaning=meaning)
+    # die Summe bliebe positiv, aber die Einzelangabe zu Police Muster wäre negativ
+    changes = [Put(contribution(first, 10_000, 15_000)), Put(contribution(second, 30_000))]
+    assert isinstance(store.apply(changes), Applied)
+    for each in (key, field_key):
+        result = value(store, each)
+        assert isinstance(result, NotYetComputable)
+        assert "Police Muster" in result.reason and "Police Beispiel" not in result.reason
+        assert "4b" in result.reason
+
+
+def test_line_27_keeps_its_own_rule_a_negative_item_is_fine_while_the_sum_is_not() -> None:
+    by_key = {rule.key: rule for rule in RULES}
+    assert not by_key[PRIVATE_HEALTH_EXTRA].each_item_non_negative
+    assert all(by_key[key].each_item_non_negative for _, key, _ in GROUPS)

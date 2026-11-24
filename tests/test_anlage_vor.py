@@ -3,6 +3,8 @@
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_vor import (
     ANLAGE_VOR,
+    VOR_ACCIDENT_LIABILITY_RISK,
+    VOR_DISABILITY,
     VOR_EMPLOYEE_CARE,
     VOR_EMPLOYEE_HEALTH,
     VOR_EMPLOYEE_PENSION,
@@ -18,10 +20,17 @@ from moarcoal.modules.tax_year.anlage_vor import (
     VOR_SUBSIDY_PRIVATE_HEALTH,
     VOR_SUBSIDY_PUBLIC_HEALTH,
     VOR_UNEMPLOYMENT,
+    VOR_UNEMPLOYMENT_CONTRIBUTIONS,
     WORK_EMPLOYEE_HEALTH,
 )
-from moarcoal.modules.tax_year.field_catalog import FromValue
-from moarcoal.modules.tax_year.fields import Computed, Direction, NotComputed, Rounding
+from moarcoal.modules.tax_year.field_catalog import FromValue, ItemsOfValue, SumOfRounded
+from moarcoal.modules.tax_year.fields import (
+    Computed,
+    Direction,
+    Itemized,
+    NotComputed,
+    Rounding,
+)
 from moarcoal.modules.tax_year.registered import ANLAGEN
 from moarcoal.modules.tax_year.structure import form_pages
 from moarcoal.values.engine import ForeignResult
@@ -67,6 +76,17 @@ FROM_PROVISION = {
         "provision.statutory_refunds_no_sick_pay",
     ),
 }
+# Z. 44 bis 46: Einzelangaben (Bezeichnung, Betrag, Summe), Einzelposten des Werts von Vorsorge
+ITEMIZED = {
+    "E2001403": ("E2001401", "E2001402", VOR_UNEMPLOYMENT_CONTRIBUTIONS, "44"),
+    "E2001503": ("E2001501", "E2001502", VOR_DISABILITY, "45"),
+    "E2001803": ("E2001801", "E2001802", VOR_ACCIDENT_LIABILITY_RISK, "46"),
+}
+ITEMIZED_SOURCES = {
+    "E2001403": "provision.unemployment_contributions",
+    "E2001503": "provision.disability_contributions",
+    "E2001803": "provision.accident_liability_risk_contributions",
+}
 # Z. 12 rechnet aus Nr. 25 (`ZeroIfSourceZero`, eigener Test unten)
 OWN_RULE = {"E2001405"}
 
@@ -78,20 +98,22 @@ def test_vor_is_registered_with_its_stored_structure() -> None:
 
 def test_the_catalog_names_the_computed_fields_and_the_rest_of_the_structure_comes_along() -> None:
     ids = [f.elster_id for f in FIELDS]
-    assert ids == [f.e_kennung for f in STRUCTURE.fields]  # alle der Struktur, einmal
-    computed_count = len(COMPUTED) + len(FROM_PROVISION) + len(OWN_RULE)
+    # alle der Struktur, einmal; Bezeichnung und Betrag der Einzelangaben gehen in der Summe auf
+    absorbed = {i for label, amount, _, _ in ITEMIZED.values() for i in (label, amount)}
+    assert ids == [f.e_kennung for f in STRUCTURE.fields if f.e_kennung not in absorbed]
+    computed_count = len(COMPUTED) + len(FROM_PROVISION) + len(OWN_RULE) + len(ITEMIZED)
     assert len(ANLAGE_VOR.catalogs[2025]) == computed_count < len(FIELDS)
     assert all(
         isinstance(f.kind, NotComputed)
         for f in FIELDS
-        if f.elster_id not in COMPUTED | FROM_PROVISION | dict.fromkeys(OWN_RULE)
+        if f.elster_id not in COMPUTED | FROM_PROVISION | ITEMIZED | dict.fromkeys(OWN_RULE)
     )
 
 
 def test_every_field_laut_nr_of_the_certificate_is_computed() -> None:
     computed = {f.elster_id: f for f in FIELDS if f.computed}
 
-    assert set(computed) == set(COMPUTED) | set(FROM_PROVISION) | OWN_RULE
+    assert set(computed) == set(COMPUTED) | set(FROM_PROVISION) | set(ITEMIZED) | OWN_RULE
     for elster_id, (key, line, direction) in COMPUTED.items():
         field = computed[elster_id]
         kind = field.kind
@@ -111,6 +133,23 @@ def test_lines_23_to_25_and_27_are_computed_from_the_values_of_the_provision_mod
         assert (field.key, field.form_line, kind.direction) == (key, line, direction)
         assert (kind.unit, kind.rounding) == (Unit.EUR, Rounding.WHOLE_EUROS)
         assert isinstance(kind.compute, FromValue) and kind.compute.source == source
+
+
+def test_lines_44_to_46_are_itemized_expenses_rounded_up_per_item() -> None:
+    fields = {f.elster_id: f for f in FIELDS}
+
+    for sum_id, (label_id, amount_id, key, line) in ITEMIZED.items():
+        field = fields[sum_id]
+        itemized = field.kind
+        assert isinstance(itemized, Itemized)
+        assert (itemized.label_id, itemized.amount_id) == (label_id, amount_id)
+        assert (field.key, field.form_line) == (key, line)
+        total = itemized.total
+        assert (total.unit, total.rounding) == (Unit.EUR, Rounding.WHOLE_EUROS)
+        assert total.direction is Direction.EXPENSE
+        assert isinstance(total.compute, SumOfRounded)
+        collect = total.compute.collect
+        assert isinstance(collect, ItemsOfValue) and collect.source == ITEMIZED_SOURCES[sum_id]
 
 
 def test_no_vor_field_laut_lohnsteuerbescheinigung_is_left_open() -> None:

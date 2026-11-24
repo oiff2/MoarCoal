@@ -125,6 +125,25 @@ class Calculation:
                 self.decide(f"{self._source.title(result.key)} entfällt: {result.reason}")
                 return None
 
+    def use_items(
+        self, key: ValueKey | str, subject: Subject | None = None
+    ) -> list[LineItem] | None:
+        """Die Einzelposten eines anderen Werts als eigene übernehmen (mit deren Fundstelle),
+        statt den Wert als einen Einzelposten zu verwenden, z. B. für ein Feld mit Einzelangaben.
+
+        Ist er noch nicht berechenbar, ist es diese Rechnung auch (mit Kette). Entfällt er,
+        gibt es keine (Ergebnis `None`), und der Rechenweg nennt den Grund.
+        """
+        result = self._fetch(key, subject, None)
+        match result:
+            case ExposedValue():
+                return [self.item(i.label, i.amount, i.locator) for i in result.items]
+            case NotYetComputable():
+                raise self._not_yet_signal(result)
+            case NotApplicable():
+                self.decide(f"{self._source.title(result.key)} entfällt: {result.reason}")
+                return None
+
     def require(
         self,
         key: ValueKey | str,
