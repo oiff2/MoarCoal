@@ -81,16 +81,16 @@ def deviates(severity: Severity | None) -> FieldCheck:
 def test_the_stage_of_a_row(
     result: ValueResult | None, checks: tuple[FieldCheck, ...], stage: Stage
 ) -> None:
-    assert grade_row(result, checks).stage is stage
+    assert grade_row(result, checks, filled=False).stage is stage
 
 
 def test_a_hidden_deviation_counts_for_nothing() -> None:
     hidden = FieldCheck(
         "Laut Protokoll", "9,00 €", deviation="weicht ab", severity=Severity.ERROR, hidden=True
     )
-    assert grade_row(None, (hidden,)).stage is Stage.NONE
-    assert grade_row(PROVEN, (hidden,)).stage is Stage.GOOD
-    assert grade_row(EXPECTED, (hidden,)).stage is Stage.OPEN
+    assert grade_row(None, (hidden,), filled=False).stage is Stage.NONE
+    assert grade_row(PROVEN, (hidden,), filled=False).stage is Stage.GOOD
+    assert grade_row(EXPECTED, (hidden,), filled=False).stage is Stage.OPEN
 
 
 def test_a_filled_input_or_text_without_a_fitting_check_is_open() -> None:
@@ -103,28 +103,34 @@ def test_a_filled_input_or_text_without_a_fitting_check_is_open() -> None:
 
 
 def test_the_reasons_are_counted_and_named_for_the_tooltip() -> None:
-    graded = grade_row(EXPECTED, (deviates(Severity.NOTE),))
+    graded = grade_row(EXPECTED, (deviates(Severity.NOTE),), filled=False)
 
     assert graded.reasons == ((Reason.NOTE, 1), (Reason.EXPECTED, 1))
     assert graded.title == "1 Hinweis, 1 Beleg erwartet"
-    assert grade_row(NOT_YET, ()).title == "1 Feld noch nicht berechenbar"
-    assert grade_row(PROVEN, ()).title == "belegt oder passt, nichts offen"
-    assert grade_row(None, ()).title == ""
+    assert grade_row(NOT_YET, (), filled=False).title == "1 Feld noch nicht berechenbar"
+    assert grade_row(PROVEN, (), filled=False).title == "belegt oder passt, nichts offen"
+    assert grade_row(None, (), filled=False).title == ""
 
 
 def test_the_worst_stage_of_the_parts_wins_and_the_reasons_add_up() -> None:
     parts = [
-        grade_row(PROVEN, ()),
-        grade_row(EXPECTED, (deviates(Severity.NOTE),)),
-        grade_row(EXPECTED, ()),
+        grade_row(PROVEN, (), filled=False),
+        grade_row(EXPECTED, (deviates(Severity.NOTE),), filled=False),
+        grade_row(EXPECTED, (), filled=False),
     ]
 
     above = combine(parts)
 
     assert above.stage is Stage.OPEN
     assert above.title == "1 Hinweis, 2 Belege erwartet"
-    assert combine([*parts, grade_row(None, (deviates(Severity.ERROR),))]).stage is Stage.ERROR
-    assert combine([grade_row(PROVEN, ()), grade_row(None, (FITS,))]).stage is Stage.GOOD
+    assert (
+        combine([*parts, grade_row(None, (deviates(Severity.ERROR),), filled=False)]).stage
+        is Stage.ERROR
+    )
+    assert (
+        combine([grade_row(PROVEN, (), filled=False), grade_row(None, (FITS,), filled=False)]).stage
+        is Stage.GOOD
+    )
     assert combine([]) == Grading()
 
 

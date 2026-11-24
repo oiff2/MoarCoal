@@ -83,9 +83,7 @@ def _status(stage: Stage, reasons: Iterable[Reason]) -> Grading:
     return Grading(stage, tuple((r, counted[r]) for r in Reason if counted[r]))
 
 
-def grade_row(
-    result: ValueResult | None, checks: Sequence[FieldCheck], filled: bool = False
-) -> Grading:
+def grade_row(result: ValueResult | None, checks: Sequence[FieldCheck], *, filled: bool) -> Grading:
     """Die Stufe der Zeile eines Felds aus dem Ergebnis des Werts (`None`: das Feld hat keins) und
     seinen Gegenproben. `filled`: das Eintipp- oder Textfeld hat einen Inhalt; ohne passende
     Gegenprobe ist er nicht belegt (gelb)."""

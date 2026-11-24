@@ -7,7 +7,8 @@ nur nach der Form des Inhalts einer Zeile (`shape`).
 """
 
 from collections.abc import Callable, Collection, Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from decimal import Decimal
 from typing import ClassVar
 
 from moarcoal.modules.tax_year.anlagen import YearAnlage, protocol_contents
@@ -32,7 +33,7 @@ from moarcoal.registration import ModuleState
 from moarcoal.storage import Snapshot
 from moarcoal.values.calculation import ValueSource
 from moarcoal.values.findings import Finding
-from moarcoal.values.model import Period, ValueRef, ValueResult
+from moarcoal.values.model import Period, ValueKey, ValueRef, ValueResult
 
 type Captures = Callable[[Iterable[ValueRef]], list[tuple[str, str]]]
 """Die Links zum Erfassen zu den fremden Werten eines Ergebnisses (Beschriftung, Adresse); die
@@ -109,6 +110,101 @@ class AnlageView:
         return combine(row.grading for row in self.rows)
 
 
+@dataclass(frozen=True)
+class _Sources:
+    """Was die Zeilen jeder Seite der Anlage brauchen, einmal je Anlage aus dem Stand gelesen:
+    Schnappschuss, gedruckte Werte des EStB, Inhalt des Protokolls, Texte und Gründe aus der
+    Person."""
+
+    snapshot: Snapshot | None
+    printed: dict[ValueKey, Decimal]
+    transferred: dict[str, str] | None
+    texts: dict[str, str]
+    reasons: dict[str, str]
+
+    @classmethod
+    def read(cls, state: ModuleState, year_anlage: YearAnlage) -> "_Sources":
+        year = year_anlage.year
+        assessment = current_assessment(state, year, year_anlage.fields)
+        reading = latest_reading(state, year)
+        return cls(
+            snapshot=latest_snapshot(state, year),
+            printed={} if assessment is None else assessment[1],
+            transferred=None
+            if reading is None
+            else protocol_contents(reading, year_anlage.structure),
+            texts=field_texts(state, year_anlage.fields, year),
+            reasons=field_reasons(state, year_anlage.fields, year),
+        )
+
+
+def _rows(
+    state: ModuleState,
+    values: ValueSource,
+    findings: Sequence[Finding],
+    hidden: Collection[Finding],
+    year: int,
+    page: FormPage,
+    sources: _Sources,
+) -> list[FieldRow]:
+    """Die Zeilen der Seite mit Inhalt, Gegenproben und Stufe; ohne Links zum Erfassen (die setzt
+    `anlage_view`, die Stufe braucht sie nicht)."""
+    frozen: dict[str, str] | None = None
+    if sources.snapshot is not None:
+        frozen = {
+            v.ref.key: describe_frozen(row.field, v)
+            for row in page.rows
+            for v in sources.snapshot.values
+            if v.requested and v.ref.key == row.field.key
+        }
+    period = Period.year(year)
+    rows: list[FieldRow] = []
+    for row in page.rows:
+        field = row.field
+        text = sources.texts.get(field.elster_id)
+        content: RowContent
+        match field.kind:
+            case Computed():
+                content = ValueContent(
+                    values.get(field.key, state.user, period), field.whole_euros, ()
+                )
+            case TypedInput() as typed:
+                entry = current_input(state, year, field)
+                content = InputContent(typed, entry.content if entry else None)
+            case TextSource():
+                content = TextContent(text, sources.reasons.get(field.elster_id))
+            case NotComputed():
+                content = NoContent()
+        checks = field_checks(
+            field,
+            transferred=sources.transferred,
+            frozen=frozen,
+            printed=sources.printed,
+            findings=findings,
+            hidden=hidden,
+            content=text,
+        )
+        match content:
+            case ValueContent():
+                grading = grade_row(content.result, checks, filled=False)
+            case InputContent():
+                grading = grade_row(None, checks, filled=bool(content.saved))
+            case TextContent():
+                grading = grade_row(None, checks, filled=bool(content.text))
+            case NoContent():
+                grading = grade_row(None, checks, filled=False)
+        rows.append(FieldRow(field, row.headings, row.structure.unit, content, checks, grading))
+    return rows
+
+
+def _with_links(row: FieldRow, captures: Captures) -> FieldRow:
+    """Die Zeile mit den Links zum Erfassen dessen, woraus ihr Wert rechnet."""
+    if not isinstance(row.content, ValueContent):
+        return row
+    links = tuple(captures(foreign_refs(row.content.result)))
+    return replace(row, content=replace(row.content, links=links))
+
+
 def anlage_view(
     state: ModuleState,
     values: ValueSource,
@@ -129,65 +225,17 @@ def anlage_view(
     page = next((p for p in year_anlage.pages if slug is None or p.slug == slug), None)
     if page is None:
         return None
-    snapshot = latest_snapshot(state, year)
-    assessment = current_assessment(state, year, year_anlage.fields)
-    printed = {} if assessment is None else assessment[1]
-    frozen: dict[str, str] | None = None
-    if snapshot is not None:
-        frozen = {
-            v.ref.key: describe_frozen(row.field, v)
-            for row in page.rows
-            for v in snapshot.values
-            if v.requested and v.ref.key == row.field.key
-        }
-    reading = latest_reading(state, year)
-    transferred = None if reading is None else protocol_contents(reading, year_anlage.structure)
-    texts = field_texts(state, year_anlage.fields, year)
-    reasons = field_reasons(state, year_anlage.fields, year)
-    period = Period.year(year)
-    rows: list[FieldRow] = []
-    for row in page.rows:
-        field = row.field
-        text = texts.get(field.elster_id)
-        content: RowContent
-        match field.kind:
-            case Computed():
-                result = values.get(field.key, state.user, period)
-                links = tuple(captures(foreign_refs(result)))
-                content = ValueContent(result, field.whole_euros, links)
-            case TypedInput() as typed:
-                entry = current_input(state, year, field)
-                content = InputContent(typed, entry.content if entry else None)
-            case TextSource():
-                content = TextContent(text, reasons.get(field.elster_id))
-            case NotComputed():
-                content = NoContent()
-        checks = field_checks(
-            field,
-            transferred=transferred,
-            frozen=frozen,
-            printed=printed,
-            findings=findings,
-            hidden=hidden,
-            content=text,
-        )
-        result = content.result if isinstance(content, ValueContent) else None
-        filled = bool(
-            content.saved
-            if isinstance(content, InputContent)
-            else content.text
-            if isinstance(content, TextContent)
-            else None
-        )
-        grading = grade_row(result, checks, filled)
-        rows.append(FieldRow(field, row.headings, row.structure.unit, content, checks, grading))
+    sources = _Sources.read(state, year_anlage)
+    rows = _rows(state, values, findings, hidden, year, page, sources)
     first = page == year_anlage.pages[0]
     parts = tuple(
         (part, part.data(state, year, params))
         for part in year_anlage.parts
         if first or part.place is not Place.TOP
     )
-    return AnlageView(year_anlage, page, tuple(rows), parts, snapshot)
+    return AnlageView(
+        year_anlage, page, tuple(_with_links(r, captures) for r in rows), parts, sources.snapshot
+    )
 
 
 @dataclass(frozen=True)
@@ -206,16 +254,13 @@ def grade_anlage(
     hidden: Collection[Finding] = (),
 ) -> AnlageGrading:
     """Die Stufe der Seiten der Anlage und der Anlage, aus denselben Zeilen wie die Seiten selbst
-    (`anlage_view`), also dieselbe Stufe wie der Statusstreifen."""
-    pages: dict[str, Grading] = {}
-    for page in year_anlage.pages:
-        shown = anlage_view(
-            state, values, findings, _no_links, year_anlage, page.slug, PageParams("", None), hidden
+    (`_rows`), also dieselbe Stufe wie der Statusstreifen."""
+    sources = _Sources.read(state, year_anlage)
+    pages = {
+        page.slug: combine(
+            r.grading
+            for r in _rows(state, values, findings, hidden, year_anlage.year, page, sources)
         )
-        if shown is not None:
-            pages[page.slug] = shown.grading
+        for page in year_anlage.pages
+    }
     return AnlageGrading(combine(pages.values()), pages)
-
-
-def _no_links(refs: Iterable[ValueRef]) -> list[tuple[str, str]]:
-    return []
