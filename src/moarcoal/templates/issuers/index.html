@@ -32,7 +32,7 @@
   <tbody>
   {% for row in rows %}
   <tr>
-    <td><a href="{{ row_url(row.issuer.id) }}"{% if selected and row.issuer.id == selected.id %} aria-current="page"{% endif %}>{{ row.issuer.name }}</a>{% if own and row.issuer.id == own.id %} <small class="pfad">(<a href="/person">Angaben zur Person</a>)</small>{% elif row.issuer.private_person %} <small class="pfad">(Privatperson)</small>{% endif %}{% if row.issuer.aliases %}<small class="pfad weitere-namen">{{ row.issuer.aliases | join(", ") }}</small>{% endif %}</td>
+    <td><a href="{{ row_url(row.issuer.id) }}"{% if selected and row.issuer.id == selected.id %} aria-current="page"{% endif %}>{{ row.issuer.name }}</a>{% if own and row.issuer.id == own.id %} <small class="pfad">(<a href="{{ person_url() }}">Angaben zur Person</a>)</small>{% elif row.issuer.private_person %} <small class="pfad">(Privatperson)</small>{% endif %}{% if row.issuer.aliases %}<small class="pfad weitere-namen">{{ row.issuer.aliases | join(", ") }}</small>{% endif %}</td>
     {% for cell in row.marks %}<td class="jahr">{{ jahresmarke(cell.mark, cell.documents, zellentitel(cell)) }}</td>{% endfor %}
     <td class="zahl">{{ row.documents }}</td>
   </tr>
@@ -76,7 +76,7 @@
 </form>
 {% endif %}
 {% if from_details %}
-<p class="erklaerung">Der Aussteller kommt aus <a href="/person">Angaben zur Person</a> und lässt sich nicht löschen.</p>
+<p class="erklaerung">Der Aussteller kommt aus <a href="{{ person_url() }}">Angaben zur Person</a> und lässt sich nicht löschen.</p>
 {% elif documents or expected %}
 <p class="erklaerung">Der Aussteller wird noch verwendet und lässt sich erst löschen, wenn nichts mehr auf ihn verweist.</p>
 {% endif %}
@@ -90,7 +90,7 @@
   <input type="hidden" name="checksum" value="{{ checksum }}">
   {{ kept() }}
   {% if from_details %}
-  <p>Name: {{ issuer.name }} (Privatperson). Das kommt aus <a href="/person">Angaben zur Person</a>.</p>
+  <p>Name: {{ issuer.name }} (Privatperson). Das kommt aus <a href="{{ person_url() }}">Angaben zur Person</a>.</p>
   {% else %}
   <label>Name
     <input name="name" value="{{ values.get('name', '') }}" required>

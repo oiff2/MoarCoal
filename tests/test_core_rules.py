@@ -350,6 +350,26 @@ def test_every_belege_befunde_and_issuer_address_comes_from_links() -> None:
     assert hand_built_addresses() == []
 
 
+PERSON_ADDRESS = re.compile(r"""["']/person["'?#]""")
+
+
+def templates_with_person_address(root: Path = SRC / "templates") -> list[str]:
+    """Vorlagen, die die Adresse der Angaben zur Person selbst schreiben statt `person_url()`."""
+    return sorted(
+        p.relative_to(root).as_posix()
+        for p in root.rglob("*.html")
+        if PERSON_ADDRESS.search(p.read_text("utf-8"))
+    )
+
+
+def test_templates_take_the_person_address_from_links(tmp_path: Path) -> None:
+    assert templates_with_person_address() == []
+    (tmp_path / "bad.html").write_text('<a href="/person">Angaben</a>', "utf-8")
+    (tmp_path / "fine.html").write_text('<a href="{{ person_url() }}">Angaben</a>', "utf-8")
+    (tmp_path / "year.html").write_text('<form action="/steuerjahr/person/2025">', "utf-8")
+    assert templates_with_person_address(tmp_path) == ["bad.html"]
+
+
 def test_the_address_check_fails_on_a_hand_built_address(tmp_path: Path) -> None:
     (tmp_path / "web").mkdir()
     (tmp_path / "web" / "links.py").write_text('url = "/belege?datei=x"\n', "utf-8")

@@ -40,6 +40,7 @@ from moarcoal.web.links import (
     expected_documents_url,
     issuer_url,
     issuers_url,
+    person_url,
     site_url,
     with_filter,
 )
@@ -210,7 +211,7 @@ def user_name_of(request: Request) -> str | None:
     return None if details is None else details.display_name
 
 
-PAGES_WITHOUT_USER = frozenset({"/", "/person"})  # und /static (eigene Anwendung, keine Route)
+PAGES_WITHOUT_USER = frozenset({"/", person_url()})  # und /static (eigene Anwendung, keine Route)
 
 
 def require_user(request: Request) -> None:

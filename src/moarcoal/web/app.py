@@ -36,6 +36,7 @@ from moarcoal.web.links import (
     agreements_url,
     findings_url,
     mein_elster_url,
+    person_url,
     site_url,
 )
 from moarcoal.web.person_pages import router as person_router
@@ -89,6 +90,7 @@ def create_app(
     globals_["findings_url"] = findings_url
     globals_["agreements_url"] = agreements_url
     globals_["agreement_url"] = agreement_url
+    globals_["person_url"] = person_url
     app.state.templates = Jinja2Templates(env=environment)
     app.state.modules = tuple(modules)
     app.state.user = user

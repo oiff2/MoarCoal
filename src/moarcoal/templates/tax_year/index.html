@@ -11,7 +11,7 @@
 {% endif %}
 
 {% call abschnitt("person", "Angaben zur Person " ~ year, none) %}
-<p>Was nur für {{ year }} gilt. Name, Geburtsdatum, Identifikationsnummer, Anschrift, IBAN und Religion stehen in den <a href="/person">Angaben zur Person</a>.</p>
+<p>Was nur für {{ year }} gilt. Name, Geburtsdatum, Identifikationsnummer, Anschrift, IBAN und Religion stehen in den <a href="{{ person_url() }}">Angaben zur Person</a>.</p>
 {% with errors = person_errors %}{% include "work/_errors.html" %}{% endwith %}
 <form method="post" action="/steuerjahr/person/{{ year }}">
   <label>Ausgeübter Beruf

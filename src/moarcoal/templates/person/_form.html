@@ -6,7 +6,7 @@
   "roemisch-katholisch": "römisch-katholisch",
   "altkatholisch": "altkatholisch"
 } %}
-<form class="formular-seite" method="post" action="/person">
+<form class="formular-seite" method="post" action="{{ person_url() }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   <label>Vorname
     <input name="first_name" value="{{ values.get('first_name', '') }}" required>

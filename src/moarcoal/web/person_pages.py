@@ -17,6 +17,7 @@ from moarcoal.personal_details import (
 )
 from moarcoal.storage import Applied, PersonalDetails, Religion, entry_checksum
 from moarcoal.web.helpers import form_fields, rejection_reasons, render, store_of, user_of
+from moarcoal.web.links import person_url
 
 router = APIRouter()
 
@@ -116,4 +117,4 @@ def save(request: Request, fields: Annotated[Fields, Depends(form_fields)]) -> R
     result = store.apply(changes)
     if not isinstance(result, Applied):
         return _page(request, template, fields, rejection_reasons(result), 409)
-    return RedirectResponse("/" if created else "/person", status_code=303)
+    return RedirectResponse("/" if created else person_url(), status_code=303)

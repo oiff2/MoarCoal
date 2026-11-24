@@ -130,6 +130,11 @@ def portal_link(portal: str | None) -> str | None:
     return portal if portal and portal_problem(portal) is None else None
 
 
+def person_url() -> str:
+    """Die Angaben zur Person (GET zeigt, POST speichert)."""
+    return "/person"
+
+
 def agreements_url() -> str:
     return "/vertraege"
 
