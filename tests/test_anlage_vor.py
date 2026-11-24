@@ -4,8 +4,8 @@ from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
 from moarcoal.modules.tax_year.anlage_vor import (
     ANLAGE_VOR,
     VOR_ACCIDENT_LIABILITY_RISK,
-    VOR_DISABILITY,
     VOR_BASIC_PENSION,
+    VOR_DISABILITY,
     VOR_EMPLOYEE_CARE,
     VOR_EMPLOYEE_HEALTH,
     VOR_EMPLOYEE_PENSION,

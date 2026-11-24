@@ -23,7 +23,12 @@ from moarcoal.documents import (
     take_in,
 )
 from moarcoal.modules import MODULES
-from moarcoal.modules.provision import BASIC_PENSION_CERTIFICATE, BasicPensionCertificate
+from moarcoal.modules.provision import (
+    BASIC_PENSION_CERTIFICATE,
+    AgreementMeaning,
+    BasicPensionCertificate,
+    TaxMeaning,
+)
 from moarcoal.modules.provision.basic_pension.reading import (
     READER_VERSION,
     read_in_basic_pension_certificate,
@@ -44,7 +49,7 @@ from moarcoal.storage import (
     Store,
     entry_checksum,
 )
-from moarcoal.values.model import Amount, ExposedValue, NotYetComputable, Period
+from moarcoal.values.model import Amount, ExposedValue, NotApplicable, NotYetComputable, Period
 from moarcoal.values.testing import evaluate
 
 USER = "anna"
@@ -246,11 +251,16 @@ def get(store: Store, key: str) -> ExposedValue | NotYetComputable:
     return result
 
 
-def add_agreement(store: Store, number: str, name: str = "Basisrente Alpha") -> Agreement:
-    issuer = Issuer(owner=COMMON_OWNER, name="Alpha Rentenversicherung")
+def add_agreement(
+    store: Store, number: str, name: str = "Basisrente Alpha", meaning: TaxMeaning | None = None
+) -> Agreement:
+    issuer = Issuer(owner=COMMON_OWNER, name=f"Anbieter {name}")
     assert isinstance(store.apply([Put(issuer)]), Applied)
     agreement = Agreement(owner=USER, issuer=issuer.address, name=name, number=number)
     assert isinstance(store.apply([Put(agreement)]), Applied)
+    if meaning is not None:
+        entry = AgreementMeaning(owner=USER, agreement=agreement.address, meaning=meaning)
+        assert isinstance(store.apply([Put(entry)]), Applied)
     return agreement
 
 
@@ -336,10 +346,10 @@ def test_the_value_sums_all_certificates_of_the_year_unrounded_with_places(
 
     assert isinstance(result, ExposedValue)
     assert result.amount == Amount.eur_cents(131_070)  # 1.200,40 + 100,30 + 10,00
-    assert [i.amount.value for i in result.items] == [
-        Decimal("1200.40"),
-        Decimal("100.30"),
+    assert sorted(i.amount.value for i in result.items) == [
         Decimal("10.00"),
+        Decimal("100.30"),
+        Decimal("1200.40"),
     ]
     assert {i.locator.entry_address for i in result.items} == {
         first.document.address,
@@ -375,13 +385,55 @@ def test_the_value_counts_without_an_agreement_and_does_not_depend_on_one(
     assert get(store, BASIC_PENSION) == without
 
 
-def test_without_certificate_the_value_and_line_8_are_not_yet_computable_never_zero(
+def test_without_certificate_and_without_basic_pension_agreement_the_value_does_not_apply(
     store: Store,
 ) -> None:
+    add_agreement(
+        store, NUMBER, meaning=TaxMeaning.PRIVATE_HEALTH_CARE
+    )  # andere Bedeutung zählt nicht
+    for key in (BASIC_PENSION, VOR_BASIC_PENSION):
+        result = evaluate(MODULES, entries(store)).get(key, USER, YEAR)
+        assert isinstance(result, NotApplicable)
+    reason = evaluate(MODULES, entries(store)).get(BASIC_PENSION, USER, YEAR)
+    assert isinstance(reason, NotApplicable)
+    assert "Basisrente" in reason.reason and NUMBER not in reason.reason
+
+
+def test_without_certificate_but_with_a_running_basic_pension_agreement_it_is_not_yet_computable(
+    store: Store,
+) -> None:
+    add_agreement(store, NUMBER, meaning=TaxMeaning.BASIC_PENSION)
+    ended = add_agreement(store, OTHER_NUMBER, "Beendet", TaxMeaning.BASIC_PENSION)
+    store.apply(
+        [Put(ended.model_copy(update={"end": datetime.date(2024, 12, 31)}), entry_checksum(ended))]
+    )
+
     for key in (BASIC_PENSION, VOR_BASIC_PENSION):
         result = get(store, key)
         assert isinstance(result, NotYetComputable)
-        assert "Anbieterbescheinigung Basisrente" in str(result)
+        assert "keine Anbieterbescheinigung Basisrente" in str(result)
+        assert NUMBER not in str(result) and OTHER_NUMBER not in str(result)
+
+
+def test_an_agreement_that_ended_before_the_year_does_not_make_the_value_wait(
+    store: Store,
+) -> None:
+    agreement = add_agreement(store, NUMBER, meaning=TaxMeaning.BASIC_PENSION)
+    ended = agreement.model_copy(update={"end": datetime.date(2024, 12, 31)})
+    assert isinstance(store.apply([Put(ended, entry_checksum(agreement))]), Applied)
+
+    assert isinstance(
+        evaluate(MODULES, entries(store)).get(BASIC_PENSION, USER, YEAR), NotApplicable
+    )
+
+
+def test_with_a_certificate_the_value_is_the_sum_whatever_the_agreements(store: Store) -> None:
+    add_agreement(store, OTHER_NUMBER, meaning=TaxMeaning.BASIC_PENSION)
+    assert isinstance(take(store), TakenIn)
+
+    result = get(store, BASIC_PENSION)
+
+    assert isinstance(result, ExposedValue) and result.amount == Amount.eur_cents(130_070)
 
 
 def test_an_unrecognized_path_makes_the_value_not_yet_computable_and_names_it(

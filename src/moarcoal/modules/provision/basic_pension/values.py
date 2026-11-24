@@ -3,14 +3,18 @@
 
 Das Jahr ist das Zahljahr (Zuflussprinzip). Jeder Beitragsblock ist ein Einzelposten mit der
 Fundstelle im Dokument; die Vertragsnummer steht nirgends im Rechenweg, und der Wert hängt nicht
-davon ab, ob die Bescheinigung einem Vertrag zugeordnet ist. Noch nicht berechenbar ist er, wenn
-das Jahr keine Bescheinigung hat, eine mit älterer Einlese-Regel eingelesen ist oder Pfade
-enthält, die die Einlese-Regel nicht kennt; nichts davon fällt stillschweigend weg.
+davon ab, ob die Bescheinigung einem Vertrag zugeordnet ist. Hat das Jahr keine Bescheinigung,
+entfällt er, wenn kein Vertrag mit der Steuerlichen Bedeutung Basisrente im Jahr läuft, sonst ist
+er noch nicht berechenbar. Noch nicht berechenbar ist er auch, wenn eine Bescheinigung mit älterer
+Einlese-Regel eingelesen ist oder Pfade enthält, die die Einlese-Regel nicht kennt; nichts davon
+fällt stillschweigend weg.
 """
 
 from moarcoal.modules.provision.basic_pension.entries import BasicPensionCertificate
 from moarcoal.modules.provision.basic_pension.reading import READER_VERSION
 from moarcoal.modules.provision.common import require_current_reading
+from moarcoal.modules.provision.entries import TaxMeaning
+from moarcoal.modules.provision.meaning import agreements_with, runs_in
 from moarcoal.values.calculation import Calculation
 from moarcoal.values.catalog import CatalogEntry, TimeKind, ValueDefinition
 from moarcoal.values.model import Amount, DocumentLocator, Source, Unit, ValueKey
@@ -22,7 +26,20 @@ def _basic_pension(calculation: Calculation) -> Amount:
     year = calculation.year
     certificates = [c for c in calculation.own.all(BasicPensionCertificate) if c.year == year]
     if not certificates:
-        calculation.not_yet(f"Für {year} ist keine Anbieterbescheinigung Basisrente aufgenommen")
+        running = [
+            a
+            for a in agreements_with(calculation.own, TaxMeaning.BASIC_PENSION)
+            if runs_in(a, year)
+        ]
+        if running:
+            calculation.not_yet(
+                f"Für {year} ist keine Anbieterbescheinigung Basisrente aufgenommen, obwohl "
+                f"ein Vertrag mit der Steuerlichen Bedeutung {TaxMeaning.BASIC_PENSION.label} läuft"
+            )
+        calculation.not_applicable(
+            f"Kein Vertrag mit der Steuerlichen Bedeutung {TaxMeaning.BASIC_PENSION.label} "
+            f"läuft {year}, und es ist keine Anbieterbescheinigung aufgenommen"
+        )
     total = 0
     for certificate in certificates:
         require_current_reading(

@@ -31,6 +31,16 @@ def meaning_of(state: ModuleState, agreement: Agreement) -> AgreementMeaning | N
     return next((m for m in state.all(AgreementMeaning) if m.agreement == agreement.address), None)
 
 
+def agreements_with(state: ModuleState, meaning: TaxMeaning) -> list[Agreement]:
+    """Die Verträge des Nutzers mit der Steuerlichen Bedeutung `meaning`."""
+    found: list[Agreement] = []
+    for agreement in state.agreements():
+        current = meaning_of(state, agreement)
+        if current is not None and current.meaning is meaning:
+            found.append(agreement)
+    return found
+
+
 def parse_meaning(text: str) -> TaxMeaning | None:
     """Die Wahl aus dem Formular: leer heißt keine Bedeutung, sonst eine der `TaxMeaning`."""
     text = text.strip()

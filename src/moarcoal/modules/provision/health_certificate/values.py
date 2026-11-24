@@ -9,6 +9,7 @@ enthält, die die Einlese-Regel nicht kennt, oder einen privaten Block mit unbek
 unbekannter `BetragArt` (die Meldung nennt sie); nichts davon fällt stillschweigend weg.
 """
 
+from moarcoal.modules.provision.common import require_current_reading
 from moarcoal.modules.provision.health_certificate.entries import (
     Characteristic,
     ContributionKind,
@@ -40,16 +41,14 @@ def _lines(calculation: Calculation, wanted: Characteristic) -> list[Located]:
         )
     found: list[Located] = []
     for certificate in certificates:
-        if certificate.reader_version < READER_VERSION:
-            calculation.not_yet(
-                f"Eine Beitragsbescheinigung {year} ist mit einer älteren Einlese-Regel "
-                "eingelesen; sie wird beim nächsten Start neu eingelesen"
-            )
-        if certificate.unrecognized:
-            calculation.not_yet(
-                f"Eine Beitragsbescheinigung {year} enthält Angaben, die MoarCoal nicht kennt "
-                f"({', '.join(certificate.unrecognized)}); ob ein Betrag darunter ist, ist offen"
-            )
+        require_current_reading(
+            calculation,
+            "Eine Beitragsbescheinigung",
+            year,
+            reader_version=certificate.reader_version,
+            current_version=READER_VERSION,
+            unrecognized=certificate.unrecognized,
+        )
         for line in certificate.lines:
             if line.characteristic is None:
                 calculation.not_yet(

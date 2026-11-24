@@ -39,6 +39,7 @@ from moarcoal.modules.tax_year.anlage_sa import ANLAGE_SA
 from moarcoal.modules.tax_year.anlage_vor import (
     ANLAGE_VOR,
     VOR_ACCIDENT_LIABILITY_RISK,
+    VOR_BASIC_PENSION,
     VOR_DISABILITY,
     VOR_PRIVATE_EXTRA,
     VOR_UNEMPLOYMENT_CONTRIBUTIONS,
@@ -307,10 +308,12 @@ def test_value_not_yet_computable_is_frozen_with_reason_and_gives_an_error(store
     assert {f.severity for f in errors} == {Severity.ERROR}
     # Tage, km, die sieben Felder der Lohnsteuerbescheinigung, fünf von VOR und zwei von SA
     # (keine Kirchensteuerzahlung, Religion offen); Arbeitsmittel 0 €; Z. 27 von VOR entfällt (kein
-    # Vertrag KV/PV privat, kein Jahresbeitrag), ebenso Z. 44 bis 46
+    # Vertrag KV/PV privat, kein Jahresbeitrag), ebenso Z. 8 (kein Vertrag Basisrente) und
+    # Z. 44 bis 46
     entfaellt = (
         N_EQUIPMENT,
         VOR_PRIVATE_EXTRA,
+        VOR_BASIC_PENSION,
         VOR_UNEMPLOYMENT_CONTRIBUTIONS,
         VOR_DISABILITY,
         VOR_ACCIDENT_LIABILITY_RISK,

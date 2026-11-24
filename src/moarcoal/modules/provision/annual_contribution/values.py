@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from moarcoal.modules.provision.annual_contribution.changes import contribution_of, net_cents
 from moarcoal.modules.provision.entries import TaxMeaning
 from moarcoal.modules.provision.links import provision_url
-from moarcoal.modules.provision.meaning import meaning_of, runs_in
+from moarcoal.modules.provision.meaning import agreements_with, runs_in
 from moarcoal.registration import ModuleState
 from moarcoal.storage import Agreement
 from moarcoal.values.calculation import Calculation
@@ -99,21 +99,11 @@ RULES: tuple[ContributionRule, ...] = (
 )
 
 
-def _agreements_with(state: ModuleState, meaning: TaxMeaning) -> list[Agreement]:
-    """Die Verträge des Nutzers mit der Steuerlichen Bedeutung."""
-    found: list[Agreement] = []
-    for agreement in state.agreements():
-        current = meaning_of(state, agreement)
-        if current is not None and current.meaning is meaning:
-            found.append(agreement)
-    return found
-
-
 def _contributions_of(rule: ContributionRule, calculation: Calculation) -> Amount:
     year = calculation.year
     state = calculation.own
     label = rule.meaning.label
-    counted = [(a, contribution_of(state, a, year)) for a in _agreements_with(state, rule.meaning)]
+    counted = [(a, contribution_of(state, a, year)) for a in agreements_with(state, rule.meaning)]
     running = [a for a, c in counted if c is None and runs_in(a, year)]
     if running:
         names = ", ".join(a.name for a in running)
