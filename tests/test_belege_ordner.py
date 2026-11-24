@@ -154,3 +154,16 @@ def test_opener_reports_missing_programs_instead_of_crashing(
     monkeypatch.setattr(explorer.subprocess, "run", broken if failing == "run" else fine)
     monkeypatch.setattr(explorer.subprocess, "Popen", broken)
     assert ExplorerOpener().reveal(Path("/x/a.pdf")) == explorer.NOT_AVAILABLE
+
+
+def test_taken_in_row_has_the_folder_button_and_it_opens_the_file(root: Path, site: Path) -> None:
+    opener = FakeOpener()
+    client = client_with(root, site, opener)
+    data = {"sha256": SHA, "kind": "transfer_protocol", "year": "2025"}
+    assert client.post("/belege/aufnehmen", data=data, headers=ORIGIN).status_code == 303
+    section = main_of(client, "/belege?suche=protokoll").split('id="aufgenommen"', 1)[1]
+    pfad = section.split('<small class="pfad">')[1].split("</small>")[0]
+    assert 'action="/belege/ordner-oeffnen?suche=protokoll"' in pfad
+    assert f'name="sha256" value="{SHA}"' in pfad
+    client.post("/belege/ordner-oeffnen", data={"sha256": SHA}, headers=ORIGIN)
+    assert opener.opened == [(site / "2025" / "protokoll.html").resolve()]

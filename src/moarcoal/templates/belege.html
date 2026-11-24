@@ -178,7 +178,7 @@
       <tbody>
       {% for row in taken_in %}{% set doc = row.document %}
       <tr title="{{ doc.site }}/{{ doc.path }}">
-        <td><div class="datei-zelle">{{ dateityp(doc.path) }}<span class="zelle-text"><a class="name" href="{{ keep_filter(entry_url(doc.address)) }}"{% if selected_document and selected_document.id == doc.id %} aria-current="true"{% endif %}>{{ document_name(doc) }}</a><small class="pfad">{{ doc.site }}/{{ doc.path }}</small>{% if row.findings %}<div class="hinweise">{{ finding_list(row.findings, year=year, scope=doc.id ~ "-", back=keep_filter(site_url(document=doc.id, year=year))) }}</div>{% endif %}</span></div></td>
+        <td><div class="datei-zelle">{{ dateityp(doc.path) }}<span class="zelle-text"><a class="name" href="{{ keep_filter(entry_url(doc.address)) }}"{% if selected_document and selected_document.id == doc.id %} aria-current="true"{% endif %}>{{ document_name(doc) }}</a><small class="pfad">{{ doc.site }}/{{ doc.path }} {{ open_folder_button(keep_filter(open_folder_url()), doc.sha256) }}</small>{% if row.findings %}<div class="hinweise">{{ finding_list(row.findings, year=year, scope=doc.id ~ "-", back=keep_filter(site_url(document=doc.id, year=year))) }}</div>{% endif %}</span></div></td>
         <td class="art">{{ row.kind }}</td>
         <td class="zahl"><a title="Einträge mit diesem Beleg" class="eintraege" href="{{ keep_filter(entry_url(doc.address)) }}">{{ row.entries }}</a></td>
         <td class="stand">{{ row.state }}</td>
