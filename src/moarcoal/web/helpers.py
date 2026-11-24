@@ -63,6 +63,13 @@ def global_year(request: Request) -> int:
     return DEFAULT_YEAR if year is None else year
 
 
+def chosen_year(request: Request) -> int:
+    """Das Jahr der Seite: `?jahr=` aus der Adresse, sonst das globale Jahr; Unbrauchbares zählt
+    als nicht gewählt."""
+    year = year_of(request.query_params.get("jahr", ""), in_range=True)
+    return global_year(request) if year is None else year
+
+
 @dataclass(frozen=True)
 class NavEntry:
     """Ein Eintrag der Seitenleiste: Name, Adresse, Icon (Datei in `static/icons/`), Zähler."""

@@ -6,11 +6,13 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
+from moarcoal.agreements import agreements_of
 from moarcoal.documents import DocumentKind
 from moarcoal.extraction_template import Confirmed
 from moarcoal.personal_details import details_of
 from moarcoal.proposals import latest_proposal, template_of
 from moarcoal.storage import (
+    Agreement,
     Document,
     Entry,
     EntryAddress,
@@ -97,6 +99,10 @@ class ModuleState:
     def personal_details(self) -> PersonalDetails | None:
         """Die Angaben zur Person des Nutzers (Baustein der Datenebene), falls es sie gibt."""
         return details_of(self._state, self._user)
+
+    def agreements(self) -> list[Agreement]:
+        """Die Verträge des Nutzers (Baustein der Datenebene), nach Bezeichnung sortiert."""
+        return agreements_of(self._state, self._user)
 
     def documents(self, document_kind: str | None = None) -> list[Document]:
         """Dokumente des Nutzers (Baustein der Datenebene), ggf. nur einer Dokumentart."""

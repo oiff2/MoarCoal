@@ -125,11 +125,11 @@ Das Modul für die vermieteten Immobilien (Anlage V); es führt jede Immobilie �
 _Avoid_: Vermietung (für das Modul), Objekt (außer für die Immobilie selbst)
 
 **Vorsorge**:
-Das Modul für die Beiträge zu Versicherungen und Altersvorsorge, die nicht auf der Lohnsteuerbescheinigung stehen (Anlage Vorsorgeaufwand): private Kranken- und Pflegeversicherung, Basisrente, Zusatzversicherungen und Erstattungen. Die Verträge selbst sind Bausteine; das Modul gibt einem Vertrag seine steuerliche Bedeutung (z. B. Basisabsicherung, Basisrente, sonstige Vorsorge) und führt je Jahr Beiträge und Erstattungen.
+Das Modul für die Beiträge zu Versicherungen und Altersvorsorge, die nicht auf der Lohnsteuerbescheinigung stehen (Anlage Vorsorgeaufwand): private Kranken- und Pflegeversicherung, Basisrente, Zusatzversicherungen und Erstattungen. Die Verträge selbst sind Bausteine; das Modul gibt einem Vertrag seine steuerliche Bedeutung (z. B. Basisabsicherung, Basisrente, sonstige Vorsorge) und führt je Jahr Beiträge und Erstattungen. Eine Seite je Steuerjahr zeigt die Verträge, die im Jahr laufen (die Laufzeit berührt das Jahr; ohne Beginn oder Ende gilt sie dort als offen), mit ihrer steuerlichen Bedeutung. Modulschlüssel `provision`.
 _Avoid_: Versicherungen (für das Modul), Vorsorgeaufwand (das ist die Anlage)
 
 **Steuerliche Bedeutung**:
-Was ein Vertrag für die Anlage Vorsorgeaufwand ist, genau eine je Vertrag, vom Modul Vorsorge in einem eigenen Eintrag festgehalten, der auf den Vertrag verweist: Kranken- und Pflegeversicherung privat (Basisabsicherung aus der Beitragsbescheinigung, Wahlleistungen aus dem Jahresbeitrag), Basisrente, Unfall/Haftpflicht/Risiko, Berufsunfähigkeit oder Arbeitslosigkeit. Ein Vertrag ohne steuerliche Bedeutung zählt in der Anlage nicht.
+Was ein Vertrag für die Anlage Vorsorgeaufwand ist, genau eine je Vertrag, vom Modul Vorsorge in einem eigenen Eintrag festgehalten, der auf den Vertrag verweist: Kranken- und Pflegeversicherung privat (Basisabsicherung aus der Beitragsbescheinigung, Wahlleistungen aus dem Jahresbeitrag), Basisrente, Unfall/Haftpflicht/Risiko, Berufsunfähigkeit oder Arbeitslosigkeit. Ein Vertrag ohne steuerliche Bedeutung zählt in der Anlage nicht. Man setzt, ändert und entfernt sie auf der Seite Vorsorge; löscht man den Vertrag, fällt der Eintrag mit ihm weg (Code: `TaxMeaning`, der Eintrag `AgreementMeaning`).
 _Avoid_: Vertragstyp, Kategorie (die Art des Vertrags ist etwas anderes)
 
 **Jahresbeitrag**:

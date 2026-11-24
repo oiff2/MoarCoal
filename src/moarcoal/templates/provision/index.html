@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_ui.html" import abschnitt, bt %}
+{% block title %}Vorsorge {{ year }} – MoarCoal{% endblock %}
+{% block main %}
+<h1>Vorsorge {{ year }}</h1>
+{% call abschnitt("vorsorge-vertraege", "Verträge", rows | length, "Verträge, die im Jahr " ~ year ~ " laufen. Ein Vertrag ohne Steuerliche Bedeutung zählt in der Anlage Vorsorgeaufwand nicht.") %}
+{% if errors %}
+<ul class="fehler">
+  {% for message in errors %}<li>{{ message }}</li>{% endfor %}
+</ul>
+{% endif %}
+{% if rows %}
+<table class="liste stapel">
+  <thead><tr><th>Bezeichnung</th><th>Vertragspartner</th><th>Steuerliche Bedeutung</th></tr></thead>
+  <tbody>
+  {% for row in rows %}
+  {% set chosen = failed[1] if failed and failed[0] == row.agreement.id else (row.meaning.value if row.meaning else "") %}
+  <tr>
+    <td data-label="Bezeichnung"><a href="{{ entry_url(row.agreement.address) }}">{{ row.agreement.name }}</a></td>
+    <td data-label="Vertragspartner">{{ row.partner }}</td>
+    <td data-label="Steuerliche Bedeutung">
+      <form method="post" action="{{ meaning_url(row.agreement.id) }}" class="inline">
+        <input type="hidden" name="year" value="{{ year }}">
+        <input type="hidden" name="checksum" value="{{ row.checksum }}">
+        <select name="meaning" aria-label="Steuerliche Bedeutung von {{ row.agreement.name }}">
+          <option value=""{% if not chosen %} selected{% endif %}>keine</option>
+          {% for meaning in meanings %}<option value="{{ meaning.value }}"{% if chosen == meaning.value %} selected{% endif %}>{{ meaning.label }}</option>{% endfor %}
+        </select>
+        {{ bt("speichern", "Speichern") }}
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Für {{ year }} laufen keine Verträge. Verträge legen Sie unter <a href="{{ agreements_url() }}">Verträge</a> an.</p>
+{% endif %}
+{% endcall %}
+{% endblock %}
