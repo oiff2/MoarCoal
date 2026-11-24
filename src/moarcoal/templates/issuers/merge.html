@@ -4,7 +4,7 @@
 {% block title %}Zusammenführen – MoarCoal{% endblock %}
 {% block main %}
 <h1>{{ source.name }} zusammenführen mit {{ target.name }}</h1>
-<p><a href="/aussteller/{{ source.id }}">Zurück zu {{ source.name }}</a></p>
+<p><a href="{{ entry_url(source.address) }}">Zurück zu {{ source.name }}</a></p>
 {% include "work/_errors.html" %}
 {% call abschnitt("zusammenfuehren-folgen", "Folgen", none) %}
 <ul>
@@ -34,7 +34,7 @@
 {% endcall %}
 
 {% call abschnitt("zusammenfuehren-bestaetigen", "Bestätigen", none) %}
-<form class="formular-seite" method="post" action="/aussteller/{{ source.id }}/zusammenfuehren">
+<form class="formular-seite" method="post" action="{{ merge_href }}">
   <input type="hidden" name="into" value="{{ target.id }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   <input type="hidden" name="target_checksum" value="{{ target_checksum }}">

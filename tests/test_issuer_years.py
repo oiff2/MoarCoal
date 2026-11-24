@@ -14,13 +14,9 @@ from moarcoal.issuer_years import (
     IssuerFilter,
     IssuerRow,
     Mark,
-    apply_filter,
-    counts,
     issuer_detail,
     issuer_rows,
-    own_first,
-    parse_filter,
-    search,
+    listed,
     years_shown,
 )
 from moarcoal.modules.tax_year import REGISTRATION as TAX_YEAR
@@ -69,6 +65,10 @@ def rows_of(tmp_path: Path, *entries: Entry) -> list[IssuerRow]:
 
 def marks(row: IssuerRow) -> dict[int, Mark]:
     return {m.year: m.mark for m in row.marks}
+
+
+def names(shown: tuple[list[IssuerRow], object]) -> list[str]:
+    return [r.issuer.name for r in shown[0]]
 
 
 def counted(row: IssuerRow) -> dict[int, int]:
@@ -124,19 +124,22 @@ def test_filters_and_counts(tmp_path: Path) -> None:
     recent = bank("Neu", portal="https://portal.example.org")
     old = bank("Alt")
     rows = rows_of(tmp_path, recent, old, paper(recent, THIS - 1), paper(old, THIS - 5))
-    found = counts(rows)
+    shown, found = listed(rows, "", IssuerFilter.ALL, None)
+    assert shown == rows
     assert (found.all, found.no_documents, found.portal) == (2, 1, 1)
-    assert [r.issuer.name for r in apply_filter(rows, IssuerFilter.NO_DOCUMENTS)] == ["Alt"]
-    assert [r.issuer.name for r in apply_filter(rows, IssuerFilter.PORTAL)] == ["Neu"]
-    assert apply_filter(rows, IssuerFilter.ALL) == rows
-    assert parse_filter("unfug") is IssuerFilter.ALL
+    assert names(listed(rows, "", IssuerFilter.NO_DOCUMENTS, None)) == ["Alt"]
+    assert names(listed(rows, "", IssuerFilter.PORTAL, None)) == ["Neu"]
+    _, within_search = listed(rows, "neu", IssuerFilter.NO_DOCUMENTS, None)
+    assert (within_search.all, within_search.no_documents, within_search.portal) == (1, 0, 1)
+    assert IssuerFilter.parse("unfug") is IssuerFilter.ALL
 
 
 def test_search_matches_name_and_alias_only(tmp_path: Path) -> None:
     b = bank(aliases=("MB",), note="Geheimwort")
     rows = rows_of(tmp_path, b)
-    assert search(rows, "musterbank") and search(rows, "mb")
-    assert not search(rows, "geheimwort")
+    assert names(listed(rows, "musterbank", IssuerFilter.ALL, None)) == ["Musterbank eG"]
+    assert names(listed(rows, "mb", IssuerFilter.ALL, None)) == ["Musterbank eG"]
+    assert names(listed(rows, "geheimwort", IssuerFilter.ALL, None)) == []
 
 
 def make_client(root: Path) -> httpx.Client:
@@ -172,14 +175,13 @@ def test_own_issuer_stands_first_in_search_and_filter(tmp_path: Path) -> None:
     own, big = bank("Max Zeta", private_person=True), bank("Beispielkasse AG")
     store.apply([Put(e) for e in (own, big, paper(big, THIS), paper(big, THIS, n=1))])
     rows = issuer_rows(store.state(), "anna", store.sites, THIS)
-    assert [r.issuer.name for r in own_first(rows, own)] == ["Max Zeta", "Beispielkasse AG"]
-    assert [r.issuer.name for r in own_first(rows, None)] == ["Beispielkasse AG", "Max Zeta"]
-    both = search(rows, "a")  # passt auf beide
-    assert [r.issuer.name for r in own_first(both, own)][0] == "Max Zeta"
-    only_big = search(rows, "kasse")
-    assert [r.issuer.name for r in own_first(only_big, own)] == ["Beispielkasse AG"]
-    filtered = apply_filter(rows, IssuerFilter.NO_DOCUMENTS)  # nur der eigene besteht
-    assert [r.issuer.name for r in own_first(filtered, own)] == ["Max Zeta"]
+    every = IssuerFilter.ALL
+    assert names(listed(rows, "", every, own)) == ["Max Zeta", "Beispielkasse AG"]
+    assert names(listed(rows, "", every, None)) == ["Beispielkasse AG", "Max Zeta"]
+    assert names(listed(rows, "a", every, own))[0] == "Max Zeta"  # passt auf beide
+    assert names(listed(rows, "kasse", every, own)) == ["Beispielkasse AG"]
+    # nur der eigene besteht den Filter
+    assert names(listed(rows, "", IssuerFilter.NO_DOCUMENTS, own)) == ["Max Zeta"]
 
 
 def test_detail_lists_years_descending_with_missing_expected_documents(tmp_path: Path) -> None:
@@ -311,3 +313,17 @@ def test_documents_outside_the_shown_years_do_not_count_in_the_total(tmp_path: P
     (row,) = rows_of(tmp_path, b, paper(b, before), paper(b, THIS), straddling)
     assert row.documents == 2  # THIS und das Dokument, das ins erste gezeigte Jahr reicht
     assert sum(counted(row).values()) == 2
+
+
+def test_missing_expected_documents_are_yellow_like_the_tax_year_stage(tmp_path: Path) -> None:
+    b = bank()
+    open_store(tmp_path, []).apply(
+        [Put(e) for e in (b, paper(b, THIS - 2), expect("bescheinigung", THIS - 2))]
+    )
+    page = make_client(tmp_path).get(f"/aussteller/{b.id}").text
+    assert 'class="status status-warning jahresmarke-missing"' in page
+    assert 'class="status status-warning jahresmarke-partial"' in page  # Legende
+    assert "jahresmarke" in page and not re.search(r"status-error[^\"]*jahresmarke", page)
+    assert '<span class="status status-pending"' in page  # Detail: ○ erwartet, fehlt
+    assert f'action="/aussteller/{b.id}/loeschen"' not in page  # verweist noch: kein Löschen
+    assert f'action="/aussteller/{b.id}/zusammenfuehren"' not in page  # kein anderer Aussteller

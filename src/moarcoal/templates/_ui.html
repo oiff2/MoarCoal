@@ -71,15 +71,14 @@ streifen-{{ {"error": "fehler", "warning": "warnung", "proven": "gut", "fits": "
 <span class="status status-{{ art }}" title="{{ text }}"><span class="symbol" aria-hidden="true">{{ status_symbols[art] }}</span><span class="nur-vorlesen">{{ text }}</span></span>
 {%- endmacro %}
 
-{#- Zeichen einer Zelle der Jahresmatrix (Aussteller): ● Belege da, ◐ erwartet und teils da, ○ erwartet und fehlt (rot), · keine Belege;
-    mark ist ein `Mark`. Das Symbol trägt nie allein, das Wort steht als Kurzinfo und für Screenreader. -#}
-{#- Zelle der Jahresmatrix: Kreis in der Stufe der Statussprache. ● (proven) gefüllt mit der Zahl, ◐ (assumed) gestrichelter Ring mit der Zahl,
-    ○ (error) leerer Ring, · (none) Punkt; die Form trägt die Stufe, nicht nur die Farbe. Ohne zahl (Legende) bleibt der Kreis leer.
-    Ab zweistelligen Zahlen wird der Kreis zur Pille. titel ist die Kurzinfo, sonst die Bezeichnung der Stufe. -#}
+{#- Zelle der Jahresmatrix (Aussteller); mark ist ein `Mark`. Farbe aus der Statussprache (mark.art), Form aus dem Zeichen:
+    ● gefüllt mit der Zahl (grün), ◐ gestrichelter Ring mit der Zahl (gelb, erwartet und teils da), ○ leerer Ring (gelb, erwartet und fehlt),
+    · Punkt (keine Belege). Fehlende erwartete Belege sind gelb wie in der Stufe des Steuerjahrs. Ohne zahl (Legende) bleibt der Kreis leer.
+    Ab zweistelligen Zahlen wird der Kreis zur Pille. Das Symbol trägt nie allein: titel ist Kurzinfo und Text für Screenreader, sonst das Wort des Zeichens. -#}
 {% macro jahresmarke(mark, zahl=none, titel=none) -%}
-<span class="status status-{{ mark.value }}" title="{{ titel if titel is not none else mark.label }}">
-{%- if mark.value == "none" %}<span class="symbol" aria-hidden="true">{{ mark.symbol }}</span>
-{%- else %}<span class="kreis" aria-hidden="true">{% if zahl is not none and mark.value != "error" %}{{ zahl }}{% endif %}</span>{% endif -%}
+<span class="status status-{{ mark.art }} jahresmarke-{{ mark.name | lower }}" title="{{ titel if titel is not none else mark.label }}">
+{%- if mark.name == "NONE" %}<span class="symbol" aria-hidden="true">{{ mark.symbol }}</span>
+{%- else %}<span class="kreis" aria-hidden="true">{% if zahl is not none and mark.name != "MISSING" %}{{ zahl }}{% endif %}</span>{% endif -%}
 <span class="nur-vorlesen">{{ titel if titel is not none else mark.label }}</span></span>
 {%- endmacro %}
 

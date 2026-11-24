@@ -331,12 +331,12 @@ def test_every_kind_that_points_at_a_document_has_a_label(tmp_path: Path) -> Non
     assert pointing and [name for name in pointing if name not in labels] == []
 
 
-HAND_BUILT_ADDRESS = re.compile(r"""["'](?:f["'])?/(?:belege|befunde)\?""")
+HAND_BUILT_ADDRESS = re.compile(r"""["'](?:f["'])?/(?:(?:belege|befunde)\?|aussteller/)""")
 
 
 def hand_built_addresses(root: Path = SRC) -> list[str]:
     """Dateien (Python und Vorlagen), die eine Adresse auf `/belege` oder `/befunde` mit Abfrage
-    selbst bauen; die baut allein `web/links.py`."""
+    oder auf einen Aussteller (`/aussteller/…`) selbst bauen; die baut allein `web/links.py`."""
     files = [*root.rglob("*.py"), *root.rglob("*.html")]
     return sorted(
         p.relative_to(root).as_posix()
@@ -346,7 +346,7 @@ def hand_built_addresses(root: Path = SRC) -> list[str]:
     )
 
 
-def test_every_belege_and_befunde_address_comes_from_links() -> None:
+def test_every_belege_befunde_and_issuer_address_comes_from_links() -> None:
     assert hand_built_addresses() == []
 
 
@@ -355,5 +355,7 @@ def test_the_address_check_fails_on_a_hand_built_address(tmp_path: Path) -> None
     (tmp_path / "web" / "links.py").write_text('url = "/belege?datei=x"\n', "utf-8")
     (tmp_path / "page.py").write_text('url = f"/befunde?year={y}"\n', "utf-8")
     (tmp_path / "page.html").write_text("""{{ keep_filter('/belege?datei=' ~ x) }}""", "utf-8")
+    (tmp_path / "issuer.html").write_text('<form action="/aussteller/{{ i.id }}">', "utf-8")
     (tmp_path / "fine.html").write_text('<a href="/belege">Belege</a>', "utf-8")
-    assert hand_built_addresses(tmp_path) == ["page.html", "page.py"]
+    (tmp_path / "router.py").write_text('router = APIRouter(prefix="/aussteller")\n', "utf-8")
+    assert hand_built_addresses(tmp_path) == ["issuer.html", "page.html", "page.py"]

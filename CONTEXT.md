@@ -29,7 +29,7 @@ _Avoid_: Issue, Problem, Warnung oder Fehler (allein, das sind Schweregrade), qu
 Die Sorte eines Befunds, angemeldet von der Datenebene oder einem Modul mit Schlüssel (`<modul>.<name>`) und Titel; sie bestimmt Schweregrad und Text (Code: `FindingKind`).
 
 **Stufe**:
-Wie es um eine Zeile der Anlage steht, als Statusstreifen der Anlage-Seite und als Punkt im Baum der Übersicht: rot (ein Befund oder eine abweichende Gegenprobe mit Schweregrad Fehler), gelb (alles Übrige, was einen Eintrag hat oder offen ist: Hinweis, Warnung, erwarteter Beleg, nicht belegter Betrag, eine ausgefüllte Angabe ohne passende Gegenprobe, „noch nicht berechenbar“), grün (belegt oder passend, nichts offen) oder kein Punkt. Eine Seite und eine Anlage tragen die schlechteste Stufe ihrer Zeilen; der Tooltip nennt die Gründe, z. B. „1 Hinweis, 2 Belege erwartet“. Die Regeln sind vorläufig (Code: `Stage`, mit den Gründen `Grading`).
+Wie es um eine Zeile der Anlage steht, als Statusstreifen der Anlage-Seite und als Punkt im Baum der Übersicht: rot (ein Befund oder eine abweichende Gegenprobe mit Schweregrad Fehler), gelb (alles Übrige, was einen Eintrag hat oder offen ist: Hinweis, Warnung, erwarteter Beleg, nicht belegter Betrag, eine ausgefüllte Angabe ohne passende Gegenprobe, „noch nicht berechenbar“), grün (belegt oder passend, nichts offen) oder kein Punkt. Eine Seite und eine Anlage tragen die schlechteste Stufe ihrer Zeilen; der Tooltip nennt die Gründe, z. B. „1 Hinweis, 2 Belege erwartet“. Die Regeln sind vorläufig (Code: `Stage`, mit den Gründen `Grading`, ein einzelner Grund `Reason`).
 
 **Abgleich**:
 Der Vergleich eines Felds der Anlage mit dem, was das Übertragungsprotokoll an ELSTER übertragen zeigt: exakt und ohne Toleranz gegen den Wert des Felds, so wie er einzutragen ist (also schon gerundet, wo das Feld es verlangt); weicht der Inhalt vom Ausgewiesenen Wert ab, fehlt das Feld im Protokoll oder ist es mehrdeutig, entsteht ein Befund (Warnung), mit Link zur Stelle im Protokoll. Gilt das zuletzt aufgenommene Protokoll des Jahrs.
@@ -227,6 +227,9 @@ _Avoid_: Absender, Firma (im HGB der Handelsname), Gegenpartei
 **Portal**:
 Die Adresse des Kundenportals eines Ausstellers (z. B. `https://portal.example.org`), optional und nur http oder https; ein Feld des Ausstellers, kein eigener Eintrag. MoarCoal zeigt sie als Link nach außen, den nur ein Klick des Nutzers öffnet; beim Seitenaufruf wird nichts von dort geladen (PRINCIPLES.md 8). Das Portal prüft der Vorgang (Code: `Issuer.portal`).
 _Avoid_: Webseite, Homepage, Login-Link
+
+**Belege je Jahr**:
+Was die Aussteller-Seite je Aussteller und Steuerjahr zeigt, in der Liste für die letzten zehn Jahre als Zeichen mit der Zahl seiner Belege im Jahr: Belege da (grün, auch wenn alle für ihn erwarteten Belege erfüllt sind), erwartet und teils da (gelb), erwartet und fehlt (gelb) oder keine Belege (Code: `Mark`). Für ihn erwartet ist ein Erwarteter Beleg, der im Jahr fällig ist und den der Aussteller im Jahr oder im Vorjahr erfüllt hat. Fehlende erwartete Belege sind gelb wie in der Stufe des Steuerjahrs. Die Liste lässt sich filtern: alle, ohne Belege im Vorjahr und in diesem Jahr, mit Portal (Code: `IssuerFilter`).
 
 **Eintrag**:
 Etwas Gespeichertes in MoarCoal mit eigener Adresse, z. B. Dokument, Aussteller, Vertrag, Immobilie, Darlehen, Dienstreise. Ausgewiesene Werte und ihre Einzelposten sind berechnet und keine Einträge. Was an einem anderen Eintrag hängt, ist trotzdem ein Eintrag mit eigener Adresse und verweist auf ihn, z. B. ein Vorschlag auf sein Dokument oder eine Ausblendung auf das Ziel ihres Befunds; es hat nur keine eigene Seite. Offen ist das noch für die Ausnahmen eines Erwarteten Belegs.

@@ -60,11 +60,11 @@
   <div class="icon-leiste">
     {% if portal_href %}{{ ib("extern", "Portal öffnen", href=portal_href, attr='target="_blank" rel="noopener noreferrer"') }}{% endif %}
     {% if others %}{{ ib("zusammenfuehren", "Zusammenführen", popover="zusammenfuehren-wahl") }}{% endif %}
-    {% if not from_details and not documents and not expected %}{% call ib("loeschen", "Löschen", action="/aussteller/" ~ issuer.id ~ "/loeschen", form_cls="direkt") %}<input type="hidden" name="checksum" value="{{ checksum }}">{{ kept() }}{% endcall %}{% endif %}
+    {% if not from_details and not documents and not expected %}{% call ib("loeschen", "Löschen", action=delete_href, form_cls="direkt") %}<input type="hidden" name="checksum" value="{{ checksum }}">{{ kept() }}{% endcall %}{% endif %}
   </div>
 </header>
 {% if others %}
-<form id="zusammenfuehren-wahl" class="dialog" popover method="get" action="/aussteller/{{ issuer.id }}/zusammenfuehren">
+<form id="zusammenfuehren-wahl" class="dialog" popover method="get" action="{{ merge_href }}">
   <p>Ein anderer Name desselben Ausstellers gehört normalerweise als weiterer Name dazu (siehe Angaben). Zusammenführen ist die Ausnahme, wenn derselbe Aussteller zweimal angelegt wurde.</p>
   <label>Zusammenführen mit
     <select name="into" required>
@@ -86,7 +86,7 @@
 {% endif %}
 
 {% call abschnitt("aussteller-angaben", "Angaben zum Aussteller", none) %}
-<form class="formular-seite" method="post" action="/aussteller/{{ issuer.id }}">
+<form class="formular-seite" method="post" action="{{ entry_url(issuer.address) }}">
   <input type="hidden" name="checksum" value="{{ checksum }}">
   {{ kept() }}
   {% if from_details %}
@@ -121,7 +121,7 @@
   <h3>{{ year.year }}</h3>
   <ul class="belege-liste">
     {% for document in year.documents %}<li><div class="datei-zelle">{{ dateityp(document.path) }}<a href="{{ entry_url(document.address) }}">{{ document_name(document) }}</a></div></li>{% endfor %}
-    {% for entry in year.missing %}<li>{{ status("error", expected_label(entry) ~ " · erwartet, fehlt") }}</li>{% endfor %}
+    {% for entry in year.missing %}<li>{{ status("pending", expected_label(entry) ~ " · erwartet, fehlt") }}</li>{% endfor %}
   </ul>
 </section>
 {% endfor %}

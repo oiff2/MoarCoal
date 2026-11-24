@@ -18,7 +18,7 @@
   <tbody>
   {% for entry in expected %}
   <tr>
-    <td data-label="Erwarteter Beleg"><a href="/belege/erwartet/{{ entry.id }}">{{ entry.document_kind }}{% if entry.description %}: {{ entry.description }}{% endif %}</a></td>
+    <td data-label="Erwarteter Beleg"><a href="{{ entry_url(entry.address) }}">{{ entry.document_kind }}{% if entry.description %}: {{ entry.description }}{% endif %}</a></td>
     <td class="zahl" data-label="Ab">{{ entry.start_year }}</td>
   </tr>
   {% endfor %}

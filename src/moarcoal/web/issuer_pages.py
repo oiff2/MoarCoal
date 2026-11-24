@@ -5,22 +5,19 @@ läuft über eine Folgenseite und eine ausdrückliche Bestätigung; die App schl
 """
 
 import datetime
+from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from moarcoal.expected_documents import expected_name
 from moarcoal.issuer_years import (
     IssuerFilter,
     Mark,
-    apply_filter,
-    counts,
     issuer_detail,
     issuer_rows,
-    own_first,
-    parse_filter,
-    search,
+    listed,
     years_shown,
 )
 from moarcoal.personal_details import details_for_issuer, details_of, own_issuer
@@ -49,7 +46,13 @@ from moarcoal.web.helpers import (
     user_of,
     validated,
 )
-from moarcoal.web.links import issuer_url, issuers_url, portal_link
+from moarcoal.web.links import (
+    issuer_delete_url,
+    issuer_merge_url,
+    issuer_url,
+    issuers_url,
+    portal_link,
+)
 
 router = APIRouter(prefix="/aussteller")
 
@@ -101,9 +104,42 @@ def _build(fields: Fields, issuer: Issuer, locked: bool = False) -> tuple[Issuer
     )
 
 
-def _kept(fields: Fields) -> tuple[str, str]:
-    """Suche und Filter der Liste, die ein Formular der Seite mitschickt."""
-    return fields.get("q", ""), fields.get("filter", "")
+@dataclass(frozen=True)
+class _ListState:
+    """Suche und Filter der Liste: sie stehen in der Adresse und reisen in jedem Formular der Seite
+    mit (versteckte Felder `q` und `filter`)."""
+
+    query: str = ""
+    chosen: IssuerFilter = IssuerFilter.ALL
+
+    @classmethod
+    def of(cls, query: str, filter_text: str) -> "_ListState":
+        return cls(query.strip(), IssuerFilter.parse(filter_text))
+
+    @classmethod
+    def kept(cls, fields: Fields) -> "_ListState":
+        """Suche und Filter, die ein Formular der Seite mitschickt."""
+        return cls.of(fields.get("q", ""), fields.get("filter", ""))
+
+    @property
+    def filter_value(self) -> str:
+        """Der Filter für die Adresse; „alle“ steht nicht darin."""
+        return "" if self.chosen is IssuerFilter.ALL else self.chosen.value
+
+    def issuer_url(self, issuer_id: str) -> str:
+        return issuer_url(issuer_id, self.query, self.filter_value)
+
+    def issuers_url(self) -> str:
+        return issuers_url(self.query, self.filter_value)
+
+    def with_filter(self, chosen: IssuerFilter) -> "_ListState":
+        return _ListState(self.query, chosen)
+
+    def without_query(self) -> "_ListState":
+        return _ListState("", self.chosen)
+
+
+_NOTHING_KEPT = _ListState()
 
 
 def _issuer(request: Request, issuer_id: str) -> Issuer:
@@ -117,26 +153,17 @@ def _page(
     errors: list[str] | None = None,
     status_code: int = 200,
     holder: Issuer | None = None,
-    q: str = "",
-    filter: str = "",
+    kept: _ListState = _NOTHING_KEPT,
 ) -> HTMLResponse:
     """Die eine Seite: links die Liste (Suche und Filter aus der Adresse), rechts das Detail des
     gewählten Ausstellers; ohne Auswahl zeigt die rechte Seite nur einen Hinweis."""
-    query = q.strip()
     state = store_of(request).state()
     user = user_of(request)
     details = details_of(state, user)
     own = None if details is None else own_issuer(state, details)
     this_year = datetime.date.today().year
     sites = store_of(request).sites
-    searched = search(issuer_rows(state, user, sites, this_year), query)
-    chosen = parse_filter(filter)
-    found = counts(searched)
-    filter_value = "" if chosen is IssuerFilter.ALL else chosen.value
-
-    def row_url(issuer_id: str) -> str:
-        return issuer_url(issuer_id, query, filter_value)
-
+    rows, found = listed(issuer_rows(state, user, sites, this_year), kept.query, kept.chosen, own)
     kinds = document_kinds(request)
 
     def expected_label(expected: ExpectedDocument) -> str:
@@ -144,10 +171,10 @@ def _page(
 
     context: dict[str, object] = {
         "expected_label": expected_label,
-        "rows": own_first(apply_filter(searched, chosen), own),
+        "rows": rows,
         "years": years_shown(this_year),
         "chips": [
-            (label, n, issuers_url(query, "" if f is IssuerFilter.ALL else f.value), f is chosen)
+            (label, n, kept.with_filter(f).issuers_url(), f is kept.chosen)
             for label, n, f in (
                 ("alle", found.all, IssuerFilter.ALL),
                 (
@@ -158,15 +185,15 @@ def _page(
                 ("mit Portal", found.portal, IssuerFilter.PORTAL),
             )
         ],
-        "chosen": chosen.value,
-        "reset_href": issuers_url("", filter_value),
+        "chosen": kept.chosen.value,
+        "reset_href": kept.without_query().issuers_url(),
         "marks": list(Mark),
-        "query": query,
+        "query": kept.query,
         "own": own,
-        "filter_value": filter_value,
-        "row_url": row_url,
+        "filter_value": kept.filter_value,
+        "row_url": kept.issuer_url,
         "selected": selected,
-        "search_action": "/aussteller" if selected is None else issuer_url(selected.id),
+        "search_action": issuers_url() if selected is None else issuer_url(selected.id),
     }
     if selected is not None:
         documents, expected = _references(state, selected, user)
@@ -178,6 +205,8 @@ def _page(
                 key=lambda i: (name_key(i.name), i.id),
             ),
             "checksum": entry_checksum(selected),
+            "delete_href": issuer_delete_url(selected.id),
+            "merge_href": issuer_merge_url(selected.id),
             "values": fields
             or {
                 "name": selected.name,
@@ -196,21 +225,27 @@ def _page(
     return render(request, "issuers/index.html", status_code, **context)
 
 
+FilterParam = Annotated[
+    str, Query(alias="filter")
+]  # „filter“ in der Adresse, ohne das Builtin zu überdecken
+
+
 @router.get("", response_class=HTMLResponse)
-def index(request: Request, q: str = "", filter: str = "") -> HTMLResponse:
-    return _page(request, q=q, filter=filter)
+def index(request: Request, q: str = "", filter_text: FilterParam = "") -> HTMLResponse:
+    return _page(request, kept=_ListState.of(q, filter_text))
 
 
 @router.get("/{issuer_id}", response_class=Response)
-def show(request: Request, issuer_id: str, q: str = "", filter: str = "") -> Response:
+def show(request: Request, issuer_id: str, q: str = "", filter_text: FilterParam = "") -> Response:
     try:
         address = EntryAddress(kind=Issuer.__name__, id=issuer_id)
     except ValueError as error:
         raise HTTPException(404) from error
     found = store_of(request).state().resolve(address)
+    kept = _ListState.of(q, filter_text)
     if isinstance(found, Issuer) and found.id != issuer_id:  # zusammengeführt: alte Adresse
-        return RedirectResponse(issuer_url(found.id, q.strip(), filter), status_code=308)
-    return _page(request, _issuer(request, issuer_id), q=q, filter=filter)
+        return RedirectResponse(kept.issuer_url(found.id), status_code=308)
+    return _page(request, _issuer(request, issuer_id), kept=kept)
 
 
 def _merge_page(
@@ -230,6 +265,7 @@ def _merge_page(
         source=source,
         target=target,
         checksum=entry_checksum(source),
+        merge_href=issuer_merge_url(source.id),
         target_checksum=entry_checksum(target) if target else "",
         documents=documents,
         expected=expected,
@@ -288,9 +324,9 @@ def update(
     issuer = _issuer(request, issuer_id)
     locked = details_for_issuer(store_of(request).state(), issuer) is not None
     changed, errors = _build(fields, issuer, locked)
-    q, filter = _kept(fields)
+    kept = _ListState.kept(fields)
     if changed is None:
-        return _page(request, issuer, fields, errors, 422, q=q, filter=filter)
+        return _page(request, issuer, fields, errors, 422, kept=kept)
     result = store_of(request).apply([Put(changed, expected=fields.get("checksum", ""))])
     if not isinstance(result, Applied):
         others = [i for i in store_of(request).state().of_kind(Issuer) if i.id != issuer.id]
@@ -299,8 +335,8 @@ def update(
             None,
         )
         reasons = [] if holder else rejection_reasons(result)
-        return _page(request, issuer, fields, reasons, 409, holder, q, filter)
-    return RedirectResponse(issuer_url(issuer.id, q.strip(), filter), status_code=303)
+        return _page(request, issuer, fields, reasons, 409, holder, kept)
+    return RedirectResponse(kept.issuer_url(issuer.id), status_code=303)
 
 
 @router.post("/{issuer_id}/loeschen")
@@ -308,12 +344,10 @@ def delete(
     request: Request, issuer_id: str, fields: Annotated[Fields, Depends(form_fields)]
 ) -> Response:
     issuer = _issuer(request, issuer_id)
-    q, filter = _kept(fields)
+    kept = _ListState.kept(fields)
     if details_for_issuer(store_of(request).state(), issuer) is not None:
-        return _page(request, issuer, errors=[FROM_DETAILS], status_code=409, q=q, filter=filter)
+        return _page(request, issuer, errors=[FROM_DETAILS], status_code=409, kept=kept)
     result = store_of(request).apply([Delete(issuer.address, expected=fields.get("checksum", ""))])
     if not isinstance(result, Applied):
-        return _page(
-            request, issuer, errors=rejection_reasons(result), status_code=409, q=q, filter=filter
-        )
-    return RedirectResponse(issuers_url(q.strip(), filter), status_code=303)
+        return _page(request, issuer, errors=rejection_reasons(result), status_code=409, kept=kept)
+    return RedirectResponse(kept.issuers_url(), status_code=303)

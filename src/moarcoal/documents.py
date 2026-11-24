@@ -254,19 +254,29 @@ def unreferenced_document_findings(
     return found
 
 
-def belongs_to_year(document: Document, year: int, state: State, sites: Sites) -> bool:
-    """Ob das Dokument zu dem Jahr gehört (CONTEXT.md, Dokument): sein Bezugszeitraum berührt
-    das Jahr; ohne Bezugszeitraum liegt es im Jahresordner des Jahrs; an einem Ablageort ohne
-    Jahr verweist ein Eintrag mit Zeitbezug in diesem Jahr (Feld `year`) auf es."""
+def years_of_document(document: Document, state: State, sites: Sites) -> frozenset[int]:
+    """Die Jahre, zu denen das Dokument gehört (CONTEXT.md, Dokument): die sein Bezugszeitraum
+    berührt; ohne Bezugszeitraum das Jahr seines Jahresordners; an einem Ablageort ohne Jahr die
+    Jahre der Einträge mit Zeitbezug (Feld `year`), die auf es verweisen. Die Regel gibt es nur
+    hier; `belongs_to_year` fragt sie für ein Jahr ab."""
     if document.period_start is not None:
-        return document.touches_year(year)
+        if document.period_end is None:
+            return frozenset()
+        return frozenset(range(document.period_start.year, document.period_end.year + 1))
     site_year = sites.year_of(document.site)
     if site_year is not None:
-        return site_year == year
-    return any(
-        getattr(entry, "year", None) == year and document.address in referenced_addresses(entry)
+        return frozenset({site_year})
+    return frozenset(
+        year
         for entry in state.entries.values()
+        if isinstance(year := getattr(entry, "year", None), int)
+        and document.address in referenced_addresses(entry)
     )
+
+
+def belongs_to_year(document: Document, year: int, state: State, sites: Sites) -> bool:
+    """Ob das Dokument zu dem Jahr gehört (`years_of_document`)."""
+    return year in years_of_document(document, state, sites)
 
 
 def document_name(document: Document, state: State) -> str:
